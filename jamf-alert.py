@@ -20,14 +20,10 @@ def generate_alert(timestamp, severity, detector, environment, object_type, obje
     return alert
 
 
-def insert_alert(alert):
-    query = ""
-
-
 ctx = snowflake.connector.connect(
-    user=os.environ['SNOWALERTS_USER'],
+    user=os.environ['SNOWALERT_USER'],
     account='oz03309',
-    password=os.environ['SNOWALERTS_PASSWORD']
+    password=os.environ['SNOWALERT_PASSWORD']
 )
 
 sip_disabled_description = "The affected computer has System Integrity Protection turned off."
@@ -42,7 +38,7 @@ sip_query = 'select v:timestamp::timestamp_tz as time, ' \
             'select v from jamf.public.jamf order by v:timestamp::timestamp_tz desc limit 1) j,' \
             'lateral flatten (input => v:"SIP Disabled":computer_group:computers) r;'
 
-ctx.cursor().execute('use warehouse snowalerts')
+ctx.cursor().execute('use warehouse snowalert')
 ctx.cursor().execute('use database jamf')
 
 results = ctx.cursor().execute(sip_query).fetchall()
@@ -59,5 +55,7 @@ for res in results:
                            description=sip_disabled_description)
     alerts.append(alert)
 
+ctx.cursor().execute('use database snowalert')
+
 for i in alerts:
-    print(i)
+    insert_alert(i)
