@@ -33,7 +33,7 @@ decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
 auth = decrypted_auth['Plaintext'].decode()
 
 
-def lambda_handler():
+def lambda_handler(event, context):
     ctx = snowflake.connector.connect(
         user='snowalert',
         account='oz03309',
