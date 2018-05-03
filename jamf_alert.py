@@ -25,38 +25,20 @@ def log_alerts(alerts):
     for alert in alerts:
         ctx.cursor().execute('insert into alerts (alert) select parse_json (column1) as variant from values (%s);', (alert))
 
-
-kms = boto3.client('kms')
-encrypted_auth = os.environ['auth']
-binary_auth = base64.b64decode(encrypted_auth)
-decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
-auth = decrypted_auth['Plaintext'].decode()
-
-
-def lambda_handler(event, context):
-    ctx = snowflake.connector.connect(
-        user='snowalert',
-        account='oz03309',
-        password=auth
-    )
-
-    sip_disabled_description = "The affected computer has System Integrity Protection turned off."
-    sip_severity = 3
-
+def jamf_query():
     detector = "Jamf"
 
     sip_query = 'select v:timestamp::timestamp_tz as time, ' \
-            'r.value:name::string as name, ' \
-            'r.value:id::int as id ' \
-            'from (' \
-            'select v from jamf.public.jamf order by v:timestamp::timestamp_tz desc limit 1) j,' \
-            'lateral flatten (input => v:"SIP Disabled":computer_group:computers) r;'
+        'r.value:name::string as name, ' \
+        'r.value:id::int as id ' \
+        'from (' \
+        'select v from jamf.public.jamf order by v:timestamp::timestamp_tz desc limit 1) j,' \
+        'lateral flatten (input => v:"SIP Disabled":computer_group:computers) r;'
 
     ctx.cursor().execute('use warehouse snowalert')
     ctx.cursor().execute('use database jamf')
 
     results = ctx.cursor().execute(sip_query).fetchall()
-
     alerts = []
     for res in results:
         alert = generate_alert(timestamp=str(res[0]),
@@ -70,3 +52,23 @@ def lambda_handler(event, context):
         alerts.append(json.dumps(alert))
 
     log_alerts(alerts)
+
+
+kms = boto3.client('kms')
+encrypted_auth = os.environ['auth']
+binary_auth = base64.b64decode(encrypted_auth)
+decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
+auth = decrypted_auth['Plaintext'].decode()
+
+sip_disabled_description = "The affected computer has System Integrity Protection turned off."
+sip_severity = 3
+
+
+def lambda_handler(event, context):
+    ctx = snowflake.connector.connect(
+        user='snowalert',
+        account='oz03309',
+        password=auth
+    )
+
+    jamf_query()
