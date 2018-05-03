@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
         # Create a new ticket in JIRA for the alert
         ticketID = plugins.create_jira_ticket(
-            guid=alert['guid'],                   
+            guid=alert['guid'],
             creationTime=alert['timestamp'],
             severity=alert['severity'],
             detector=alert['detector'],
