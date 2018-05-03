@@ -1,0 +1,21 @@
+1. install docker for mac
+    https://www.docker.com/docker-mac
+
+2. Run the following command:
+    `docker run -it lambci/lambda:build-python3.6 bash`
+
+   What that does is drop you into a bash shell inside a docker environment that mirrors what lambda's execution environment for python 3.6 is.
+
+3. Copy your .py file over to the docker container
+    `docker cp /path/to/file <containerID>:/path/to/target`
+
+    You can get the container id by running `docker ps` on the host.
+
+4. Copy the package-lambda-function.sh file over to the docker container as well
+    You'll want to check line 15 of that file, because right now it's hard-coded to zip`lambda_function.py` into the deployment package and that won't help you unless that's what your python file is called.
+
+5. On the docker machine, run that shell script. 
+
+6. Copy the newly produced .zip file back to your host
+
+7. Upload the zip to lambda, invoke your function, and note that you have successfully imported the snowflake connector.
