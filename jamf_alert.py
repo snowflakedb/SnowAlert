@@ -4,6 +4,7 @@ import json
 import os
 import boto3
 import base64
+import logging
 
 def generate_alert(timestamp, severity, detector, environment, object_type, object, alert_type, description):
     alert = {}
@@ -53,22 +54,29 @@ def jamf_query():
 
     log_alerts(alerts)
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 kms = boto3.client('kms')
 encrypted_auth = os.environ['auth']
 binary_auth = base64.b64decode(encrypted_auth)
 decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
 auth = decrypted_auth['Plaintext'].decode()
+auth = auth[:-1] # a newline or whitespace character is appended to the plaintext password, whoops.
 
 sip_disabled_description = "The affected computer has System Integrity Protection turned off."
 sip_severity = 3
 
 
-def lambda_handler(event, context):
-    ctx = snowflake.connector.connect(
+
+ctx = snowflake.connector.connect(
         user='snowalert',
         account='oz03309',
-        password=auth
-    )
+        password=str(auth)
+)
+
+logger.info("login successful")
+
+def lambda_handler(event, context):
 
     jamf_query()
