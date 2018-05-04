@@ -10,14 +10,14 @@ def create_jira_ticket(guid, creationTime, severity, detector, env, objectType, 
 
     body = \
         "GUID: " + guid + "\n" \
-        "\nCreationTime:" + creationTime + "\n" \
-        "\nSeverity: " + severity + " \n" \
-        "\nDetector: " + detector + " \n" \
-        "\nAffectedEnv: " + env + " \n" \
-        "\nAffectedObjectType: " + objectType + " \n" \
-        "\nAffectedObject: " + object + " \n" \
-        "\nAlertType: " + alertType + " \n" \
-        "\nDescription: " + description
+        "\nCreationTime:" + str(creationTime) + "\n" \
+        "\nSeverity: " + str(severity) + " \n" \
+        "\nDetector: " + str(detector) + " \n" \
+        "\nAffectedEnv: " + str(env) + " \n" \
+        "\nAffectedObjectType: " + str(objectType) + " \n" \
+        "\nAffectedObject: " + str(object) + " \n" \
+        "\nAlertType: " + str(alertType) + " \n" \
+        "\nDescription: " + str(description)
 
     new_issue = jira.create_issue(project=project,
                                   issuetype={'name': 'Story'},

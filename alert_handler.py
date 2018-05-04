@@ -23,7 +23,7 @@ def get_new_alerts(connection):
 
 
 def record_ticket_id(connection, ticket_id, guid):
-    query = "update alerts set ticket = '" + str(ticket_id) + "' where alert:guid = '" + str(guid) + "'"
+    query = "update alerts set ticket = '" + str(ticket_id) + "' where alert:GUID = '" + str(guid) + "'"
     print('debug:', query)
     connection.cursor().execute(query)
 
@@ -36,15 +36,15 @@ if __name__ == "__main__":
 
         # Create a new ticket in JIRA for the alert
         ticketID = plugins.create_jira_ticket(
-            guid=alert['guid'],
-            creationTime=alert['timestamp'],
-            severity=alert['severity'],
-            detector=alert['detector'],
-            env=alert['environment'],
-            objectType=alert['object_type'],
-            object=alert['object'],
-            alertType=alert['alert_type'],
-            description=alert['description'])
+            guid=alert['GUID'],
+            creationTime=alert['CreationTime'],
+            severity=alert['Severity'],
+            detector=alert['Detector'],
+            env=alert['AffectedEnv'],
+            objectType=alert['AffectedObjectType'],
+            object=alert['AffectedObject'],
+            alertType=alert['AlertType'],
+            description=alert['Description'])
 
         # Record the new ticket id in the alert table
-        record_ticket_id(ctx, ticketID, alert['guid'])
+        record_ticket_id(ctx, ticketID, alert['GUID'])
