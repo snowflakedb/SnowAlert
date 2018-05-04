@@ -2,13 +2,23 @@ import os
 import json
 import snowflake.connector
 import plugins
+import base64
+import boto3
 
 
 def db_connect():
+
+    kms = boto3.client('kms')
+    encrypted_auth = os.environ['SNOWALERT_PASSWORD']
+    binary_auth = base64.b64decode(encrypted_auth)
+    decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
+    auth = decrypted_auth['Plaintext'].decode()
+    auth = auth[:-1]
+
     connection = snowflake.connector.connect(
         account=os.environ['SNOWALERT_ACCOUNT'],
         user=os.environ['SNOWALERT_USER'],
-        password=os.environ['SNOWALERT_PASSWORD']
+        password=str(auth)
     )
     connection.cursor().execute('use warehouse snowalert')
     connection.cursor().execute('use database snowalert')
@@ -28,7 +38,7 @@ def record_ticket_id(connection, ticket_id, guid):
     connection.cursor().execute(query)
 
 
-if __name__ == "__main__":
+def lambda_handler(event, context):
     ctx = db_connect()
 
     for row in get_new_alerts(ctx):
