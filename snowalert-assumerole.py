@@ -26,7 +26,7 @@ def log_alerts(alerts):
     for alert in alerts:
         ctx.cursor().execute('insert into alerts (alert) select parse_json (column1) as variant from values (%s);', (alert))
 
-def snowalert_query(ctx):
+def snowalert_query():
     detector = "SnowAlert-CloudTrail"
 
     query = """select
@@ -65,7 +65,7 @@ def snowalert_query(ctx):
                 ((((cloudtrail_phase_2.EVENT_TIME ) >= ((DATEADD('hour', -23, DATE_TRUNC('hour', CURRENT_TIMESTAMP())))) AND (cloudtrail_phase_2.EVENT_TIME ) < ((DATEADD('hour', 24, DATEADD('hour', -23, DATE_TRUNC('hour', CURRENT_TIMESTAMP()))))))));"""
 
     ctx.cursor().execute('use warehouse snowalert')
-    ctx.cursor().execute('use database "sfc-dev-snow-35458"')
+    ctx.cursor().execute('use database cloudtrail')
 
     results = ctx.cursor().execute(query).fetchall()
     alerts = []
@@ -92,13 +92,11 @@ auth = auth[:-1] # a newline or whitespace character is appended to the plaintex
 
 description = "Source entity {0} assumed role {1} for the first time"
 severity = 4
-
-
-def lambda_handler(event, context):
-    ctx = snowflake.connector.connect(
+ctx = snowflake.connector.connect(
         user='snowalert',
         account='oz03309',
         password=auth
     )
 
-    snowalert_query(ctx)
+def lambda_handler(event, context):
+    snowalert_query()
