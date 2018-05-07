@@ -1,11 +1,18 @@
 import os
 from jira import JIRA
-
+import boto3
+import base64
 
 def create_jira_ticket(guid, creationTime, severity, detector, env, objectType, object, alertType, description):
+    kms = boto3.client('kms')
+    encrypted_auth = os.environ['JIRA_API_PASSWORD']
+    binary_auth = base64.b64decode(encrypted_auth)
+    decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
+    auth = decrypted_auth['Plaintext'].decode()
+
     project = 'SA'
     user = os.environ.get('JIRA_API_USER', '')
-    password = os.environ.get('JIRA_API_PASSWORD', '')
+    password = auth
     jira = JIRA('https://snowflakecomputing.atlassian.net', basic_auth=(user, password))
 
     body = \
