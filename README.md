@@ -16,4 +16,4 @@ If you use SnowAlert, we'd love to collaborate and make this a better tool for t
 
 ## License
 
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
