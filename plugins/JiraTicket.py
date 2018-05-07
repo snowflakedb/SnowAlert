@@ -9,6 +9,7 @@ def create_jira_ticket(guid, creationTime, severity, detector, env, objectType, 
     binary_auth = base64.b64decode(encrypted_auth)
     decrypted_auth = kms.decrypt(CiphertextBlob = binary_auth)
     auth = decrypted_auth['Plaintext'].decode()
+    auth = auth[:-1] # The password has a newline on the end of it, so we chomp that off
 
     project = 'SA'
     user = os.environ.get('JIRA_API_USER', '')
