@@ -6,7 +6,7 @@ SnowAlert is a security analytics framework that uses the Snowflake data warehou
 
 At Snowflake, we switched from our old SIEM to putting all of our security events, along with various report output, directly into Snowflake.
 
-Having our security data in Snowflake means that we can query it using SQL using a serverless platform like AWS Lambda and get alerts that are more reliable and less noisy.
+Having our security data in Snowflake means that we can query it in SQL using a server-less platform like AWS Lambda and get alerts that are more reliable and less noisy.
 
 Developing for Snowflake has been easy using the existing Python connector and built-in support for JSON.
 
