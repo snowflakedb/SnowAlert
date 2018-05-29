@@ -1,0 +1,1 @@
+Search.setIndex({docnames:["index"],envversion:53,filenames:["index.rst"],objects:{},objnames:{},objtypes:{},terms:{across:0,analyt:0,data:0,divers:0,framework:0,identifi:0,incid:0,index:0,modul:0,page:0,rang:0,search:0,secur:0,snowflak:0,sourc:0,time:0,uses:0,warehous:0},titles:["SnowAlert"],titleterms:{indic:0,snowalert:0,tabl:0}})
