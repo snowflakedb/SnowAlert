@@ -84,8 +84,10 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started with SnowAlert</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#downloading">Downloading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuring">Configuring</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#deploying">Deploying</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting Up</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-snowflake-credentials">1. Create Snowflake credentials</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
 </ul>
 </li>
@@ -158,19 +160,39 @@
 <h1>Getting Started with SnowAlert<a class="headerlink" href="#getting-started-with-snowalert" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
-<p>In order to use SnowAlert, you need a Snowflake warehouse for your data and an AWS account for Lambda.</p>
+<p>In order to use SnowAlert, you’ll need a Snowflake warehouse for your data and an AWS account for Lambda.</p>
 </div>
 <div class="section" id="downloading">
 <h2>Downloading<a class="headerlink" href="#downloading" title="Permalink to this headline">¶</a></h2>
 <p>TBD</p>
 </div>
-<div class="section" id="configuring">
-<h2>Configuring<a class="headerlink" href="#configuring" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<div class="section" id="setting-up">
+<h2>Setting Up<a class="headerlink" href="#setting-up" title="Permalink to this headline">¶</a></h2>
+<p>Follow the steps below to set up Snowflake and AWS Lambda for SnowAlert.</p>
+<div class="section" id="create-snowflake-credentials">
+<h3>1. Create Snowflake credentials<a class="headerlink" href="#create-snowflake-credentials" title="Permalink to this headline">¶</a></h3>
+<p>Snowflake recommends using keypair-based authentication for programmatic access to a Snowflake account. This involves creating a public and private keypair like so:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
 </div>
-<div class="section" id="deploying">
-<h2>Deploying<a class="headerlink" href="#deploying" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<dl class="docutils">
+<dt>::</dt>
+<dd>$ openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8
+$ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub</dd>
+</dl>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>::</dt>
+<dd>alter user &lt;USER&gt; set rsa_public_key=’&lt;PUBLIC KEY&gt;’;</dd>
+</dl>
+<p>And associating that keypair with a snowflake user using ALTER USER:</p>
+<p><cite>alter user &lt;USER&gt; set rsa_public_key=’&lt;PUBLIC KEY’;</cite></p>
+<p>More details can be found at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication">https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication</a></p>
+<p>The script at the bottom will help you configure your Snowflake environment; choose appropriate user, warehouse, and database names as required.</p>
+<p>If you intend to use Snowpipe to automatically ingest data from S3 into Snowflake, then follow the instructions at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html">https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html</a> for configuration help.</p>
+</div>
 </div>
 <div class="section" id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h2>
