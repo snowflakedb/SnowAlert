@@ -19,6 +19,6 @@ How It Works
 
 SnowAlert queries Snowflake data from AWS Lambda. We chose Lambda because we love AWS and it runs our Python without needing servers, but the same code should work on Azure Functions as well.
 
-The queries that drive the alerts are all defined in JSON format within your deployment's configuration files. The framework includes a loader script to store and update queries in Snowflake, see :ref:`alerts <alerts>` for more info.
+The queries that drive the alerts are all defined in JSON format within your deployment's configuration files. The framework includes a loader script to store and update queries in Snowflake, see :ref:`Managing Alerts <managing-alerts>` for more info.
 
 Alerts are generated when queries match data in your warehouse, and they are saved to Snowflake as well. We use another Lambda function to create incident tickets based on alerts but the same code can be extended to message or page your incident responders.
