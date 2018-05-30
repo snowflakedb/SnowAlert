@@ -11,7 +11,9 @@ SnowAlert is a security analytics framework that uses the Snowflake data warehou
 .. toctree::
    :maxdepth: 2
 
-
+   snowalert
+   getting_started
+   alerts
 
 
 

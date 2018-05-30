@@ -9,5 +9,9 @@ At Snowflake, we switched from our old SIEM to putting all of our security event
 Overview
 ========
 
+TBD
+
 Configuration
 =============
+
+TBD
