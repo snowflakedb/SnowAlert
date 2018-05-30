@@ -4,19 +4,20 @@ Getting Started with SnowAlert
 Requirements
 ------------
 
-In order to use SnowAlert, you need a Snowflake warehouse for your data and an AWS account for Lambda.
+In order to use SnowAlert, you'll need a Snowflake warehouse for your data and an AWS account for Lambda.
 
 Downloading
 -----------
 TBD
 
-Configuring
+Setting Up
 -----------
-TBD
+Follow the steps below to set up Snowflake and AWS Lambda for SnowAlert.
 
-Deploying
----------
-TBD
+1. Create Snowflake credentials
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: sql
+alter user <USER> set rsa_public_key='<PUBLIC KEY>';
 
 Testing
 -------
