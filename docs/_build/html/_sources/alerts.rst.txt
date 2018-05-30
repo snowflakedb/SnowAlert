@@ -5,8 +5,8 @@ Managing Alerts
 
 TBD
 
-Creating Alerts
-===============
+Creating Alert Queries
+======================
 
 TBD
 
