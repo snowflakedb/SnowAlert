@@ -85,7 +85,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#downloading">Downloading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting Up</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#create-snowflake-credentials">1. Create Snowflake credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configure-your-snowflake-warehouse">1. Configure your Snowflake warehouse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prepare-authentication-key">2. Prepare authentication key</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
@@ -160,37 +161,83 @@
 <h1>Getting Started with SnowAlert<a class="headerlink" href="#getting-started-with-snowalert" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
-<p>In order to use SnowAlert, you’ll need a Snowflake warehouse for your data and an AWS account for Lambda.</p>
+<p>In order to use SnowAlert, you’ll need administrator access to a Snowflake warehouse for your data and an AWS account for Lambda.</p>
 </div>
 <div class="section" id="downloading">
 <h2>Downloading<a class="headerlink" href="#downloading" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<p>Use git to clone the project from: <a class="reference external" href="https://github.com/snowflakedb/SnowAlert.git">https://github.com/snowflakedb/SnowAlert.git</a></p>
 </div>
 <div class="section" id="setting-up">
 <h2>Setting Up<a class="headerlink" href="#setting-up" title="Permalink to this headline">¶</a></h2>
 <p>Follow the steps below to set up Snowflake and AWS Lambda for SnowAlert.</p>
-<div class="section" id="create-snowflake-credentials">
-<h3>1. Create Snowflake credentials<a class="headerlink" href="#create-snowflake-credentials" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="configure-your-snowflake-warehouse">
+<h3>1. Configure your Snowflake warehouse<a class="headerlink" href="#configure-your-snowflake-warehouse" title="Permalink to this headline">¶</a></h3>
+<p>The SQL commands below will help you configure your Snowflake environment for SnowAlert.
+You’ll need to replace the placeholders with an appropriate user, database, and warehouse for your SnowAlert deployment. We recommend using a dedicated “snowalert” user.</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- change role to SYSADMIN for warehouse / database steps</span>
+<span class="n">use</span> <span class="k">role</span> <span class="n">SYSADMIN</span><span class="p">;</span>
+
+<span class="c1">-- create a warehouse for snowalert</span>
+<span class="k">create</span> <span class="n">warehouse</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">security_warehouse</span>
+<span class="n">warehouse_size</span> <span class="o">=</span> <span class="n">xsmall</span>
+<span class="n">warehouse_type</span> <span class="o">=</span> <span class="n">standard</span>
+<span class="n">auto_suspend</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="n">auto_resume</span> <span class="o">=</span> <span class="k">true</span>
+<span class="n">initially_suspended</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+
+<span class="c1">-- create database for snowalert</span>
+<span class="k">create</span> <span class="k">database</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert</span><span class="p">;</span>
+
+<span class="c1">-- change role to ACCOUNTADMIN for user / role steps</span>
+<span class="n">use</span> <span class="k">role</span> <span class="n">ACCOUNTADMIN</span><span class="p">;</span>
+
+<span class="c1">-- create role for SnowAlert</span>
+<span class="k">create</span> <span class="k">role</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert_role</span><span class="p">;</span>
+<span class="k">grant</span> <span class="k">role</span> <span class="n">snowalert_role</span> <span class="k">to</span> <span class="k">role</span> <span class="n">SYSADMIN</span><span class="p">;</span>
+
+<span class="c1">-- grant snowalert access to warehouse</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span>
+<span class="k">on</span> <span class="n">warehouse</span> <span class="n">security_warehouse</span>
+<span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+
+<span class="c1">-- create a user for snowalert</span>
+<span class="k">create</span> <span class="k">user</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert</span><span class="p">;</span>
+<span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span>
+<span class="n">default_role</span> <span class="o">=</span> <span class="n">snowalert_role</span>
+<span class="n">default_warehouse</span> <span class="o">=</span> <span class="n">security_warehouse</span><span class="p">;</span>
+<span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span> <span class="n">rsa_public_key</span><span class="o">=</span><span class="s1">&#39;&lt;pubkey&gt;&#39;</span>
+<span class="k">grant</span> <span class="k">role</span> <span class="n">snowalert_role</span> <span class="k">to</span> <span class="k">user</span> <span class="n">snowalert</span><span class="p">;</span>
+
+
+<span class="c1">-- grant snowalert access to database</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span>
+<span class="k">on</span> <span class="k">database</span> <span class="n">snowalert</span>
+<span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+
+<span class="c1">-- create table for alerts</span>
+<span class="k">create</span> <span class="k">table</span> <span class="n">alerts</span> <span class="p">(</span>
+    <span class="n">alert</span> <span class="n">variant</span><span class="p">,</span>
+    <span class="n">ticket</span> <span class="n">string</span><span class="p">,</span>
+    <span class="n">suppressed</span> <span class="n">bool</span><span class="p">,</span>
+    <span class="n">suppression_rule</span> <span class="n">string</span> <span class="k">default</span> <span class="k">null</span><span class="p">,</span>
+    <span class="n">counter</span> <span class="nb">integer</span> <span class="k">default</span> <span class="mi">1</span>
+<span class="p">);</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span> <span class="k">on</span> <span class="k">table</span> <span class="n">alerts</span> <span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prepare-authentication-key">
+<h3>2. Prepare authentication key<a class="headerlink" href="#prepare-authentication-key" title="Permalink to this headline">¶</a></h3>
 <p>Snowflake recommends using keypair-based authentication for programmatic access to a Snowflake account. This involves creating a public and private keypair like so:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ openssl genrsa <span class="m">2048</span> <span class="p">|</span> openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8
+$ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
 </pre></div>
 </div>
-<dl class="docutils">
-<dt>::</dt>
-<dd>$ openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8
-$ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub</dd>
-</dl>
-<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span>
+<p>Then associate that keypair with a Snowflake user using the ALTER USER command in the Snowflake warehouse:</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span> <span class="n">rsa_public_key</span><span class="o">=</span><span class="s1">&#39;&lt;PUBLIC KEY&gt;&#39;</span><span class="p">;</span>
 </pre></div>
 </div>
-<dl class="docutils">
-<dt>::</dt>
-<dd>alter user &lt;USER&gt; set rsa_public_key=’&lt;PUBLIC KEY&gt;’;</dd>
-</dl>
-<p>And associating that keypair with a snowflake user using ALTER USER:</p>
-<p><cite>alter user &lt;USER&gt; set rsa_public_key=’&lt;PUBLIC KEY’;</cite></p>
 <p>More details can be found at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication">https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication</a></p>
-<p>The script at the bottom will help you configure your Snowflake environment; choose appropriate user, warehouse, and database names as required.</p>
 <p>If you intend to use Snowpipe to automatically ingest data from S3 into Snowflake, then follow the instructions at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html">https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html</a> for configuration help.</p>
 </div>
 </div>
