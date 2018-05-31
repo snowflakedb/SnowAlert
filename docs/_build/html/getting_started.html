@@ -87,6 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting Up</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#configure-your-snowflake-warehouse">1. Configure your Snowflake warehouse</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#prepare-authentication-key">2. Prepare authentication key</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#set-up-aws-lambda-to-run-snowalert">3. Set up AWS Lambda to run SnowAlert</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
@@ -240,10 +241,16 @@ $ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
 <p>More details can be found at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication">https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication</a></p>
 <p>If you intend to use Snowpipe to automatically ingest data from S3 into Snowflake, then follow the instructions at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html">https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html</a> for configuration help.</p>
 </div>
+<div class="section" id="set-up-aws-lambda-to-run-snowalert">
+<h3>3. Set up AWS Lambda to run SnowAlert<a class="headerlink" href="#set-up-aws-lambda-to-run-snowalert" title="Permalink to this headline">¶</a></h3>
+<p>Run the provided lambda_setup.sh script to add the Lambda functions that will run the SnowAlert code against the data in Snowflake.</p>
+</div>
 </div>
 <div class="section" id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h2>
-<p>TODO: test detection on snowflake query history</p>
+<p>After deployment is completed, run the command <code class="docutils literal notranslate"><span class="pre">GRANT</span> <span class="pre">FOO</span></code> in the Snowflake UI. This should trigger the test alert which looks for GRANT and REVOKE commands in your command history. If you don’t want to wait for the next scheduled run, use AWS’s Lambda Test button on the Query Wrapper function.</p>
+<p>If you see a new alert created in the alerts table, you have successfully deployed SnowAlert.</p>
+<p>Any issues? Reach out to us at <a class="reference external" href="mailto:snowalert&#37;&#52;&#48;snowflake&#46;net">snowalert<span>&#64;</span>snowflake<span>&#46;</span>net</a>.</p>
 </div>
 </div>
 

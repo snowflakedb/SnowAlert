@@ -89,12 +89,16 @@ Then associate that keypair with a Snowflake user using the ALTER USER command i
 
 More details can be found at https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication
 
-
-
 If you intend to use Snowpipe to automatically ingest data from S3 into Snowflake, then follow the instructions at https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html for configuration help.
 
-
+3. Set up AWS Lambda to run SnowAlert
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Run the provided lambda_setup.sh script to add the Lambda functions that will run the SnowAlert code against the data in Snowflake.
 
 Testing
 -------
-TODO: test detection on snowflake query history
+After deployment is completed, run the command ``GRANT FOO`` in the Snowflake UI. This should trigger the test alert which looks for GRANT and REVOKE commands in your command history. If you don't want to wait for the next scheduled run, use AWS's Lambda Test button on the Query Wrapper function.
+
+If you see a new alert created in the alerts table, you have successfully deployed SnowAlert.
+
+Any issues? Reach out to us at snowalert@snowflake.net.
