@@ -152,7 +152,7 @@ Queries and suppressions can be managed manually by inserting the query spec or 
     * 'github.com/google/go-cmp/cmp'
     * 'github.com/snowflakedb/gosnowflake'
 
-With those dependencies installed, you can compile the binaries with `go build query_helper.go` and `go build suppression_helper.go`. Invoking the binaries with no arguments will print usage instructions.
+With those dependencies installed, you can compile the binaries with ``go build query_helper.goi`` and ``go build suppression_helper.go``. Invoking the binaries with no arguments will print usage instructions.
 
 
 Testing
