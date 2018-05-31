@@ -105,7 +105,7 @@ If you intend to use Snowpipe to automatically ingest data from S3 into Snowflak
 
 3. Set up AWS Lambda to run SnowAlert
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SnowAlert used five lambda functions for basic functionality. 
+SnowAlert used five lambda functions for basic functionality. These lambda functions require the python snowflake-connector module, which can be installed using Pip. Two scripts are provided in /scripts to help with both building and deploying lambda functions; instructions for using those scripts can be found in the lambda_build_instructions.txt file.
 
 * Query Wrapper
     * This lambda function should run the query_wrapper.py code. This lambda is responsible for dispatching queries to the Query Runner.
