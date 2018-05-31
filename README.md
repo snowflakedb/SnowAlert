@@ -14,6 +14,10 @@ We hope that Snowflake customers can get better data-driven security by using Sn
 
 If you use SnowAlert, we'd love to collaborate and make this a better tool for the whole Snowflake user community.
 
+## Get Started
+
+Check out the user guide or reach out to snowalert@snowflake.net
+
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.

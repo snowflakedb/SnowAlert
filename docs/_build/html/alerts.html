@@ -28,7 +28,8 @@
     <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Getting Started with SnowAlert" href="getting_started.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -77,16 +78,18 @@
               
             
             
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Managing Alerts</a><ul>
-<li><a class="reference internal" href="#creating-alerts">Creating Alerts</a></li>
-<li><a class="reference internal" href="#viewing-alert-results">Viewing Alert Results</a></li>
-<li><a class="reference internal" href="#adding-suppression">Adding Suppression</a></li>
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="snowalert.html">SnowAlert - Snowflake Security Analytics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started with SnowAlert</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Managing Alerts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#alert-configuration-files">Alert Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-new-alert-queries">Creating New Alert Queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#viewing-alert-results">Viewing Alert Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-suppressions">Adding Suppressions</a></li>
 </ul>
 </li>
 </ul>
-</div>
+
             
           
         </div>
@@ -150,19 +153,27 @@
            <div itemprop="articleBody">
             
   <div class="section" id="managing-alerts">
-<h1>Managing Alerts<a class="headerlink" href="#managing-alerts" title="Permalink to this headline">¶</a></h1>
-<p>TBD</p>
-<div class="section" id="creating-alerts">
-<h2>Creating Alerts<a class="headerlink" href="#creating-alerts" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<span id="id1"></span><h1>Managing Alerts<a class="headerlink" href="#managing-alerts" title="Permalink to this headline">¶</a></h1>
+<p>Alerts triggered when an alert query matches data in your database. These queries are defined in configuration files and need to be loaded into Snowflake before they can be used. Luckily, the framework includes helper scripts to streamline the process.</p>
+<div class="section" id="alert-configuration-files">
+<h2>Alert Configuration Files<a class="headerlink" href="#alert-configuration-files" title="Permalink to this headline">¶</a></h2>
+<p>Before creating new alerts, take a look at the alert configuration file <code class="docutils literal notranslate"><span class="pre">test.tf</span></code> where a sample alert query is defined.</p>
+<p>Each alert query has a set of fields that can be assigned static values or dynamic values that will contain data from the query result. The test query can be used to verify that the SnowAlert deployment was successful.</p>
+</div>
+<div class="section" id="creating-new-alert-queries">
+<h2>Creating New Alert Queries<a class="headerlink" href="#creating-new-alert-queries" title="Permalink to this headline">¶</a></h2>
+<p>To add new alert queries, create additional definition files in the alert query directory. Each definition file can contain multiple alert definitions, and all will be executed once they are imported.</p>
+<p>Import the alert queries into the SnowAlert database using the <code class="docutils literal notranslate"><span class="pre">query_helper.go</span></code> tool. Once imported, the new alerts will run at the set schedule.</p>
 </div>
 <div class="section" id="viewing-alert-results">
 <h2>Viewing Alert Results<a class="headerlink" href="#viewing-alert-results" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<p>When alert queries return data from your warehouse, the results will be added to the alerts table in your SnowAlert database. You can select them in the database to confirm that they are being generated as expected.</p>
+<p>If you’ve configured alert handlers to notify you on alerts, for example through JIRA, you can expect to see those notifications as soon as the handler Lambda function runs.</p>
 </div>
-<div class="section" id="adding-suppression">
-<h2>Adding Suppression<a class="headerlink" href="#adding-suppression" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<div class="section" id="adding-suppressions">
+<h2>Adding Suppressions<a class="headerlink" href="#adding-suppressions" title="Permalink to this headline">¶</a></h2>
+<p>SnowAlert supports suppression queries to prevent false positives from creating alerts. Suppression queries are configured similarly to alert queries, within tf files in the alerts/suppressions folder.</p>
+<p>When the corresponding Lambda function runs, it marks new alerts as suppressed or not. Only alerts that have been assessed by the suppression function are then processed by the alert handler.</p>
 </div>
 </div>
 
@@ -171,6 +182,13 @@
            
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="getting_started.html" class="btn btn-neutral" title="Getting Started with SnowAlert" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

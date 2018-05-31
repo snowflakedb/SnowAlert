@@ -28,7 +28,9 @@
     <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Managing Alerts" href="alerts.html" />
+    <link rel="prev" title="SnowAlert - Snowflake Security Analytics" href="snowalert.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -77,18 +79,23 @@
               
             
             
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">Getting Started with SnowAlert</a><ul>
-<li><a class="reference internal" href="#requirements">Requirements</a></li>
-<li><a class="reference internal" href="#downloading">Downloading</a></li>
-<li><a class="reference internal" href="#configuring">Configuring</a></li>
-<li><a class="reference internal" href="#deploying">Deploying</a></li>
-<li><a class="reference internal" href="#testing">Testing</a></li>
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="snowalert.html">SnowAlert - Snowflake Security Analytics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started with SnowAlert</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#downloading">Downloading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-up">Setting Up</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#configure-your-snowflake-warehouse">1. Configure your Snowflake warehouse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prepare-authentication-key">2. Prepare authentication key</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#set-up-aws-lambda-to-run-snowalert">3. Set up AWS Lambda to run SnowAlert</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
 </ul>
-</div>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="alerts.html">Managing Alerts</a></li>
+</ul>
+
             
           
         </div>
@@ -155,26 +162,95 @@
 <h1>Getting Started with SnowAlert<a class="headerlink" href="#getting-started-with-snowalert" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li>Snowflake warehouse</li>
-<li>AWS account with Lambda</li>
-</ul>
+<p>In order to use SnowAlert, you’ll need administrator access to a Snowflake warehouse for your data and an AWS account for Lambda.</p>
 </div>
 <div class="section" id="downloading">
 <h2>Downloading<a class="headerlink" href="#downloading" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<p>Use git to clone the project from: <a class="reference external" href="https://github.com/snowflakedb/SnowAlert.git">https://github.com/snowflakedb/SnowAlert.git</a></p>
 </div>
-<div class="section" id="configuring">
-<h2>Configuring<a class="headerlink" href="#configuring" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+<div class="section" id="setting-up">
+<h2>Setting Up<a class="headerlink" href="#setting-up" title="Permalink to this headline">¶</a></h2>
+<p>Follow the steps below to set up Snowflake and AWS Lambda for SnowAlert.</p>
+<div class="section" id="configure-your-snowflake-warehouse">
+<h3>1. Configure your Snowflake warehouse<a class="headerlink" href="#configure-your-snowflake-warehouse" title="Permalink to this headline">¶</a></h3>
+<p>The SQL commands below will help you configure your Snowflake environment for SnowAlert.
+You’ll need to replace the placeholders with an appropriate user, database, and warehouse for your SnowAlert deployment. We recommend using a dedicated “snowalert” user.</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="c1">-- change role to SYSADMIN for warehouse / database steps</span>
+<span class="n">use</span> <span class="k">role</span> <span class="n">SYSADMIN</span><span class="p">;</span>
+
+<span class="c1">-- create a warehouse for snowalert</span>
+<span class="k">create</span> <span class="n">warehouse</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">security_warehouse</span>
+<span class="n">warehouse_size</span> <span class="o">=</span> <span class="n">xsmall</span>
+<span class="n">warehouse_type</span> <span class="o">=</span> <span class="n">standard</span>
+<span class="n">auto_suspend</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="n">auto_resume</span> <span class="o">=</span> <span class="k">true</span>
+<span class="n">initially_suspended</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+
+<span class="c1">-- create database for snowalert</span>
+<span class="k">create</span> <span class="k">database</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert</span><span class="p">;</span>
+
+<span class="c1">-- change role to ACCOUNTADMIN for user / role steps</span>
+<span class="n">use</span> <span class="k">role</span> <span class="n">ACCOUNTADMIN</span><span class="p">;</span>
+
+<span class="c1">-- create role for SnowAlert</span>
+<span class="k">create</span> <span class="k">role</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert_role</span><span class="p">;</span>
+<span class="k">grant</span> <span class="k">role</span> <span class="n">snowalert_role</span> <span class="k">to</span> <span class="k">role</span> <span class="n">SYSADMIN</span><span class="p">;</span>
+
+<span class="c1">-- grant snowalert access to warehouse</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span>
+<span class="k">on</span> <span class="n">warehouse</span> <span class="n">security_warehouse</span>
+<span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+
+<span class="c1">-- create a user for snowalert</span>
+<span class="k">create</span> <span class="k">user</span> <span class="k">if</span> <span class="k">not</span> <span class="k">exists</span> <span class="n">snowalert</span><span class="p">;</span>
+<span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span>
+<span class="n">default_role</span> <span class="o">=</span> <span class="n">snowalert_role</span>
+<span class="n">default_warehouse</span> <span class="o">=</span> <span class="n">security_warehouse</span><span class="p">;</span>
+<span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span> <span class="n">rsa_public_key</span><span class="o">=</span><span class="s1">&#39;&lt;pubkey&gt;&#39;</span>
+<span class="k">grant</span> <span class="k">role</span> <span class="n">snowalert_role</span> <span class="k">to</span> <span class="k">user</span> <span class="n">snowalert</span><span class="p">;</span>
+
+
+<span class="c1">-- grant snowalert access to database</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span>
+<span class="k">on</span> <span class="k">database</span> <span class="n">snowalert</span>
+<span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+
+<span class="c1">-- create table for alerts</span>
+<span class="k">create</span> <span class="k">table</span> <span class="n">alerts</span> <span class="p">(</span>
+    <span class="n">alert</span> <span class="n">variant</span><span class="p">,</span>
+    <span class="n">ticket</span> <span class="n">string</span><span class="p">,</span>
+    <span class="n">suppressed</span> <span class="n">bool</span><span class="p">,</span>
+    <span class="n">suppression_rule</span> <span class="n">string</span> <span class="k">default</span> <span class="k">null</span><span class="p">,</span>
+    <span class="n">counter</span> <span class="nb">integer</span> <span class="k">default</span> <span class="mi">1</span>
+<span class="p">);</span>
+<span class="k">grant</span> <span class="k">all</span> <span class="k">privileges</span> <span class="k">on</span> <span class="k">table</span> <span class="n">alerts</span> <span class="k">to</span> <span class="k">role</span> <span class="n">snowalert_role</span><span class="p">;</span>
+</pre></div>
 </div>
-<div class="section" id="deploying">
-<h2>Deploying<a class="headerlink" href="#deploying" title="Permalink to this headline">¶</a></h2>
-<p>TBD</p>
+</div>
+<div class="section" id="prepare-authentication-key">
+<h3>2. Prepare authentication key<a class="headerlink" href="#prepare-authentication-key" title="Permalink to this headline">¶</a></h3>
+<p>Snowflake recommends using keypair-based authentication for programmatic access to a Snowflake account. This involves creating a public and private keypair like so:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ openssl genrsa <span class="m">2048</span> <span class="p">|</span> openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8
+$ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+</pre></div>
+</div>
+<p>Then associate that keypair with a Snowflake user using the ALTER USER command in the Snowflake warehouse:</p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">alter</span> <span class="k">user</span> <span class="n">snowalert</span> <span class="k">set</span> <span class="n">rsa_public_key</span><span class="o">=</span><span class="s1">&#39;&lt;PUBLIC KEY&gt;&#39;</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>More details can be found at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication">https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication</a></p>
+<p>If you intend to use Snowpipe to automatically ingest data from S3 into Snowflake, then follow the instructions at <a class="reference external" href="https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html">https://docs.snowflake.net/manuals/user-guide/data-load-snowpipe.html</a> for configuration help.</p>
+</div>
+<div class="section" id="set-up-aws-lambda-to-run-snowalert">
+<h3>3. Set up AWS Lambda to run SnowAlert<a class="headerlink" href="#set-up-aws-lambda-to-run-snowalert" title="Permalink to this headline">¶</a></h3>
+<p>Run the provided lambda_setup.sh script to add the Lambda functions that will run the SnowAlert code against the data in Snowflake.</p>
+</div>
 </div>
 <div class="section" id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h2>
-<p>TODO: test detection on snowflake query history</p>
+<p>After deployment is completed, run the command <code class="docutils literal notranslate"><span class="pre">GRANT</span> <span class="pre">FOO</span></code> in the Snowflake UI. This should trigger the test alert which looks for GRANT and REVOKE commands in your command history. If you don’t want to wait for the next scheduled run, use AWS’s Lambda Test button on the Query Wrapper function.</p>
+<p>If you see a new alert created in the alerts table, you have successfully deployed SnowAlert.</p>
+<p>Any issues? Reach out to us at <a class="reference external" href="mailto:snowalert&#37;&#52;&#48;snowflake&#46;net">snowalert<span>&#64;</span>snowflake<span>&#46;</span>net</a>.</p>
 </div>
 </div>
 
@@ -183,6 +259,15 @@
            
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="alerts.html" class="btn btn-neutral float-right" title="Managing Alerts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="snowalert.html" class="btn btn-neutral" title="SnowAlert - Snowflake Security Analytics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

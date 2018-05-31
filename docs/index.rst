@@ -14,12 +14,3 @@ SnowAlert is a security analytics framework that uses the Snowflake data warehou
    snowalert
    getting_started
    alerts
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
