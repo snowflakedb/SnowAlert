@@ -46,4 +46,4 @@ zip -r9 $DIR/$v2.zip .
 cd $VIRTUAL_ENV/lib64/python3.6/site-packages
 zip -r9 $DIR/$v2.zip .
 
-rm -rm lambda_function
+rm -rf $DIR/lambda_function
