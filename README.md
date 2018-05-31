@@ -16,7 +16,7 @@ If you use SnowAlert, we'd love to collaborate and make this a better tool for t
 
 ## Get Started
 
-Check out the [user guide](docs/index.rst) or reach out to snowalert@snowflake.net
+Check out the [user guide](https://snowalert.readthedocs.io) or reach out to snowalert@snowflake.net
 
 ## License
 
