@@ -72,7 +72,16 @@ You'll need to replace the placeholders with an appropriate user, database, and 
     grant all privileges on table alerts to role snowalert_role;
 
     -- create table for queries
-    create table 
+    create table snowalert_queries (
+        query_spec variant
+    );
+    grant all privileges on table snowalert_queries to role snowalert_role;
+
+    --create table for suppressions
+    create table suppression_queries (
+        suppression_spec variant
+    );
+    grant all privileges on table suppression_queries to role snowalert_role;
 
 
 2. Prepare authentication key
@@ -96,7 +105,7 @@ If you intend to use Snowpipe to automatically ingest data from S3 into Snowflak
 
 3. Set up AWS Lambda to run SnowAlert
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SnowAlert used five lambda functions for basic functionality. 
+SnowAlert used five lambda functions for basic functionality. These lambda functions require the python snowflake-connector module, which can be installed using Pip. Two scripts are provided in /scripts to help with both building and deploying lambda functions; instructions for using those scripts can be found in the lambda_build_instructions.txt file.
 
 * Query Wrapper
     * This lambda function should run the query_wrapper.py code. This lambda is responsible for dispatching queries to the Query Runner.
@@ -136,7 +145,14 @@ SnowAlert used five lambda functions for basic functionality.
         * SNOWALERT_PASSWORD: The KMS-encrypted password for the SnowAlert user
         * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
 
-Queries 
+Queries and suppressions can be managed manually by inserting the query spec or suppression spec into the appropriate table, but it is easier to manage them as configuration files. ``query.tf`` and ``suppression.tf`` are sample files; you can use the ``query_helper.go`` and ``suppression_helper.go`` files to manage your queries along with those files. 
+
+``query_helper.go`` and ``suppression_helper.go`` must be compiled to binaries in order to be used. They have the following dependencies:
+    * 'github.com/hashicorp/hcl'
+    * 'github.com/google/go-cmp/cmp'
+    * 'github.com/snowflakedb/gosnowflake'
+
+With those dependencies installed, you can compile the binaries with ``go build query_helper.goi`` and ``go build suppression_helper.go``. Invoking the binaries with no arguments will print usage instructions.
 
 
 Testing
