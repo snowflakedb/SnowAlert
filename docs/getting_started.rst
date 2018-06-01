@@ -16,7 +16,8 @@ Follow the steps below to set up Snowflake and AWS Lambda for SnowAlert.
 
 1. Configure your Snowflake warehouse
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The SQL commands below will help you configure your Snowflake environment for SnowAlert.
+The SQL commands below will help you configure your Snowflake environment for SnowAlert. Below is a script that can be copied and pasted into the Snowflake web UI. After copying the script into Snowflake, highlight the entire script and press "Command+Enter" to run each of the commands in sequence.
+
 You'll need to replace the placeholders with an appropriate user, database, and warehouse for your SnowAlert deployment. We recommend using a dedicated "snowalert" user.
 
 .. code-block:: sql
@@ -105,7 +106,13 @@ If you intend to use Snowpipe to automatically ingest data from S3 into Snowflak
 
 3. Set up AWS Lambda to run SnowAlert
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SnowAlert used five lambda functions for basic functionality. These lambda functions require the python snowflake-connector module, which can be installed using Pip. Two scripts are provided in /scripts to help with both building and deploying lambda functions; instructions for using those scripts can be found in the lambda_build_instructions.txt file.
+Please note that these instructions require some familiarity with configuring and using some AWS resources, including:
+    * S3 Buckets
+    * IAM Roles and Policies
+    * Lambda functions
+    * KMS
+
+SnowAlert used five lambda functions for basic functionality. These lambda functions require the python snowflake-connector module, which can be installed using Pip. Two scripts are provided in /scripts to help with both building and deploying lambda functions; instructions for using those scripts can be found in the lambda_build_instructions.txt file. Building a function will produce a .zip file, which then must be deployed to an existing lambda function in your AWS account. Using a tool like Terraform (https://www.terraform.io) can help you to manage the AWS resources required for SnowAlert; a sample terraform configuration file is provided to help you get started. 
 
 * Query Wrapper
     * This lambda function should run the query_wrapper.py code. This lambda is responsible for dispatching queries to the Query Runner.
@@ -152,12 +159,12 @@ Queries and suppressions can be managed manually by inserting the query spec or 
     * 'github.com/google/go-cmp/cmp'
     * 'github.com/snowflakedb/gosnowflake'
 
-With those dependencies installed, you can compile the binaries with ``go build query_helper.goi`` and ``go build suppression_helper.go``. Invoking the binaries with no arguments will print usage instructions.
+With those dependencies installed, you can compile the binaries with ``go build query_helper.go`` and ``go build suppression_helper.go``. Invoking the binaries with no arguments will print usage instructions. Run ``./query_helper [snowflake username] sample-query.tf`` to insert the sample query spec into your snowalert_queries table.
 
 
 Testing
 -------
-After deployment is completed, run the command ``GRANT FOO`` in the Snowflake UI. This should trigger the test alert which looks for GRANT and REVOKE commands in your command history. If you don't want to wait for the next scheduled run, use AWS's Lambda Test button on the Query Wrapper function.
+After deployment is completed, log into Snowflake without using MFA. This should trigger the test alert which looks for user logins to Snowflake where MFA is not used. If you don't want to wait for the next scheduled run, use AWS's Lambda Test button on the Query Wrapper function.
 
 If you see a new alert created in the alerts table, you have successfully deployed SnowAlert.
 
