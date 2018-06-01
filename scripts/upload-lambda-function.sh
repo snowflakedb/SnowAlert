@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [[ $# != 3 ]]; then
+if [[ ( "$#" != 2 && "$#" != 3 ) ]]; then
 	printf "Usage: $0 <zip file name> <lambda function name> [<aws profile name>]\nLeave AWS profile name empty for default profile"
 	exit
 fi

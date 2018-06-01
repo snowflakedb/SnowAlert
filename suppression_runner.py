@@ -8,7 +8,7 @@ import snowflake.connector
 
 def log_suppression(guid, alert_guid, ctx):
     #the alter set query
-    query = "update snowalert.public.alerts set suppressed = TRUE, suppression_rule = {} where alert:GUID = {}'".format(str(guid), str(alert_guid))
+    query = "update snowalert.public.alerts set suppressed = TRUE, suppression_rule = '{0}' where alert:GUID = '{1}'".format(str(guid), str(alert_guid))
     ctx.cursor().execute(query)
     print("Suppression {} completed".format(guid))
 

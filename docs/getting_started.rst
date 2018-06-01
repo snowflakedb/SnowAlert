@@ -25,7 +25,7 @@ You'll need to replace the placeholders with an appropriate user, database, and 
     use role SYSADMIN;
 
     -- create a warehouse for snowalert
-    create warehouse if not exists security_warehouse
+    create warehouse if not exists snowalert
     warehouse_size = xsmall
     warehouse_type = standard
     auto_suspend = 60
@@ -44,14 +44,14 @@ You'll need to replace the placeholders with an appropriate user, database, and 
 
     -- grant snowalert access to warehouse
     grant all privileges
-    on warehouse security_warehouse
+    on warehouse snowalert 
     to role snowalert_role;
 
     -- create a user for snowalert
     create user if not exists snowalert;
     alter user snowalert set
     default_role = snowalert_role
-    default_warehouse = security_warehouse;
+    default_warehouse = snowalert;
     alter user snowalert set rsa_public_key='<pubkey>'
     grant role snowalert_role to user snowalert;
 
@@ -70,6 +70,9 @@ You'll need to replace the placeholders with an appropriate user, database, and 
         counter integer default 1
     );
     grant all privileges on table alerts to role snowalert_role;
+
+    -- create table for queries
+    create table 
 
 
 2. Prepare authentication key
@@ -93,7 +96,48 @@ If you intend to use Snowpipe to automatically ingest data from S3 into Snowflak
 
 3. Set up AWS Lambda to run SnowAlert
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Run the provided lambda_setup.sh script to add the Lambda functions that will run the SnowAlert code against the data in Snowflake.
+SnowAlert used five lambda functions for basic functionality. 
+
+* Query Wrapper
+    * This lambda function should run the query_wrapper.py code. This lambda is responsible for dispatching queries to the Query Runner.
+    * This lambda should run once per hour at the start of the hour.
+    * This lambda requires the following environment variables to be configured:
+        * SNOWALERT_QUERY_EXECUTOR_FUNCTION: The name of the lambda function that executes query_runner.py
+        * auth: The KMS-encrypted password for the SnowAlert user
+        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+
+* Query Executor
+    * This lambda function should run the query_runner.py code. This lambda is responsible for executing queries against data in Snowflake and generating alerts based on the results of those queries.
+    * This lambda does not need to be scheduled on its own; it will get run by the Query Wrapper.
+    * This lambda requires the following environment variables to be configured:
+        * auth: The KMS-encrypted password for the SnowAlert user
+        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+
+* Suppression Wrapper
+    * This lambda function should run the suppression_wrapper.py code. This lambda is responsible for dispatching queries to the Suppression Runner, as well as flagging alerts as unsuppressed.
+    * This lambda should run once per hour after the Query Executor has finished running queries. Run this lambda even if you have no suppressions configured.
+    * This lambda requires the following environment variables to be configured:
+        * SNOWALERT_SUPPRESSION_EXECUTOR_FUNCTION: The name of the lambda function that executes suppression_runner.py
+        * auth: The KMS-encrypted password for the SnowAlert user
+        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+
+* Suppression Runner
+    * This lambda function should run the suppression_runner.py code. This lambda is responsible for executing suppression queries against unchecked alerts in the alerts table, and flagging alerts which should be suppressed. 
+    * This lambda does not need to be scheduled on its own; it will get run by the Suppression Wrapper.
+    * This lambda requires the following environment variables to be configured:
+        * auth: The KMS-encrypted password for the SnowAlert user
+        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+
+* Alert Handler
+    * This lambda function should run the alert_handler.py code (which itself requires the code in /plugins/create_jira.py to function). This lambda is responsible for looking through the alerts table in Snowflake and creating Jira tickets for unsuppressed alerts. 
+    * This lambda should run once per hour, after alerts have been suppressed.
+    * This lambda requires the following environment variables to be configured:
+        * PROD_FLAG: Set this to indicate that the environment is production
+        * SNOWALERT_PASSWORD: The KMS-encrypted password for the SnowAlert user
+        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+
+Queries 
+
 
 Testing
 -------
