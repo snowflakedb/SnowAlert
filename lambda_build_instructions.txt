@@ -8,4 +8,10 @@
 
 3. On the docker container, run `/scripts/package-lambda-deployment.sh`. This is a shell script which takes in the python files you want to package, spins up a virtual environment for python 3.6, pip installs the python-connector, and packages it all together. It outputs file.zip, where file is the name of the first python file you passed in as an argument.  
 
+    * To build the Alert Handler, use the following command: `./scripts/package-lambda-function.sh alert_handler.py plugins jira`
+    * To build the Query Wrapper, use the following command: `./scripts/package-lambda-function.sh query_wrapper.py`
+    * To build the Query Executor, use the following command: `./scripts/package-lambda-function.sh query_runner.py`
+    * To build the Suppression Wrapper, use the following command: `./scripts/package-lambda-function.sh suppression_wrapper.py`
+    * To build the Suppression Executor, use the following command: `./scripts/package-lambda-function.sh suppression_runner.py`
+
 4. Upload the zip to Lambda either through S3 or through the console, invoke your function, and note that you have successfully imported the Snowflake connector.
