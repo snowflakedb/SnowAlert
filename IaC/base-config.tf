@@ -111,10 +111,10 @@ resource "aws_iam_role" "snowalert-lambda-role" {
 POLICY
 }
 
-resource "aws_iam_role_policy_attachment" "snowalert-lambda-wrapper-vpc-policy" {
-  role       = "${aws_iam_role.snowalert-lambda-role.name}"
-  policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
-}
+# resource "aws_iam_role_policy_attachment" "snowalert-lambda-wrapper-vpc-policy" {
+#   role       = "${aws_iam_role.snowalert-lambda-role.name}"
+#   policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
+# }
 
 resource "aws_iam_role_policy" "snowalert-lambda-role-policy" {
   name = "snowalert-lambda-role-policy"
