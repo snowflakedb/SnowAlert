@@ -44,14 +44,6 @@ def login():
     username = input("Snowflake username: ")
     password = getpass.getpass("Please enter the password for the user you provided above: ")
 
-    # We need to pass the account name in to the terraform configuration 
-    # file as an environmental variable, because the lambdas will expect it. Writing the account name to a file is
-    # an easy way to pass information between this script and terraform
-
-    #f = open('account.txt', 'w')
-    #f.write(account)
-    #f.close()
-
     print("Authenticating to Snowflake...")
     try:
         ctx = snowflake.connector.connect(user=username, account=account, password=password)
@@ -438,7 +430,7 @@ if __name__ == '__main__':
     print("Invoking the lambdas to test the end to end flow...")
     full_test(jira_flag)
     # we had to move some zip files into the config directory to make it easy to upload them, so let's remove those now
-    call("rm *.zip", shell=True)
+    # call("rm *.zip", shell=True)
     call("rm outputfile.txt", shell=True)
     print("SnowAlert is now fully deployed in your environment! You can check the alerts table to see the test")
     print("alerts that were created as part of this installation process; if Jira is integrated with your deployment, you ")
