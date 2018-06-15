@@ -13,7 +13,7 @@ Use git to clone the project from: https://github.com/snowflakedb/SnowAlert.git
 Installer
 ---------
 
-Snowflake provides an installer in SnowAlert/config which will configure your Snowflake environment and AWS resources automatically. The installer has a few prerequisites:
+Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer has a few prerequisites:
     * Python3
     * AWS CLI
     * Docker
@@ -23,7 +23,7 @@ Before you start the installer, you should verify that the AWS CLI, Docker, and 
 
 Please note that the installer makes use of some shell scripts for helper functionality, and it is not intended to work on Windows machines. Installation on Windows is on the product roadmap; please let us know if you want this feature!
 
-Once those preparations are complete, you can start the installer by typing `python3 install-snowalert.py` into your terminal when you are in the correct directory (SnowAlert/config).
+Once those preparations are complete, you can start the installer by typing `python3 install-snowalert.py` into your terminal when you are in the correct directory (SnowAlert/IaC).
 
 You will initially be prompted for your Snowflake account and user credentials; please provide credentials for an account which can assume the accountadmin role in your Snowflake account.
 
@@ -33,7 +33,7 @@ Once that test authentication is complete, the installer will ask if you want to
 
 The installer is configured by default to use prebuilt packages included with the project. If you want to build the packages yourself, then uncomment line 419 in the installer. Note that building the packages can take up to ten minutes!
 
-Once the packages are built, the installer will start using Terraform to create the AWS resources that SnowAlert will need. It will create a KMS key and use that to encrypt the password for the private key, as well as the password for the Jira user if provided; those encrypted values will be stored as environmental variables in the Lambdas that require them. It will also create an IAM role for SnowAlert, along with a policy that gives the lambdas the ability to invoke the runner functions and use the KMS key for decryption. It will also create an S3 bucket used for deploying code to the lambdas, and upload the zipped packages to the S3 bucket. The terraform file also has sample event rules for Cloudwatch written, but commented out; if you want to schedule the lambdas to run, please uncomment those lines in the config.tf file and run Terraform again.
+Once the packages are built, the installer will start using Terraform to create the AWS resources that SnowAlert will need. It will create a KMS key and use that to encrypt the password for the private key, as well as the password for the Jira user if provided; those encrypted values will be stored as environmental variables in the Lambdas that require them. It will also create an IAM role for SnowAlert, along with a policy that gives the lambdas the ability to invoke the runner functions and use the KMS key for decryption. It will also create an S3 bucket used for deploying code to the lambdas, and upload the zipped packages to the S3 bucket. The terraform file also has sample event rules for Cloudwatch written, but commented out; if you want to schedule the lambdas to run, please uncomment those lines in the base-config.tf file and run Terraform again.
 
 If your Snowflake account requires a whitelisted IP for access, you'll need to configure the lambdas to run from a specific IP and whitelist that IP in your Snowflake configuration; this is beyond the scope of the installer.
 
@@ -174,7 +174,7 @@ The update-snowalert.sh script will start a Docker container that will pip insta
         * SNOWALERT_QUERY_EXECUTOR_FUNCTION: The name of the lambda function that executes query_runner.py
         * private_key_password: The KMS-encrypted password for the private key associated with the SnowAlert user
         * private_key: The base64-encoded private key associated with the Snowflake user
-        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+        * account: The Snowflake account where SnowAlert is deployed
 
 * Query Executor
     * This lambda function should run the query_runner.py code. This lambda is responsible for executing queries against data in Snowflake and generating alerts based on the results of those queries.
@@ -182,7 +182,7 @@ The update-snowalert.sh script will start a Docker container that will pip insta
     * This lambda requires the following environment variables to be configured:
         * private_key_password: The KMS-encrypted password for the private key associated with the SnowAlert user
         * private_key: The base64-encoded private key associated with the Snowflake user
-        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+        * account: The Snowflake account where SnowAlert is deployed
 
 * Suppression Wrapper
     * This lambda function should run the suppression_wrapper.py code. This lambda is responsible for dispatching queries to the Suppression Runner, as well as flagging alerts as unsuppressed.
@@ -191,7 +191,7 @@ The update-snowalert.sh script will start a Docker container that will pip insta
         * SNOWALERT_SUPPRESSION_EXECUTOR_FUNCTION: The name of the lambda function that executes suppression_runner.py
         * private_key_password: The KMS-encrypted password for the private key associated with the SnowAlert user
         * private_key: The base64-encoded private key associated with the Snowflake user
-        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+        * account: The Snowflake account where SnowAlert is deployed
 
 * Suppression Runner
     * This lambda function should run the suppression_runner.py code. This lambda is responsible for executing suppression queries against unchecked alerts in the alerts table, and flagging alerts which should be suppressed. 
@@ -199,7 +199,7 @@ The update-snowalert.sh script will start a Docker container that will pip insta
     * This lambda requires the following environment variables to be configured:
         * private_key_password: The KMS-encrypted password for the private key associated with the SnowAlert user
         * private_key: The base64-encoded private key associated with the Snowflake user
-        * SNOWALERT_ACCOUNT: The Snowflake account where SnowAlert is deployed
+        * account: The Snowflake account where SnowAlert is deployed
 
 * Alert Handler
     * The Alert Handler is the function which handles the integration with a task management system. Right now, the only supported integration is Jira; please see the Jira Plugin documentation for details on that integration.
