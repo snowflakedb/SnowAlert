@@ -6,7 +6,7 @@
 
     That command starts an interactive (-it) docker container that mirrors the execution environment of the lambda function. Additionally, it has a bind mount of your current working direcotry in /var/task, the directory that you will get dropped into in the container.
 
-3. On the docker container, run `/scripts/package-lambda-deployment.sh`. This is a shell script which takes in the python files you want to package, spins up a virtual environment for python 3.6, pip installs the python-connector, and packages it all together. It outputs file.zip, where file is the name of the first python file you passed in as an argument.  
+3. On the docker container, run `/scripts/package-lambda-function.sh`. This is a shell script which takes in the python files you want to package, spins up a virtual environment for python 3.6, pip installs the python-connector, and packages it all together. It outputs file.zip, where file is the name of the first python file you passed in as an argument.  
 
     * To build the Alert Handler, use the following command: `./scripts/package-lambda-function.sh alert_handler.py plugins jira`
     * To build the Query Wrapper, use the following command: `./scripts/package-lambda-function.sh query_wrapper.py`
