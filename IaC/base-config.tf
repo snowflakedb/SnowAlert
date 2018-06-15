@@ -82,14 +82,14 @@ data "local_file" "encrypted_jira_password" {
 # to configure your lambdas to run from a particular VPC so that they have a static IP.
 # A rough structure for this configuration is commented out in this file.
 
-data "aws_iam_policy" "lambda-vpc-access" {
-    arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
+# data "aws_iam_policy" "lambda-vpc-access" {
+#    arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+# }
  
-  resource "aws_iam_role_policy_attachment" "lambda-vpc-policy" {
-    role       = "${aws_iam_role.snowalert-lambda-role.name}"
-    policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
- }
+#  resource "aws_iam_role_policy_attachment" "lambda-vpc-policy" {
+#    role       = "${aws_iam_role.snowalert-lambda-role.name}"
+#    policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
+# }
 
 resource "aws_iam_role" "snowalert-lambda-role" {
   name        = "snowalert-lambda-role"
@@ -159,6 +159,10 @@ resource "aws_iam_role_policy" "snowalert-lambda-role-policy" {
 POLICY
 }
 
+# To avoid uneccessary expenses, the cloudwatch events to schedule the lambdas are commented out
+# If you are ready to schedule SnowAlert to check incoming data logs for events to alert on,
+# uncomment the cloudwatch event rules and cloudwatch event targets in this file.
+
 # resource "aws_cloudwatch_event_rule" "query-wrapper-event-rule" {
 #   name        = "snowalert-query-wrapper-rule"
 #   description = "Rule to trigger query wrapper every hour on the hour"
@@ -192,10 +196,10 @@ resource "aws_lambda_function" "snowalert-query-wrapper" {
   s3_key        = "${aws_s3_bucket_object.snowalert-query-wrapper.id}"
   timeout       = "120"
 
-  vpc_config = {
-    subnet_ids         = ["subnet-09e219cf8f803d97a"]
-    security_group_ids = ["sg-0f65fa84d7bdc98bb"]
-  }
+#  vpc_config = {
+#    subnet_ids         = [""]
+#    security_group_ids = [""]
+#  }
 
   environment {
     variables = {
@@ -218,10 +222,10 @@ resource "aws_lambda_function" "snowalert-query-runner" {
   timeout       = "300"
   memory_size   = "512"
 
-  vpc_config = {
-    subnet_ids         = ["subnet-09e219cf8f803d97a"]
-    security_group_ids = ["sg-0f65fa84d7bdc98bb"]
-  }
+#  vpc_config = {
+#    subnet_ids         = [""]
+#    security_group_ids = [""]
+#  }
 
   environment {
     variables = {
@@ -243,10 +247,10 @@ resource "aws_lambda_function" "snowalert-suppression-wrapper" {
   s3_key        = "${aws_s3_bucket_object.snowalert-suppression-wrapper.id}"
   timeout       = "300"
 
-  vpc_config = {
-    subnet_ids         = ["subnet-09e219cf8f803d97a"]
-    security_group_ids = ["sg-0f65fa84d7bdc98bb"]
-  }
+#  vpc_config = {
+#    subnet_ids         = [""]
+#    security_group_ids = [""]
+#  }
 
   environment {
     variables = {
@@ -269,10 +273,10 @@ resource "aws_lambda_function" "snowalert-suppression-runner" {
   s3_key        = "${aws_s3_bucket_object.snowalert-suppression-runner.id}"
   timeout       = "120"
 
-  vpc_config = {
-    subnet_ids         = ["subnet-09e219cf8f803d97a"]
-    security_group_ids = ["sg-0f65fa84d7bdc98bb"]
-  }
+#  vpc_config = {
+#    subnet_ids         = [""]
+#    security_group_ids = [""]
+#  }
 
   environment {
     variables = {
@@ -295,10 +299,10 @@ resource "aws_lambda_function" "snowalert-jira-integration" {
   s3_key = "${aws_s3_bucket_object.snowalert-jira-integration.id}"
   timeout = "300"
 
-  vpc_config = {
-    subnet_ids         = ["subnet-09e219cf8f803d97a"]
-    security_group_ids = ["sg-0f65fa84d7bdc98bb"]
-  }
+#  vpc_config = {
+#    subnet_ids         = [""]
+#    security_group_ids = [""]
+#  }
 
   environment {
     variables = {
