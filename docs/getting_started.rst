@@ -39,10 +39,10 @@ If your Snowflake account requires a whitelisted IP for access, you'll need to c
 
 After configuring the AWS resources, the installer will automatically invoke the Query Wrapper and Suppression Wrapper functions; this should run the sample query that was loaded during Snowflake configuration. Since the SnowAlert user authenticated to Snowflake during configuration and does not have MFA configured, this should result in an alert appearing in your alerts table. If Jira is configured, then the Jira alert handler will run, creating a ticket in the Jira project for the alert. 
 
-Jira Plugin
+Atlassian Jira Plugin
 -----------
 
-SnowAlert supports optional integration with Jira, which will allow it to automatically create tickets in a specified Jira project for alerts that should be investigated. The Jira integration runs in a separate lambda which should run after the Query Wrapper and Suppression Wrapper lambdas have run. 
+SnowAlert supports optional integration with Atlassian Jira, which will allow it to automatically create tickets in a specified Jira project for alerts that should be investigated. The Jira integration runs in a separate lambda which should run after the Query Wrapper and Suppression Wrapper lambdas have run. 
 
 In order to configure the Jira integration, you will need to provide a user for SnowAlert to authenticate as, as well as a project where the tickets will list. We recommend creating a dedicated user and project.
 
@@ -53,8 +53,7 @@ The Jira Integration Lambda will require the following environment variables to 
     * JIRA_API_PASSWORD: The password for the Jira user that SnowAlert uses. This password should be encrypted with a KMS key that the lambda has access to.
     * private_key_password: The password that encrypts the private key used for key-pair authentication. This password should be encrypted with a KMS key that the lambda has access to.
     * private_key: the encrypted private key for key-pair authentication
-    * SNOWALERT_USER: The name of the SnowAlert user in SnowFlake. This should be something like "snowalert"
-    * PROD_FLAG: This should be "True". This flag is used for debugging purposes; if it is not set, tickets will not be created and KMS will not be used to decrypt passwords.
+    * SNOWALERT_USER: The name of the SnowAlert user in Snowflake. This should be something like "snowalert" * PROD_FLAG: This should be "True". This flag is used for debugging purposes; if it is not set, tickets will not be created and KMS will not be used to decrypt passwords.
 
 
 Setting Up
