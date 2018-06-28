@@ -1,5 +1,4 @@
-.. image:: https://coveralls.io/repos/github/snowflakedb/SnowAlert/badge.svg?branch=master
-:target: https://coveralls.io/github/snowflakedb/SnowAlert?branch=master
+[![Coverage Status](https://coveralls.io/repos/github/snowflakedb/SnowAlert/badge.svg?branch=master)](https://coveralls.io/github/snowflakedb/SnowAlert?branch=master)
 
 # SnowAlert
 
