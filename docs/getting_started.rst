@@ -77,9 +77,14 @@ Once that test authentication is complete, the installer will ask if you want to
 
 .. code-block::
 
-    Inserting a sample suppression into the suppression spec table...
-    Sample suppression inserted successfully
-    Would you like to integrate Jira with SnowAlert (Y/N)?
+    Would you like to integrate Jira with SnowAlert (Y/N)? Y
+    Please enter the username for the SnowAlert user in Jira: snowalert@acmecorp.com
+    Please enter the password for the SnowAlert user in Jira:
+    Please enter the URL for the Jira integreation: acmecorp.atlassian.net
+    Please enter the project tag for the alerts...
+    Note that this should be the text that will prepend the ticket id; if the project is SnowAlert
+    and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.
+    Please enter the project tag for the alerts from SnowAlert: SA
 
 
 Next, the installer will ask you to name several AWS resources, specifically 
