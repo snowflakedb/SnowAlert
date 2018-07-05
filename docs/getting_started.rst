@@ -50,10 +50,12 @@ Installer
 ---------
 
 Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer has a few prerequisites:
-    * Python3
+    * Python3 and pip3
     * AWS CLI
     * Docker
     * Terraform
+    * The Python cryptography module
+    * The Snowflake python connector
 
 Before you start the installer, you should verify that the AWS CLI, Docker, and Terraform are all installed and usable. This will involve setting the required variables in SnowAlert/IaC/aws.tf to configure the AWS provider for terraform (see https://www.terraform.io/docs/providers/aws/index.html for details). SnowAlert will use two different providers: the AWS provider, and the local provider. 
 An example `aws.tf` file looks like this:
@@ -69,6 +71,8 @@ An example `aws.tf` file looks like this:
 
 
 Note that the Terraform documentation linked above describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
+
+You will want to run `pip3 install cryptography` and `pip3 install --upgrade snowflake-connector-python`
 
 You should also make sure that you have the credentials for your Snowflake account, for a user with accountadmin privileges. If you are making use of the optional Jira integration, you should also have the Jira environment set up for SnowAlert; this will require having a Jira user for SnowAlert, as well as having a project set up for the alerts to live in. 
 
