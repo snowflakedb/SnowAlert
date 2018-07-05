@@ -24,9 +24,9 @@ An example `aws.tf` file looks like this:
 
 ```
 provider "aws" {
-    region     = "us-west-2"
-    access_key = "anaccesskey"
-    secret_key = "asecretkey"
+  region     = "us-west-2"
+  access_key = "anaccesskey"
+  secret_key = "asecretkey"
 }
 
 provider "local" {}
@@ -42,7 +42,7 @@ Once those preparations are complete, you can start the installer by typing `pyt
 
 You will initially be prompted for your Snowflake account and user credentials; please provide credentials for an account which can assume the accountadmin role in your Snowflake account. Note that you can press Enter at the password prompt and the installer will fall back to SSO authentication instead; you must have SSO configured for your account in order for this to work. Finally, you will be prompted for a deployment region. If your region is us-west-2, or if you don't know your deployment region, just press Enter again.
 
-```
+``
 $ python3 install-snowalert.py
 This is the installer for SnowAlert; it will set up all of the resources needed for SnowAlert to run.
 You will be prompted for several pieces of information during this process, including a Snowflake username, Snowflake account, and two different passwords
@@ -53,7 +53,7 @@ Please enter the password for the user you provided above. Alternatively, you ca
 Please enter the region where your Snowflake account is located; if the region is us-west-2, or if you don't know your region, press Enter to use the default:
 Authenticating to Snowflake...
 Initiating login request with your identity provider. A browser window should have opened for you to complete the login. If you can't see it, check existing browser windows, or your OS settings. Press CTRL+C to abort and try again...
-```
+``
 
 You will also be prompted to provide a password which will be used to encrypt a private key; the installer will use openssl to generate a public and private keypair, and SnowAlert will use that private key to authenticate to SnowAlert. During the installation process, you'll need to provide this password four times: three times to set up the keypair (inital password, verification, and then for setting up the public key), and once more to decrypt the private key for a test authentication of the SnowAlert user after Snowflake has been configured.
 
