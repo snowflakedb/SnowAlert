@@ -6,6 +6,42 @@ Requirements
 
 In order to use SnowAlert, you'll need administrator access to a Snowflake warehouse for your data and an AWS account for Lambda.
 
+Your AWS user will need the following permissions to create and run the resources SnowAlert uses
+
+.. code::
+
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "VisualEditor0",
+                "Effect": "Allow",
+                "Action": [
+                    "kms:Decrypt",
+                    "kms:List*",
+                    "kms:UntagResource",
+                    "kms:GenerateRandom",
+                    "kms:UpdateKeyDescription",
+                    "kms:Get*",
+                    "iam:ListRoles",
+                    "iam:DeleteRole",
+                    "kms:Describe*",
+                    "iam:PutRolePolicy",
+                    "kms:TagResource",
+                    "kms:Encrypt",
+                    "iam:DeleteRolePolicy",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:CreateAlias",
+                    "kms:CreateKey",
+                    "iam:ListUsers",
+                    "iam:ListGroups",
+                    "kms:DeleteAlias"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+
 Downloading
 -----------
 Use git to clone the project from: https://github.com/snowflakedb/SnowAlert.git
