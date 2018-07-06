@@ -72,11 +72,11 @@ An example `aws.tf` file looks like this:
 
 Note that the Terraform documentation linked above describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
 
-You will want to run 
+You will want to run::
 
     pip3 install cryptography
 
-and 
+and:: 
 
     pip3 install --upgrade snowflake-connector-python
 
