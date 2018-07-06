@@ -72,7 +72,15 @@ An example `aws.tf` file looks like this:
 
 Note that the Terraform documentation linked above describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
 
-You will want to run `pip3 install cryptography` and `pip3 install --upgrade snowflake-connector-python`
+You will want to run 
+
+    pip3 install cryptography
+
+and 
+
+    pip3 install --upgrade snowflake-connector-python
+
+to make sure you have the appropriate python modules available for the installer.
 
 You should also make sure that you have the credentials for your Snowflake account, for a user with accountadmin privileges. If you are making use of the optional Jira integration, you should also have the Jira environment set up for SnowAlert; this will require having a Jira user for SnowAlert, as well as having a project set up for the alerts to live in. 
 
