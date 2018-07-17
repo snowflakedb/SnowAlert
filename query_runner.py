@@ -1,19 +1,16 @@
 import sys
-import base64
-import boto3
 import datetime
 import json
 import os
 import uuid
 import hashlib
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.asymmetric import dsa
-from cryptography.hazmat.primitives import serialization
 
 import snowflake.connector
 
 from multiprocessing import Process
+
+from adapters.AwsLambda.main import AwsLambda
+
 
 GROUPING_PERIOD = 1 * 60 * 60  # Group events within one hour periods
 ALERTS_TABLE = 'snowalert.public.alerts'
@@ -93,13 +90,9 @@ def log_alerts(ctx, alerts):
         format_string = ", ".join(["(%s)"]*len(alerts))
         ctx.cursor().execute('insert into '+ALERTS_TABLE+' (alert) select parse_json (column1) from values ' + format_string + ';', (alerts))
 
-def login():
-    kms = boto3.client('kms')
-    password = kms.decrypt(CiphertextBlob=base64.b64decode(os.environ['private_key_password']))['Plaintext'].decode()
 
-    private_key = serialization.load_pem_private_key(base64.b64decode(os.environ['private_key']), password=password.encode(), backend=default_backend())
-
-    pkb = private_key.private_bytes(encoding=serialization.Encoding.DER, format=serialization.PrivateFormat.TraditionalOpenSSL, encryption_algorithm=serialization.NoEncryption())
+def get_snowflake_connection():
+    pkb = AwsLambda.get_key()
 
     try:
         ctx = snowflake.connector.connect(user='snowalert', account=os.environ['account'], private_key=pkb)
@@ -110,23 +103,11 @@ def login():
     return ctx
 
 
-
 def snowalert_query(event):
     query_spec = event
     print("Received query {}".format(query_spec['GUID']))
-    
-    kms = boto3.client('kms')
-    password = kms.decrypt(CiphertextBlob=base64.b64decode(os.environ['private_key_password']))['Plaintext'].decode()
 
-    private_key = serialization.load_pem_private_key(base64.b64decode(os.environ['private_key']), password=password.encode(), backend=default_backend())
-
-    pkb = private_key.private_bytes(encoding=serialization.Encoding.DER, format=serialization.PrivateFormat.TraditionalOpenSSL, encryption_algorithm=serialization.NoEncryption())
-
-    try:
-        ctx = snowflake.connector.connect(user='snowalert', account=os.environ['account'], private_key=pkb)
-    except Exception as e:
-        print("Failed to authenticate with error {}".format(e))
-        sys.exit(1)
+    ctx = get_snowflake_connection()
 
     try:
         results = ctx.cursor().execute(query_spec['Query']).fetchall()
