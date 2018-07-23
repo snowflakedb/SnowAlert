@@ -16,7 +16,7 @@ from botocore.stub import Stubber
 
 from adapters.AwsLambda.main import AwsLambda
 
-kms = boto3.client('kms')
+kms = boto3.client('kms', region_name='us-west-2')
 
 # Private key used for testing, not sensitive. The key's password is pk_password.
 fake_private_key = (base64.b64encode(b"""-----BEGIN ENCRYPTED PRIVATE KEY-----
