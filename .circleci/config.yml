@@ -55,7 +55,4 @@ workflows:
 
   build_test_deploy:
     jobs:
-      - build:
-          filters:
-            branches:
-              only: first-unit-test
+      - build
