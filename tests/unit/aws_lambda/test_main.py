@@ -62,7 +62,7 @@ class TestAwsLambda(object):
     @mock.patch.dict(os.environ, {'private_key': fake_private_key})
     @patch('boto3.client')
     def test_load_api_creds(self, mock_boto_call):
-        mock_kms = botocore.session.get_session().create_client('kms')
+        mock_kms = botocore.session.get_session().create_client('kms', region_name='us-west-2')
         response = {'KeyId': '0',
                     'Plaintext': b'swordfish'
                     }
