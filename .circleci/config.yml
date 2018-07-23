@@ -39,6 +39,8 @@ jobs:
           command: |
             . venv/bin/activate
             nosetests
+            mkdir test-reports
+            pytest --junitxml=test-reports/junit.xml
 
       - store_artifacts:
           path: test-reports
