@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/snowflakedb/SnowAlert/badge.svg?branch=master)](https://coveralls.io/github/snowflakedb/SnowAlert?branch=master)
+[![CircleCI](https://circleci.com/gh/snowflakedb/SnowAlert.svg?style=svg)](https://circleci.com/gh/snowflakedb/SnowAlert)
 
 # SnowAlert
 
