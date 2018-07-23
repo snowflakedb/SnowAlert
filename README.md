@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/snowflakedb/SnowAlert.svg?style=svg)](https://circleci.com/gh/snowflakedb/SnowAlert)
+[![CircleCI](https://circleci.com/gh/snowflakedb/SnowAlert.svg?style=shield)](https://circleci.com/gh/snowflakedb/SnowAlert)
 
 # SnowAlert
 
