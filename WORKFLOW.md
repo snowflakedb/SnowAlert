@@ -6,14 +6,14 @@ In order to use SnowAlert, you need two things: a Snowflake account to store dat
 
 Snowflake recommends using keypair-based authentication for programmatic access to a Snowflake account. This involves creating a public and private keypair like so:
 
-`
+~~~~
 $ openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8
 $ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
-`
+~~~~
 
 And associating that keypair with a snowflake user using ALTER USER:
 
-`alter user <USER> set rsa_public_key='<PUBLIC KEY';`
+`alter user <USER> set rsa_public_key='<PUBLIC KEY>';`
 
 More details can be found at https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication
 
