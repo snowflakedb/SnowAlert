@@ -49,16 +49,41 @@ Use git to clone the project from: https://github.com/snowflakedb/SnowAlert.git
 Installer
 ---------
 
-Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer has a few prerequisites:
-    * Python3 and pip3
-    * AWS CLI
+Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer is intended to run inside a Docker container.
+As a result, there are three prerequisites for running the installer:
     * Docker
-    * Terraform
-    * The Python cryptography module
-    * The Snowflake python connector
+    * An AWS_KEY and AWS_SECRET for an AWS user with the permissions detailed above
+    * Credentials for a Snowflake user with access to the ACCOUNTADMIN role.
 
-Before you start the installer, you should verify that the AWS CLI, Docker, and Terraform are all installed and usable. This will involve setting the required variables in SnowAlert/IaC/aws.tf to configure the AWS provider for terraform (see https://www.terraform.io/docs/providers/aws/index.html for details). SnowAlert will use two different providers: the AWS provider, and the local provider. 
-An example `aws.tf` file looks like this:
+If you want to run the installer outside of the docker container, then please make sure you have the AWS CLI configured, terraform installed and in PATH, the ability to run .sh scripts, 
+OpenSSL installed, and the prebuilt copies of the lambda functions.
+
+Before you start the installer, you should build the Docker container. Clone the github project, then navigate to the SnowAlert directory and run the following command:
+
+.. code::
+    docker build -t snowalert .
+
+This will download the base image of the container and use that as a jumping-off point to build the rest of the container. The image comes with several tools provided,
+including python3, pip, OpenSSL, and the AWS CLI. The dockerfile will install Terraform and the snowflake connector for python, both of which are used in the installer.
+
+Once the container is built, run
+
+.. code::
+
+    docker run --rm -it --mount type=bind,source="$(pwd)",target=/var/task snowalert:latest bash
+
+This will start the container with an interactable shell; it will also mount your current working directory (which should be the SnowAlert directory) into the container at /var/task,
+which is where the shell drops you when the container is fully started. 
+
+Once inside the Docker container, you will need to run 
+
+.. code::
+
+    aws configure
+
+to configure the AWS CLI; enter the AWS_KEY and AWS_SECRET when prompted, and provide the default region as necessary.
+
+Next, you should navigate to SnowAlert/IaC and edit the 'aws.tf' file; a sample 'aws.tf' file is provided below.
 
 .. code::
 
@@ -67,24 +92,13 @@ An example `aws.tf` file looks like this:
         access_key = "anaccesskey"
         secret_key = "asecretkey"
     }
+
     provider "local" {}
 
 
-Note that the Terraform documentation linked above describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
-
-You will want to run::
-
-    pip3 install cryptography
-
-and:: 
-
-    pip3 install --upgrade snowflake-connector-python
-
-to make sure you have the appropriate python modules available for the installer.
+Note that the Terraform documentation (https://www.terraform.io/docs/configuration/providers.html) describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
 
 You should also make sure that you have the credentials for your Snowflake account, for a user with accountadmin privileges. If you are making use of the optional Jira integration, you should also have the Jira environment set up for SnowAlert; this will require having a Jira user for SnowAlert, as well as having a project set up for the alerts to live in. 
-
-Please note that the installer makes use of some shell scripts for helper functionality, and it is not intended to work on Windows machines. Installation on Windows is on the product roadmap; please let us know if you want this feature!
 
 Once those preparations are complete, you can start the installer by typing `python3 install-snowalert.py` into your terminal when you are in the correct directory (SnowAlert/IaC).
 
