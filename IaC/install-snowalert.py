@@ -437,7 +437,7 @@ def jira_integration():
     if (flag == "Yes" or flag == "y" or flag == "Yes" or flag == "Y"):
         jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
         jira_password = getpass.getpass("Please enter the password for the SnowAlert user in Jira: ")
-        jira_url = input("Please enter the URL for the Jira integreation: ")
+        jira_url = input("Please enter the URL for the Jira integration: ")
         if jira_url[:8] != "https://":
             jira_url = "https://" + jira_url
         print("Please enter the project tag for the alerts...")
