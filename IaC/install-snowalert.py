@@ -15,7 +15,7 @@ ROLE_CREATION_QUERY = "create role if not exists SNOWALERT;"
 USER_CREATION_QUERY = "create user if not exists snowalert login_name = 'snowalert' password = '' default_role='SNOWALERT' must_change_password=false;"
 ROLE_GRANT_QUERY = "grant role SNOWALERT to user snowalert;"
 
-GRANT_PRIVILEGES_SCHEMA_QUERY = "grant all privileges on all schemas in database snowalert to role snowalert;"
+GRANT_PRIVILEGES_SCHEMA_QUERY = "grant all privileges on all schemas in database snowalert to role SNOWALERT;"
 GRANT_USAGE_QUERY = "GRANT USAGE ON WAREHOUSE snowalert TO ROLE snowalert;"
 
 SET_DEFAULT_WAREHOUSE_QUERY = "alter user snowalert set default_warehouse=snowalert;"
@@ -211,10 +211,9 @@ def setup_keypair(ctx):
     print("variable for Lambdas which require it; you will not be required to type this password in order")
     print("to run the lamba functions themselves.")
 
-    # We run openssl in a docker container so that we can be guaranteed it's available.  
     success = 1
     while success == 1:
-        success = call("docker run --rm -it --mount type=bind,source=\"$(pwd)\",target=/var/task lambci/lambda:build-python3.6 ./privatekey.sh", shell=True)
+        success = call("./privatekey.sh", shell=True)
 
     print("Public key saved as rsa_key.pub")
     f = open("rsa_key.pub", "r")
@@ -427,8 +426,8 @@ def build_packages():
     print("Building packages for lambdas...")
     # We need to change to the directory where the python files are, or we won't actually include them in the zips when we build
     os.chdir("..")
-    call ("docker run --rm --mount type=bind,source=\"$(pwd)\",target=/var/task lambci/lambda:build-python3.6 scripts/package-lambda-function.sh all", shell=True)
-    # And then change back to the IaC directory to run terraform
+    call ("./scripts/package-lambda-function.sh all", shell=True)
+    # And then change back to the config directory to run terraform
     os.chdir("IaC")
     # and now we need to move the zips here so that Terraform can see them
     call("cp ../*.zip .", shell=True) 
@@ -438,7 +437,7 @@ def jira_integration():
     if (flag == "Yes" or flag == "y" or flag == "Yes" or flag == "Y"):
         jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
         jira_password = getpass.getpass("Please enter the password for the SnowAlert user in Jira: ")
-        jira_url = input("Please enter the URL for the Jira integration: ")
+        jira_url = input("Please enter the URL for the Jira integreation: ")
         if jira_url[:8] != "https://":
             jira_url = "https://" + jira_url
         print("Please enter the project tag for the alerts...")
