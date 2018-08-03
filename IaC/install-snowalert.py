@@ -427,7 +427,7 @@ def build_packages():
     # We need to change to the directory where the python files are, or we won't actually include them in the zips when we build
     os.chdir("..")
     call ("./scripts/package-lambda-function.sh all", shell=True)
-    # And then change back to the config directory to run terraform
+    # And then change back to the IaC directory to run terraform
     os.chdir("IaC")
     # and now we need to move the zips here so that Terraform can see them
     call("cp ../*.zip .", shell=True) 
