@@ -61,6 +61,7 @@ OpenSSL installed, and the prebuilt copies of the lambda functions.
 Before you start the installer, you should build the Docker container. Clone the github project, then navigate to the SnowAlert directory and run the following command:
 
 .. code::
+
     docker build -t snowalert .
 
 This will download the base image of the container and use that as a jumping-off point to build the rest of the container. The image comes with several tools provided,
