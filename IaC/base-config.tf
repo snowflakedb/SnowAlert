@@ -7,7 +7,7 @@ variable snowflake_account {}
 variable jira_flag {}
 
 resource "aws_s3_bucket" "snowalert-deploy" {
-    bucket = "snowalert-deploy-clean"
+    bucket = "${var.s3_bucket_name}"
 
     server_side_encryption_configuration {
         rule {
