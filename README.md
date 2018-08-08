@@ -2,7 +2,7 @@
 
 # SnowAlert
 
-![SnowAlert](https://raw.githubusercontent.com/snowflakedb/SnowAlert/docs/images/snowalert-logo.png)
+![SnowAlert](docs/images/snowalert-logo.png)
 
 SnowAlert is a security analytics framework that uses the Snowflake data warehouse for identifying security incidents across diverse data sources and time ranges.
 
