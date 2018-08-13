@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives import serialization
 from subprocess import call
+from subprocess import check_output
 
 import snowflake.connector
 
@@ -210,10 +211,16 @@ def setup_keypair(ctx):
     print("with a KMS key and the encrypted value written to disk. This encrypted value will be used as an environemntal")
     print("variable for Lambdas which require it; you will not be required to type this password in order")
     print("to run the lamba functions themselves.")
+    print("")
+    print("You can enter a password of your choosing, or press Enter to create a password through openssl's rand function.")
+    password = getpass.getpass("Enter password: ")
+    if password = "":
+        #check_output returns bytes, so we decode and then trim off the newline at the end of the string
+        password = check_output("openssl rand 18 | base64", shell=True).decode()[:-1]
 
     success = 1
     while success == 1:
-        success = call("./privatekey.sh", shell=True)
+        success = call("./privatekey.sh {}".format(password), shell=True)
 
     print("Public key saved as rsa_key.pub")
     f = open("rsa_key.pub", "r")
@@ -225,7 +232,7 @@ def setup_keypair(ctx):
         if buffer != '-----END PUBLIC KEY-----\n':
             key = key + buffer
 
-    return key
+    return key, password
 
 
 def setup_user(ctx):
@@ -266,7 +273,7 @@ def setup_user(ctx):
     print("Granted role successfully")
 
     print("Creating the public and private keypairs for SnowAlert...")
-    key = setup_keypair(ctx)
+    key, password = setup_keypair(ctx)
     
     SET_PUBLIC_KEY_QUERY = "alter user snowalert set rsa_public_key='"+key+"';"
     print("Associating public key with SnowAlert user...")
@@ -277,6 +284,7 @@ def setup_user(ctx):
         sys.exit(1)
 
     print("SnowAlert user has the public key")
+    return password
 
 def query_setup(ctx):
     print("Verifying that the sample query and suppression haven't already been inserted...")
@@ -314,14 +322,12 @@ def query_setup(ctx):
     print("Sample suppression inserted successfully")
 
 
-def test(account):
+def test(account, key_pwd):
     print("Testing Snowflake configuration to ensure that account permissions are correct...")
 
     success = 1
     while success == 1:
         try:
-            key_pwd = getpass.getpass("Please enter the password for the private key configured for your SnowAlert user: ")
-
             with open("rsa_key.p8", "rb") as key:
                 p_key = serialization.load_pem_private_key(
                     key.read(),
@@ -526,9 +532,9 @@ def full_test(jira_flag, query_wrapper_name, suppression_wrapper_name, alert_han
 
 if __name__ == '__main__':
     ctx, account = login()
-    setup_user(ctx)
+    key_password = setup_user(ctx)
     warehouse_setup(ctx)
-    pwd = test(account)
+    test(account, key_password)
     query_setup(ctx)
     jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
     query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
@@ -538,7 +544,7 @@ if __name__ == '__main__':
     build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
     if build_flag == 'y' or build_flag == 'Y':
         build_packages()
-    terraform_init(pwd, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
+    terraform_init(key_password, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
     print("Installation completed successfully!")
     print("Invoking the lambdas to test the end to end flow...")
     full_test(jira_flag, query_wrapper_name, suppression_wrapper_name, jira_integration_name)
