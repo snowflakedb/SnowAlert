@@ -239,7 +239,7 @@ resource "aws_lambda_function" "snowalert-suppression-wrapper" {
 }
 
 resource "aws_lambda_function" "snowalert-suppression-runner" {
-  function_name = "${var.suppression_runner-name}"
+  function_name = "${var.suppression_runner_name}"
   handler       = "suppression_runner.lambda_handler"
   role          = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime       = "python3.6"
