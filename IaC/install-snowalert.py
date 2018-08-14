@@ -534,14 +534,14 @@ if __name__ == '__main__':
         warehouse_setup(ctx)
         test(account, key_password)
         query_setup(ctx)
-        jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
-        query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
+    jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
+    query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
         # Building the packages takes about two minutes per lambda, which runs about ten minutes if you build all five lambdas.
         # If you want to build the packages yourself, then answer 'y' here! Otherwise, you can use
         # the prebuilt packages included in the project and deploy them without building.
-        build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
-        if build_flag == 'y' or build_flag == 'Y':
-            build_packages()
+    build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
+    if build_flag == 'y' or build_flag == 'Y':
+        build_packages()
     terraform_init(key_password, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
     print("Installation completed successfully!")
     print("Invoking the lambdas to test the end to end flow...")
