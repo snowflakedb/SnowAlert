@@ -10,6 +10,13 @@ from subprocess import call
 from subprocess import check_output
 
 import snowflake.connector
+import argparse
+
+parser = argparse.ArgumentParser(description='An installer for SnowAlert. The -r flag will set up keypair authentication, then jump right to terraforming AWS resources.')
+
+parser.add_argument('-r', action="store_true", default=False, dest='reset_flag')
+
+results = parser.parse_args()
 
 ACCOUNT_ADMIN_QUERY = "use role accountadmin;"
 ROLE_CREATION_QUERY = "create role if not exists SNOWALERT;"
@@ -205,18 +212,8 @@ def warehouse_setup(ctx):
 
 
 def setup_keypair(ctx):
-    print("Creating the private key for the SnowAlert user! Please pick a strong password to protect this key.") 
-    print("This password will be used to encrypt the private key used for key-pair authentication to Snowflake.")
-    print("You will need to type this four times during the installation process, but afterwards it will be encrypted")
-    print("with a KMS key and the encrypted value written to disk. This encrypted value will be used as an environemntal")
-    print("variable for Lambdas which require it; you will not be required to type this password in order")
-    print("to run the lamba functions themselves.")
-    print("")
-    print("You can enter a password of your choosing, or press Enter to create a password through openssl's rand function.")
-    password = getpass.getpass("Enter password: ")
-    if password = "":
-        #check_output returns bytes, so we decode and then trim off the newline at the end of the string
-        password = check_output("openssl rand 18 | base64", shell=True).decode()[:-1]
+    print("Setting up the keypair for SnowAlert authentication...")
+    password = check_output("openssl rand 18 | base64", shell=True).decode()[:-1]
 
     success = 1
     while success == 1:
@@ -533,17 +530,18 @@ def full_test(jira_flag, query_wrapper_name, suppression_wrapper_name, alert_han
 if __name__ == '__main__':
     ctx, account = login()
     key_password = setup_user(ctx)
-    warehouse_setup(ctx)
-    test(account, key_password)
-    query_setup(ctx)
-    jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
-    query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
-    # Building the packages takes about two minutes per lambda, which runs about ten minutes if you build all five lambdas.
-    # If you want to build the packages yourself, then answer 'y' here! Otherwise, you can use
-    # the prebuilt packages included in the project and deploy them without building.
-    build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
-    if build_flag == 'y' or build_flag == 'Y':
-        build_packages()
+    if results.reset_flag == False:
+        warehouse_setup(ctx)
+        test(account, key_password)
+        query_setup(ctx)
+        jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
+        query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
+        # Building the packages takes about two minutes per lambda, which runs about ten minutes if you build all five lambdas.
+        # If you want to build the packages yourself, then answer 'y' here! Otherwise, you can use
+        # the prebuilt packages included in the project and deploy them without building.
+        build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
+        if build_flag == 'y' or build_flag == 'Y':
+            build_packages()
     terraform_init(key_password, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
     print("Installation completed successfully!")
     print("Invoking the lambdas to test the end to end flow...")
