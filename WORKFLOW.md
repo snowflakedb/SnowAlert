@@ -13,7 +13,7 @@ $ openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
 
 And associating that keypair with a snowflake user using ALTER USER:
 
-`alter user <USER> set rsa_public_key='<PUBLIC KEY';`
+`alter user <USER> set rsa_public_key='<PUBLIC KEY>';`
 
 More details can be found at https://docs.snowflake.net/manuals/user-guide/snowsql-start.html#using-key-pair-authentication
 
