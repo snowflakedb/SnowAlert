@@ -35,7 +35,7 @@ Your AWS user will need the following permissions to create and run the resource
                     "kms:CreateKey",
                     "iam:ListUsers",
                     "iam:ListGroups",
-                    "kms:DeleteAlias"
+                    "kms:DeleteAlias",
                 	"s3:CreateBucket",
                     "s3:DeleteBucket",
                     "s3:ListBucket",
