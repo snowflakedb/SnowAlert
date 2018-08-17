@@ -3,43 +3,63 @@ import base64
 import boto3
 import json
 import os
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import dsa
+from cryptography.hazmat.primitives import serialization
 import snowflake.connector
 
+def login():
+    kms = boto3.client('kms')
+    password = kms.decrypt(CiphertextBlob=base64.b64decode(os.environ['private_key_password']))['Plaintext'].decode()
 
-def log_suppression(guid, alert_guid, ctx):
-    #the alter set query
-    query = "update snowalert.public.alerts set suppressed = TRUE, suppression_rule = {} where alert:GUID = {}'".format(str(guid), str(alert_guid))
+    private_key = serialization.load_pem_private_key(base64.b64decode(os.environ['private_key']), password=password.encode(), backend=default_backend())
+
+    pkb = private_key.private_bytes(encoding=serialization.Encoding.DER, format=serialization.PrivateFormat.TraditionalOpenSSL, encryption_algorithm=serialization.NoEncryption())
+
+    try:
+        ctx = snowflake.connector.connect(user='snowalert', account=os.environ['account'], private_key=pkb)
+    except Exception as e:
+        print("Failed to authenticate with error {}".format(e))
+        sys.exit(1)
+    return ctx
+
+def do_suppression(suppression_guid, suppression_query, ctx):
+    # set alert instances matching the suppression to suppressed
+    query = """merge into snowalert.public.alerts t
+    using(
+    {0}) s
+    on t.alert:GUID = s.alert:GUID  
+    when matched then update
+    set t.SUPPRESSED = 'true', t.SUPPRESSION_RULE = '{1}';
+    """.format(str(suppression_query), str(suppression_guid))
     ctx.cursor().execute(query)
-    print("Suppression {} completed".format(guid))
 
 
-def suppression_query(event):
+def run_suppressions(event):
     suppression_spec = event
     print("Received suppression {}".format(suppression_spec['GUID']))
+
     kms = boto3.client('kms')
-    auth = kms.decrypt(CiphertextBlob = base64.b64decode(os.environ['auth']))['Plaintext'].decode()[:-1]
+    password = kms.decrypt(CiphertextBlob=base64.b64decode(os.environ['private_key_password']))['Plaintext'].decode()
+
+    private_key = serialization.load_pem_private_key(base64.b64decode(os.environ['private_key']), password=password.encode(), backend=default_backend())
+
+    pkb = private_key.private_bytes(encoding=serialization.Encoding.DER, format=serialization.PrivateFormat.TraditionalOpenSSL, encryption_algorithm=serialization.NoEncryption())
+
     try:
-        ctx = snowflake.connector.connect(
-            user='snowalert',
-            account=os.environ['SNOWALERT_ACCOUNT'],
-            password=auth,
-            warehouse='snowalert'
-        )
+        ctx = snowflake.connector.connect(user='snowalert', account=os.environ['account'], private_key=pkb)
     except Exception as e:
-        print("Snowflake connection failed. Error: {}".format(e))
+        print("Failed to authenticate with error {}".format(e))
         sys.exit(1)
+
     try:
-        results = ctx.cursor().execute(suppression_spec['Query']).fetchall()
+        do_suppression(suppression_spec['GUID'], suppression_spec['Query'], ctx)
     except Exception as e:
         print("Suppression query {} execution failed. Error: {}".format(suppression_spec['Query'], e))
         sys.exit(1)
     print("Suppression query {} executed".format(suppression_spec['GUID']))
-    for res in results:
-        alert_guid = json.loads(res[1])['GUID'] #  Make sure that you're checking the column where you select alert in the suppression query
-        log_suppression(suppression_spec['GUID'], alert_guid, ctx)
-        print("Event {} suppressed".format(alert_guid))
 
 
 def lambda_handler(event, context):
-    suppression_query(event)
-
+    run_suppressions(event)

@@ -74,7 +74,7 @@ func getCurrentConfig(confFile string) (*QueryConfig, error) {
 		return nil, err
 	}
 	for index, _ := range qf.Query {
-		qf.Query[index].Query = strings.Replace(qf.Query[index].Query, "\n", "", -1)
+		qf.Query[index].Query = strings.Replace(qf.Query[index].Query, "\n", " ", -1)
 	}
 	return qf, nil
 }
