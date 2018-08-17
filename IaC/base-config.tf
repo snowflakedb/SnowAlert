@@ -5,9 +5,15 @@ variable jira_project {}
 variable jira_url {}
 variable snowflake_account {}
 variable jira_flag {}
+variable s3_bucket_name {}
+variable query_runner_name {}
+variable query_wrapper_name {}
+variable suppression_runner_name {}
+variable suppression_wrapper_name {}
+variable jira_integration_name {}
 
 resource "aws_s3_bucket" "snowalert-deploy" {
-    bucket = "snowalert-deploy-clean"
+    bucket = "${var.s3_bucket_name}"
 
     server_side_encryption_configuration {
         rule {
@@ -78,19 +84,6 @@ data "local_file" "encrypted_jira_password" {
   depends_on = ["aws_kms_key.snowalert-key"]
 }
 
-# If your Snowflake account uses IP whitelisting to restrict access, then you will need
-# to configure your lambdas to run from a particular VPC so that they have a static IP.
-# A rough structure for this configuration is commented out in this file.
-
-# data "aws_iam_policy" "lambda-vpc-access" {
-#    arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-# }
- 
-#  resource "aws_iam_role_policy_attachment" "lambda-vpc-policy" {
-#    role       = "${aws_iam_role.snowalert-lambda-role.name}"
-#    policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
-# }
-
 resource "aws_iam_role" "snowalert-lambda-role" {
   name        = "snowalert-lambda-role"
   description = "Role for the Snowalert lambda functions"
@@ -110,11 +103,6 @@ resource "aws_iam_role" "snowalert-lambda-role" {
 }
 POLICY
 }
-
-# resource "aws_iam_role_policy_attachment" "snowalert-lambda-wrapper-vpc-policy" {
-#   role       = "${aws_iam_role.snowalert-lambda-role.name}"
-#   policy_arn = "${data.aws_iam_policy.lambda-vpc-access.arn}"
-# }
 
 resource "aws_iam_role_policy" "snowalert-lambda-role-policy" {
   name = "snowalert-lambda-role-policy"
@@ -188,18 +176,13 @@ POLICY
 # }
 
 resource "aws_lambda_function" "snowalert-query-wrapper" {
-  function_name = "snowalert-query-wrapper"
+  function_name = "${var.query_wrapper_name}"
   handler       = "query_wrapper.lambda_handler"
   role          = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime       = "python3.6"
   s3_bucket     = "${aws_s3_bucket.snowalert-deploy.id}"
   s3_key        = "${aws_s3_bucket_object.snowalert-query-wrapper.id}"
   timeout       = "120"
-
-#  vpc_config = {
-#    subnet_ids         = [""]
-#    security_group_ids = [""]
-#  }
 
   environment {
     variables = {
@@ -213,7 +196,7 @@ resource "aws_lambda_function" "snowalert-query-wrapper" {
 }
 
 resource "aws_lambda_function" "snowalert-query-runner" {
-  function_name = "snowalert-query-runner"
+  function_name = "${var.query_runner_name}"
   handler       = "query_runner.lambda_handler"
   role          = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime       = "python3.6"
@@ -222,10 +205,6 @@ resource "aws_lambda_function" "snowalert-query-runner" {
   timeout       = "300"
   memory_size   = "512"
 
-#  vpc_config = {
-#    subnet_ids         = [""]
-#    security_group_ids = [""]
-#  }
 
   environment {
     variables = {
@@ -239,18 +218,13 @@ resource "aws_lambda_function" "snowalert-query-runner" {
 }
 
 resource "aws_lambda_function" "snowalert-suppression-wrapper" {
-  function_name = "snowalert-suppression-wrapper"
+  function_name = "${var.suppression_wrapper_name}"
   handler       = "suppression_wrapper.lambda_handler"
   role          = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime       = "python3.6"
   s3_bucket     = "${aws_s3_bucket.snowalert-deploy.id}"
   s3_key        = "${aws_s3_bucket_object.snowalert-suppression-wrapper.id}"
   timeout       = "300"
-
-#  vpc_config = {
-#    subnet_ids         = [""]
-#    security_group_ids = [""]
-#  }
 
   environment {
     variables = {
@@ -265,18 +239,13 @@ resource "aws_lambda_function" "snowalert-suppression-wrapper" {
 }
 
 resource "aws_lambda_function" "snowalert-suppression-runner" {
-  function_name = "snowalert-suppression-runner"
+  function_name = "${var.suppression_runner_name}"
   handler       = "suppression_runner.lambda_handler"
   role          = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime       = "python3.6"
   s3_bucket     = "${aws_s3_bucket.snowalert-deploy.id}"
   s3_key        = "${aws_s3_bucket_object.snowalert-suppression-runner.id}"
   timeout       = "120"
-
-#  vpc_config = {
-#    subnet_ids         = [""]
-#    security_group_ids = [""]
-#  }
 
   environment {
     variables = {
@@ -291,18 +260,13 @@ resource "aws_lambda_function" "snowalert-suppression-runner" {
 
 resource "aws_lambda_function" "snowalert-jira-integration" {
   count = "${var.jira_flag}"
-  function_name = "snowalert-jira-integration"
+  function_name = "${var.jira_integration_name}"
   handler = "alert_handler.lambda_handler"
   role = "${aws_iam_role.snowalert-lambda-role.arn}"
   runtime = "python3.6"
   s3_bucket = "${aws_s3_bucket.snowalert-deploy.id}"
   s3_key = "${aws_s3_bucket_object.snowalert-jira-integration.id}"
   timeout = "300"
-
-#  vpc_config = {
-#    subnet_ids         = [""]
-#    security_group_ids = [""]
-#  }
 
   environment {
     variables = {

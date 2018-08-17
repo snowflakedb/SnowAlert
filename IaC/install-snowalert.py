@@ -1,20 +1,29 @@
 import sys
 import os
 import getpass
+import uuid
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives import serialization
 from subprocess import call
+from subprocess import check_output
 
 import snowflake.connector
+import argparse
+
+parser = argparse.ArgumentParser(description='An installer for SnowAlert. The -r flag will set up keypair authentication, then jump right to terraforming AWS resources.')
+
+parser.add_argument('-r', action="store_true", default=False, dest='reset_flag')
+
+results = parser.parse_args()
 
 ACCOUNT_ADMIN_QUERY = "use role accountadmin;"
 ROLE_CREATION_QUERY = "create role if not exists SNOWALERT;"
 USER_CREATION_QUERY = "create user if not exists snowalert login_name = 'snowalert' password = '' default_role='SNOWALERT' must_change_password=false;"
 ROLE_GRANT_QUERY = "grant role SNOWALERT to user snowalert;"
 
-GRANT_PRIVILEGES_SCHEMA_QUERY = "grant all privileges on all schemas in database snowalert to role snowalert;"
+GRANT_PRIVILEGES_SCHEMA_QUERY = "grant all privileges on all schemas in database snowalert to role SNOWALERT;"
 GRANT_USAGE_QUERY = "GRANT USAGE ON WAREHOUSE snowalert TO ROLE snowalert;"
 
 SET_DEFAULT_WAREHOUSE_QUERY = "alter user snowalert set default_warehouse=snowalert;"
@@ -42,14 +51,38 @@ def login():
     account = input("Please enter the Snowflake account name where you want to configure SnowAlert: ")
     print("Please enter the username of the user you would like to use to configure SnowAlert. This user should be able to use the 'accountadmin' role in your Snowflake account")
     username = input("Snowflake username: ")
-    password = getpass.getpass("Please enter the password for the user you provided above: ")
+    password = getpass.getpass("Please enter the password for the user you provided above. Alternatively, you can press Enter to use SSO for authentication instead: ")
+    region = input("Please enter the region where your Snowflake account is located; if the region is us-west-2, or if you don't know your region, press Enter to use the default: ")
 
     print("Authenticating to Snowflake...")
-    try:
-        ctx = snowflake.connector.connect(user=username, account=account, password=password)
-    except Exception as e:
-        print("Snowflake connection failed with error {}".format(e))
-        sys.exit(1)
+    # Unfortunately, we've got to use a nested if statement; we can't pass a string to snowflake.connector.connect().
+    if password == '':
+        if region == '':
+            try:
+                ctx = snowflake.connector.connect(user=username, account=account, authenticator='externalbrowser')
+            except Exception as e:
+                print("Snowflake connection failed with error {}".format(e))
+                sys.exit(1)
+        else:
+            try:
+                ctx = snowflake.connector.connect(user=username, account=account, authenticator='externalbrowser', region=region)
+            except Exception as e:
+                print("Snowflake connection failed with error {}".format(e))
+                sys.exit(1)
+    else:
+        if region == '':
+            try:
+                ctx = snowflake.connector.connect(user=username, account=account, password=password)
+            except Exception as e: 
+                print("Snowflake connection failed with error {}".format(e))
+                sys.exit(1)
+        else:
+            try:
+                ctx = snowflake.connector.connect(user=username, account=account, password=password, region=region)
+            except Exception as e:
+                print("Snowflake connection failed with error {}".format(e))
+                sys.exit(1)
+
 
     print("Authentication successful")
     return ctx, account 
@@ -93,9 +126,9 @@ def warehouse_setup(ctx):
     try:
         ctx.cursor().execute(USE_DATABASE_QUERY)
     except Exception as e:
-        print("Failed to use database with error {}".format(e))
+        print("Failed to use the database with error {}".format(e))
         sys.exit(1)
-    print("Now using the database created...")
+    print("Now using the database created")
 
     print("Granting privileges on warehouse to role...")
     try:
@@ -179,17 +212,12 @@ def warehouse_setup(ctx):
 
 
 def setup_keypair(ctx):
-    print("Creating the private key for the SnowAlert user! Please pick a strong password to protect this key.") 
-    print("This password will be used to encrypt the private key used for key-pair authentication to Snowflake.")
-    print("You will need to type this four times during the installation process, but afterwards it will be encrypted")
-    print("with a KMS key and the encrypted value written to disk. This encrypted value will be used as an environemntal")
-    print("variable for Lambdas which require it; you will not be required to type this password in order")
-    print("to run the lamba functions themselves.")
+    print("Setting up the keypair for SnowAlert authentication...")
+    password = check_output("openssl rand 18 | base64", shell=True).decode()[:-1]
 
-    # We run openssl in a docker container so that we can be guaranteed it's available.  
     success = 1
     while success == 1:
-        success = call("docker run --rm -it --mount type=bind,source=\"$(pwd)\",target=/var/task lambci/lambda:build-python3.6 ./privatekey.sh", shell=True)
+        success = call("./privatekey.sh {}".format(password), shell=True)
 
     print("Public key saved as rsa_key.pub")
     f = open("rsa_key.pub", "r")
@@ -201,7 +229,7 @@ def setup_keypair(ctx):
         if buffer != '-----END PUBLIC KEY-----\n':
             key = key + buffer
 
-    return key
+    return key, password
 
 
 def setup_user(ctx):
@@ -242,7 +270,7 @@ def setup_user(ctx):
     print("Granted role successfully")
 
     print("Creating the public and private keypairs for SnowAlert...")
-    key = setup_keypair(ctx)
+    key, password = setup_keypair(ctx)
     
     SET_PUBLIC_KEY_QUERY = "alter user snowalert set rsa_public_key='"+key+"';"
     print("Associating public key with SnowAlert user...")
@@ -253,8 +281,20 @@ def setup_user(ctx):
         sys.exit(1)
 
     print("SnowAlert user has the public key")
+    return password
 
 def query_setup(ctx):
+    print("Verifying that the sample query and suppression haven't already been inserted...")
+    try:
+        ctx.cursor().execute("delete from snowalert.public.snowalert_queries where query_spec like '%60c99650bb2943cb844fa2cb6d58f448%';")
+    except Exception as e:
+        print("Failed to clean the query spec table with error {}".format(e))
+
+    try:
+        ctx.cursor().execute("delete from snowalert.public.suppression_queries where suppression_spec like '%7ce9eee71fa5403e9d605343148ddd36%';")
+    except Exception as e:
+        print("Failed to clean the suppression spec table with error {}".format(e))
+
     print("Inserting a sample query into the query spec table...")
     with open("sample_query.qs", "r") as qs:
         query_spec = qs.read()
@@ -279,14 +319,12 @@ def query_setup(ctx):
     print("Sample suppression inserted successfully")
 
 
-def test(account):
+def test(account, key_pwd):
     print("Testing Snowflake configuration to ensure that account permissions are correct...")
 
     success = 1
     while success == 1:
         try:
-            key_pwd = getpass.getpass("Please enter the password for the private key configured for your SnowAlert user: ")
-
             with open("rsa_key.p8", "rb") as key:
                 p_key = serialization.load_pem_private_key(
                     key.read(),
@@ -355,17 +393,45 @@ def test(account):
 
 def terraform_init(key_pwd, account, jira_user, jira_password, jira_url, jira_project, jira_flag):
     print("jira flag: {}".format(jira_flag))
-    call("terraform init -input=false", shell=True)
-    call("terraform plan -input=false -var 'password={}' -var 'jira_password={}' -out=tfplan".format(key_pwd, jira_password), shell=True)
-    call("terraform apply -input=false tfplan", shell=True)
+    # We call 'terraform destroy' at the start to clean up any terraform resources from a previous execution of the installer that was aborted.
+    # This avoids a bug if Terraform breaks after the KMS key is decrypted, meaning that kms-helper.sh never gets called with the current
+    # private key generated by the installer.
+
+    check = call("terraform init -input=false", shell=True)
+    if check != 0:
+        print("Terraform failed to initialize! Please examine the error and re-run the installer when the problem is resolved.")
+        sys.exit(1)
+
+    print("Deleting any existing terraform-managed resources to ensure the installer is working from a clean slate...")
+
+    # We run `terraform destroy` twice here; there's a weird error where Terraform will occasionally fail to find an IAM policy the first time destory runs;
+    # running it a second time invariably resolves the error. If destroy fails twice in a row, then something unexpected is wrong and we should abort.
+
+    check = call("terraform destroy -input=false -var 'password={}' -var 'jira_password={}' -auto-approve".format(key_pwd, jira_password), shell=True)
+    if check != 0:
+        print("Terraform had an error while attempting to destroy a resource! This can happen sometimes; the installer will try again. If Terraform continues to fail,")
+        print("the installer will abort. If it continues to run, then everything should be fine.")
+        check = call("terraform destroy -input=false -var 'password={}' -var 'jira_password={}' -auto-approve".format(key_pwd, jira_password), shell=True)
+    if check != 0:
+        print("Terraform was unable to destroy the resources it created from a previous installation! Please examine the error and re-run the installer when the problem is resolved.")
+    
+    check = call("terraform plan -input=false -var 'password={}' -var 'jira_password={}' -out=tfplan".format(key_pwd, jira_password), shell=True)
+    if check != 0:
+        print("Terraform failed to plan! Please examine the error and re-run the installer when the problem is resolved.")
+        sys.exit(1)
+
+    check = call("terraform apply -input=false tfplan", shell=True)
+    if check != 0:
+        print("Terraform failed to create all of the resources it needs! Please examine the error and re-run the installer when the problem is resolved.")
+        sys.exit(1)
 
 def build_packages():
     print("Building packages for lambdas...")
     # We need to change to the directory where the python files are, or we won't actually include them in the zips when we build
     os.chdir("..")
-    call ("docker run --rm --mount type=bind,source=\"$(pwd)\",target=/var/task lambci/lambda:build-python3.6 scripts/package-lambda-function.sh all", shell=True)
-    # And then change back to the config directory to run terraform
-    os.chdir("config")
+    call ("./scripts/package-lambda-function.sh all", shell=True)
+    # And then change back to the IaC directory to run terraform
+    os.chdir("IaC")
     # and now we need to move the zips here so that Terraform can see them
     call("cp ../*.zip .", shell=True) 
 
@@ -386,55 +452,105 @@ def jira_integration():
         return 0, "placeholder", "", "placeholder", "placeholder"
 
 def write_flag_file(jira_user, jira_project, jira_url, jira_flag, snowflake_account):
+    print("You will now be prompted to name several AWS resources: an AWS S3 bucket, and the AWS Lambda functions which will execute the work of SnowAlert.")
+    print("The AWS S3 bucket must have a globally unique name. If it turns out the name you select is not globally unique, you can change it without running")
+    print("the installer again by modifying the value in terraform.tfvars.")
+    print("")
+    print("The Lambda functions have default names, which you can opt to use by pressing Enter at the prompt for each lambda.")
+    print("")
+    print("The S3 bucket can also be given a default name, which will be 'snowalert-deploy-' followed by a random GUID.")
+
+    s3_bucket_name = input("S3 Bucket Name (suggestion: <company>-SnowAlert-Deploy. Press Enter for SnowAlert-Deploy-<randomstring>): ")
+    if s3_bucket_name == '':
+        s3_bucket_name = 'snowalert-deploy-' + uuid.uuid4().hex
+    s3_bucket_name = s3_bucket_name.lower()
+
+    query_runner_name = input("Query Runner Function name (press Enter for default name 'query_runner'): ")
+    if query_runner_name == '':
+        query_runner_name = "query_runner"
+    query_runner_name = query_runner_name.lower()
+
+    query_wrapper_name = input("Query Wrapper Function name (press Enter for default name 'query_wrapper'): ")
+    if query_wrapper_name == '':
+        query_wrapper_name = "query_wrapper"
+    query_wrapper_name = query_wrapper_name.lower()
+
+    suppression_runner_name = input("Suppression Runner Function name (press Enter for default name 'suppression_runner'): ")
+    if suppression_runner_name == '':
+        suppression_runner_name  = 'suppression_runner'
+    suppression_runner_name = suppression_runner_name.lower()
+
+    suppression_wrapper_name = input("Suppression Wrapper Function name (press Enter for default name 'suppression_wrapper'): ")
+    if suppression_wrapper_name == '':
+        suppression_wrapper_name = 'suppression_wrapper'
+    suppression_wrapper_name = suppression_wrapper_name.lower()
+
+    if jira_flag == 1:
+        jira_integration_name = input("Jira Integration Function name (press Enter for default name 'jira_integration'): ")
+        if jira_integration_name == '':
+            jira_integration_name = "jira_integration"
+    else:
+        jira_integration_name = "placeholder"
+
     with open("terraform.tfvars", "w") as v:
         v.write('jira_user = "{}"\n'.format(jira_user))
         v.write('jira_project = "{}"\n'.format(jira_project))
         v.write('jira_url = "{}"\n'.format(jira_url))
         v.write('jira_flag = "{}"\n'.format(jira_flag))
         v.write('snowflake_account = "{}"\n'.format(snowflake_account))
+        v.write('s3_bucket_name = "{}"\n'.format(s3_bucket_name))
+        v.write('query_runner_name = "{}"\n'.format(query_runner_name))
+        v.write('query_wrapper_name = "{}"\n'.format(query_wrapper_name))
+        v.write('suppression_runner_name = "{}"\n'.format(suppression_runner_name))
+        v.write('suppression_wrapper_name = "{}"\n'.format(suppression_wrapper_name))
+        v.write('jira_integration_name = "{}"\n'.format(jira_integration_name))
 
-def full_test(jira_flag):
+    return query_wrapper_name, suppression_wrapper_name, jira_integration_name
+
+def full_test(jira_flag, query_wrapper_name, suppression_wrapper_name, alert_handler_name):
     region = input("What region are the SnowAlert lambdas configured in? ")
     print("Invoking the Query Wrapper function...")
-    check = call("aws lambda invoke --invocation-type RequestResponse --function-name snowalert-query-wrapper --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
+    check = call("aws lambda invoke --invocation-type RequestResponse --function-name "+query_wrapper_name+" --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
     if check != 0:
         print("The Query Wrapper failed to run. After diagnosing and fixing the error, please run this function again,")
         print("followed by the Suppression Wrapper and then the Jira Integration Alert Handler (if Jira is configured).")
         sys.exit(1)
     print("Invoking the Suppression Wrapper function...")
-    check = call("aws lambda invoke --invocation-type RequestResponse --function-name snowalert-suppression-wrapper --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
+    check = call("aws lambda invoke --invocation-type RequestResponse --function-name "+suppression_wrapper_name+" --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
     if check != 0:
         print("The Suppression Wrapper function failed to run. After diagnosing and fixing the error, please run this function again,")
         print("followed by the Jira Integration Alert Handler if Jira is configured.")
     if jira_flag == 1:
         print("Invoking the Jira Integration function...")
-        check = call("aws lambda invoke --invocation-type RequestResponse --function-name snowalert-jira-integration --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
+        check = call("aws lambda invoke --invocation-type RequestResponse --function-name "+jira_integration_name+" --region "+region+" --log-type Tail --payload '{}' outputfile.txt", shell=True)
         if check != 0:
             print("The Jira Integration Alert Handler failed to run. After diagnosing and fixing the error, please run this function again.")
 
 
 if __name__ == '__main__':
     ctx, account = login()
-    setup_user(ctx)
-    warehouse_setup(ctx)
-    pwd = test(account)
-    query_setup(ctx)
+    key_password = setup_user(ctx)
+    if results.reset_flag == False:
+        warehouse_setup(ctx)
+        test(account, key_password)
+        query_setup(ctx)
     jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
-    write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
-    # Building the packages takes about two minutes per lambda, which runs about ten minutes if you build all five lambdas.
-    # If you want to build the packages yourself, then uncomment the following line in the installer. Otherwise, you can use
-    # the prebuilt packages included in the project and deploy them without building.
-    #build_packages()
-    terraform_init(pwd, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
+    query_wrapper_name, suppression_wrapper_name, jira_integration_name = write_flag_file(jira_user, jira_project, jira_url, jira_flag, account)
+        # Building the packages takes about two minutes per lambda, which runs about ten minutes if you build all five lambdas.
+        # If you want to build the packages yourself, then answer 'y' here! Otherwise, you can use
+        # the prebuilt packages included in the project and deploy them without building.
+    build_flag = input("Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N): ")
+    if build_flag == 'y' or build_flag == 'Y':
+        build_packages()
+    terraform_init(key_password, account, jira_user, jira_password, jira_url, jira_project, jira_flag)
     print("Installation completed successfully!")
     print("Invoking the lambdas to test the end to end flow...")
-    full_test(jira_flag)
-    # we had to move some zip files into the config directory to make it easy to upload them, so let's remove those now
-    # call("rm *.zip", shell=True)
+    full_test(jira_flag, query_wrapper_name, suppression_wrapper_name, jira_integration_name)
     call("rm outputfile.txt", shell=True)
     print("SnowAlert is now fully deployed in your environment! You can check the alerts table to see the test")
     print("alerts that were created as part of this installation process; if Jira is integrated with your deployment, you ")
     print("should also see the Jira tickets that were automatically created for those alerts. If the tickets weren't created,")
     print("or if there are no alerts in the table, it means something has gone wrong; you can check the Cloudwatch logs for the")
-    print("lambda functions to find the error.")
+    print("Lambda functions to find the error.")
+    sys.exit(0)
 
