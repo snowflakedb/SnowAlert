@@ -6,6 +6,49 @@ Requirements
 
 In order to use SnowAlert, you'll need administrator access to a Snowflake warehouse for your data and an AWS account for Lambda.
 
+Your AWS user will need the following permissions to create and run the resources SnowAlert uses
+
+.. code::
+
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "VisualEditor0",
+                "Effect": "Allow",
+                "Action": [
+                    "kms:Decrypt",
+                    "kms:List*",
+                    "kms:UntagResource",
+                    "kms:GenerateRandom",
+                    "kms:UpdateKeyDescription",
+                    "kms:Get*",
+                    "iam:ListRoles",
+                    "iam:DeleteRole",
+                    "kms:Describe*",
+                    "iam:PutRolePolicy",
+                    "kms:TagResource",
+                    "kms:Encrypt",
+                    "iam:DeleteRolePolicy",
+                    "kms:ScheduleKeyDeletion",
+                    "kms:CreateAlias",
+                    "kms:CreateKey",
+                    "iam:ListUsers",
+                    "iam:ListGroups",
+                    "kms:DeleteAlias"
+                	"s3:CreateBucket",
+                    "s3:DeleteBucket",
+                    "s3:ListBucket",
+                    "s3:ListBucketVersions",
+                    "kms:DeleteAlias",
+                    "iam:CreateRole",
+                    "iam:GetRole"
+                ],
+                "Resource": "*"
+            }
+        ]
+    }
+
 Downloading
 -----------
 Use git to clone the project from: https://github.com/snowflakedb/SnowAlert.git
@@ -13,25 +56,134 @@ Use git to clone the project from: https://github.com/snowflakedb/SnowAlert.git
 Installer
 ---------
 
-Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer has a few prerequisites:
-    * Python3
-    * AWS CLI
+Snowflake provides an installer in SnowAlert/IaC which will configure your Snowflake environment and AWS resources automatically. The installer is intended to run inside a Docker container.
+As a result, there are three prerequisites for running the installer:
     * Docker
-    * Terraform
+    * An AWS_KEY and AWS_SECRET for an AWS user with the permissions detailed above
+    * Credentials for a Snowflake user with access to the ACCOUNTADMIN role.
 
-Before you start the installer, you should verify that the AWS CLI, Docker, and Terraform are all installed and usable. This will involve setting the required variables in SnowAlert/IaC/aws.tf to configure the AWS provider for terraform (see https://www.terraform.io/docs/providers/aws/index.html for details). You should also make sure that you have the credentials for your Snowflake account, for a user with accountadmin privileges. If you are making use of the optional Jira integration, you should also have the Jira environment set up for SnowAlert; this will require having a Jira user for SnowAlert, as well as having a project set up for the alerts to live in. 
+If you want to run the installer outside of the docker container, then please make sure you have the AWS CLI configured, terraform installed and in PATH, the ability to run .sh scripts, 
+OpenSSL installed, and the prebuilt copies of the lambda functions.
 
-Please note that the installer makes use of some shell scripts for helper functionality, and it is not intended to work on Windows machines. Installation on Windows is on the product roadmap; please let us know if you want this feature!
+Before you start the installer, you should build the Docker container. Clone the github project, then navigate to the SnowAlert directory and run the following command:
+
+.. code::
+
+    docker build -t snowalert .
+
+This will download the base image of the container and use that as a jumping-off point to build the rest of the container. The image comes with several tools provided,
+including python3, pip, OpenSSL, and the AWS CLI. The dockerfile will install Terraform and the snowflake connector for python, both of which are used in the installer.
+
+Once the container is built, run
+
+.. code::
+
+    docker run --rm -it --mount type=bind,source="$(pwd)",target=/var/task snowalert:latest bash
+
+This will start the container with an interactable shell; it will also mount your current working directory (which should be the SnowAlert directory) into the container at /var/task,
+which is where the shell drops you when the container is fully started. 
+
+Once inside the Docker container, you will need to run 
+
+.. code::
+
+    aws configure
+
+to configure the AWS CLI; enter the AWS_KEY and AWS_SECRET when prompted, and provide the default region as necessary.
+
+Next, you should navigate to SnowAlert/IaC and edit the 'aws.tf' file; a sample 'aws.tf' file is provided below.
+
+.. code::
+
+    provider "aws" {
+        region     = "us-west-2"
+        access_key = "anaccesskey"
+        secret_key = "asecretkey"
+    }
+
+    provider "local" {}
+
+
+Note that the Terraform documentation (https://www.terraform.io/docs/configuration/providers.html) describes ways in which environmental variables can be used to avoid hard-coding access keys and secret keys to a file. 
+
+You should also make sure that you have the credentials for your Snowflake account, for a user with accountadmin privileges. If you are making use of the optional Jira integration, you should also have the Jira environment set up for SnowAlert; this will require having a Jira user for SnowAlert, as well as having a project set up for the alerts to live in. 
 
 Once those preparations are complete, you can start the installer by typing `python3 install-snowalert.py` into your terminal when you are in the correct directory (SnowAlert/IaC).
 
-You will initially be prompted for your Snowflake account and user credentials; please provide credentials for an account which can assume the accountadmin role in your Snowflake account.
+You will initially be prompted for your Snowflake account and user credentials; please provide credentials for an account which can assume the accountadmin role in your Snowflake account. Note that you can press Enter at the password prompt and the installer will fall back to SSO authentication instead; you must have SSO configured for your account in order for this to work. Finally, you will be prompted for a deployment region. If your region is us-west-2, or if you don't know your deployment region, just press Enter again.
 
-You will also be prompted to provide a password which will be used to encrypt a private key; the installer will use openssl to generate a public and private keypair, and SnowAlert will use that private key to authenticate to SnowAlert. During the installation process, you'll need to provide this password four times: three times to set up the keypair (inital password, verification, and then for setting up the public key), and once more to decrypt the private key for a test authentication of the SnowAlert user after Snowflake has been configured. After configuring and testing the user, the installer will automatically load a sample test query and test suppression into the relevant tables; the sample query will look for users who authenticated to the Snowflake account without MFA, and the suppression targets users who are designated as NoMFAUsers.
+.. code::
+
+    $ python3 install-snowalert.py
+    This is the installer for SnowAlert; it will set up all of the resources needed for SnowAlert to run.
+    You will be prompted for several pieces of information during this process, including a Snowflake username, Snowflake account, and two different passwords
+    Please enter the Snowflake account name where you want to configure SnowAlert: acmecorp
+    Please enter the username of the user you would like to use to configure SnowAlert. This user should be able to use the 'accountadmin' role in your Snowflake account
+    Snowflake username: admin
+    Please enter the password for the user you provided above. Alternatively, you can press Enter to use SSO for authentication instead:
+    Please enter the region where your Snowflake account is located; if the region is us-west-2, or if you don't know your region, press Enter to use the default:
+    Authenticating to Snowflake...
+    Initiating login request with your identity provider. A browser window should have opened for you to complete the login. If you can't see it, check existing browser windows, or your OS settings. Press CTRL+C to abort and try again...
+
+You will also be prompted to provide a password which will be used to encrypt a private key; the installer will use openssl to generate a public and private keypair, and SnowAlert will use that private key to authenticate to SnowAlert. During the installation process, you'll need to provide this password four times: three times to set up the keypair (inital password, verification, and then for setting up the public key), and once more to decrypt the private key for a test authentication of the SnowAlert user after Snowflake has been configured.
+
+.. code::
+
+    Generating RSA private key, 2048 bit long modulus
+    ....................+++
+    .........................................................................................+++
+    e is 65537 (0x10001)
+    Enter Encryption Password:
+    Verifying - Enter Encryption Password:
+    Now generating the public key...
+    Enter pass phrase for rsa_key.p8:
+    [...]
+    Testing Snowflake configuration to ensure that account permissions are correct...
+    Please enter the password for the private key configured for your SnowAlert user:
+
+After configuring and testing the user, the installer will automatically load a sample test query and test suppression into the relevant tables; the sample query will look for users who authenticated to the Snowflake account without MFA, and the suppression targets users who are designated as NoMFAUsers.
 
 Once that test authentication is complete, the installer will ask if you want to integrate Jira with your SnowAlert deployment. If yes, it will prompt you for the Jira username of your SnowAlert user, password, the URL of your Jira deployment, and the project you have configured for alerts.
 
-The installer is configured by default to use prebuilt packages included with the project. If you want to build the packages yourself, then uncomment line 419 in the installer. Note that building the packages can take up to ten minutes!
+.. code::
+
+    Would you like to integrate Jira with SnowAlert (Y/N)? Y
+    Please enter the username for the SnowAlert user in Jira: snowalert@acmecorp.com
+    Please enter the password for the SnowAlert user in Jira:
+    Please enter the URL for the Jira integreation: acmecorp.atlassian.net
+    Please enter the project tag for the alerts...
+    Note that this should be the text that will prepend the ticket id; if the project is SnowAlert
+    and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.
+    Please enter the project tag for the alerts from SnowAlert: SA
+
+
+Next, the installer will ask you to name several AWS resources, specifically 
+    * An AWS S3 Bucket
+    * An AWS Lambda function to wrap queries
+    * An AWS Lambda function to run queries
+    * An AWS Lambda function to wrap suppressions
+    * An AWS Lambda function to run suppression
+    * An AWS Lambda function to run the Jira integration, if you opted to integrate earlier.
+
+Each resource has a default name you can decide to use by pressing Enter at the prompt. S3 bucket names must be globally unique, so the default name will include a GUID.
+
+.. code::
+
+    You will now be prompted to name several AWS resources: an Amazon S3 bucket, and the lambda functions which will execute the work of SnowAlert.
+    The AWS S3 bucket must have a globally unique name. If it turns out the name you select is not globally unique, you can change it without running
+    the installer again by modifying the value in terraform.tfvars.
+
+    The lambda functions have default names, which you can opt to use by pressing Enter at the prompt for each lambda.
+
+    The S3 bucket can also be given a default name, which will be 'snowalert-deploy-' followed by a random GUID.
+    S3 Bucket Name (suggestion: <company>-SnowAlert-Deploy. Press Enter for SnowAlert-Deploy-<randomstring>):
+    Query Runner Function name (press Enter for default name 'query_runner'):
+    Query Wrapper Function name (press Enter for default name 'query_wrapper'):
+    Suppression Runner Function name (press Enter for default name 'suppression_runner'):
+    Suppression Wrapper Function name (press Enter for default name 'suppression_wrapper'):
+    Do you want to build the packages from scratch? This will take between eight and ten minutes. (Y/N):
+
+After naming the AWS resources, you are given the option of building the packages from scratch, or using packages that are included in the repo. The outcome is the same, but building the packages can take up to two minutes per package built, between 8-10 minutes total.
 
 Once the packages are built, the installer will start using Terraform to create the AWS resources that SnowAlert will need. It will create a KMS key and use that to encrypt the password for the private key, as well as the password for the Jira user if provided; those encrypted values will be stored as environmental variables in the Lambdas that require them. It will also create an IAM role for SnowAlert, along with a policy that gives the lambdas the ability to invoke the runner functions and use the KMS key for decryption. It will also create an S3 bucket used for deploying code to the lambdas, and upload the zipped packages to the S3 bucket. The terraform file also has sample event rules for Cloudwatch written, but commented out; if you want to schedule the lambdas to run, please uncomment those lines in the base-config.tf file and run Terraform again.
 
@@ -40,7 +192,7 @@ If your Snowflake account requires a whitelisted IP for access, you'll need to c
 After configuring the AWS resources, the installer will automatically invoke the Query Wrapper and Suppression Wrapper functions; this should run the sample query that was loaded during Snowflake configuration. Since the SnowAlert user authenticated to Snowflake during configuration and does not have MFA configured, this should result in an alert appearing in your alerts table. If Jira is configured, then the Jira alert handler will run, creating a ticket in the Jira project for the alert. 
 
 Atlassian Jira Plugin
------------
+---------------------
 
 SnowAlert supports optional integration with Atlassian Jira, which will allow it to automatically create tickets in a specified Jira project for alerts that should be investigated. The Jira integration runs in a separate lambda which should run after the Query Wrapper and Suppression Wrapper lambdas have run. 
 
