@@ -355,14 +355,9 @@ The update-snowalert.sh script will start a Docker container that will pip insta
 * Alert Handler
     * The Alert Handler is the function which handles the integration with a task management system. Right now, the only supported integration is Jira; please see the Jira Plugin documentation for details on that integration.
 
-Queries and suppressions can be managed manually by inserting the query spec or suppression spec into the appropriate table, but it is easier to manage them as configuration files. ``query.tf`` and ``suppression.tf`` are sample files; you can use the ``query_helper.go`` and ``suppression_helper.go`` files to manage your queries along with those files. 
+Queries and suppressions can be managed manually by inserting the query spec or suppression spec into the appropriate table, but it is easier to manage them as configuration files. ``QaC/queries/sample_query.qs`` and ``QaC/suppressions/sample_suppression.qs`` are sample files; you can use the ``query_helper.go`` and ``suppression_helper.go`` files to manage your queries along with those files.
 
-``query_helper.go`` and ``suppression_helper.go`` must be compiled to binaries in order to be used. They have the following dependencies:
-    * 'github.com/hashicorp/hcl'
-    * 'github.com/google/go-cmp/cmp'
-    * 'github.com/snowflakedb/gosnowflake'
-
-With those dependencies installed, you can compile the binaries with ``go build query_helper.go`` and ``go build suppression_helper.go``. Invoking the binaries with no arguments will print usage instructions. Run ``./query_helper [snowflake username] sample-query.tf`` to insert the sample query spec into your snowalert_queries table.
+Note: The helper scripts expect some environment variables and work in a specific way. For more information, check out the :ref:`Managing Alerts <managing-alerts>` section.
 
 
 Testing
