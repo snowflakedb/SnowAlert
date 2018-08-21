@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"path/filepath"
 
 	"github.com/hashicorp/hcl"
 	"github.com/google/go-cmp/cmp"
@@ -54,18 +55,36 @@ func getCurrentSuppressions(db *sql.DB) ([]SuppressionSpec, error) {
 	return qsArray, nil
 }
 
-func getCurrentConfig(confFile string) (*SuppressionConfig, error) {
+func getFileConfig(confFile string) ([]SuppressionSpec) {
 	input, err := ioutil.ReadFile(confFile)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	var qf *SuppressionConfig
 	err = hcl.Unmarshal(input, &qf)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	for index, _ := range qf.Query {
 		qf.Query[index].Query = strings.Replace(qf.Query[index].Query, "\n", " ", -1)
+	}
+	return qf.Query
+}
+
+func getCurrentConfig(confFolder string) (SuppressionConfig, error) {
+	var qf SuppressionConfig
+	filepath.Walk(confFolder, func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Println(err)
+		} else if filepath.Ext(path) == ".qs" {
+			fmt.Println("Loaded file: " + path)
+			qf.Query = append(qf.Query, getFileConfig(path)...)
+		}
+		return nil
+	})
+	if len(qf.Query) == 0 {
+		fmt.Println("No config files loaded, please ensure you're running suppression_helper from the same folder as your config files")
+		log.Fatal("Aborting run!")
 	}
 	return qf, nil
 }
@@ -173,14 +192,14 @@ func processChanges(config, current []SuppressionSpec) ([]SuppressionSpec, []Sup
 }
 
 func main() {
-	// Read in input file
-	if len(os.Args) != 3 {
-		log.Fatal("Usage: suppression_helper username filename")
-	}
+	// Read in input files
 	var confirmation string
-	currentConfig, err := getCurrentConfig(os.Args[2])
+	ex, err := os.Executable()
 	fatalError(err)
-    db, err := sql.Open("snowflake", os.Args[1] + "@"+os.Getenv("SNOWALERT_ACCOUNT")+"/snowalert?authenticator=externalbrowser&warehouse="+os.Getenv("UPDATE_WAREHOUSE")+"&role="+os.Getenv("UPDATE_ROLE"))
+	confFolder := filepath.Dir(ex)
+	currentConfig, err := getCurrentConfig(confFolder)
+	fatalError(err)
+    db, err := sql.Open("snowflake", os.Getenv("UPDATE_USER") + "@"+os.Getenv("SNOWALERT_ACCOUNT")+"/snowalert?authenticator=externalbrowser&warehouse="+os.Getenv("UPDATE_WAREHOUSE")+"&role="+os.Getenv("UPDATE_ROLE"))
 	fatalError(err)
 	db.SetMaxIdleConns(1)
 	db.SetMaxOpenConns(1)
