@@ -62,7 +62,7 @@ SnowAlert Query Packs
 
 SnowAlert is shipped with some sample queries, categorized by the type of monitoring it provides and grouped into query packs.
 
-To enable a query pack, simple copy the query pack file from packs/ to QaC/queries and load them using the query_helper tool.
+To enable a query pack, copy the query pack file from packs/ to QaC/queries and load them using the query_helper tool.
 
 The current query packs and the queries are documented below:
 
