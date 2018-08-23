@@ -74,3 +74,26 @@ and IS_SUCCESS = 'NO';
 QUERY
   Severity = ["5"]
 }
+
+query_spec snowflake_multiple_authentication_failure {
+  AffectedEnv = ["Snowflake Account: {}", 3.0]
+  AffectedObject  = ["{}", 1.0]
+  AffectedObjectType = ["User Account"]
+  AlertType = ["Snowflake Multiple Authentication Failure"]
+  EventTime = ["{}", 2.0]
+  Description = ["User {} failed to authenticate to Snowflake {} times in the past hour", 0.0, 1.0]
+  Detector = ["SnowAlert"]
+  EventData = ["User {} failed to authenticate to Snowflake {} times in the past hour", 0.0, 1.0]
+  GUID = "b8db853fc94547a9a1b40d3f49244478"
+  Query = <<QUERY
+select user_name, count(*) as number, current_timestamp(), current_account()
+from snowflake.account_usage.login_history
+where 1=1 and
+datediff(hour, event_timestamp, current_timestamp()) < 24 AND
+is_success = 'NO' and
+user_name in (select distinct user_name from snowflake.account_usage.login_history) group by user_name
+having count(*) >= 3
+;
+QUERY
+  Severity = ["5"]
+}
