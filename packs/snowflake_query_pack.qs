@@ -88,7 +88,7 @@ query_spec snowflake_multiple_authentication_failure {
 select user_name, count(*) as number, current_timestamp(), current_account()
 from snowflake.account_usage.login_history
 where 1=1 and
-datediff(hour, event_timestamp, current_timestamp()) < 24 AND
+datediff(hour, event_timestamp, current_timestamp()) < 1 AND
 is_success = 'NO' and
 user_name in (select distinct user_name from snowflake.account_usage.login_history) group by user_name
 having count(*) >= 3
