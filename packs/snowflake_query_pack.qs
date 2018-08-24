@@ -22,7 +22,7 @@ from snowflake.account_usage.query_history
 where start_time > dateadd('hour', -1, current_timestamp())
 and query_type = 'GRANT'
 and execution_status = 'SUCCESS'
-and (granted_role ilike '%securityadmin%' or affectedobject ilike '%accountadmin%');
+and (granted_role ilike '%securityadmin%' or granted_role ilike '%accountadmin%');
 QUERY
   Severity = ["3"]
 }
@@ -56,16 +56,15 @@ query_spec snowflake_authentication_failure {
   AffectedObjectType = ["Snowflake"]
   AlertType = ["Snowflake Authentication Failure"]
   EventTime = ["{}", 2.0]
-  Description = ["User {} failed to authenticate to Snowflake, from IP: {}", 3.0, 4.0]
+  Description = ["User {} failed to authenticate to Snowflake, from IP: {}", 1.0, 3.0]
   Detector = ["SnowAlert"]
-  EventData = ["{}", 5.0]
+  EventData = ["{}", 4.0]
   GUID = "4a7537513fa042f29643444d528caf73"
   Query = <<QUERY
 SELECT
 current_account(),
 USER_NAME,
 event_timestamp,
-USER_NAME,
 CLIENT_IP,
 ERROR_MESSAGE
 from snowflake.account_usage.login_history
@@ -89,7 +88,7 @@ query_spec snowflake_multiple_authentication_failure {
 select user_name, count(*) as number, current_timestamp(), current_account()
 from snowflake.account_usage.login_history
 where 1=1 and
-datediff(hour, event_timestamp, current_timestamp()) < 24 AND
+datediff(hour, event_timestamp, current_timestamp()) < 1 AND
 is_success = 'NO' and
 user_name in (select distinct user_name from snowflake.account_usage.login_history) group by user_name
 having count(*) >= 3
