@@ -56,16 +56,15 @@ query_spec snowflake_authentication_failure {
   AffectedObjectType = ["Snowflake"]
   AlertType = ["Snowflake Authentication Failure"]
   EventTime = ["{}", 2.0]
-  Description = ["User {} failed to authenticate to Snowflake, from IP: {}", 3.0, 4.0]
+  Description = ["User {} failed to authenticate to Snowflake, from IP: {}", 1.0, 3.0]
   Detector = ["SnowAlert"]
-  EventData = ["{}", 5.0]
+  EventData = ["{}", 4.0]
   GUID = "4a7537513fa042f29643444d528caf73"
   Query = <<QUERY
 SELECT
 current_account(),
 USER_NAME,
 event_timestamp,
-USER_NAME,
 CLIENT_IP,
 ERROR_MESSAGE
 from snowflake.account_usage.login_history
