@@ -22,7 +22,7 @@ from snowflake.account_usage.query_history
 where start_time > dateadd('hour', -1, current_timestamp())
 and query_type = 'GRANT'
 and execution_status = 'SUCCESS'
-and (granted_role ilike '%securityadmin%' or affectedobject ilike '%accountadmin%');
+and (granted_role ilike '%securityadmin%' or granted_role ilike '%accountadmin%');
 QUERY
   Severity = ["3"]
 }
