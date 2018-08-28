@@ -20,7 +20,7 @@ where event_time > dateadd('hour', -1, current_timestamp())
 and event_name in (
 'StopLogging', 'UpdateTrail', 'DeleteTrail');
 QUERY
-  Severity = ["3"]
+  Severity = ["2"]
 }
 
 query_spec aws_permission_modification_denied {
@@ -88,9 +88,36 @@ where event_time > dateadd('hour', -1, current_timestamp())
     AND cloudtrail.USER_IDENTITY_TYPE = 'Root'
     AND cloudtrail.SOURCE_IP_ADDRESS <> 'support.amazonaws.com';
 QUERY
-  Severity = ["3"]
+  Severity = ["2"]
+}
+
+query_spec aws_internal_bucket_access {
+  AffectedEnv = ["{}", 2.0]
+  AffectedObject  = ["{}", 1.0]
+  AffectedObjectType = ["CloudTrail"]
+  AlertType = ["Internal Bucket Accessed By External Account"]
+  EventTime = ["{}", 0.0]
+  Description = ["User from external account {} performed {} at non-public bucket {}.", 3.0, 4.0, 1.0]
+  Detector = ["SnowAlert"]
+  EventData = ["{}", 5.0]
+  GUID = "fc55a60ff0fa46c69109c8a829a9fa1f"
+  Query = <<QUERY
+select event_time
+    , REQUEST_PARAMETERS['bucketName']::string as bucket_name
+    , recipient_account_id as bucket_account_id
+    , USER_IDENTITY['accountId']::string as user_account_id
+    , event_name
+    , RAW
+FROM security.prod.cloudtrail_v as cloudtrail
+where event_time > dateadd('hour', -1, current_timestamp())
+AND bucket_name not like '%public'
+AND user_account_id NOT IN
+(
+select distinct ACCOUNT_ID from security.prod.aws_account_map
+);
+QUERY
+  Severity = ["1"]
 }
 
 
 
-fc55a60ff0fa46c69109c8a829a9fa1f
