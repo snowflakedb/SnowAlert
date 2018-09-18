@@ -10,7 +10,7 @@ select
     , 'SnowAlert' as detector
     , query_text as eventdata
     , '3' as severity
-    , hash(description || event_data) as event_hash
+    , hash(event_time || eventdata) as event_hash
     , current_database() as database
     , current_schema() as schema
     , 'snowflake_admin_role_grant_monitor_v' as event_def
@@ -19,7 +19,7 @@ select
   where 1=1 
     and query_type = 'GRANT'
     and execution_status = 'SUCCESS'
-    and (granted_role ilike '%securityadmin%' or granted_role ilike '%accountadmin%')
+    and (affectedobject ilike '%securityadmin%' or affectedobject ilike '%accountadmin%')
 ;
 
 grant select on view security.snowalert_event_definitions.snowflake_admin_role_grant_monitor_v to role snowalert; 
@@ -36,7 +36,7 @@ select
     , 'SnowAlert' as detector
     , ERROR_MESSAGE as eventdata
     , '5' as severity
-    , hash(description || event_data) as event_hash
+    , hash(event_time || eventdata) as event_hash
     , current_database() as database
     , current_schema() as schema
     , 'snowflake_authorization_error_v' as event_def
@@ -50,7 +50,7 @@ grant select on view security.snowalert_event_definitions.snowflake_authorizatio
 
 create or replace view security.snowalert_event_definitions.snowflake_authentication_failure_v as
 select
-      current_account as affectedenv
+      current_account() as affectedenv
     , USER_NAME as affectedobject
     , 'Snowflake' as affectedobjecttype
     , 'Snowflake Authentication Failure' as alerttype
@@ -60,7 +60,7 @@ select
     , 'SnowAlert' as detector
     , ERROR_MESSAGE as eventdata
     , '5' as severity
-    , hash(ERROR_CODE || EVENT_TYPE) as event_hash
+    , hash(event_time || EVENT_TYPE) as event_hash
     , current_database() as database
     , current_schema() as schema
     , 'snowflake_authentication_failure_v' as event_def

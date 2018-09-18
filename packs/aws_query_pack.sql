@@ -10,7 +10,7 @@ select
     , 'SnowAlert' as detector
     , RAW as eventdata
     , '2' as severity
-    , hash(event_data) as event_hash
+    , hash(eventdata) as event_hash
     , current_database() as database
     , current_schema() as schema
     , 'aws_audit_log_configuration_changes_v' as event_def
@@ -34,7 +34,7 @@ select
     , 'SnowAlert' as detector
     , RAW as eventdata
     , '3' as severity
-    , hash(event_data) as event_hash
+    , hash(eventdata) as event_hash
     , current_database() as database
     , current_schema() as schema
     , 'aws_permission_modification_denied_v' as event_def
@@ -105,14 +105,14 @@ select
     , RAW as eventdata
     , '1' as severity
     , hash(eventdata) as event_hash
-    , current_database as database
-    , current_schema as schema
+    , current_database() as database
+    , current_schema() as schema
     , 'aws_internal_bucket_access_v' as event_def
     , 1 as version
   from security.prod.cloudtrail_v as cloudtrail
   where 1=1
-    and bucket_name not like '%public'
-    and user_account_id not in
+    and affectedobject not like '%public'
+    and USER_IDENTITY['accountId'] not in
         (
             select distinct account_id from security.prod.aws_account_map
         )
