@@ -330,8 +330,8 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
         f'PRIVATE_KEY={b64encode(private_key).decode("utf-8")}',
         f'PRIVATE_KEY_PASSWORD={pk_passwd}',
 
-        f'AWS_ACCESS_KEY_ID={aws_key}',
-        f'AWS_SECRET_ACCESS_KEY={aws_secret}',
+        f'AWS_ACCESS_KEY_ID={aws_key or ""}',
+        f'AWS_SECRET_ACCESS_KEY={aws_secret or ""}',
     ])
 
 
