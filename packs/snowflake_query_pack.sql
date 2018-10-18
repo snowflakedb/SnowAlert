@@ -64,7 +64,6 @@ select
     , current_database() as database
     , current_schema() as schema
     , 'snowflake_authentication_failure_alert_query' as event_def
-    , 1 as version
   from snowflake.account_usage.login_history
   where 1=1
     and IS_SUCCESS = 'NO'
