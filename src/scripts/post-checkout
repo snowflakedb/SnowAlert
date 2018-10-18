@@ -1,0 +1,18 @@
+#!/bin/bash                                                                      
+
+set -e                                                                           
+
+checkoutType=$3
+
+if [ $checkoutType == 1 ]
+then
+	echo "Setting workspace!"
+	if [ `git rev-parse --abbrev-ref HEAD` = "master" ]
+	then
+		echo "Workspace set to production!"
+		export TF_WORKSPACE=default
+	else
+		echo "Workspace set to development!"
+		export TF_WORKSPACE=dev
+	fi
+fi
