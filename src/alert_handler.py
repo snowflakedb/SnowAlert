@@ -115,4 +115,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import os
+    if os.environ.get('JIRA_USER'):
+        main()
