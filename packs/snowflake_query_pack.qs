@@ -32,10 +32,10 @@ query_spec snowflake_authorization_error {
   AffectedObject  = ["Snowflake Query"]
   AffectedObjectType = ["Snowflake"]
   AlertType = ["Snowflake Access Control Error"]
-  EventTime = ["{}", 2.0]
-  Description = ["User {} received {}", 4.0, 5.0]
+  EventTime = ["{}", 1.0]
+  Description = ["User {} received {}", 2.0, 3.0]
   Detector = ["SnowAlert"]
-  EventData = ["{}", 5.0]
+  EventData = ["{}", 3.0]
   GUID = "70a9becd13354958b670ba23bdd0331b"
   Query = <<QUERY
 SELECT
