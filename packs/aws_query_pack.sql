@@ -1,4 +1,4 @@
-create or replace view security.snowalert_event_definitions.aws_audit_log_configuration_changes_query as
+create or replace view snowalert.rules.aws_audit_log_configuration_changes_alert_query as
 select
       object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
     , array_construct('cloudtrail') as sources,
@@ -19,9 +19,9 @@ select
     and event_name in ('StopLogging', 'UpdateTrail', 'DeleteTrail')
 ;
 
-grant select on view security.snowalert_event_definitions.aws_audit_log_configuration_changes_query to role snowalert;
+grant select on view snowalert.rules.aws_audit_log_configuration_changes_alert_query to role snowalert;
 
-create or replace view security.snowalert_event_definitions.aws_permission_modification_denied_query as
+create or replace view snowalert.rules.aws_permission_modification_denied_alert_query as
 select
       object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
     , array_construct('cloudtrail') as sources
@@ -64,9 +64,9 @@ select
       OR cloudtrail.EVENT_NAME = 'DetachGroupPolicy')
 ;
 
-grant select on view security.snowalert_event_definitions.aws_permission_modification_denied_query to role snowalert;
+grant select on view snowalert.rules.aws_permission_modification_denied_alert_query to role snowalert;
 
-create or replace view security.snowalert_event_definitions.aws_root_account_activity_query as
+create or replace view snowalert.rules.aws_root_account_activity_alert_query as
 select
       object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
     , array_construct('cloudtrail') as sources
@@ -88,9 +88,9 @@ select
     and cloudtrail.SOURCE_IP_ADDRESS <> 'support.amazonaws.com'
 ;
 
-grant select on view security.snowalert_event_definitions.aws_root_account_activity_query to role snowalert;
+grant select on view snowalert.rules.aws_root_account_activity_alert_query to role snowalert;
 
-create or replace view security.snowalert_event_definitions.aws_internal_bucket_access_query as
+create or replace view snowalert.rules.aws_internal_bucket_access_alert_query as
 select
       object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
     , array_construct('cloudtrail') as sources
@@ -114,4 +114,4 @@ select
         )
 ;
 
-grant select on view security.snowalert_event_definitions.aws_root_account_activity_query to role snowalert;
+grant select on view snowalert.rules.aws_root_account_activity_alert_query to role snowalert;
