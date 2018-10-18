@@ -41,7 +41,7 @@ select
     , 'snowflake_authorization_error_alert_query' as query_name
   from snowflake.account_usage.query_history
   where 1=1
-  and error_code in (1063, 3001, 3003, 3005, 3007, 3011, 3041)
+    and error_code in (1063, 3001, 3003, 3005, 3007, 3011, 3041)
 ;
 
 grant select on view snowalert.rules.snowflake_authorization_error_alert_query to role snowalert;
@@ -60,10 +60,8 @@ select
     , user_name as actor
     , 'failed to authenticate to Snowflake' as action
     , 'Low' as severity
-    , hash(event_time || EVENT_TYPE) as event_hash
-    , current_database() as database
-    , current_schema() as schema
-    , 'snowflake_authentication_failure_alert_query' as event_def
+    , 'c24675c89deb4e5ba6ecc57104447f90' as query_id
+    , 'snowflake_authentication_failure_alert_query' as query_name
   from snowflake.account_usage.login_history
   where 1=1
     and IS_SUCCESS = 'NO'
