@@ -18,7 +18,7 @@ select
   where 1=1
     and query_type = 'GRANT'
     and execution_status = 'SUCCESS'
-    and (affectedobject ilike '%securityadmin%' or affectedobject ilike '%accountadmin%')
+    and (object ilike '%securityadmin%' or object ilike '%accountadmin%')
 ;
 
 grant select on view snowalert.rules.snowflake_admin_role_grant_monitor_alert_query to role snowalert;
@@ -57,7 +57,7 @@ select
     , 'User ' || USER_NAME || ' failed to authentication to Snowflake, from IP: ' || CLIENT_IP as description
     , 'SnowAlert' as detector
     , ERROR_MESSAGE as event_data
-    , user_name as action
+    , user_name as actor
     , 'failed to authenticate to Snowflake' as action
     , 'Low' as severity
     , hash(event_time || EVENT_TYPE) as event_hash
