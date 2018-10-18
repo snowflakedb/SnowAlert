@@ -1,4 +1,8 @@
-# SnowAlert
+[![CircleCI](https://circleci.com/gh/snowflakedb/SnowAlert.svg?style=svg)](https://circleci.com/gh/snowflakedb/SnowAlert)
+
+<p align="center">
+  <img height="300" src="./docs/src/static/images/snowalert-logo.png">
+</p>
 
 SnowAlert is a security analytics framework that uses the Snowflake data warehouse for identifying security incidents across diverse data sources and time ranges.
 
