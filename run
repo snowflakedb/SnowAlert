@@ -1,0 +1,29 @@
+#!/bin/bash
+
+if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
+  echo "running in docker container-like environment"
+
+  cd /var/task/snowalert/
+
+  ./src/alert_queries_runner.py
+  ./src/alert_suppressions_runner.py
+  ./src/violation_queries_runner.py
+  ./src/violation_suppressions_runner.py
+  ./src/alert_handler.py
+
+elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
+  echo "running in client development-like environment"
+
+  if [[ ! -f "$1" ]]; then
+    >&2 echo "usage: ./run snowalert-{env}.envs"
+    >&2 echo "if you don't have an env file, run ./install first"
+    exit 1
+  fi
+
+  docker run -it --env-file "$1" snowsec/snowalert ./run
+
+else
+
+  echo "please run in docker or make sure you have aws credentials in ~/.aws and snowflake credentials in ~/.snowsql"
+
+fi

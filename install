@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
+
+  cd /var/task
+  ./snowalert/venv/bin/python3 ./snowalert/src/scripts/install.py
+
+elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
+
+  docker run -it \
+    -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+    -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+    -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+    --mount type=bind,source="$HOME/.aws",target=/root/.aws \
+    --mount type=bind,source="$HOME/.snowsql",target=/root/.snowsql \
+      snowsec/snowalert ./install
+
+else
+
+  echo "please make sure you have aws credentials in ~/.aws and snowflake credentials in ~/.snowsql"
+
+fi
