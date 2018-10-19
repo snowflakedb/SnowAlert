@@ -52,26 +52,30 @@ def connect():
     return connection
 
 
+def execute(ctx, query):
+    try:
+        return ctx.cursor().execute(query)
+    except snowflake.connector.errors.ProgrammingError as e:
+        log.error(e, f"Programming Error in query: {query}")
+        return []
+
+
 def connect_and_execute(queries=None):
     connection = connect()
 
     if type(queries) is str:
-        connection.cursor().execute(queries)
+        execute(connection, queries)
 
     if type(queries) is list:
         for q in queries:
-            connection.cursor().execute(q)
+            execute(connection, q)
 
     return connection
 
 
 def connect_and_fetchall(query):
     ctx = connect()
-    try:
-        return ctx, ctx.cursor().execute(query).fetchall()
-    except snowflake.connector.errors.ProgrammingError as e:
-        log.error(f"Programming Error in query: {query}", e)
-        return ctx, []
+    return ctx, execute(ctx, query).fetchall()
 
 
 ###
