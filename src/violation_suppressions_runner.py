@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/env python
 
 from config import ALERTS_TABLE, VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX
 from helpers import log

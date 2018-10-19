@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
 from base64 import b64encode
