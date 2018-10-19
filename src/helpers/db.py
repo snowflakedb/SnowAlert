@@ -69,8 +69,9 @@ def connect_and_fetchall(query):
     ctx = connect()
     try:
         return ctx, ctx.cursor().execute(query).fetchall()
-    except Exception as e:
-        log.fatal(f"Execution failed.\nQuery: {query}", e)
+    except snowflake.connector.errors.ProgrammingError as e:
+        log.error(f"Programming Error in query: {query}", e)
+        return ctx, []
 
 
 ###
