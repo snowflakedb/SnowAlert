@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-from config import ALERTS_TABLE, VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX
+from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX
 from helpers import log
 from helpers.db import connect, load_rules
 
 
 def flag_remaining_alerts(ctx):
     try:
-        ctx.cursor().execute(f"UPDATE {ALERTS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;")
+        ctx.cursor().execute(f"UPDATE {VIOLATIONS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;")
     except Exception as e:
         log.fatal("Failed to flag remaining alerts as unsuppressed", e)
 
