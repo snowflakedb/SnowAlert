@@ -26,6 +26,6 @@ VIOLATIONS_TABLE = os.environ.get('SA_VIOLATIONS_TABLE', f"{RESULTS_SCHEMA}.{RES
 
 # misc
 ALERT_QUERY_POSTFIX = "alert_query"
-ALERT_SQUELCH_POSTFIX = "alert_suppressions"
+ALERT_SQUELCH_POSTFIX = "alert_suppression"
 VIOLATION_QUERY_POSTFIX = "violation_query"
-VIOLATION_SQUELCH_POSTFIX = "violation_suppressions"
+VIOLATION_SQUELCH_POSTFIX = "violation_suppression"
