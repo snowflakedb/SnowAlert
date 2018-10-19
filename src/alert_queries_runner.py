@@ -32,7 +32,8 @@ def get_recent_alerts(ctx, alert_type):
 
 # Check if the proposed alert was already created recently, and update its counter
 def alert_exists(alert_map, new_alert):
-    key = hashlib.md5((new_alert['OBJECT'] + new_alert['DESCRIPTION']).encode('utf-8')).hexdigest()
+    uniq = new_alert['OBJECT'] + new_alert['DESCRIPTION']
+    key = hashlib.md5(uniq.encode('utf-8')).hexdigest()
     if key in alert_map:
         alert_map[key][1] = alert_map[key][1] + 1
         alert_map[key][2] = True
@@ -129,6 +130,10 @@ def process_results(results, ctx, query_name):
     recent_alerts = get_recent_alerts(ctx, query_name)
     for res in results:
         jres = json.loads(res[0])
+        if 'OBJECT' not in jres or 'DESCRIPTION' not in jres:
+            log.error(f'OBJECT and DESCRIPTION required in {jres}')
+            continue
+
         jres['ALERT_ID'] = uuid.uuid4().hex
         if not alert_exists(recent_alerts, jres):
             alerts.append(json.dumps(jres))
