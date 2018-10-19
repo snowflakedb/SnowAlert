@@ -5,6 +5,7 @@ import os
 
 from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_QUERY_POSTFIX
 from helpers.db import connect_and_fetchall, connect_and_execute, load_rules
+from helpers import log
 
 
 def log_alerts(ctx, alerts):
@@ -27,14 +28,14 @@ def snowalert_query(query_name):
     time_filter_unit = os.environ.get('time_filter_unit', 'day')
     time_filter_amount = -1 * int(os.environ.get('time_filter_amount', 1))
 
-    print(f"Received query {query_name}")
+    log.info(f"{query_name} processing...")
 
     ctx, results = connect_and_fetchall(f"""
         SELECT OBJECT_CONSTRUCT(*) FROM {RULES_SCHEMA}.{query_name}
         WHERE event_time > DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())
     """)
 
-    print(f"Query {query_name} executed")
+    log.info(f"{query_name} done.")
     return results, ctx
 
 

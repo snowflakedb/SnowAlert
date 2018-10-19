@@ -5,11 +5,37 @@ if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
 
   cd /var/task/snowalert/
 
-  ./src/alert_queries_runner.py
-  ./src/alert_suppressions_runner.py
-  ./src/violation_queries_runner.py
-  ./src/violation_suppressions_runner.py
-  ./src/alert_handler.py
+  if [ -z "$1" ]; then
+    ./src/alert_queries_runner.py
+    ./src/alert_suppressions_runner.py
+    ./src/violation_queries_runner.py
+    ./src/violation_suppressions_runner.py
+    ./src/alert_handler.py
+
+  elif [ "$1" == "alerts" ]; then
+    ./src/alert_queries_runner.py
+    ./src/alert_suppressions_runner.py
+
+  elif [ "$1" == "violations" ]; then
+    ./src/violation_queries_runner.py
+    ./src/violation_suppressions_runner.py
+
+  elif [ "$1" == "alert_queries" ]; then
+    ./src/alert_queries_runner.py
+
+  elif [ "$1" == "alert_suppressions" ]; then
+    ./src/alert_suppressions_runner.py
+
+  elif [ "$1" == "violation_queries" ]; then
+    ./src/violation_queries_runner.py
+
+  elif [ "$1" == "violation_suppressions" ]; then
+    ./src/violation_suppressions_runner.py
+
+  elif [ "$1" == "alert_handler" ]; then
+    ./src/alert_handler.py
+
+  fi
 
 elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
   echo "running in client development-like environment"

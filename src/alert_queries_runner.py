@@ -108,7 +108,7 @@ def log_failure(ctx, query_name, e):
 
 
 def snowalert_query(query_name: str):
-    print(f"Received query {query_name}")
+    log.info(f"{query_name} processing...")
 
     ctx = connect_and_execute()
 
@@ -121,7 +121,7 @@ def snowalert_query(query_name: str):
     except Exception as e:
         log_failure(ctx, query_name, e)
 
-    print(f"Query {query_name} executed")
+    log.info(f"{query_name} done.")
     return results, ctx
 
 
