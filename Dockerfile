@@ -1,4 +1,4 @@
-FROM lambci/lambda:build-python3.6
+FROM python:3.7-slim-stretch
 
 WORKDIR /var/task
 
