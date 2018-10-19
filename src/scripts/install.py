@@ -330,15 +330,21 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
         f'PRIVATE_KEY={b64encode(private_key).decode("utf-8")}',
         f'PRIVATE_KEY_PASSWORD={pk_passwd}',
 
-        f'AWS_ACCESS_KEY_ID={aws_key or ""}',
-        f'AWS_SECRET_ACCESS_KEY={aws_secret or ""}',
+        f'AWS_ACCESS_KEY_ID={aws_key}' if aws_key else '',
+        f'AWS_SECRET_ACCESS_KEY={aws_secret}' if aws_secret else '',
     ])
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
-    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [optional]: ")
+    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for random]: ")
+
     if not key:
         return list(args)
+
+    if key == '.':
+        result = kms.create_key()
+        key = result['KeyMetadata']['KeyId']
+
     return [
         b64encode(kms.encrypt(KeyId=key, Plaintext=s).get('CiphertextBlob')).decode('utf-8') if s else ""
         for s in args
