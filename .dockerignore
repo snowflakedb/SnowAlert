@@ -1,4 +1,8 @@
 .git
+.circleci
+docs/
 **/.venv
+**/.mypy_cache
+**/.DS_Store
 **/__pycache__
 **/*.pyc
