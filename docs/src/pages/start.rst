@@ -10,7 +10,7 @@ The SnowAlert Docker container exposes two commands —
 
     docker run -it -v$HOME/.aws:/root/.aws -v$HOME/.snowsql:/root/.snowsql snowsec/snowalert ./install
 
-which configured your database, and
+which configures your database, and
 
 .. code::
 
