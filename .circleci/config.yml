@@ -4,7 +4,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: snowsec/snowalert
+      - image: snowsec/snowalert-builder
 
     working_directory: ~/project
 
@@ -13,20 +13,21 @@ jobs:
 
       - restore_cache:
           keys:
-          - snowalert-venv-{{ checksum "requirements.txt" }}
-          - snowalert-venv-  # fallback to using the latest cache if no exact match is found
+          - app-venv-{{ checksum "requirements.txt" }}
+          - app-venv-  # fallback to using the latest cache if no exact match is found
 
       - run:
           name: install_snowalert_dependencies
           command: |
-            python3 -m venv ./.venv
-            source ./.venv/bin/activate
+            python -m venv .venv
+            ls -al . ; ls -al .venv ; ls -al .venv/bin
+            source .venv/bin/activate
             pip install -r requirements.txt
 
       - save_cache:
           paths:
             - ./.venv
-          key: snowalert-venv-{{ checksum "requirements.txt" }}
+          key: app-venv-{{ checksum "requirements.txt" }}
 
       - run:
           name: run tests
@@ -61,7 +62,7 @@ jobs:
           name: Install or Update Docs Dependencies
           command: |
             cd docs
-            python3 -m venv .venv
+            python -m venv .venv
             source .venv/bin/activate
             pip install -r requirements.txt
 
