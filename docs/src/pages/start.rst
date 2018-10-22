@@ -4,18 +4,19 @@ Getting Started
 tl;dr Usage
 -----------
 
-The Docker container exposes two commands -
+The SnowAlert Docker container exposes two commands —
 
 .. code::
 
-    docker run -it -v $HOME/.aws:/root/.aws snowsec/snowalert ./install
+    docker run -it -v$HOME/.aws:/root/.aws -v$HOME/.snowsql:/root/.snowsql snowsec/snowalert ./install
 
-and
+which configured your database, and
 
 .. code::
 
     docker run --env-file snowalert-{account}.envs snowsec/snowalert ./run
 
+which runs the SnowAlert functions.
 
 Requirements
 ------------
@@ -25,14 +26,14 @@ To use SnowAlert, you will need
 1. Administrator access to a Snowflake account
     - to create a snowalert user that reads alert definitions and manages security events
 
-2. A way to run alert creation and processing, e.g.:
-    - a server on which the SnowAlert docker container can run and be scheduled
+2. A way to run alert creation and processing functions, e.g. —
+    - a server on which the SnowAlert docker container can be scheduled to run
 
-3. A way to handle alerts, e.g.:
+3. A way to handle alerts, e.g. —
     - Jira repository and user with permission to create tickets
     - Sigma Computing account to create and manage dashboards
 
-Additionally, if you are on AWS and would like to use KMS as an extra layer of encryption and audit, please run the installer with AWS credentials that are allowed to manage and use KMS keys:
+Additionally, if you would like to use KMS as an extra layer of encryption and audit, please run the installer with AWS credentials that are allowed to manage and/or use KMS keys, e.g. —
 
 .. code::
 
@@ -66,12 +67,14 @@ You can also use git to download the code that builds this container by running:
 .. code::
 
     git clone git@github.com:snowflakedb/SnowAlert.git
+    cd SnowAlert
+    docker build -t snowsec/snowalert .
 
 
 Installing
 ----------
 
-Snowflake provides an installer script in the home dir of the docker container, as well as the code, which will configure your Snowflake workspace and use KMS to encrypt secrets in the runner's environment:
+Snowflake provides an installer script in the home dir of the docker container, as well as the git repository, which will configure your Snowflake workspace and use KMS to encrypt secrets in the runner's environment:
 
 If you have `~/.aws` and `~/.showcli` credentials in your environment, you can run it with:
 
@@ -82,7 +85,7 @@ If you have `~/.aws` and `~/.showcli` credentials in your environment, you can r
     --mount type=bind,source="$HOME/.snowsql",target=/root/.snowsql \
       snowsec/snowalert ./install
 
-For a simpler installation which skips the KMS encryption layer, you can simply run:
+For a simpler installation which skips the KMS encryption layer, you can run:
 
 .. code::
 
