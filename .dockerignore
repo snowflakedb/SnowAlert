@@ -1,5 +1,4 @@
-**/*.*
-!/run
-!/install
-!/src/**/*.py
-!/requirements.txt
+.git
+**/.venv
+**/__pycache__
+**/*.pyc
