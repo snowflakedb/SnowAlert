@@ -4,12 +4,12 @@ import datetime
 import uuid
 
 from .config import (
-    VIOLATIONS_TABLE,
-    QUERY_METADATA_TABLE,
-    RUN_METADATA_TABLE,
-    RULES_SCHEMA,
-    VIOLATION_SQUELCH_POSTFIX,
     CLOUDWATCH_METRICS,
+    QUERY_METADATA_TABLE,
+    RULES_SCHEMA,
+    RUN_METADATA_TABLE,
+    VIOLATION_SQUELCH_POSTFIX,
+    VIOLATIONS_TABLE,
 )
 from .helpers import db, log
 

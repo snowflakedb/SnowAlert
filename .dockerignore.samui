@@ -1,9 +1,9 @@
 .git
 .circleci
 docs/
+src/samui/frontend/node_modules
 **/.venv
 **/.mypy_cache
 **/.DS_Store
 **/__pycache__
 **/*.pyc
-**/node_modules

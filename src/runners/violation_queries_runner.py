@@ -13,8 +13,7 @@ from .config import (
     VIOLATION_QUERY_POSTFIX,
     CLOUDWATCH_METRICS,
 )
-from .helpers.db import connect_and_fetchall, connect_and_execute, load_rules
-from .helpers import log
+from .helpers import db, log
 
 RUN_ID = uuid.uuid4().hex
 
@@ -41,7 +40,7 @@ def snowalert_query(query_name):
 
     log.info(f"{query_name} processing...")
 
-    ctx, results = connect_and_fetchall(f"""
+    ctx, results = db.connect_and_fetchall(f"""
         SELECT OBJECT_CONSTRUCT(*) FROM {RULES_SCHEMA}.{query_name}
         WHERE alert_time > DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())
     """)
@@ -75,8 +74,8 @@ def main():
     RUN_METADATA['RUN_TYPE'] = 'VIOLATION QUERY'
     RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_ID'] = RUN_ID
-    ctx = connect_and_execute("ALTER SESSION SET use_cached_result=FALSE;")
-    for query_name in load_rules(ctx, VIOLATION_QUERY_POSTFIX):
+    ctx = db.connect_and_execute("ALTER SESSION SET use_cached_result=FALSE;")
+    for query_name in db.load_rules(ctx, VIOLATION_QUERY_POSTFIX):
         run_query(query_name)
 
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)

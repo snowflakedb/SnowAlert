@@ -1,0 +1,12 @@
+#!/bin/bash
+
+PROJ=$1
+TAG=${2:-latest}
+
+cp .dockerignore.$PROJ .dockerignore
+cp Dockerfile.$PROJ Dockerfile
+
+docker build -t snowsec/$PROJ:$TAG .
+
+rm .dockerignore
+rm Dockerfile

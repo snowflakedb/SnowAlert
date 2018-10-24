@@ -15,8 +15,7 @@ from .config import (
     ALERT_QUERY_POSTFIX,
     CLOUDWATCH_METRICS,
 )
-from .helpers import log
-from .helpers.db import connect_and_execute, execute, load_rules
+from .helpers import db, log
 from .utils import groups_of
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
@@ -72,8 +71,8 @@ def update_recent_alerts(ctx, alert_map):
             update_array_length = update_array_length + 1
     if update_array_length:
         format_string = ", ".join(["(%s, %s)"] * update_array_length)
-        execute(ctx, f"DROP TABLE IF EXISTS {RESULTS_SCHEMA}.counter_table;")
-        execute(ctx, f"CREATE TEMPORARY TABLE {RESULTS_SCHEMA}.counter_table(ALERT_ID string, COUNTER number);")
+        db.execute(ctx, f"DROP TABLE IF EXISTS {RESULTS_SCHEMA}.counter_table;")
+        db.execute(ctx, f"CREATE TEMPORARY TABLE {RESULTS_SCHEMA}.counter_table(ALERT_ID string, COUNTER number);")
         ctx.cursor().execute(
             f"INSERT INTO {RESULTS_SCHEMA}.counter_table (ALERT_ID, COUNTER) VALUES {format_string};",
             update_array
@@ -200,11 +199,11 @@ def main(rule_name=None):
     RUN_METADATA['RUN_TYPE'] = 'ALERT QUERY'
     RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_ID'] = RUN_ID
-    ctx = connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
+    ctx = db.connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
     if rule_name:
         query_for_alerts(ctx, rule_name)
     else:
-        for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
+        for query_name in db.load_rules(ctx, ALERT_QUERY_POSTFIX):
             query_for_alerts(ctx, query_name)
 
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
