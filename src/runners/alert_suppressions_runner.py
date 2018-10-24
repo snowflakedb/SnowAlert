@@ -13,8 +13,7 @@ from .config import (
     ALERT_SQUELCH_POSTFIX,
     CLOUDWATCH_METRICS,
 )
-from .helpers import log
-from .helpers.db import connect, load_rules
+from .helpers import db, log
 
 RUN_ID = uuid.uuid4().hex
 
@@ -94,7 +93,7 @@ def run_suppressions(squelch_name):
     metadata['ATTEMPTS'] = 1
     metadata['START_TIME'] = datetime.datetime.utcnow()
 
-    ctx = connect()
+    ctx = db.connect()
 
     try:
         do_suppression(squelch_name, ctx)
@@ -122,8 +121,8 @@ def main():
     RUN_METADATA['RUN_TYPE'] = 'ALERT SUPPRESSION'
     RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_ID'] = RUN_ID
-    ctx = connect()
-    for squelch_name in load_rules(ctx, ALERT_SQUELCH_POSTFIX):
+    ctx = db.connect()
+    for squelch_name in db.load_rules(ctx, ALERT_SQUELCH_POSTFIX):
         run_suppressions(squelch_name)
     flag_remaining_alerts(ctx)
 

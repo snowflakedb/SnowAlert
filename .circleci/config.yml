@@ -23,7 +23,7 @@ jobs:
             python -m venv .venv
             source .venv/bin/activate
             pip install --upgrade pip
-            pip install .
+            pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
             pip install mypy
 
       - save_cache:
@@ -36,10 +36,9 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
-            pyflakes ./scripts ./runners
+            pyflakes ./scripts ./runners  # soon -- ./samui/backend
             MYPYPATH="`pwd`/.venv/lib/python3.7/site-packages/" \
-              mypy --config-file mypy.ini ./runners ./scripts
+              mypy --config-file mypy.ini ./runners ./scripts  # soon -- ./samui/backend
 
       # - run:
       #     name: do the build

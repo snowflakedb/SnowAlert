@@ -1,0 +1,19 @@
+FROM python:3.7-slim-stretch
+
+WORKDIR /var/task
+
+RUN pip install --upgrade pip virtualenv pyflakes
+
+RUN mkdir -p ./snowalert
+RUN virtualenv ./snowalert/venv
+ENV PATH="/var/task/snowalert/venv/bin:${PATH}"
+
+COPY ./src ./snowalert/src
+RUN apt-get update \
+ && apt-get install -y gcc linux-libc-dev \
+ && rm -rf /var/lib/apt/lists/* \
+ && PYTHONPATH='' pip install ./snowalert/src/ ./snowalert/src/samui/backend/ \
+ && cp -r ./snowalert/src/samui/frontend  /var/task/snowalert/venv/lib/python3.7/frontend \
+ && apt-get purge -y --auto-remove gcc linux-libc-dev
+
+CMD python ./snowalert/src/samui/backend/samui/app.py
