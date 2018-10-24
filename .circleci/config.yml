@@ -13,27 +13,27 @@ jobs:
 
       - restore_cache:
           keys:
-          - app-venv-{{ checksum "requirements.txt" }}
+          - app-venv-{{ checksum "src/requirements.txt" }}
           - app-venv-  # fallback to using the latest cache if no exact match is found
 
       - run:
           name: install_snowalert_dependencies
           command: |
+            cd src
             python -m venv .venv
-            ls -al . ; ls -al .venv ; ls -al .venv/bin
             source .venv/bin/activate
             pip install -r requirements.txt
 
       - save_cache:
           paths:
             - ./.venv
-          key: app-venv-{{ checksum "requirements.txt" }}
+          key: app-venv-{{ checksum "src/requirements.txt" }}
 
       - run:
           name: run tests
           command: |
             source ./.venv/bin/activate
-            pyflakes ./src
+            pyflakes ./src/runners
 
       # - run:
       #     name: do the build

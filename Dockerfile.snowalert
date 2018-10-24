@@ -1,0 +1,16 @@
+FROM python:3.7-slim-stretch
+
+WORKDIR /var/task
+
+RUN pip install --upgrade pip virtualenv pyflakes
+
+RUN mkdir -p ./snowalert
+RUN virtualenv ./snowalert/venv
+ENV PATH="/var/task/snowalert/venv/bin:${PATH}"
+
+COPY ./src ./snowalert/src
+COPY ./run ./run
+COPY ./install ./install
+RUN PYTHONPATH='' pip install ./snowalert/src/
+
+CMD ./run all

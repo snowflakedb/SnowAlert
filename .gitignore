@@ -3,6 +3,15 @@
 build/
 docs/build
 docs/doctrees
+*.db
 *.pyc
 *.envs
 *.venv
+*.egg-info
+node_modules
+samui/frontend/lib/
+samui/frontend/src/**/*.css
+samui/frontend/src/**/*.js
+src/samui/frontend/lib/
+src/samui/frontend/src/**/*.css
+src/samui/frontend/src/**/*.js
