@@ -1,0 +1,45 @@
+@import "../constants/constants.styl"
+
+.container
+  display: flex
+  flex-direction: column
+  min-height: 100%
+  background: #f0f2f5
+
+  .content
+    padding: 32px 0
+    flex: 1
+
+    .top
+      text-align: center
+
+      .user-header
+        height: 75px
+        line-height: 75px
+        a
+          text-decoration: none
+          padding-right: 50px
+
+        .logo
+          height: 75px
+          vertical-align: top
+          margin-right: 20px
+
+        .title
+          font-size: 33px
+          color: $heading-color
+          font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif
+          font-weight: 600
+          position: relative
+          top: 2px
+
+      .desc
+        font-size: $font-size-base
+        color: $text-color-secondary
+        margin-top: 12px
+        margin-bottom: 40px
+
+@media (min-width: $screen-md)
+  .container
+    .content
+      padding: 112px 0 24px 0
