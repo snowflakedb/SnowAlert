@@ -69,6 +69,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
     | RulesActions.NewRuleAction
     | RulesActions.DeleteRuleActions
     | RulesActions.NewRuleAction
+    | RulesActions.RenameRuleActions,
 ) => {
   const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
 
@@ -146,6 +147,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
             body: NEW_RULE_BODY(ruleType, ruleTarget, title),
             savedBody: '',
             isSaving: false,
+            newTitle: null,
           },
         ]),
       };
@@ -176,7 +178,30 @@ export const rules: Reducer<SnowAlertRulesState> = (
         rules: state.rules.filter(r => r.title !== action.payload.title),
       };
     case RulesActions.DELETE_RULE_FAILURE:
-      alert('RULE_DELETION_FAILURE ${message}');
+      var {rule, message} = action.payload;
+      alert(`RULE_DELETION_FAILURE ${message}`);
+      return {
+        ...state,
+      };
+
+    // renaming rules
+    case RulesActions.RENAME_RULE_REQUEST:
+      return {
+        ...state,
+      };
+    case RulesActions.RENAME_RULE_SUCCESS:
+      var rule = action.payload;
+      if (rule.newTitle != null) {
+        newTitle = rule.newTitle;
+      }
+      return {
+        ...state,
+        currentRuleView: `${rule.newTitle}_${rule.target}_${rule.type}`,
+        rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {title: newTitle}) : r)),
+      };
+    case RulesActions.RENAME_RULE_FAILURE:
+      var {rule, message} = action.payload;
+      alert(`RULE_RENAMING_FAILURE ${message}`);
       return {
         ...state,
       };

@@ -96,3 +96,25 @@ def delete_rule():
         return jsonify(success=False, message=e.msg, rule=json)
 
     return jsonify(success=True, rule=json)
+
+
+@rules_api.route('/rename', methods=['POST'])
+def rename_rule():
+    if request.cookies.get("sid", "") != SECRET:
+        return jsonify(success=False, message="bad sid", rule={})
+
+    json = request.get_json()
+    rule_title, rule_type, rule_target, new_title = json['title'], json['type'], json['target'], json['newTitle']
+    logger.info(f'Renaming rule {rule_title}_{rule_target}_{rule_type}')
+
+    ctx = db.connect()
+    try:
+        view_name = f"{rule_title}_{rule_target}_{rule_type}"
+        new_view_name = f"{new_title}_{rule_target}_{rule_type}"
+        ctx.cursor().execute(
+            f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
+        ).fetchall()
+    except snowflake.connector.errors.ProgrammingError as e:
+        return jsonify(success=False, message=e.msg, rule=json)
+
+    return jsonify(success=True, rule=json)
