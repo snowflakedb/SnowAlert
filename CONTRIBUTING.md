@@ -11,6 +11,9 @@
 ~~~
 
 ## Developing SAMUI
+=======
+docker build -t snowalert .
+~~~
 
 ~~~
 cd src/samui/frontend

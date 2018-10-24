@@ -1,3 +1,4 @@
 import RawEditor from './RawEditor';
+import FormEditor from './FormEditor';
 
-export {RawEditor};
+export {FormEditor, RawEditor};
