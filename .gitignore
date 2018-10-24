@@ -6,3 +6,7 @@ docs/doctrees
 *.pyc
 *.envs
 *.venv
+samui/frontend/lib
+samui/frontend/node_modules
+samui/frontend/src/**/*.css
+samui/frontend/src/**/*.js
