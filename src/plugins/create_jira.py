@@ -33,13 +33,13 @@ Severity: {severity}
 
 
 def jira_ticket_body(vars):
-    sources = ', '.join(vars['sources'])
-
+    vars['sources'] = ', '.join(vars['sources'])
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in vars.items()}
-    vars['sources'] = f'[{sources}|{link_search_todos(f"Sources: {sources}")}]'
+    sources = escaped_locals_strings['sources']
+    escaped_locals_strings['sources'] = f'[{sources}|{link_search_todos(f"Sources: {sources}")}]'
 
-    body = JIRA_TICKET_BODY_FMT.format(**escaped_locals_strings)
-    return body[:99000]
+    ticket_body = JIRA_TICKET_BODY_FMT.format(**escaped_locals_strings)
+    return ticket_body[:99000]
 
 
 def escape_jira_strings(v):
