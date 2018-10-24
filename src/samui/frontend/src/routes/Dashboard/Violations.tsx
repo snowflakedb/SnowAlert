@@ -11,7 +11,7 @@ import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
-import {changeTitle, newRule} from '../../actions/rules';
+import {changeTitle, newRule, renameRule} from '../../actions/rules';
 import './Alerts.css';
 
 interface StateProps {
@@ -24,6 +24,7 @@ interface DispatchProps {
   getOrganizationIfNeeded: typeof getOrganizationIfNeeded;
   newRule: typeof newRule;
   changeTitle: typeof changeTitle;
+  renameRule: typeof renameRule;
 }
 
 type AlertsProps = StateProps & DispatchProps;
@@ -65,7 +66,21 @@ class Alerts extends React.PureComponent<AlertsProps> {
               !currentRule ? (
                 'Violations Dashboard'
               ) : currentRule.savedBody ? (
-                currentRule.title
+                <div>
+                  <Input
+                    id="title_input"
+                    style={{width: 300}}
+                    defaultValue={currentRule.title}
+                    onChange={e => (currentRule.newTitle = e.target.value)}
+                  />
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    icon="edit"
+                    size="small"
+                    onClick={() => this.props.renameRule(currentRule)}
+                  />
+                </div>
               ) : (
                 <Input
                   style={{width: 300}}
@@ -114,6 +129,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       getOrganizationIfNeeded,
       newRule,
       changeTitle,
+      renameRule,
     },
     dispatch,
   );

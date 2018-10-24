@@ -129,4 +129,36 @@ export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
   }
 };
 
-export type EditRulesActions = ChangeRuleAction | ChangeRuleBodyAction | SaveRuleActions | ChangeTitleAction | DeleteRuleActions;
+export const RENAME_RULE_REQUEST = 'RENAME_RULE_REQUEST';
+export const RENAME_RULE_SUCCESS = 'RENAME_RULE_SUCCESS';
+export const RENAME_RULE_FAILURE = 'RENAME_RULE_FAILURE';
+
+export const RenameRuleAction = {
+  renameRuleRequest: () => createAction(RENAME_RULE_REQUEST),
+  renameRuleSuccess: (response: SnowAlertRule) => createAction(RENAME_RULE_SUCCESS, response),
+  renameRuleFailure: (error: {message: string; rule: SnowAlertRule}) => createAction(RENAME_RULE_FAILURE, error),
+};
+
+export type RenameRuleActions = ActionsUnion<typeof RenameRuleAction>;
+
+export const renameRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
+  dispatch(createAction(RENAME_RULE_REQUEST, rule));
+  try {
+    const response = await api.renameRule(rule);
+    if (response.success) {
+      dispatch(RenameRuleAction.renameRuleSuccess(response.rule));
+    } else {
+      throw response;
+    }
+  } catch (error) {
+    dispatch(RenameRuleAction.renameRuleFailure(error));
+  }
+};
+
+export type EditRulesActions =
+  | ChangeRuleAction
+  | ChangeRuleBodyAction
+  | SaveRuleActions
+  | ChangeTitleAction
+  | DeleteRuleActions
+  | RenameRuleActions;

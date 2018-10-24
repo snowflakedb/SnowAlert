@@ -106,6 +106,12 @@ export const deleteRule = (rule: SnowAlertRule) =>
     .then(handleResponse)
     .catch(handleError);
 
+export const renameRule = (rule: SnowAlertRule) =>
+  axios
+    .post('/api/sa/rules/rename', rule)
+    .then(handleResponse)
+    .catch(handleError);
+
 export const loadSnowAlertRules = () =>
   axios
     .get('/api/sa/rules')
