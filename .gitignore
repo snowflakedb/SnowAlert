@@ -2,13 +2,15 @@
 .mypy_cache
 build/
 node_modules/
-lib/
 
 docs/build
 docs/doctrees
-src/samui/**/*.css
+src/**/*.css
+src/**/*.js
+src/**/lib/
 
 *.pyc
 *.envs
 *.venv
 *.db
+*.egg-info
