@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "exclude": [
+    "config-overrides.js",
+    "lib",
+    "build"
+  ]
+}

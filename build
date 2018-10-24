@@ -1,0 +1,11 @@
+#!/bin/bash
+
+PROJ=$1
+
+cp .dockerignore.$PROJ .dockerignore
+cp Dockerfile.$PROJ Dockerfile
+
+docker build -t snowsec/$PROJ .
+
+rm .dockerignore
+rm Dockerfile
