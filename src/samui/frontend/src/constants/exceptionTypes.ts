@@ -1,0 +1,3 @@
+export const UNAUTHORIZED_ACCESS_ERROR = 403;
+export const NOT_FOUND_ERROR = 404;
+export const INTERNAL_SERVER_ERROR = 500;
