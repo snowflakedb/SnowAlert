@@ -1,0 +1,38 @@
+@import "../../constants/constants.styl"
+
+.menu-logo
+  height: 64px
+  position: relative
+  line-height: 64px
+  padding-left: (($menu-collapsed-width - 80px) / 2)
+  transition: all .3s
+  background: #002140
+  overflow: hidden
+
+  img
+    display: inline-block
+    vertical-align: middle
+    width: 80px
+
+  h1
+    color: #fff
+    display: inline-block
+    vertical-align: middle
+    font-size: 20px
+    margin: 0 0 0 20px
+    font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif
+    font-weight: 600
+
+.sider
+  min-height: 100vh
+  box-shadow: 2px 0 6px rgba(0, 21, 41, .35)
+  position: relative
+  z-index: 10
+
+.icon
+  width: 14px
+  margin-right: 10px
+
+:global
+  .drawer .drawer-content
+    background: #001529
