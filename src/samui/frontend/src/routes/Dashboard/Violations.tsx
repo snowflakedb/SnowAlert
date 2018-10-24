@@ -59,7 +59,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
           <Card title="Violations Dashboard" className={'card'} bordered={true}>
             <div>
               <Row>
-                <RuleEditor target="VIOLATION" rules={rules.rules} />
+                <RuleEditor target="VIOLATION" rules={rules.rules} currentRule={null} />
               </Row>
             </div>
           </Card>
