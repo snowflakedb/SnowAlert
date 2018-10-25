@@ -257,9 +257,9 @@ def jira_integration():
         print("Note that this should be the text that will prepend the ticket id; if the project is SnowAlert")
         print("and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.")
         jira_project = input("Please enter the project tag for the alerts from SnowAlert: ")
-        return 1, jira_user, jira_password, jira_url, jira_project
+        return jira_user, jira_password, jira_url, jira_project
     else:
-        return 0, "placeholder", "", "placeholder", "placeholder"
+        return "", "", "", ""
 
 
 def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
@@ -316,12 +316,7 @@ def setup_authentication(jira_password):
 
 def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, private_key, pk_passwd,
              aws_key, aws_secret, **x):
-    return "\n".join([
-        f'JIRA_URL={jira_url}',
-        f'JIRA_PROJECT={jira_project}',
-        f'JIRA_USER={jira_user}',
-        f'JIRA_PASSWORD={jira_password}',
-
+    vars = [
         f'SNOWFLAKE_ACCOUNT={account}',
         f'SA_USER={USER}',
         f'SA_WAREHOUSE={WAREHOUSE}',
@@ -329,10 +324,23 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
 
         f'PRIVATE_KEY={b64encode(private_key).decode("utf-8")}',
         f'PRIVATE_KEY_PASSWORD={pk_passwd}',
+    ]
 
-        f'AWS_ACCESS_KEY_ID={aws_key}' if aws_key else '',
-        f'AWS_SECRET_ACCESS_KEY={aws_secret}' if aws_secret else '',
-    ])
+    if jira_url:
+        vars += [
+            f'JIRA_URL={jira_url}',
+            f'JIRA_PROJECT={jira_project}',
+            f'JIRA_USER={jira_user}',
+            f'JIRA_PASSWORD={jira_password}',
+        ]
+
+    if aws_key:
+        vars += [
+            f'AWS_ACCESS_KEY_ID={aws_key}' if aws_key else '',
+            f'AWS_SECRET_ACCESS_KEY={aws_secret}' if aws_secret else '',
+        ]
+
+    return '\n'.join(vars)
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
@@ -359,7 +367,7 @@ if __name__ == '__main__':
     setup_samples(do_attempt)
     setup_user(do_attempt)
 
-    jira_flag, jira_user, jira_password, jira_url, jira_project = jira_integration()
+    jira_user, jira_password, jira_url, jira_project = jira_integration()
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
