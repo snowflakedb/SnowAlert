@@ -10,3 +10,4 @@ samui/frontend/lib
 samui/frontend/node_modules
 samui/frontend/src/**/*.css
 samui/frontend/src/**/*.js
+samui/backend/samui.egg-info
