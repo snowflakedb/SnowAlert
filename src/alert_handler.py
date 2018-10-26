@@ -39,7 +39,7 @@ def log_failure(ctx, alert, e):
         'QUERY_ID': 'db9fa0d114d54b5ca1a195e34fb8752b',
         'QUERY_NAME': 'Alert Handler Failure',
         'ENVIRONMENT': 'SnowAlert',
-        'SOURCES': 'Alerts Table',
+        'SOURCES': ['Alerts Table'],
         'ACTOR': 'Alert Handler',
         'OBJECT': alert['ALERT_ID'],
         'ACTION': 'The Alert Handler failed to create a ticket',
