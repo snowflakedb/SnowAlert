@@ -3,37 +3,37 @@
 if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
   echo "running in docker container-like environment"
 
-  cd /var/task/snowalert/
+  cd /var/task/snowalert/src/runners/
 
   if [ -z "$1" ]; then
-    ./src/alert_queries_runner.py
-    ./src/alert_suppressions_runner.py
-    ./src/violation_queries_runner.py
-    ./src/violation_suppressions_runner.py
-    ./src/alert_handler.py
+    ./alert_queries_runner.py
+    ./alert_suppressions_runner.py
+    ./violation_queries_runner.py
+    ./violation_suppressions_runner.py
+    ./alert_handler.py
 
   elif [ "$1" == "alerts" ]; then
-    ./src/alert_queries_runner.py
-    ./src/alert_suppressions_runner.py
+    ./alert_queries_runner.py
+    ./alert_suppressions_runner.py
 
   elif [ "$1" == "violations" ]; then
-    ./src/violation_queries_runner.py
-    ./src/violation_suppressions_runner.py
+    ./violation_queries_runner.py
+    ./violation_suppressions_runner.py
 
   elif [ "$1" == "alert_queries" ]; then
-    ./src/alert_queries_runner.py
+    ./alert_queries_runner.py
 
   elif [ "$1" == "alert_suppressions" ]; then
-    ./src/alert_suppressions_runner.py
+    ./alert_suppressions_runner.py
 
   elif [ "$1" == "violation_queries" ]; then
-    ./src/violation_queries_runner.py
+    ./violation_queries_runner.py
 
   elif [ "$1" == "violation_suppressions" ]; then
-    ./src/violation_suppressions_runner.py
+    ./violation_suppressions_runner.py
 
   elif [ "$1" == "alert_handler" ]; then
-    ./src/alert_handler.py
+    ./alert_handler.py
 
   fi
 
