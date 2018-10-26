@@ -8,7 +8,7 @@ import uuid
 from helpers import log
 from helpers.db import connect_and_execute
 
-from config import ALERTS_TABLE, DATABASE, WAREHOUSE
+from config import ALERTS_TABLE, DATABASE, WAREHOUSE, CLOUDWATCH_METRICS
 
 
 def log_alerts(ctx, alerts):
@@ -112,6 +112,8 @@ def main():
 
         # Record the new ticket id in the alert table
         record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])
+    if {CLOUDWATCH_METRICS}:
+        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
 
 
 if __name__ == "__main__":

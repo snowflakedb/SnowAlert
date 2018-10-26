@@ -3,7 +3,7 @@
 import json
 import os
 
-from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_QUERY_POSTFIX
+from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers.db import connect_and_fetchall, connect_and_execute, load_rules
 from helpers import log
 
@@ -57,6 +57,8 @@ def main():
     ctx = connect_and_execute("ALTER SESSION SET use_cached_result=FALSE;")
     for query_name in load_rules(ctx, VIOLATION_QUERY_POSTFIX):
         run_query(query_name)
+    if {CLOUDWATCH_METRICS}:
+        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Query Runner'}], 1)
 
 
 if __name__ == '__main__':

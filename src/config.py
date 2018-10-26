@@ -29,3 +29,6 @@ ALERT_QUERY_POSTFIX = "alert_query"
 ALERT_SQUELCH_POSTFIX = "alert_suppression"
 VIOLATION_QUERY_POSTFIX = "violation_query"
 VIOLATION_SQUELCH_POSTFIX = "violation_suppression"
+
+#include aws
+CLOUDWATCH_METRICS = os.environ.get('CLOUDWATCH_METRICS', False)
