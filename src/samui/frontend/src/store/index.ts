@@ -2,6 +2,7 @@ import {initialState as authInitialState} from '../reducers/auth';
 import {initialState as notificationsInitialState} from '../reducers/notifications';
 import {initialState as organizationInitialState} from '../reducers/organization';
 import {initialState as viewportInitialState} from '../reducers/viewport';
+import {initialState as rulesInitialState} from '../reducers/rules';
 import devConfigureStore from './configureStore.dev';
 import prodConfigureStore from './configureStore.prod';
 
@@ -15,6 +16,7 @@ const initialState = {
   organization: organizationInitialState,
   router: routerInitialState,
   viewport: viewportInitialState,
+  rules: rulesInitialState,
 };
 
 export const store =

@@ -48,11 +48,17 @@ export interface ViewportState {
   readonly viewport: string;
 }
 
-export interface SnowAlertRulesState {
+export interface SnowAlertRule {
   readonly target: 'alert' | 'violation';
   readonly type: 'query' | 'suppression';
   readonly title: string;
   readonly body: string;
+}
+
+export interface SnowAlertRulesState {
+  readonly errorMessage: null;
+  readonly isFetching: false;
+  readonly rules: ReadonlyArray<SnowAlertRule>;
 }
 
 export interface State {
@@ -61,8 +67,8 @@ export interface State {
   readonly organization: OrganizationState;
   readonly router: RouterState;
   readonly viewport: ViewportState;
-  readonly rules: {[name: string]: SnowAlertRulesState};
-  readonly loaded_rule_name: string;
+  readonly rules: SnowAlertRulesState;
+  // readonly loaded_rule_name: string;
 }
 
 export interface RouterData {

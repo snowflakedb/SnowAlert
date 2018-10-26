@@ -1,5 +1,6 @@
 import axios, {AxiosError, AxiosResponse} from 'axios';
 import {logoutAndRedirect} from './actions/auth';
+import {SnowAlertRule} from './reducers/types';
 import {store} from './store';
 
 const BACKEND_URL = '/api/v1';
@@ -93,17 +94,8 @@ export const clearNotifications = (token: string | null) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const loadSnowAlertRules = async () => [
-  {
-    target: 'violation',
-    type: 'query',
-    name: 'some_violation_query',
-    body: `...`,
-  },
-  {
-    target: 'alert',
-    type: 'query',
-    name: 'cloudtrail_rds_changes_alert_query',
-    body: `...`,
-  },
-];
+export const loadSnowAlertRules = async (): Promise<ReadonlyArray<SnowAlertRule>> =>
+  axios
+    .get('/api/sa/rules')
+    .then(handleResponse)
+    .catch(handleError);
