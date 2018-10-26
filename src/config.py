@@ -30,5 +30,5 @@ ALERT_SQUELCH_POSTFIX = "alert_suppression"
 VIOLATION_QUERY_POSTFIX = "violation_query"
 VIOLATION_SQUELCH_POSTFIX = "violation_suppression"
 
-#include aws
+# enabling sends metrics to cloudwatch
 CLOUDWATCH_METRICS = os.environ.get('CLOUDWATCH_METRICS', False)

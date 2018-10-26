@@ -112,6 +112,7 @@ def main():
 
         # Record the new ticket id in the alert table
         record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])
+
     if {CLOUDWATCH_METRICS}:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
 
