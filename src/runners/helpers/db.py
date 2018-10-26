@@ -7,8 +7,7 @@ from typing import List
 
 import snowflake.connector
 
-from helpers import log
-
+from . import log
 from .auth import load_pkb
 
 parser = argparse.ArgumentParser(description="Optionally takes in a password")

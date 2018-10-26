@@ -92,3 +92,18 @@ export const clearNotifications = (token: string | null) =>
     .delete(`${BACKEND_URL}/notification`, tokenConfig(token))
     .then(handleResponse)
     .catch(handleError);
+
+export const loadSnowAlertRules = async () => [
+  {
+    target: 'violation',
+    type: 'query',
+    name: 'some_violation_query',
+    body: `...`,
+  },
+  {
+    target: 'alert',
+    type: 'query',
+    name: 'cloudtrail_rds_changes_alert_query',
+    body: `...`,
+  },
+];

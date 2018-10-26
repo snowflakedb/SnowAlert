@@ -8,6 +8,7 @@ from samui.gunicorn_conf import host, port
 from samui.api.v1.user import user_api
 from samui.api.v1.organization import organization_api
 from samui.api.v1.notification import notification_api
+from samui.api import rules_api
 from samui.views import app_views
 from samui.common import db, bcrypt
 
@@ -24,6 +25,7 @@ app.register_blueprint(app_views)
 app.register_blueprint(user_api, url_prefix='/api/v1/user')
 app.register_blueprint(organization_api, url_prefix='/api/v1/organization')
 app.register_blueprint(notification_api, url_prefix='/api/v1/notification')
+app.register_blueprint(rules_api, url_prefix='/api/sa/rules')
 
 with app.app_context():
     db.create_all()

@@ -6,8 +6,11 @@ docs/doctrees
 *.pyc
 *.envs
 *.venv
-samui/frontend/lib
-samui/frontend/node_modules
+*.egg-info
+node_modules
+samui/frontend/lib/
 samui/frontend/src/**/*.css
 samui/frontend/src/**/*.js
-samui/backend/samui.egg-info
+src/samui/frontend/lib/
+src/samui/frontend/src/**/*.css
+src/samui/frontend/src/**/*.js

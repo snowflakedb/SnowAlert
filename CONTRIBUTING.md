@@ -13,15 +13,17 @@ docker build -t snowalert .
 ## Building SAMUI
 
 ~~~
-cd samui/frontend
+cd src/samui/frontend
 yarn install
 yarn start
 ~~~
 
 ~~~
-cd samui/backend
+cd src/
 python -m venv .venv
 source .venv/bin/activate
+pip install -e .
+cd samui/backend
 pip install -e .
 python samui/app.py
 ~~~

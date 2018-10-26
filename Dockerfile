@@ -6,10 +6,10 @@ RUN pip install --upgrade pip virtualenv pyflakes
 
 RUN mkdir -p ./snowalert
 RUN virtualenv ./snowalert/venv
-COPY ./requirements.txt ./snowalert/requirements.txt
+COPY ./snowalert/requirements.txt ./snowalert/requirements.txt
 RUN PYTHONPATH='' ./snowalert/venv/bin/pip install -r ./snowalert/requirements.txt
 
-COPY ./src ./snowalert/src
+COPY ../snowalert/src ./snowalert/src
 COPY ./run ./run
 COPY ./install ./install
 
