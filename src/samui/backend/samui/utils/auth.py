@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import List
 
 from flask import request, jsonify
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
@@ -27,7 +28,7 @@ def verify_token(token):
     return data
 
 
-def requires_auth(roles_list):
+def requires_auth(roles: List[str]):
     """
     A role validation decorator.
     First, login token will be validated and the user fetched.
@@ -44,7 +45,7 @@ def requires_auth(roles_list):
                 if user:
                     # Fetch actual user object from the DB.
                     user_object = User.query.filter_by(email=user['email']).first()
-                    if user_object.role in roles_list:
+                    if user_object.role in roles:
                         return f(*args, current_user=user_object, **kwargs)
 
             return jsonify({

@@ -108,7 +108,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
   };
 
   render() {
-    const {auth, notifications, menuCollapsed, isMobile, logo} = this.props;
+    const {auth, menuCollapsed, isMobile, logo} = this.props;
     const menu = (
       <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
         <Menu.Item disabled={true}>
