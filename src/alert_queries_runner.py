@@ -152,7 +152,7 @@ def main():
     for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
         query_for_alerts(query_name)
 
-    if {CLOUDWATCH_METRICS}:
+    if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
 
 

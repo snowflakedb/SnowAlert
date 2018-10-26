@@ -35,7 +35,7 @@ def main():
         run_suppression(squelch_name)
     flag_remaining_alerts(ctx)
 
-    if {CLOUDWATCH_METRICS}:
+    if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Suppression Runner'}], 1)
 
 

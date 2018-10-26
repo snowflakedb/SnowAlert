@@ -57,7 +57,7 @@ def main():
     ctx = connect_and_execute("ALTER SESSION SET use_cached_result=FALSE;")
     for query_name in load_rules(ctx, VIOLATION_QUERY_POSTFIX):
         run_query(query_name)
-    if {CLOUDWATCH_METRICS}:
+    if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Query Runner'}], 1)
 
 
