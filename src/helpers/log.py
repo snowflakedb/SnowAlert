@@ -1,5 +1,7 @@
 import traceback
 import sys
+import boto3
+import datetime
 
 
 def write(*args, stream=sys.stdout):
@@ -22,3 +24,16 @@ def error(*args):
 def fatal(*args):
     error(*args)
     sys.exit(1)
+
+
+def metric(metric, namespace, dimensions, value):
+    client = boto3.client('cloudwatch', 'us-west-2')
+    client.put_metric_data(
+        Namespace=namespace,
+        MetricData=[{
+            'MetricName': metric,
+            'Dimensions': dimensions,
+            'Timestamp': datetime.datetime.utcnow(),
+            'Value': value
+        }]
+    )

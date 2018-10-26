@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX
+from config import VIOLATIONS_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect, load_rules
 
@@ -34,6 +34,9 @@ def main():
     for squelch_name in load_rules(ctx, VIOLATION_SQUELCH_POSTFIX):
         run_suppression(squelch_name)
     flag_remaining_alerts(ctx)
+
+    if CLOUDWATCH_METRICS:
+        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Suppression Runner'}], 1)
 
 
 if __name__ == '__main__':

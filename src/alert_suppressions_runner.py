@@ -5,7 +5,7 @@ import uuid
 import datetime
 from typing import List
 
-from config import ALERTS_TABLE, RULES_SCHEMA, ALERT_SQUELCH_POSTFIX
+from config import ALERTS_TABLE, RULES_SCHEMA, ALERT_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect, load_rules
 
@@ -100,6 +100,9 @@ def main():
     for squelch_name in load_rules(ctx, ALERT_SQUELCH_POSTFIX):
         run_suppressions(squelch_name)
     flag_remaining_alerts(ctx)
+
+    if CLOUDWATCH_METRICS:
+        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}], 1)
 
 
 if __name__ == '__main__':

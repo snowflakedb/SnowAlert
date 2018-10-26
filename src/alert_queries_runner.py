@@ -5,7 +5,7 @@ import hashlib
 import uuid
 import datetime
 
-from config import ALERTS_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX
+from config import ALERTS_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect_and_execute, load_rules
 
@@ -151,6 +151,9 @@ def main():
     ctx = connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
     for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
         query_for_alerts(query_name)
+
+    if CLOUDWATCH_METRICS:
+        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
 
 
 if __name__ == '__main__':
