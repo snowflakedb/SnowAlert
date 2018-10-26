@@ -26,7 +26,7 @@ def fatal(*args):
 
 def metric(metric, namespace, dimensions, value):
     client = boto3.client('cloudwatch','us-west-2')
-    response = client.put_metric_data (
+    client.put_metric_data (
         Namespace = namespace,
         MetricData = [
         {
