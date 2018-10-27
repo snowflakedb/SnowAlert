@@ -57,7 +57,7 @@ export interface SnowAlertRule {
 
 export interface SnowAlertRulesState {
   readonly errorMessage: null;
-  readonly isFetching: false;
+  readonly isFetching: boolean;
   readonly rules: ReadonlyArray<SnowAlertRule>;
 }
 
