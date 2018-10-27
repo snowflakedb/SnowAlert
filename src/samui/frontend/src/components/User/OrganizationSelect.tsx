@@ -95,7 +95,7 @@ class OrganizationSelect extends React.Component<OrganizationSelectProps, State>
         >
           {!_.isEmpty(this.state.organizationsList) &&
             this.state.organizationsList.map((organization: OrganizationDetails) => (
-              <Select.Option key={organization.organization_id} value={organization.organization_id}>
+              <Select.Option key={String(organization.organization_id)} value={organization.organization_id}>
                 {organization.title}
               </Select.Option>
             ))}
