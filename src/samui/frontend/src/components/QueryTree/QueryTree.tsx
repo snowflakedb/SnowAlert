@@ -44,8 +44,8 @@ class QueryTree extends React.PureComponent<QueryTreeProps> {
       }
 
     return [
-      queryTitles.map(x => <TreeNode key={x} selectable={true} title={x} />),
-      suppressionTitles.map(x => <TreeNode key={x} selectable={true} title={x} />),
+      queryTitles.map(x => <TreeNode key={x} selectable title={x} />),
+      suppressionTitles.map(x => <TreeNode key={x} selectable title={x} />),
     ];
   };
 
@@ -60,7 +60,7 @@ class QueryTree extends React.PureComponent<QueryTreeProps> {
         </Tree>
 
         <Tree showLine>
-          <TreeNode title="Violations">
+          <TreeNode title="Violations" selectable={false}>
             {this.props.rules.isFetching ? <TreeNode title="Loading..." /> : this.generateTree(data, 'violation')}
           </TreeNode>
         </Tree>

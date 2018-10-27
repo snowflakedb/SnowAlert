@@ -15,21 +15,24 @@ def get_rules():
 
     logger.info(f'Fetching {rule_target}_{rule_type} rules...')
     ctx = db.connect()
-    result = ctx.cursor().execute(f"SHOW OBJECTS LIKE '%_{rule_target}\_{rule_type}' IN SCHEMA snowalert.rules;")
-    NAME_COL = next(i for i, e in enumerate(result.description) if e[0] == 'name')
-    ruleTitles = [row[NAME_COL] for row in result.fetchall()]
-    rules = [{
-        "title": title,
-        "target": title.split('_')[-2].lower(),
-        "type": title.split('_')[-1].lower(),
-    } for title in ruleTitles if (
-        title.endswith("_ALERT_QUERY")
-        or title.endswith("_ALERT_SUPPRESSION")
-        or title.endswith("_VIOLATION_QUERY")
-        or title.endswith("_VIOLATION_SUPPRESSION")
-    )]
-
-    return jsonify(rules=rules)
+    result = ctx.cursor().execute(f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN snowalert.rules;")
+    COLS = [col[0] for col in result.description]
+    rules = [dict(zip(COLS, row)) for row in result.fetchall()]
+    return jsonify(
+        rules=[
+            {
+                "title": rule['name'],
+                "target": rule['name'].split('_')[-2].lower(),
+                "type": rule['name'].split('_')[-1].lower(),
+                "body": rule['text'],
+            } for rule in rules if (
+                rule['name'].endswith("_ALERT_QUERY")
+                or rule['name'].endswith("_ALERT_SUPPRESSION")
+                or rule['name'].endswith("_VIOLATION_QUERY")
+                or rule['name'].endswith("_VIOLATION_SUPPRESSION")
+            )
+        ]
+    )
 
 
 @rules_api.route('', methods=['POST'])
