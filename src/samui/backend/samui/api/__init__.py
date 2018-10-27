@@ -17,7 +17,19 @@ def get_rules():
     ctx = db.connect()
     result = ctx.cursor().execute(f"SHOW OBJECTS LIKE '%_{rule_target}\_{rule_type}' IN SCHEMA snowalert.rules;")
     NAME_COL = next(i for i, e in enumerate(result.description) if e[0] == 'name')
-    return jsonify(rules=[row[NAME_COL] for row in result.fetchall()])
+    ruleTitles = [row[NAME_COL] for row in result.fetchall()]
+    rules = [{
+        "title": title,
+        "target": title.split('_')[-2].lower(),
+        "type": title.split('_')[-1].lower(),
+    } for title in ruleTitles if (
+        title.endswith("_ALERT_QUERY")
+        or title.endswith("_ALERT_SUPPRESSION")
+        or title.endswith("_VIOLATION_QUERY")
+        or title.endswith("_VIOLATION_SUPPRESSION")
+    )]
+
+    return jsonify(rules=rules)
 
 
 @rules_api.route('', methods=['POST'])

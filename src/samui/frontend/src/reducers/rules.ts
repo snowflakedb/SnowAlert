@@ -15,14 +15,14 @@ export const rules: Reducer<SnowAlertRulesState> = (
   switch (action.type) {
     case FromActions.LOAD_SNOWALERT_RULES_REQUEST:
       return {
-        isFetching: true,
         ...state,
+        isFetching: true,
       };
     case FromActions.LOAD_SNOWALERT_RULES_SUCCESS:
       return {
+        ...state,
         rules: action.payload,
         isFetching: false,
-        ...state,
       };
     default:
       return state;

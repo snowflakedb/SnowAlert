@@ -1,6 +1,5 @@
 import axios, {AxiosError, AxiosResponse} from 'axios';
 import {logoutAndRedirect} from './actions/auth';
-import {SnowAlertRule} from './reducers/types';
 import {store} from './store';
 
 const BACKEND_URL = '/api/v1';
@@ -94,7 +93,7 @@ export const clearNotifications = (token: string | null) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const loadSnowAlertRules = async (): Promise<ReadonlyArray<SnowAlertRule>> =>
+export const loadSnowAlertRules = () =>
   axios
     .get('/api/sa/rules')
     .then(handleResponse)

@@ -1,6 +1,7 @@
 import {Col, Row} from 'antd';
 import * as React from 'react';
 import {Pie} from '../Chart';
+import {QueryTree} from '../QueryTree';
 import './OrganizationDetails.css';
 import {Tabs} from 'antd';
 
@@ -22,7 +23,7 @@ const OrganizationDetails = (props: OrganizationDetailsProps) => {
       <TabPane tab="Tab 1" key="1">
         <Row gutter={8} style={{width: 256, margin: '8px 0'}}>
           <Col span={12} style={{paddingTop: 36}}>
-            <Pie animate={false} color={'#8fc3ff'} inner={0.65} tooltip={false} percent={percent} height={512} />
+            <QueryTree />
           </Col>
         </Row>
       </TabPane>
@@ -30,7 +31,11 @@ const OrganizationDetails = (props: OrganizationDetailsProps) => {
         Tab 2
       </TabPane>
       <TabPane tab="Tab 3" key="3">
-        Tab 3
+        <Row gutter={8} style={{width: 256, margin: '8px 0'}}>
+          <Col span={12} style={{paddingTop: 36}}>
+            <Pie animate={false} color={'#8fc3ff'} inner={0.65} tooltip={false} percent={percent} height={512} />
+          </Col>
+        </Row>
       </TabPane>
     </Tabs>
   );
