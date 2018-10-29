@@ -55,6 +55,10 @@ export interface SnowAlertRule {
   readonly body: string;
 }
 
+export interface CurrentQuery {
+  readonly rule: SnowAlertRule | null;
+}
+
 export interface SnowAlertRulesState {
   readonly errorMessage: null;
   readonly isFetching: boolean;
