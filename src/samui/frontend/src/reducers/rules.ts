@@ -1,11 +1,15 @@
 import {Reducer} from 'redux';
 import * as FromActions from '../actions/rules';
-import {SnowAlertRulesState, State} from './types';
+import {CurrentQuery, SnowAlertRule, SnowAlertRulesState, State} from './types';
 
 export const initialState: SnowAlertRulesState = {
   errorMessage: null,
   isFetching: false,
   rules: [],
+};
+
+export const currentQueryInitialState: CurrentQuery = {
+  rule: null,
 };
 
 export const rules: Reducer<SnowAlertRulesState> = (
@@ -32,3 +36,5 @@ export const rules: Reducer<SnowAlertRulesState> = (
 export const getSnowAlertRules = (state: State) => {
   return state.rules;
 };
+
+export const rule: Reducer<SnowAlertRule>;
