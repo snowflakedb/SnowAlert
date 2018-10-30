@@ -63,6 +63,7 @@ export interface SnowAlertRulesState {
   readonly errorMessage: null;
   readonly isFetching: boolean;
   readonly rules: ReadonlyArray<SnowAlertRule>;
+  readonly currentRuleTitle: string;
 }
 
 export interface State {
@@ -72,7 +73,6 @@ export interface State {
   readonly router: RouterState;
   readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;
-  // readonly loaded_rule_name: string;
 }
 
 export interface RouterData {

@@ -14,7 +14,7 @@ export const currentQueryInitialState: CurrentQuery = {
 
 export const rules: Reducer<SnowAlertRulesState> = (
   state = initialState,
-  action: FromActions.LoadSnowAlertRulesActions,
+  action: FromActions.LoadSnowAlertRulesActions | FromActions.ChangeRuleActions,
 ) => {
   switch (action.type) {
     case FromActions.LOAD_SNOWALERT_RULES_REQUEST:
@@ -28,6 +28,12 @@ export const rules: Reducer<SnowAlertRulesState> = (
         rules: action.payload,
         isFetching: false,
       };
+    case FromActions.CHANGE_CURRENT_QUERY:
+      console.log(action.payload);
+      return {
+        ...state,
+        currentRuleTitle: action.payload,
+      };
     default:
       return state;
   }
@@ -36,5 +42,3 @@ export const rules: Reducer<SnowAlertRulesState> = (
 export const getSnowAlertRules = (state: State) => {
   return state.rules;
 };
-
-export const rule: Reducer<SnowAlertRule>;

@@ -7,7 +7,7 @@ import boto3
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
-import config
+from .. import config
 
 
 def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> bytes:
