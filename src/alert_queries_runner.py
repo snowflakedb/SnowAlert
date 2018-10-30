@@ -72,8 +72,8 @@ def log_alerts(ctx, alerts):
         format_string = ", ".join(["(%s)"] * len(alerts))
         try:
             ctx.cursor().execute((
-                f'INSERT INTO {ALERTS_TABLE}(alert_time, alert) '
-                f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1) '
+                f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+                f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
                 f'FROM values {format_string};'),
                 alerts)
         except Exception as e:
