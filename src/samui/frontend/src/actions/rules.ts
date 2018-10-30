@@ -36,3 +36,15 @@ export const loadSnowAlertRulesIfNeeded = () => async (dispatch: Dispatch, getSt
     }
   }
 };
+
+export const CHANGE_CURRENT_QUERY = 'CHANGE_CURRENT_QUERY';
+
+export type ChangeRuleActions = typeof CHANGE_CURRENT_QUERY;
+
+export type ChangeRulePayload = string;
+
+export const ChangeRuleAction = (ruleTitle: string) => createAction(CHANGE_CURRENT_QUERY, ruleTitle);
+
+export const changeRule = (ruleTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(ChangeRuleAction(ruleTitle));
+};
