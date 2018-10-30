@@ -28,16 +28,16 @@ class DetailedEditor extends React.PureComponent<DetailedEditorProps> {
     this.props.changeCurrentQuery();
   }
 
-populateField = (data: SnowAlertRule['body']) => {
-    const { TextArea } = Input
+  populateField = (data: SnowAlertRule['body']) => {
+    const {TextArea} = Input;
 
-    ReactDOM.render(<TextArea value={data} autosize={true}/>, mountNode);
+    return <TextArea value={data} autosize={true} />;
+  };
 
+  render() {
+    var rule = this.props.currentQuery;
+    return this.populateField(rule.body);
+  }
 }
 
-render() => {
-    var rule = SnowAlertRule;
-    this.populateField(rule.body)
-
-}
-
+export default DetailedEditor;
