@@ -61,7 +61,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
 
     // Handle default.
     if (viewport === '/') {
-      this.props.setViewport(routes.ANALYSIS);
+      this.props.setViewport(routes.ALERTS);
     } else if (!this.props.routerData[viewport]) {
       // Handle invalid routes.
       this.props.setViewport(routes.NOT_FOUND_ERROR);
