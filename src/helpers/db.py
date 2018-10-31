@@ -7,8 +7,8 @@ from typing import List
 
 import snowflake.connector
 
-from helpers import log
-
+from .. import config
+from . import log
 from .auth import load_pkb
 
 parser = argparse.ArgumentParser(description="Optionally takes in a password")
@@ -30,12 +30,17 @@ def retry(f, E=Exception, n=3):
 # Connecting
 ###
 
-def connect():
+def preflight_checks(ctx):
+    user_props = dict((x['property'], x['value']) for x in fetch(ctx, f'DESC USER {config.USER};'))
+    assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {config.USER} must not be null"
+
+
+def connect(run_preflight_checks=True):
     p8_private_key = b64decode(os.environ['PRIVATE_KEY'])
     encrypted_pass = (args.private_key_password or os.environ['PRIVATE_KEY_PASSWORD']).encode('utf-8')
 
-    user = os.environ['SA_USER']
-    region = os.environ.get('REGION', 'us-west-2')
+    user = config.USER
+    region = config.REGION
     account = os.environ['SNOWFLAKE_ACCOUNT'] + ('' if region == 'us-west-2' else f'.{region}')
 
     try:
@@ -46,10 +51,23 @@ def connect():
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache'
         ))
 
+        if run_preflight_checks:
+            preflight_checks(connection)
+
     except Exception as e:
         log.fatal(e, "Failed to connect.")
 
     return connection
+
+
+def fetch(ctx, query):
+    res = execute(ctx, query)
+    cols = [c[0] for c in res.description]
+    while True:
+        row = res.fetchone()
+        if row is None:
+            break
+        yield dict(zip(cols, row))
 
 
 def execute(ctx, query):

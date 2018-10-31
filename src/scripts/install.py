@@ -231,9 +231,11 @@ def setup_warehouse(do_attempt):
 
 
 def setup_user(do_attempt):
-    do_attempt("Creating user & role", [
+    defaults = f"login_name='{USER}' password='' default_role={ROLE} default_warehouse='{WAREHOUSE}'"
+    do_attempt("Creating role and user", [
         f"CREATE ROLE IF NOT EXISTS {ROLE}",
-        f"CREATE USER IF NOT EXISTS {USER} login_name='{USER}' password='' default_role={ROLE}",
+        f"CREATE USER IF NOT EXISTS {USER} {defaults}",
+        f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER};")
     do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
