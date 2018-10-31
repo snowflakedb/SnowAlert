@@ -23,7 +23,7 @@ const shouldLoadSnowAlertRules = (state: State) => {
   return !rules.isFetching;
 };
 
-export const loadSnowAlertRulesIfNeeded = () => async (dispatch: Dispatch, getState: GetState) => {
+export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: GetState) => {
   const state = getState();
   if (shouldLoadSnowAlertRules(state)) {
     dispatch(LoadSnowAlertRulesActions.loadSnowAlertRulesRequest());
@@ -37,14 +37,20 @@ export const loadSnowAlertRulesIfNeeded = () => async (dispatch: Dispatch, getSt
   }
 };
 
-export const CHANGE_CURRENT_QUERY = 'CHANGE_CURRENT_QUERY';
-
-export type ChangeRuleActions = ActionWithPayload<typeof CHANGE_CURRENT_QUERY, string>;
-
+// changing rule selection
+export const CHANGE_CURRENT_RULE = 'CHANGE_CURRENT_RULE';
 export type ChangeRulePayload = string;
-
-export const ChangeRuleAction = (ruleTitle?: string) => createAction(CHANGE_CURRENT_QUERY, ruleTitle);
-
+export type ChangeRuleAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE, ChangeRulePayload>;
+export const ChangeRuleAction = (ruleTitle?: string) => createAction(CHANGE_CURRENT_RULE, ruleTitle);
 export const changeRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
   dispatch(ChangeRuleAction(ruleTitle));
+};
+
+// updating rule body
+export const CHANGE_CURRENT_RULE_BODY = 'CHANGE_CURRENT_RULE_BODY';
+export type ChangeRuleBodyPayload = string;
+export type ChangeRuleBodyAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE_BODY, ChangeRuleBodyPayload>;
+export const ChangeRuleBodyAction = (ruleBody: string | null) => createAction(CHANGE_CURRENT_RULE_BODY, ruleBody);
+export const changeRuleBody = (ruleBody: string | null) => async (dispatch: Dispatch) => {
+  dispatch(ChangeRuleBodyAction(ruleBody));
 };

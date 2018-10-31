@@ -3,6 +3,7 @@
 build/
 docs/build
 docs/doctrees
+*.db
 *.pyc
 *.envs
 *.venv

@@ -12,6 +12,6 @@ export const rootReducer: Reducer<State> = combineReducers<State>({
   notifications,
   organization,
   router: routerReducer,
-  rules: rules,
+  rules,
   viewport,
 });

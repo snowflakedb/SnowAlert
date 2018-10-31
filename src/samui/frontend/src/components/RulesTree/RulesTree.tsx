@@ -3,7 +3,7 @@ import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
-import {loadSnowAlertRulesIfNeeded, changeRule} from '../../actions/rules';
+import {loadSnowAlertRules, changeRule} from '../../actions/rules';
 import {getSnowAlertRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
@@ -17,7 +17,7 @@ interface OwnProps {
 }
 
 interface DispatchProps {
-  loadSnowAlertRules: typeof loadSnowAlertRulesIfNeeded;
+  loadSnowAlertRules: typeof loadSnowAlertRules;
   changeRule: typeof changeRule;
 }
 
@@ -68,7 +68,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   render() {
     var rules = this.props.rules.rules;
     return (
-      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0].split('-')[0])}>
+      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule((x[0] || '').split('-')[0])}>
         {this.generateTree(rules, this.props.target)}
       </Tree>
     );
@@ -84,7 +84,7 @@ const mapStateToProps = (state: State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      loadSnowAlertRules: loadSnowAlertRulesIfNeeded,
+      loadSnowAlertRules: loadSnowAlertRules,
       changeRule,
     },
     dispatch,
