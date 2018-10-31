@@ -2,7 +2,8 @@ import os
 
 REGION = os.environ.get('REGION', "us-west-2")
 
-# database name
+# database properties
+USER = os.environ.get('SA_USER', "snowalert")
 DATABASE = os.environ.get('SA_DATABASE', "snowalert")
 WAREHOUSE = os.environ.get('SA_WAREHOUSE', "snowalert")
 
