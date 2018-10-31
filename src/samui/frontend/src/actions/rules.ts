@@ -1,7 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {createAction, GetState} from './action-helpers';
+import {createAction, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
 export const LOAD_SNOWALERT_RULES_REQUEST = 'LOAD_SNOWALERT_RULES_REQUEST';
@@ -39,12 +39,12 @@ export const loadSnowAlertRulesIfNeeded = () => async (dispatch: Dispatch, getSt
 
 export const CHANGE_CURRENT_QUERY = 'CHANGE_CURRENT_QUERY';
 
-export type ChangeRuleActions = typeof CHANGE_CURRENT_QUERY;
+export type ChangeRuleActions = ActionWithPayload<typeof CHANGE_CURRENT_QUERY, string>;
 
 export type ChangeRulePayload = string;
 
-export const ChangeRuleAction = (ruleTitle: string) => createAction(CHANGE_CURRENT_QUERY, ruleTitle);
+export const ChangeRuleAction = (ruleTitle?: string) => createAction(CHANGE_CURRENT_QUERY, ruleTitle);
 
-export const changeRule = (ruleTitle: string) => async (dispatch: Dispatch) => {
+export const changeRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
   dispatch(ChangeRuleAction(ruleTitle));
 };

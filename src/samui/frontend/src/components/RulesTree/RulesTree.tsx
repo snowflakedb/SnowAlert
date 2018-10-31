@@ -8,11 +8,13 @@ import {getSnowAlertRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 
-import './QueryTree.css';
+import './RulesTree.css';
 
 const TreeNode = Tree.TreeNode;
 
-interface OwnProps {}
+interface OwnProps {
+  target: SnowAlertRule['target'];
+}
 
 interface DispatchProps {
   loadSnowAlertRules: typeof loadSnowAlertRulesIfNeeded;
@@ -23,11 +25,12 @@ interface StateProps {
   rules: SnowAlertRulesState;
 }
 
-type QueryTreeProps = OwnProps & DispatchProps & StateProps;
+type RulesTreeProps = OwnProps & DispatchProps & StateProps;
 
-class QueryTree extends React.PureComponent<QueryTreeProps> {
+class RulesTree extends React.PureComponent<RulesTreeProps> {
   componentDidMount() {
     this.props.loadSnowAlertRules();
+    this.props.changeRule('');
   }
 
   generateTree = (data: SnowAlertRulesState['rules'], target: SnowAlertRule['target']) => {
@@ -37,35 +40,37 @@ class QueryTree extends React.PureComponent<QueryTreeProps> {
     for (let d of data)
       if (d.target === target) {
         if (d.type === 'query') {
-          queryTitles.push(d.title);
+          queryTitles.push(d.title.substr(0, d.title.length - (target.length + '_QUERY'.length + 1)));
         }
         if (d.type === 'suppression') {
-          suppressionTitles.push(d.title);
+          suppressionTitles.push(d.title.substr(0, d.title.length - (target.length + '_SUPPRESSION'.length + 1)));
         }
       }
 
     return [
-      queryTitles.map(x => <TreeNode key={x} selectable title={x} />),
-      suppressionTitles.map(x => <TreeNode key={x} selectable title={x} />),
+      <TreeNode key="queries" title="Queries" selectable={false}>
+        {this.props.rules.isFetching ? (
+          <TreeNode title="Loading..." />
+        ) : (
+          queryTitles.map(x => <TreeNode key={`${x}_${target.toUpperCase()}_QUERY`} selectable title={x} />)
+        )}
+      </TreeNode>,
+      <TreeNode key="suppressions" title="Suppressions" selectable={false}>
+        {this.props.rules.isFetching ? (
+          <TreeNode title="Loading..." />
+        ) : (
+          suppressionTitles.map(x => <TreeNode key={`${x}_${target.toUpperCase()}_SUPPRESSION`} selectable title={x} />)
+        )}
+      </TreeNode>,
     ];
   };
 
   render() {
-    var data = this.props.rules.rules;
+    var rules = this.props.rules.rules;
     return (
-      <div>
-        <Tree showLine onSelect={x => this.props.changeRule(x[0])}>
-          <TreeNode title="Alerts" selectable={false}>
-            {this.props.rules.isFetching ? <TreeNode title="Loading..." /> : this.generateTree(data, 'alert')}
-          </TreeNode>
-        </Tree>
-
-        <Tree showLine onSelect={x => this.props.changeRule(x[0])}>
-          <TreeNode title="Violations" selectable={false}>
-            {this.props.rules.isFetching ? <TreeNode title="Loading..." /> : this.generateTree(data, 'violation')}
-          </TreeNode>
-        </Tree>
-      </div>
+      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0].split('-')[0])}>
+        {this.generateTree(rules, this.props.target)}
+      </Tree>
     );
   }
 }
@@ -89,4 +94,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(QueryTree);
+)(RulesTree);

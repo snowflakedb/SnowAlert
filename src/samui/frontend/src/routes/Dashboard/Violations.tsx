@@ -10,7 +10,7 @@ import '../../index.css';
 import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import * as stateTypes from '../../reducers/types';
-import './Analysis.css';
+import './Alerts.css';
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
@@ -21,9 +21,9 @@ interface DispatchProps {
   getOrganizationIfNeeded: typeof getOrganizationIfNeeded;
 }
 
-type AnalysisProps = StateProps & DispatchProps;
+type AlertsProps = StateProps & DispatchProps;
 
-class Analysis extends React.PureComponent<AnalysisProps> {
+class Alerts extends React.PureComponent<AlertsProps> {
   fetchData() {
     const {auth} = this.props;
     if (auth.organizationId && auth.token) {
@@ -49,21 +49,15 @@ class Analysis extends React.PureComponent<AnalysisProps> {
       );
     }
 
-    const organizationTitle = (organization.details && organization.details.title) || '???';
-
     return (
       <div>
         {organization.isFetching ? (
           <Spin size="large" className={'global-spin'} />
         ) : (
-          <Card title={`${organizationTitle} Dashboard`} className={'card'} bordered={true}>
+          <Card title="Violations Dashboard" className={'card'} bordered={true}>
             <div>
               <Row>
-                <h1>Hello!</h1>
-              </Row>
-              <Row>
-                <span>This is a pie chart:</span>
-                <OrganizationDetails data={{percent: 30}} />
+                <OrganizationDetails data={{percent: 30}} target="violation" />
               </Row>
             </div>
           </Card>
@@ -89,8 +83,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedAnalysis = connect<StateProps, DispatchProps>(
+export default connect<StateProps, DispatchProps>(
   mapStateToProps,
   mapDispatchToProps,
-)(Analysis);
-export default ConnectedAnalysis;
+)(Alerts);

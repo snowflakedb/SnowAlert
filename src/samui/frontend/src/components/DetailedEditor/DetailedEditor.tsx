@@ -1,15 +1,13 @@
 import {Input} from 'antd';
 import * as React from 'react';
-import ReactDOM from 'react-dom';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
-import {currentRuleTitle} from '../../actions/rules';
 import {getSnowAlertRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 
-//import './DetailedEditor.css';
+import './DetailedEditor.css';
 
 interface OwnProps {}
 
@@ -17,20 +15,15 @@ interface DispatchProps {}
 
 interface StateProps {
   rules: SnowAlertRulesState;
-  currentRuleTitle: string;
 }
 
 type DetailedEditorProps = OwnProps & DispatchProps & StateProps;
 
 class DetailedEditor extends React.PureComponent<DetailedEditorProps> {
-  //  componentDidMount() {
-  //   this.props.changeCurrentRule();
-  //  }
-
   populateField = (data?: SnowAlertRule['body']) => {
     const {TextArea} = Input;
 
-    return <TextArea value={data} autosize={true} />;
+    return <TextArea value={data} autosize={{minRows: 30, maxRows: 50}} style={{fontFamily: 'Hack, monospace'}} />;
   };
 
   render() {
@@ -41,6 +34,10 @@ class DetailedEditor extends React.PureComponent<DetailedEditorProps> {
   }
 }
 
+const mapDispatchToProps = (dispatch: Dispatch) => {
+  return bindActionCreators({}, dispatch);
+};
+
 const mapStateToProps = (state: State) => {
   return {
     rules: getSnowAlertRules(state),
@@ -49,5 +46,5 @@ const mapStateToProps = (state: State) => {
 
 export default connect(
   mapStateToProps,
-  //  mapDispatchToProps,
+  mapDispatchToProps,
 )(DetailedEditor);

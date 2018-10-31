@@ -1,3 +1,4 @@
-import Analysis from './Analysis';
+import Alerts from './Alerts';
+import Violations from './Violations';
 
-export {Analysis};
+export {Alerts, Violations};
