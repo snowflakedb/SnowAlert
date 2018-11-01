@@ -1,20 +1,22 @@
 import {Reducer} from 'redux';
 import * as RulesActions from '../actions/rules';
-import {SnowAlertRulesState, State} from './types';
+import {SnowAlertRule, SnowAlertRulesState, State} from './types';
 
 export const initialState: SnowAlertRulesState = {
   errorMessage: null,
   isFetching: false,
-  isSaving: false,
   rules: [],
-  currentRuleTitle: null,
+  currentRuleView: null,
 };
 
 export const rules: Reducer<SnowAlertRulesState> = (
   state = initialState,
   action: RulesActions.LoadRulesActions | RulesActions.EditRulesActions,
 ) => {
+  const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
+
   switch (action.type) {
+    // loading rules
     case RulesActions.LOAD_SNOWALERT_RULES_REQUEST:
       return {
         ...state,
@@ -26,35 +28,45 @@ export const rules: Reducer<SnowAlertRulesState> = (
         rules: action.payload.map(r => Object.assign(r, {savedBody: r.body})),
         isFetching: false,
       };
+
+    // saving rules
     case RulesActions.SAVE_RULE_REQUEST:
       return {
         ...state,
-        isSaving: true,
+        rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {isSaving: true}) : r)),
       };
     case RulesActions.SAVE_RULE_SUCCESS:
+      const {target: savedTarget, type: savedType, title: savedTitle, savedBody} = action.payload;
+      const savedView = `${savedTitle}_${savedTarget}_${savedType}`;
       return {
         ...state,
-        isSaving: false,
+        rules: state.rules.map(
+          r => (isView(savedView, r) ? Object.assign(r, {isSaving: false, body: savedBody, savedBody: savedBody}) : r),
+        ),
       };
     case RulesActions.SAVE_RULE_FAILURE:
+      const {rule, message} = action.payload;
+      const viewName = `${rule.title}_${rule.target}_${rule.type}`;
+      alert(`SAVE_RULE_FAILURE ${message}`);
       return {
         ...state,
-        isSaving: false,
+        rules: state.rules.map(r => (isView(viewName, r) ? Object.assign(r, {isSaving: false}) : r)),
       };
+
+    // updating which rule is selected
     case RulesActions.CHANGE_CURRENT_RULE:
       return {
         ...state,
-        currentRuleTitle: action.payload,
+        currentRuleView: action.payload,
       };
+
+    // updating rule body
     case RulesActions.CHANGE_CURRENT_RULE_BODY:
       const newBody = action.payload;
-      const curTitle = state.currentRuleTitle;
-      if (curTitle) {
-        return {
-          ...state,
-          rules: state.rules.map(r => (r.title == curTitle ? Object.assign(r, {body: newBody}) : r)),
-        };
-      }
+      return {
+        ...state,
+        rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {body: newBody}) : r)),
+      };
   }
   return state;
 };

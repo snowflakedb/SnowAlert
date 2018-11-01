@@ -59,8 +59,8 @@ export const SAVE_RULE_FAILURE = 'SAVE_RULE_FAILURE';
 
 export const SaveRuleAction = {
   saveRuleRequest: () => createAction(SAVE_RULE_REQUEST),
-  saveRuleSuccess: (response: LoadRulesPayload) => createAction(SAVE_RULE_SUCCESS, response),
-  saveRuleFailure: (errorMessage: string) => createAction(SAVE_RULE_FAILURE, errorMessage),
+  saveRuleSuccess: (response: SnowAlertRule) => createAction(SAVE_RULE_SUCCESS, response),
+  saveRuleFailure: (error: {message: string; rule: SnowAlertRule}) => createAction(SAVE_RULE_FAILURE, error),
 };
 
 export type SaveRuleActions = ActionsUnion<typeof SaveRuleAction>;
@@ -69,9 +69,13 @@ export const saveRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
   dispatch(createAction(SAVE_RULE_REQUEST, rule));
   try {
     const response = await api.saveRule(rule);
-    dispatch(SaveRuleAction.saveRuleSuccess(response.rules));
+    if (response.success) {
+      dispatch(SaveRuleAction.saveRuleSuccess(response.rule));
+    } else {
+      throw response;
+    }
   } catch (error) {
-    dispatch(SaveRuleAction.saveRuleFailure(error.message));
+    dispatch(SaveRuleAction.saveRuleFailure(error));
   }
 };
 

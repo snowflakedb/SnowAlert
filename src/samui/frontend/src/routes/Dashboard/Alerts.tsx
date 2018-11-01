@@ -57,7 +57,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
           <Card title="Alerts Dashboard" className={'card'} bordered={true}>
             <div>
               <Row>
-                <OrganizationDetails data={{percent: 30}} target="alert" />
+                <OrganizationDetails data={{percent: 30}} target="ALERT" />
               </Row>
             </div>
           </Card>

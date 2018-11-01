@@ -1,5 +1,8 @@
 import re
 
+import snowflake.connector
+
+from runners.config import RULES_SCHEMA
 from runners.helpers import db
 
 from flask import Blueprint, request, jsonify
@@ -25,15 +28,13 @@ def get_rules():
 
     logger.info(f'Fetching {rule_target}_{rule_type} rules...')
     ctx = db.connect()
-    result = ctx.cursor().execute(f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN snowalert.rules;")
-    cols = [col[0] for col in result.description]
-    rules = [dict(zip(cols, row)) for row in result.fetchall()]
+    rules = db.fetch(ctx, f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN {RULES_SCHEMA};")
     return jsonify(
         rules=[
             {
                 "title": re.sub('_(alert|violation)_(query|suppression)$', '', rule['name'], flags=re.I),
-                "target": rule['name'].split('_')[-2].lower(),
-                "type": rule['name'].split('_')[-1].lower(),
+                "target": rule['name'].split('_')[-2].upper(),
+                "type": rule['name'].split('_')[-1].upper(),
                 "body": unindent(re.sub(RULE_PREFIX, '', rule['text'], flags=re.I)),
             } for rule in rules if (
                 rule['name'].endswith("_ALERT_QUERY")
@@ -52,8 +53,13 @@ def create_rule():
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
     ctx = db.connect()
-    ctx.cursor().execute(
-        f"""CREATE OR REPLACE VIEW snowalert.rules.{rule_title}_{rule_target}_{rule_type} AS\n  {rule_body}"""
-    ).fetchall()
+    try:
+        ctx.cursor().execute(
+            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{rule_title}_{rule_target}_{rule_type} AS\n{rule_body}"""
+        ).fetchall()
+        if 'body' in json and 'savedBody' in json:
+            json['savedBody'] = rule_body
+    except snowflake.connector.errors.ProgrammingError as e:
+        return jsonify(success=False, message=e.msg, rule=json)
 
     return jsonify(success=True, rule=json)
