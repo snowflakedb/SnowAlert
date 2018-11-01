@@ -1,5 +1,10 @@
 @import "../../constants/constants.styl"
 
+.ant-layout-sider-collapsed
+  .menu-logo
+    a
+      padding-left: 19px
+
 .menu-logo
   height: 64px
   position: relative
@@ -8,18 +13,27 @@
   transition: all .3s
   background: #002140
   overflow: hidden
+  display: flex
+  user-select: none
+
+  a
+    width: 100%
+    align-items: center
+    justify-content: center
+    padding-left: 10px
+    transition: 0.2s
 
   img
     display: inline-block
     vertical-align: middle
-    width: 80px
+    width: 40px
 
   h1
     color: #fff
     display: inline-block
     vertical-align: middle
     font-size: 20px
-    margin: 0 0 0 20px
+    margin: 0 0 0 10px
     font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif
     font-weight: 600
 

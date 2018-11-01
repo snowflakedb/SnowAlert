@@ -3,6 +3,7 @@ import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
+import logo from '../assets/logo.png';
 import {setViewport} from '../actions/viewport';
 import {getMenuData} from '../common/menu';
 import AuthorizedRoute from '../components/AuthorizedRoute';
@@ -102,6 +103,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     const layout = (
       <Layout>
         <DrawerSiderMenu
+          logo={logo}
           menuData={getMenuData()}
           collapsed={this.state.menuCollapsed}
           isMobile={this.state.isMobile}

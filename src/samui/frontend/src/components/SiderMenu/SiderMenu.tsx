@@ -250,7 +250,7 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
         <div className={'menu-logo'}>
           <Link route={routes.DEFAULT}>
             {logo && <img src={logo} alt="logo" />}
-            <h1>SAMUI</h1>
+            <h1>SnowAlert</h1>
           </Link>
         </div>
         <Menu
