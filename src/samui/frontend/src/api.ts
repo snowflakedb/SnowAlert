@@ -1,7 +1,7 @@
 import axios, {AxiosError, AxiosResponse} from 'axios';
-import {logoutAndRedirect} from './actions/auth';
+// import {logoutAndRedirect} from './actions/auth';
 import {SnowAlertRule} from './reducers/types';
-import {store} from './store';
+// import {store} from './store';
 
 const BACKEND_URL = '/api/v1';
 
@@ -29,9 +29,9 @@ const handleError = (error: AxiosError) => {
   if (error.response) {
     const status = error.response.status;
 
-    if (status === 401) {
-      store.dispatch(logoutAndRedirect());
-    }
+    // if (status === 401) {
+    //   store.dispatch(logoutAndRedirect());
+    // }
 
     const actualError = error.response.data.error;
     if (actualError) {
@@ -51,13 +51,13 @@ export const login = (email: string, password: string, remember: boolean) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const validateToken = (token: string) =>
-  axios
-    .post(`${BACKEND_URL}/user/validate`, {
-      token,
-    })
-    .then(handleResponse)
-    .catch(handleError);
+export const validateToken = async (token: string) => 'authentication-override';
+// axios
+//   .post(`${BACKEND_URL}/user/validate`, {
+//     token,
+//   })
+//   .then(handleResponse)
+//   .catch(handleError);
 
 export const register = (name: string, email: string, organizationId: number, password: string) =>
   axios

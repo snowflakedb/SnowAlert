@@ -31,7 +31,8 @@ class AuthorizedRoute extends React.Component<AuthorizedRouteProps> {
     // Redirect to login if needed.
     const {auth, roles} = this.props;
     if (!auth.isAuthenticated || !auth.role || (roles && roles.length > 0 && roles.indexOf(auth.role) === -1)) {
-      this.props.setViewport(routes.LOGIN);
+      // authentication-override
+      // this.props.setViewport(routes.LOGIN);
     }
   }
 

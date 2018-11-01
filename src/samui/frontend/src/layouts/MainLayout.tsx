@@ -15,14 +15,14 @@ type MainLayoutProps = StateProps;
 
 const MainLayout = (props: MainLayoutProps) => {
   const routerData = getRouterData();
-  const UserLayout = routerData[routes.USER].component;
+  // const UserLayout = routerData[routes.USER].component;
   const BasicLayout = routerData[routes.DEFAULT].component;
 
   const layout = '/' + props.viewport.viewport.split('/')[1];
 
   switch (layout) {
-    case routes.USER:
-      return <UserLayout />;
+    // case routes.USER:
+    //   return <UserLayout />;
     default:
       return <AuthorizedRoute component={BasicLayout} roles={[roles.USER, roles.ADMIN]} />;
   }
