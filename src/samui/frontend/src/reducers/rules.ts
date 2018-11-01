@@ -71,6 +71,6 @@ export const rules: Reducer<SnowAlertRulesState> = (
   return state;
 };
 
-export const getSnowAlertRules = (state: State) => {
+export const getRules = (state: State) => {
   return state.rules;
 };

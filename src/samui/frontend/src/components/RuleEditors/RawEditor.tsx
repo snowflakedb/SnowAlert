@@ -3,7 +3,7 @@ import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
-import {getSnowAlertRules} from '../../reducers/rules';
+import {getRules} from '../../reducers/rules';
 import {changeRuleBody, saveRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
@@ -69,7 +69,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 
 const mapStateToProps = (state: State) => {
   return {
-    rules: getSnowAlertRules(state),
+    rules: getRules(state),
   };
 };
 

@@ -4,7 +4,7 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {loadSnowAlertRules, changeRule} from '../../actions/rules';
-import {getSnowAlertRules} from '../../reducers/rules';
+import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 
@@ -85,7 +85,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
 
 const mapStateToProps = (state: State) => {
   return {
-    rules: getSnowAlertRules(state),
+    rules: getRules(state),
   };
 };
 
