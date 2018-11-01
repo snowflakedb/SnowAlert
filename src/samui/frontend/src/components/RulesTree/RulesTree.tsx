@@ -1,4 +1,4 @@
-import {Tree} from 'antd';
+import {Icon, Tree} from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -33,17 +33,17 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     this.props.changeRule('');
   }
 
-  generateTree = (data: SnowAlertRulesState['rules'], target: SnowAlertRule['target']) => {
-    const queryTitles: Array<string> = [];
-    const suppressionTitles: Array<string> = [];
+  generateTree = (rules: SnowAlertRulesState['rules'], target: SnowAlertRule['target']) => {
+    const queries: Array<SnowAlertRule> = [];
+    const suppressions: Array<SnowAlertRule> = [];
 
-    for (let d of data)
-      if (d.target === target) {
-        if (d.type === 'query') {
-          queryTitles.push(d.title.substr(0, d.title.length - (target.length + '_QUERY'.length + 1)));
+    for (let rule of rules)
+      if (rule.target === target) {
+        if (rule.type === 'QUERY') {
+          queries.push(rule);
         }
-        if (d.type === 'suppression') {
-          suppressionTitles.push(d.title.substr(0, d.title.length - (target.length + '_SUPPRESSION'.length + 1)));
+        if (rule.type === 'SUPPRESSION') {
+          suppressions.push(rule);
         }
       }
 
@@ -52,14 +52,22 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         {this.props.rules.isFetching ? (
           <TreeNode title="Loading..." />
         ) : (
-          queryTitles.map(x => <TreeNode key={`${x}_${target.toUpperCase()}_QUERY`} selectable title={x} />)
+          queries.map(r => (
+            <TreeNode selectable key={`${r.title}_${target}_QUERY`} title={(r.isSaving ? '(saving) ' : '') + r.title} />
+          ))
         )}
       </TreeNode>,
       <TreeNode key="suppressions" title="Suppressions" selectable={false}>
         {this.props.rules.isFetching ? (
           <TreeNode title="Loading..." />
         ) : (
-          suppressionTitles.map(x => <TreeNode key={`${x}_${target.toUpperCase()}_SUPPRESSION`} selectable title={x} />)
+          suppressions.map(r => (
+            <TreeNode
+              selectable
+              key={`${r.title}_${target}_SUPPRESSION`}
+              title={(r.isSaving ? '(saving) ' : '') + r.title}
+            />
+          ))
         )}
       </TreeNode>,
     ];
@@ -68,7 +76,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   render() {
     var rules = this.props.rules.rules;
     return (
-      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule((x[0] || '').split('-')[0])}>
+      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
         {this.generateTree(rules, this.props.target)}
       </Tree>
     );

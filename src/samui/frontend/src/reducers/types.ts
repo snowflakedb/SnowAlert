@@ -49,19 +49,19 @@ export interface ViewportState {
 }
 
 export interface SnowAlertRule {
-  readonly target: 'alert' | 'violation';
-  readonly type: 'query' | 'suppression';
+  readonly target: 'ALERT' | 'VIOLATION';
+  readonly type: 'QUERY' | 'SUPPRESSION';
   readonly title: string;
   readonly body: string;
   readonly savedBody: string;
+  readonly isSaving: boolean;
 }
 
 export interface SnowAlertRulesState {
   readonly errorMessage: null;
   readonly isFetching: boolean;
-  readonly isSaving: boolean;
   readonly rules: ReadonlyArray<SnowAlertRule>;
-  readonly currentRuleTitle: string | null;
+  readonly currentRuleView: string | null;
 }
 
 export interface State {
