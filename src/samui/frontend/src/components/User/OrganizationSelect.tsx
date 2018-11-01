@@ -18,14 +18,14 @@ interface OwnProps {
 
 type OrganizationSelectProps = OwnProps & StateProps;
 
-interface OrganizationDetails {
+interface RuleEditor {
   title: string;
   organization_id: number;
 }
 
 interface State {
   organizationId: number | null;
-  organizationsList: ReadonlyArray<OrganizationDetails>;
+  organizationsList: ReadonlyArray<RuleEditor>;
   isFetching: boolean;
   errorMessage: string;
 }
@@ -94,7 +94,7 @@ class OrganizationSelect extends React.Component<OrganizationSelectProps, State>
           onChange={this.triggerChange}
         >
           {!_.isEmpty(this.state.organizationsList) &&
-            this.state.organizationsList.map((organization: OrganizationDetails) => (
+            this.state.organizationsList.map((organization: RuleEditor) => (
               <Select.Option key={String(organization.organization_id)} value={organization.organization_id}>
                 {organization.title}
               </Select.Option>

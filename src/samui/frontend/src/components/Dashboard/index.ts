@@ -1,3 +1,3 @@
-import OrganizationDetails from './OrganizationDetails';
+import RuleEditor from './RuleEditor';
 
-export {OrganizationDetails};
+export {RuleEditor};
