@@ -7,7 +7,7 @@ from typing import List
 
 import snowflake.connector
 
-from .. import config
+import config
 from . import log
 from .auth import load_pkb
 
