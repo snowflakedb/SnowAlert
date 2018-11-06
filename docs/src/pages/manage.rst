@@ -1,64 +1,49 @@
 Managing Alerts
 ***************
 
-An Alert is created when a query matches data in your database. The queries are defined in a series of views defined
-in ``SNOWALERT.RULES`` ending in ``ALERT_QUERY``.
+SnowAlert Rules are a set of views defined in your Snowflake account that manage the lifecycle of Alerts. Query Rules create alerts and Suppression Rules automatically handle alerts. The Docker containers published under `snowsec/snowalert` use run these rules to create alerts. Since these rules are Snowflake views, they can be managed using snowsql command line client or your Snowflake Web UI.
+
+There is also a "samui" branch in active development which will create a SnowAlert-specific UI for managing rules without having to dive into raw SQL. This is expected to merge into SnowAlert proper in December 2018.
 
 
-Alert Configuration Files
-=========================
+Query Rules
+===========
 
-Before creating new alerts, take a look at the alert configuration file ``sample_rules/sample_query.sql`` where a sample
-alert query is defined.
+Before creating new alerts, take a look at the alert configuration file ``packs/snowflake_query_pack.sql`` to see examples of useful Queries.
 
-Each alert query has a set of fields that can be assigned static values or dynamic values that will contain data from
-the query result. The test query can be used to verify that the SnowAlert deployment was successful.
+Note that each Query Rule defines a set set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the `SNOWALERT.RESULTS` schema in your Snowflake account.
 
 
 Creating New Alert Queries
 ==========================
 
-A query is simply a view over data in Snowflake. As such, queries can be managed by writing SQL statements to create
-those views and grant the SnowAlert user `SELECT` privileges on them. Those statements can be saved in a .sql file
-and either pasted into the SnowFlake worksheet UI or executed via snowsql. A single .sql file can contain multiple rules.
+Since a Query Rule is a view over data in Snowflake, they can be managed by writing SQL statements to create those views and grant the SnowAlert role `SELECT` privileges on them. Those statements can be saved in a .sql file and either pasted into the SnowFlake worksheet UI or executed via snowsql. A single .sql file can contain multiple rules.
 
 
 Viewing Alert Results
 =====================
 
-When alert queries return data from your warehouse, the results will be added to the alerts table in your SnowAlert
-database. You can select them in the database to confirm that they are being generated as expected.
+When alert queries return data from your warehouse, the results will be added to the alerts table in your SnowAlert database. You can select them in the database to confirm that they are being generated as expected.
 
-If you've configured the alert handler to notify you on alerts, for example through JIRA, you can expect to see those
-notifications as soon as the container finishes executing all three Python scripts.
+If you've configured the alert handler to notify you on alerts, e.g. through JIRA, you can expect to see those notifications as soon as the container finishes executing all three Python scripts.
 
 
 Adding Suppressions
 ===================
 
-SnowAlert supports suppression queries to prevent false positives from creating alerts. Suppression queries are
-configured similarly to alert queries, within .sql files in the alerts/suppressions folder. Suppressions should be
-targeted for specific queries, and a suppression for ``AWS_ACCESS_DENIED_ALERT_QUERY`` should be called
-``AWS_ACCESS_DENIED_ALERT_SUPPRESSION``.
+SnowAlert supports suppression queries to prevent false positives from creating alerts. Suppression queries are configured similarly to alert queries, within .sql files in the alerts/suppressions folder. Suppressions are best targeted for specific queries, with a suppression for, e.g. ``AWS_ACCESS_DENIED_ALERT_QUERY``, being called ``AWS_ACCESS_DENIED_ALERT_SUPPRESSION``.
 
-Suppressions are views over the Alerts table, just like how queries are views over log data, and can be managed
-in the same way as queries: by writing .sql files with statements to create the view and make the appropriate grants.
+Suppressions are views over the Alerts table, just like how queries are views over data, and can be managed in the same way as queries: by writing .sql files with statements to create the view and make the appropriate grants.
 
-When the suppression function runs, it marks new alerts as suppressed or not. Only alerts that have been
-assessed by the suppression function are then processed by the alert handler.
-
-The suppression_wrapper.py function is what flags alerts as unsuppressed; you should ensure that
-suppression_wrapper.py runs even if there are no suppression queries.
+When the suppression function runs, it marks new alerts as suppressed or not. Only alerts that have been assessed by the suppression function are then processed by the alert handler.
 
 
 SnowAlert Query Packs
 =====================
 
-SnowAlert is shipped with some sample queries, categorized by the type of monitoring it provides and grouped into
-query packs.
+SnowAlert is shipped with some sample queries, categorized by the type of monitoring it provides and grouped into query packs.
 
-To enable a query pack, copy the query pack file from packs/ into the Snowflake Worksheet UI and run the SQL statements
-to create the appropriate views and enable the appropriate grants.
+To enable a query pack, copy the query pack file from packs/ into the Snowflake Worksheet UI and run the SQL statements to create the appropriate views and enable the appropriate grants.
 
 The current query packs and the queries are documented below:
 
@@ -74,11 +59,6 @@ Note: Using the Snowflake query pack will require you to grant ``imported privil
 SnowAlert Violations
 ====================
 
-Sometimes there are events you want to track and resolve, but which don't require immediate action; for example, if you want all
-of your Snowflake users to require MFA before authenticating, you want to know about a user who doesn't have that turned on,
-but it's not something that requires your Security team to track down the offending user that instant.
+Sometimes there are events you want to track and resolve, but which don't require immediate action; for example, if you want all of your Snowflake users to require MFA before authenticating, you want to know about a user who doesn't have that turned on, but it's not something that requires your Security team to track down the offending user that instant.
 
-For cases like this, SnowAlert can manage violations, which are similar to alerts but can run less often (for example. daily
-instead of hourly). Violation queries are managed and suppressed identically to to Alert queries (so you might have
-``USER_NO_MFA_VIOLATION_QUERY`` and ``USER_NO_MFA_VIOLATION_SUPPRESSION``), but the results are stored in a Violations table,
-which you can visualize and process using a BI tool like Sigma, Looker, or Superset.
+For cases like this, SnowAlert can manage violations, which are similar to alerts but can run less often (for example. daily instead of hourly). Violation queries are managed and suppressed identically to to Alert queries (so you might have ``USER_NO_MFA_VIOLATION_QUERY`` and ``USER_NO_MFA_VIOLATION_SUPPRESSION``), but the results are stored in a Violations table, which you can visualize and process using a BI tool like Sigma, Looker, or Superset.
