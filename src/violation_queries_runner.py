@@ -16,7 +16,7 @@ def log_alerts(ctx, alerts):
         ctx.cursor().execute(
             f"""
             INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-            SELECT PARSE_JSON(column1):EVENT_TIME,
+            SELECT PARSE_JSON(column1):ALERT_TIME,
                    PARSE_JSON(column1)
             FROM VALUES {", ".join(["(%s)"] * len(alerts))};
             """,
@@ -32,7 +32,7 @@ def snowalert_query(query_name):
 
     ctx, results = connect_and_fetchall(f"""
         SELECT OBJECT_CONSTRUCT(*) FROM {RULES_SCHEMA}.{query_name}
-        WHERE event_time > DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())
+        WHERE alert_time > DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())
     """)
 
     log.info(f"{query_name} done.")

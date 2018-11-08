@@ -68,7 +68,7 @@ CREATE_TABLES_QUERIES = [
     f"""
       CREATE TABLE IF NOT EXISTS {VIOLATIONS_TABLE}(
         result VARIANT
-        , event_time TIMESTAMP_LTZ(9)
+        , alert_time TIMESTAMP_LTZ(9)
         , ticket STRING
         , suppressed BOOLEAN
         , suppression_rule STRING DEFAULT NULL
