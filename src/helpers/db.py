@@ -75,7 +75,7 @@ def execute(ctx, query):
         return ctx.cursor().execute(query)
     except snowflake.connector.errors.ProgrammingError as e:
         log.error(e, f"Programming Error in query: {query}")
-        return []
+        return ctx.cursor().execute("SELECT 1 FROM FALSE;")
 
 
 def connect_and_execute(queries=None):
