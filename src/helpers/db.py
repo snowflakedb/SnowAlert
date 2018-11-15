@@ -11,6 +11,8 @@ import config
 from . import log
 from .auth import load_pkb
 
+TIMEOUT = 500
+
 parser = argparse.ArgumentParser(description="Optionally takes in a password")
 parser.add_argument("-p", "--private_key_password", type=str, help="Pass in a password on the command line")
 args = parser.parse_args()
@@ -48,7 +50,8 @@ def connect(run_preflight_checks=True):
             user=user,
             account=account,
             private_key=load_pkb(p8_private_key, encrypted_pass),
-            ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache'
+            ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
+            network_timeout=TIMEOUT
         ))
 
         if run_preflight_checks:
