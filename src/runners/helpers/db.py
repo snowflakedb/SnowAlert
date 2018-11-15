@@ -139,7 +139,8 @@ def connect(run_preflight_checks=True):
             account=account,
             private_key=None if authenticator else load_pkb(p8_private_key, encrypted_pass),
             authenticator='EXTERNALBROWSER',
-            ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache'
+            ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
+            network_timeout=500
         )
 
         if run_preflight_checks:
