@@ -12,6 +12,7 @@ from . import log
 from .auth import load_pkb
 
 CACHED_CONNECTION = None
+TIMEOUT = 500
 
 
 def retry(f, E=Exception, n=3):
@@ -140,7 +141,7 @@ def connect(run_preflight_checks=True):
             private_key=None if authenticator else load_pkb(p8_private_key, encrypted_pass),
             authenticator='EXTERNALBROWSER',
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
-            network_timeout=500
+            network_timeout=TIMEOUT
         )
 
         if run_preflight_checks:
