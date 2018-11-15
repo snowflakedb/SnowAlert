@@ -112,18 +112,19 @@ def snowalert_query(query_name: str):
 
     ctx = connect_and_execute()
     attempt = 0
-    while attempt < 1:
+    while attempt <= 1:
         try:
+            attempt += 1
             query = f'''
                 SELECT OBJECT_CONSTRUCT(*) from {RULES_SCHEMA}.{query_name}
                 WHERE EVENT_TIME > dateadd(minute, -90, current_timestamp())
             '''
             results = ctx.cursor().execute(query).fetchall()
         except Exception as e:
-            if attempt >= 1:
-                attempt += 1
+            if attempt > 1:
                 log_failure(ctx, query_name, e)
             else:
+                log.info(f"Query {query_name} failed to run, retrying")
                 continue
 
     log.info(f"{query_name} done.")
