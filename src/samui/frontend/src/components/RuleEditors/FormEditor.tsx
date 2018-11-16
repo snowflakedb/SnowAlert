@@ -44,7 +44,7 @@ const suppressionSQL: ParserGenerator<SuppressionFields> = {
     }
 
     function stripRule(body: string): {rule: string; rest: string} | null {
-      const ruleRe = /^(\s*(;\s*|AND [\s\S]*?)\s*)(?:AND\s[\s\S]*|;)/im;
+      const ruleRe = /^(\s*(;\s*|AND[\s\S]*?)\s*)(?:AND[\s\S]*|;)/im;
       const m = body.match(ruleRe);
       return m ? {rule: m[2], rest: body.substr(m[1].length)} : null;
     }
@@ -137,13 +137,21 @@ const querySQL: ParserGenerator<QueryFields> = {
   },
 };
 
-function canParse(rule: SnowAlertRule | null): boolean {
+function canParse(rule: SnowAlertRule | null, debug: boolean = false): boolean {
   if (!rule) return false;
   const SQL: any = rule.type === 'SUPPRESSION' ? suppressionSQL : querySQL;
   try {
     const fields = SQL.parse(rule.body);
+    if (debug) {
+      console.log('body', rule.body);
+      console.log('parse', SQL.parse(rule.body));
+      console.log('generate', SQL.generate(SQL.parse(rule.body)));
+    }
     return Boolean(fields && isEqual(fields, SQL.parse(SQL.generate(fields))));
   } catch (e) {
+    if (debug) {
+      console.log(e);
+    }
     return false;
   }
 }
@@ -214,151 +222,265 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
       );
     } else {
       const fs = fields as QueryFields;
-      form = (
-        <div>
-          <Col span={12}>
-            <h3>Title</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.title : ''}
-              onChange={changeField('title')}
-            />
+      if (rule.target === 'VIOLATION') {
+        form = (
+          <div>
+            <Col span={12}>
+              <h3>Environment</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.environment : ''}
+                onChange={changeField('environment')}
+              />
 
-            <h3>Query Name</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.query_name : ''}
-              onChange={changeField('query_name')}
-            />
+              <h3>Object</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.object : ''}
+                onChange={changeField('object')}
+              />
 
-            <h3>Environment</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.environment : ''}
-              onChange={changeField('environment')}
-            />
+              <h3>Title</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.title : ''}
+                onChange={changeField('title')}
+              />
 
-            <h3>Sources</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.sources : ''}
-              onChange={changeField('sources')}
-            />
+              <h3>Alert Time</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.alert_time : ''}
+                onChange={changeField('alert_time')}
+              />
 
-            <h3>Object</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.object : ''}
-              onChange={changeField('object')}
-            />
+              <h3>Description</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.description : ''}
+                onChange={changeField('description')}
+              />
 
-            <h3>Event Time</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.event_time : ''}
-              onChange={changeField('event_time')}
-            />
+              <h3>Event Data</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.event_data : ''}
+                onChange={changeField('event_data')}
+              />
+            </Col>
 
-            <h3>Query Id</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.query_id : ''}
-              onChange={changeField('query_id')}
-            />
-          </Col>
+            <Col span={12}>
+              <h3>Detector</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.detector : ''}
+                onChange={changeField('detector')}
+              />
 
-          <Col span={12}>
-            <h3>Severity</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.severity : ''}
-              onChange={changeField('severity')}
-            />
+              <h3>Severity</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.severity : ''}
+                onChange={changeField('severity')}
+              />
 
-            <h3>Alert Time</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.alert_time : ''}
-              onChange={changeField('alert_time')}
-            />
+              <h3>Query Id</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.query_id : ''}
+                onChange={changeField('query_id')}
+              />
 
-            <h3>Description</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.description : ''}
-              onChange={changeField('description')}
-            />
+              <h3>Query Name</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.query_name : ''}
+                onChange={changeField('query_name')}
+              />
+            </Col>
+            <Col span={24}>
+              <h3>FROM</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.from : ''}
+                onChange={changeField('', 'from')}
+              />
 
-            <h3>Detector</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.detector : ''}
-              onChange={changeField('detector')}
-            />
+              <h3>WHERE</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                value={fs ? fs.where : ''}
+                spellCheck={false}
+                autosize={{minRows: 1}}
+                style={{fontFamily: 'Hack, monospace'}}
+                onChange={changeField('', 'where')}
+              />
 
-            <h3>Event Data</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.event_data : ''}
-              onChange={changeField('event_data')}
-            />
+              <h3>ENABLED</h3>
+              <Checkbox checked={Boolean(fs && fs.enabled)} onChange={changeField('', 'enabled')}>
+                Enabled
+              </Checkbox>
+            </Col>
+          </div>
+        );
+      } else {
+        form = (
+          <div>
+            <Col span={12}>
+              <h3>Title</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.title : ''}
+                onChange={changeField('title')}
+              />
 
-            <h3>Actor</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.actor : ''}
-              onChange={changeField('actor')}
-            />
+              <h3>Query Name</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.query_name : ''}
+                onChange={changeField('query_name')}
+              />
 
-            <h3>Action</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.select.action : ''}
-              onChange={changeField('action')}
-            />
-          </Col>
+              <h3>Environment</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.environment : ''}
+                onChange={changeField('environment')}
+              />
 
-          <Col span={24}>
-            <h3>FROM</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              autosize={{minRows: 1}}
-              value={fs ? fs.from : ''}
-              onChange={changeField('', 'from')}
-            />
+              <h3>Sources</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.sources : ''}
+                onChange={changeField('sources')}
+              />
 
-            <h3>WHERE</h3>
-            <Input.TextArea
-              disabled={!canParse(rule) || rule.isSaving}
-              value={fs ? fs.where : ''}
-              spellCheck={false}
-              autosize={{minRows: 1}}
-              style={{fontFamily: 'Hack, monospace'}}
-              onChange={changeField('', 'where')}
-            />
+              <h3>Object</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.object : ''}
+                onChange={changeField('object')}
+              />
 
-            <h3>ENABLED</h3>
-            <Checkbox checked={Boolean(fs && fs.enabled)} onChange={changeField('', 'enabled')}>
-              Enabled
-            </Checkbox>
-          </Col>
-        </div>
-      );
+              <h3>Event Time</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.event_time : ''}
+                onChange={changeField('event_time')}
+              />
+            </Col>
+
+            <Col span={12}>
+              <h3>Severity</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.severity : ''}
+                onChange={changeField('severity')}
+              />
+
+              <h3>Alert Time</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.alert_time : ''}
+                onChange={changeField('alert_time')}
+              />
+
+              <h3>Description</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.description : ''}
+                onChange={changeField('description')}
+              />
+
+              <h3>Detector</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.detector : ''}
+                onChange={changeField('detector')}
+              />
+
+              <h3>Event Data</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.event_data : ''}
+                onChange={changeField('event_data')}
+              />
+
+              <h3>Actor</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.actor : ''}
+                onChange={changeField('actor')}
+              />
+
+              <h3>Action</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.select.action : ''}
+                onChange={changeField('action')}
+              />
+            </Col>
+
+            <Col span={24}>
+              <h3>FROM</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                autosize={{minRows: 1}}
+                value={fs ? fs.from : ''}
+                onChange={changeField('', 'from')}
+              />
+
+              <h3>WHERE</h3>
+              <Input.TextArea
+                disabled={!canParse(rule) || rule.isSaving}
+                value={fs ? fs.where : ''}
+                spellCheck={false}
+                autosize={{minRows: 1}}
+                style={{fontFamily: 'Hack, monospace'}}
+                onChange={changeField('', 'where')}
+              />
+
+              <h3>ENABLED</h3>
+              <Checkbox checked={Boolean(fs && fs.enabled)} onChange={changeField('', 'enabled')}>
+                Enabled
+              </Checkbox>
+            </Col>
+          </div>
+        );
+      }
     }
+
+    // <h3>Query Id</h3>
+    // <Input.TextArea
+    //   disabled={!canParse(rule) || rule.isSaving}
+    //   autosize={{minRows: 1}}
+    //   value={fs ? fs.select.query_id : ''}
+    //   onChange={changeField('query_id')}
+    // />
 
     return (
       <div>
@@ -405,5 +527,5 @@ export default Object.assign(
     mapStateToProps,
     mapDispatchToProps,
   )(FormEditor),
-  {canParse: canParse},
+  {canParse},
 );
