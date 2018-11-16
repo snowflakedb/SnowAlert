@@ -39,6 +39,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
 
   render() {
     const {organization, rules} = this.props;
+    const currentRule = rules.rules.find(r => `${r.title}_${r.target}_${r.type}` == rules.currentRuleView);
 
     // Make sure organization is loaded first.
     if (organization.errorMessage) {
@@ -59,7 +60,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
           <Card title="Violations Dashboard" className={'card'} bordered={true}>
             <div>
               <Row>
-                <RuleEditor target="VIOLATION" rules={rules.rules} currentRule={null} />
+                <RuleEditor target="VIOLATION" rules={rules.rules} currentRule={currentRule || null} />
               </Row>
             </div>
           </Card>
