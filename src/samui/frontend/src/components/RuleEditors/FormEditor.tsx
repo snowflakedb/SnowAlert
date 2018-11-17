@@ -72,7 +72,7 @@ const suppressionSQL: ParserGenerator<SuppressionFields> = {
 const querySQL: ParserGenerator<QueryFields> = {
   parse: body => {
     function stripField(body: string): {body: string; field: string; value: string} | null {
-      const match = body.match(/^\s*(?:SELECT |,)\s*([\s\S]*?) AS ([\S^,]*)$/im);
+      const match = body.match(/^\s*(?:SELECT|,)\s*([\s\S]*?)\s*AS ([\S^,]*)$/im);
       if (match) {
         const [m, value, field] = match;
         return {
@@ -150,7 +150,7 @@ function canParse(rule: SnowAlertRule | null, debug: boolean = false): boolean {
     return Boolean(fields && isEqual(fields, SQL.parse(SQL.generate(fields))));
   } catch (e) {
     if (debug) {
-      console.log(e);
+      console.log('caught', e);
     }
     return false;
   }
@@ -197,9 +197,9 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
         var fields = SQL.parse(rule.body);
         if (!fields) return;
         if (fieldName === '') {
-          fields[prop] = target.value || target.checked;
+          fields[prop] = target.value || target.checked || '';
         } else {
-          fields[prop][fieldName] = target.value || target.checked;
+          fields[prop][fieldName] = target.value || target.checked || '';
         }
         changeRuleBody((SQL.generate as any)(fields));
       };
