@@ -1,21 +1,12 @@
 """Helper specific to SnowAlert connecting to the database"""
 
-import argparse
-from base64 import b64decode
-import os
 from typing import List
 
 import snowflake.connector
 
-import config
 from . import log
 from .auth import load_pkb
-
-TIMEOUT = 500
-
-parser = argparse.ArgumentParser(description="Optionally takes in a password")
-parser.add_argument("-p", "--private_key_password", type=str, help="Pass in a password on the command line")
-args = parser.parse_args()
+from .dbconfig import ACCOUNT, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 
 
 def retry(f, E=Exception, n=3):
@@ -33,23 +24,18 @@ def retry(f, E=Exception, n=3):
 ###
 
 def preflight_checks(ctx):
-    user_props = dict((x['property'], x['value']) for x in fetch(ctx, f'DESC USER {config.USER};'))
-    assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {config.USER} must not be null"
+    user_props = dict((x['property'], x['value']) for x in fetch(ctx, f'DESC USER {USER};'))
+    assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {USER} must not be null"
 
 
 def connect(run_preflight_checks=True):
-    p8_private_key = b64decode(os.environ['PRIVATE_KEY'])
-    encrypted_pass = (args.private_key_password or os.environ['PRIVATE_KEY_PASSWORD']).encode('utf-8')
-
-    user = config.USER
-    region = config.REGION
-    account = os.environ['SNOWFLAKE_ACCOUNT'] + ('' if region == 'us-west-2' else f'.{region}')
+    encrypted_pass = PRIVATE_KEY_PASSWORD.encode('utf-8')
 
     try:
         connection = retry(lambda: snowflake.connector.connect(
-            user=user,
-            account=account,
-            private_key=load_pkb(p8_private_key, encrypted_pass),
+            user=USER,
+            account=ACCOUNT,
+            private_key=load_pkb(PRIVATE_KEY, encrypted_pass),
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
             network_timeout=TIMEOUT
         ))
@@ -60,6 +46,7 @@ def connect(run_preflight_checks=True):
     except Exception as e:
         log.fatal(e, "Failed to connect.")
 
+    execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
     return connection
 
 

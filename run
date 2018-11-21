@@ -3,37 +3,15 @@
 if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
   echo "running in docker container-like environment"
 
-  cd /var/task/snowalert/
+  if [[ "$1" == "samui" ]]; then
 
-  if [ -z "$1" ]; then
-    ./src/alert_queries_runner.py
-    ./src/alert_suppressions_runner.py
-    ./src/violation_queries_runner.py
-    ./src/violation_suppressions_runner.py
-    ./src/alert_handler.py
+    cd /var/task/snowalert/src/samui/backend
+    python samui/app.py
 
-  elif [ "$1" == "alerts" ]; then
-    ./src/alert_queries_runner.py
-    ./src/alert_suppressions_runner.py
+  else
 
-  elif [ "$1" == "violations" ]; then
-    ./src/violation_queries_runner.py
-    ./src/violation_suppressions_runner.py
-
-  elif [ "$1" == "alert_queries" ]; then
-    ./src/alert_queries_runner.py
-
-  elif [ "$1" == "alert_suppressions" ]; then
-    ./src/alert_suppressions_runner.py
-
-  elif [ "$1" == "violation_queries" ]; then
-    ./src/violation_queries_runner.py
-
-  elif [ "$1" == "violation_suppressions" ]; then
-    ./src/violation_suppressions_runner.py
-
-  elif [ "$1" == "alert_handler" ]; then
-    ./src/alert_handler.py
+    cd /var/task/snowalert/src/runners/
+    python run.py $1
 
   fi
 
