@@ -1,6 +1,6 @@
 import os
 
-from helpers.dbconfig import DATABASE
+from runners.helpers.dbconfig import DATABASE
 
 # schema names
 DATA_SCHEMA_NAME = os.environ.get('SA_DATA_SCHEMA_NAME', "data")

@@ -1,12 +1,13 @@
-import boto3
 from base64 import b64decode
+import boto3
 import os
 from urllib.parse import quote
 import yaml
 
-import config
-from helpers import log
 from jira import JIRA
+
+from runners.helpers.dbconfig import REGION
+from runners.helpers import log
 
 PROJECT = os.environ.get('JIRA_PROJECT', '')
 URL = os.environ.get('JIRA_URL', '')
@@ -62,13 +63,13 @@ def link_search_todos(description=None):
 
 def create_jira_ticket(alert_id, query_id, query_name, environment, sources, actor, object, action, title, event_time,
                        alert_time, description, detector, event_data, severity):
-    kms = boto3.client('kms', region_name=config.REGION)
+    kms = boto3.client('kms', region_name=REGION)
     encrypted_auth = os.environ['JIRA_PASSWORD']
 
     if len(encrypted_auth) < 100:  # then we treat it an an unencrypted password
         password = encrypted_auth
     else:
-        kms = boto3.client('kms', region_name=config.REGION)
+        kms = boto3.client('kms', region_name=REGION)
         binary_auth = b64decode(encrypted_auth)
         decrypted_auth = kms.decrypt(CiphertextBlob=binary_auth)
         password = decrypted_auth['Plaintext'].decode()

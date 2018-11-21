@@ -3,8 +3,8 @@
 
 from base64 import b64encode
 from configparser import ConfigParser
-import os
 from getpass import getpass
+import os
 import re
 from typing import List, Optional, Tuple
 from uuid import uuid4
@@ -12,19 +12,12 @@ from uuid import uuid4
 import boto3
 import snowflake.connector
 
-from config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
-from config import ALERTS_TABLE, VIOLATIONS_TABLE
-from config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
-from config import VIOLATION_QUERY_POSTFIX, VIOLATION_SQUELCH_POSTFIX
-from helpers import log
-
-USER = "snowalert"
-ROLE = "snowalert"
-WAREHOUSE = "snowalert"
-
-SCRIPT_DIR = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-ROOT_DIR = os.path.realpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
-CREDS_DIR = ROOT_DIR
+from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
+from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE
+from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
+from runners.config import VIOLATION_QUERY_POSTFIX, VIOLATION_SQUELCH_POSTFIX
+from runners.helpers import log
+from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
 
 GRANT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
@@ -43,8 +36,7 @@ WAREHOUSE_QUERIES = [
       CREATE WAREHOUSE IF NOT EXISTS {WAREHOUSE}
         WAREHOUSE_SIZE=xsmall WAREHOUSE_TYPE=standard
         AUTO_SUSPEND=60 AUTO_RESUME=TRUE INITIALLY_SUSPENDED=TRUE;
-    """,
-    f"ALTER USER {USER} SET default_warehouse={WAREHOUSE};"
+    """
 ]
 CREATE_DATABASE_QUERY = f"CREATE DATABASE IF NOT EXISTS {DATABASE};"
 CREATE_SCHEMAS_QUERIES = [
@@ -119,21 +111,21 @@ CREATE_SAMPLE_ALERT_QUERIES = [
 CREATE_SAMPLE_VIOLATION_QUERIES = [
     f"""
       CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_QUERY_POSTFIX} AS
-        SELECT 'SnowAlert' AS affectedenv
-             , 'Violations' AS affectedobject
-             , 'Cloudtrail' AS affectedobjecttype
-             , 'No Violations Too Long' AS alerttype
-             , CURRENT_TIMESTAMP() AS event_time
+        SELECT 'SnowAlert' AS environment
+             , 'Violations' AS object
+             , 'No Violations Too Long' AS title
+             , CURRENT_TIMESTAMP() AS alert_time
              , 'There have been no violations in the past 3 days.' AS description
-             , 'SnowAlert' AS detector
+             , NULL AS event_data
+             , 'snowalert' AS detector
              , 'low' AS severity
-             , HASH(event_time::string || description::string) AS event_hash
-             , 'no_violation_queries_in_too_long' AS event_def
+             , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
+             , 'no_violation_queries_in_too_long' AS query_name
         FROM (
           SELECT COUNT(*) AS count
           FROM snowalert.results.violations
           WHERE 1=1
-            AND event_time > DATEADD('day', -3, CURRENT_DATE())
+            AND alert_time > DATEADD('day', -3, CURRENT_DATE())
         )
         WHERE count=0
         ;
@@ -380,6 +372,6 @@ if __name__ == '__main__':
         f"\n--- ...all done! Next, run... ---\n"
         f"\ncat <<END_OF_FILE > snowalert-{account}.envs\n{gen_envs(**locals())}\nEND_OF_FILE\n"
         f"\n### ...and then... ###\n"
-        f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run\n"
+        f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run all\n"
         f"\n--- ...the end. ---\n"
     )

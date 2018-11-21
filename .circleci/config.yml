@@ -13,7 +13,7 @@ jobs:
 
       - restore_cache:
           keys:
-          - app-venv-{{ checksum "requirements.txt" }}
+          - app-venv-{{ checksum "src/setup.py" }}
           - app-venv-  # fallback to using the latest cache if no exact match is found
 
       - run:
@@ -22,12 +22,12 @@ jobs:
             python -m venv .venv
             ls -al . ; ls -al .venv ; ls -al .venv/bin
             source .venv/bin/activate
-            pip install -r requirements.txt
+            pip install src/
 
       - save_cache:
           paths:
             - ./.venv
-          key: app-venv-{{ checksum "requirements.txt" }}
+          key: app-venv-{{ checksum "src/setup.py" }}
 
       - run:
           name: run tests

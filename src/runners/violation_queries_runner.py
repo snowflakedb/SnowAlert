@@ -10,7 +10,7 @@ from helpers import log
 
 def log_alerts(ctx, alerts):
     output_column = os.environ.get('output_column', 'result')
-    time_column = os.environ.get('time_column', 'event_time')
+    time_column = os.environ.get('time_column', 'alert_time')
 
     if len(alerts):
         ctx.cursor().execute(
