@@ -88,7 +88,7 @@ def log_failure(ctx, query_name, e):
         'QUERY_ID': '3a3d173a64ca4fcab2d13ac3e6d08522',
         'QUERY_NAME': 'Query Runner Failure',
         'ENVIRONMENT': 'Queries',
-        'SOURCES': 'Query Runner',
+        'SOURCES': ['Query Runner'],
         'ACTOR': 'Query Runner',
         'OBJECT': query_name,
         'ACTION': 'Query Execution',

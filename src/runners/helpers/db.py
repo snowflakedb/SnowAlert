@@ -29,13 +29,11 @@ def preflight_checks(ctx):
 
 
 def connect(run_preflight_checks=True):
-    encrypted_pass = PRIVATE_KEY_PASSWORD.encode('utf-8')
-
     try:
         connection = retry(lambda: snowflake.connector.connect(
             user=USER,
             account=ACCOUNT,
-            private_key=load_pkb(PRIVATE_KEY, encrypted_pass),
+            private_key=load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
             network_timeout=TIMEOUT
         ))
@@ -65,7 +63,7 @@ def execute(ctx, query):
         return ctx.cursor().execute(query)
     except snowflake.connector.errors.ProgrammingError as e:
         log.error(e, f"Programming Error in query: {query}")
-        return ctx.cursor().execute("SELECT 1 FROM FALSE;")
+        return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
 
 def connect_and_execute(queries=None):
