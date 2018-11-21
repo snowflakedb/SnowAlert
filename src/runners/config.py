@@ -1,11 +1,6 @@
 import os
 
-REGION = os.environ.get('REGION', "us-west-2")
-
-# database properties
-USER = os.environ.get('SA_USER', "snowalert")
-DATABASE = os.environ.get('SA_DATABASE', "snowalert")
-WAREHOUSE = os.environ.get('SA_WAREHOUSE', "snowalert")
+from helpers.dbconfig import DATABASE
 
 # schema names
 DATA_SCHEMA_NAME = os.environ.get('SA_DATA_SCHEMA_NAME', "data")

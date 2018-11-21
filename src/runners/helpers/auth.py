@@ -7,7 +7,7 @@ import boto3
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
-import config
+from .dbconfig import REGION
 
 
 def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> bytes:
@@ -25,7 +25,7 @@ def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> byte
     elif len(encrypted_password) < 100:  # then we treat it as an unencrypted password
         password = encrypted_password
     else:
-        kms = boto3.client('kms', region_name=config.REGION)
+        kms = boto3.client('kms', region_name=REGION)
         password = kms.decrypt(CiphertextBlob=b64decode(encrypted_password))['Plaintext']
 
     private_key = serialization.load_pem_private_key(
