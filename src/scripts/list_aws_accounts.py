@@ -1,3 +1,11 @@
+'''
+list_aws_accounts.py
+
+This script reflects an approach to enumerating AWS accounts using the Organizations API.
+It expects to run in Lambda and write to a Snowflake database created for tracking inventory.
+You may need to customize it for your environment.
+'''
+
 import boto3
 import base64
 import datetime
