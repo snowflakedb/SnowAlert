@@ -24,7 +24,7 @@ def get_recent_alerts(ctx, alert_type):
 
     for alert in recent_alerts:
         current_alert = json.loads(alert[0])
-        key = hashlib.md5((current_alert['OBJECT'] + current_alert['DESCRIPTION']).encode('utf-8')).hexdigest()
+        key = hashlib.md5((str(current_alert['OBJECT']) + str(current_alert['DESCRIPTION'])).encode('utf-8')).hexdigest()
         alert_map[key] = [current_alert, alert[1], False]
 
     return alert_map
