@@ -32,7 +32,7 @@ def get_recent_alerts(ctx, alert_type):
 
 # Check if the proposed alert was already created recently, and update its counter
 def alert_exists(alert_map, new_alert):
-    uniq = new_alert['OBJECT'] + new_alert['DESCRIPTION']
+    uniq = str(new_alert['OBJECT']) + str(new_alert['DESCRIPTION'])
     key = hashlib.md5(uniq.encode('utf-8')).hexdigest()
     if key in alert_map:
         alert_map[key][1] = alert_map[key][1] + 1
