@@ -70,13 +70,23 @@ CREATE_TABLES_QUERIES = [
 
 CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queries ( suppression_spec VARIANT );"
 
-CREATE_SAMPLE_DATA_QUERY = f"""
-  CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.successful_snowflake_logins_v AS
-    SELECT *
-    FROM TABLE(snowflake_sample_data.information_schema.login_history())
-    WHERE is_success='YES'
-  ;
-"""
+CREATE_SAMPLE_DATA_QUERIES = [
+    f"""
+      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.successful_snowflake_logins_v AS
+        SELECT *
+        FROM TABLE(snowflake_sample_data.information_schema.login_history())
+        WHERE is_success='YES'
+      ;
+    """,
+    f"""
+      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.violations_in_days_past_v AS
+        SELECT COUNT(*) AS count
+             , 3 AS days_past
+        FROM snowalert.results.violations
+        WHERE alert_time > DATEADD('day', -3, CURRENT_DATE())
+        ;
+    """,
+]
 
 CREATE_SAMPLE_ALERT_QUERIES = [
     f"""
@@ -96,15 +106,17 @@ CREATE_SAMPLE_ALERT_QUERIES = [
              , 'snowflake_login_without_mfa' AS query_name
              , '{uuid4().hex}' AS query_id
           FROM {DATA_SCHEMA}.successful_snowflake_logins_v
-          WHERE second_authentication_factor IS NULL
+          WHERE 1=1
+            AND second_authentication_factor IS NULL
             AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
-      ;
+        ;
     """,
     f"""
       CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.snowflake_login_without_mfa_{ALERT_SQUELCH_POSTFIX} AS
         SELECT * FROM {ALERTS_TABLE}
         WHERE suppressed IS NULL
           AND alert:AffectedObject = 'DESIGNATED_NOMFA_USER'
+        ;
     """,
 ]
 
@@ -121,13 +133,9 @@ CREATE_SAMPLE_VIOLATION_QUERIES = [
              , 'low' AS severity
              , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
              , 'no_violation_queries_in_too_long' AS query_name
-        FROM (
-          SELECT COUNT(*) AS count
-          FROM snowalert.results.violations
-          WHERE 1=1
-            AND alert_time > DATEADD('day', -3, CURRENT_DATE())
-        )
-        WHERE count=0
+        FROM {DATA_SCHEMA}.violations_in_days_past_v
+        WHERE 1=1
+          AND count=0
         ;
     """,
     f"""
@@ -135,6 +143,7 @@ CREATE_SAMPLE_VIOLATION_QUERIES = [
         SELECT * FROM {VIOLATIONS_TABLE}
         WHERE suppressed IS NULL
           AND 1=0
+        ;
     """,
 ]
 
@@ -234,7 +243,7 @@ def setup_user(do_attempt):
 
 
 def setup_samples(ctx):
-    do_attempt("Creating data view", CREATE_SAMPLE_DATA_QUERY)
+    do_attempt("Creating data view", CREATE_SAMPLE_DATA_QUERIES)
     do_attempt("Creating sample alert", CREATE_SAMPLE_ALERT_QUERIES)
     do_attempt("Creating sample violation", CREATE_SAMPLE_VIOLATION_QUERIES)
 

@@ -33,7 +33,7 @@ setup(
         'python-dateutil==2.7.3',
         'pytz==2018.5',
         'PyYAML==3.13',
-        'requests==2.19.1',
+        'requests==2.20.1',
         'requests-oauthlib==1.0.0',
         'requests-toolbelt==0.8.0',
         's3transfer==0.1.13',
