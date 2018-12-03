@@ -4,36 +4,40 @@ import json
 import hashlib
 import uuid
 import datetime
+from typing import Dict, Tuple
 
 from config import ALERTS_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect_and_execute, load_rules
 
+GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 
-GROUPING_PERIOD = 1 * 60 * 60  # Group events within one hour periods
+
+def alert_group(alert) -> str:
+    return hashlib.md5(
+        f"{alert['OBJECT']}{alert['DESCRIPTION']}".encode('utf-8')
+    ).hexdigest()
 
 
-# Grab alerts from past grouping_period amount of time
-def get_recent_alerts(ctx, alert_type):
+# Deduplicate events if similar exists within GROUPING_CUTOFF
+def get_existing_alerts(ctx, alert_type) -> Dict[str, Tuple[object, int, bool]]:
     alert_map = {}
     recent_alerts = ctx.cursor().execute(
         f"SELECT alert, counter FROM {ALERTS_TABLE} "
-        f"WHERE try_cast(alert:EVENT_TIME::string as timestamp_ntz) >= DATEADD('second', (-1 * {GROUPING_PERIOD}), CURRENT_TIMESTAMP()) "
-        f"  AND alert:AlertType = '{alert_type}';"
+        f"WHERE TRY_CAST(alert:EVENT_TIME::STRING AS TIMESTAMP_NTZ) >= {GROUPING_CUTOFF}"
+        f"  AND alert:QUERY_NAME = '{alert_type}';"
     ).fetchall()
 
     for alert in recent_alerts:
         current_alert = json.loads(alert[0])
-        key = hashlib.md5((str(current_alert['OBJECT']) + str(current_alert['DESCRIPTION'])).encode('utf-8')).hexdigest()
-        alert_map[key] = [current_alert, alert[1], False]
+        alert_map[alert_group(current_alert)] = [current_alert, alert[1], False]
 
     return alert_map
 
 
 # Check if the proposed alert was already created recently, and update its counter
 def alert_exists(alert_map, new_alert):
-    uniq = str(new_alert['OBJECT']) + str(new_alert['DESCRIPTION'])
-    key = hashlib.md5(uniq.encode('utf-8')).hexdigest()
+    key = alert_group(new_alert)
     if key in alert_map:
         alert_map[key][1] = alert_map[key][1] + 1
         alert_map[key][2] = True
@@ -117,8 +121,8 @@ def snowalert_query(query_name: str):
         try:
             attempt += 1
             query = f'''
-                SELECT OBJECT_CONSTRUCT(*) from {RULES_SCHEMA}.{query_name}
-                WHERE EVENT_TIME > dateadd(minute, -90, current_timestamp())
+                SELECT OBJECT_CONSTRUCT(*) FROM {RULES_SCHEMA}.{query_name}
+                WHERE event_time > {GROUPING_CUTOFF}
             '''
             results = ctx.cursor().execute(query).fetchall()
         except Exception as e:
@@ -134,7 +138,7 @@ def snowalert_query(query_name: str):
 
 def process_results(results, ctx, query_name):
     alerts = []
-    recent_alerts = get_recent_alerts(ctx, query_name)
+    recent_alerts = get_existing_alerts(ctx, query_name)
     for res in results:
         jres = json.loads(res[0])
         if 'OBJECT' not in jres or 'DESCRIPTION' not in jres:
