@@ -29,6 +29,7 @@ def log_alerts(ctx, alerts):
             )
         except Exception as e:
             log.fatal("Failed to log alert", e)
+            pass
     else:
         print("No alerts to log.")
 
@@ -56,6 +57,7 @@ def log_failure(ctx, alert, e):
         ctx.cursor().execute(f"DELETE FROM {ALERTS_TABLE} where ALERT:ALERT_ID = '{alert['ALERT_ID']}';")
     except Exception as e:
         log.fatal("Failed to log alert creation failure", e)
+        pass
 
 
 def get_new_alerts(connection):
@@ -80,7 +82,7 @@ def main():
         try:
             alert = json.loads(row[0])
         except Exception as e:
-            log.error("Failed unexepctedly", e)
+            log.error("Failed unexpectedly", e)
             continue
         print('Creating ticket for alert', alert)
 

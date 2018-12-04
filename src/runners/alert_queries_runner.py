@@ -6,11 +6,12 @@ import uuid
 import datetime
 from typing import Dict, Tuple
 
-from config import ALERTS_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
+from config import ALERTS_TABLE, METADATA_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect_and_execute, load_rules
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
+RUN_METADATA = {'QUERY_HISTORY': []}  # Contains metadata about this run
 
 
 def alert_group(alert) -> str:
@@ -82,11 +83,18 @@ def log_alerts(ctx, alerts):
                 alerts)
         except Exception as e:
             log.fatal("Failed to log alert", e)
+            pass
     else:
         print("No alerts to log.")
 
 
-def log_failure(ctx, query_name, e):
+def log_failure(ctx, query_name, e, event_data=None, description=None):
+    if event_data is None:
+        event_data = f"The query '{query_name}' failed to execute with error: {e!r}"
+
+    if description is None:
+        description = f"The query '{query_name}' failed to execute with error: {e!r}"
+
     alerts = [json.dumps({
         'ALERT_ID': uuid.uuid4().hex,
         'QUERY_ID': '3a3d173a64ca4fcab2d13ac3e6d08522',
@@ -99,23 +107,28 @@ def log_failure(ctx, query_name, e):
         'TITLE': 'Query Runner Failure',
         'ALERT_TIME': str(datetime.datetime.utcnow()),
         'EVENT_TIME': str(datetime.datetime.utcnow()),
-        'EVENT_DATA': f"The query '{query_name}' failed to execute with error: {e!r}",
-        'DESCRIPTION': f"The query '{query_name}' failed to execute with error: {e!r}",
+        'EVENT_DATA': event_data,
+        'DESCRIPTION': description,
         'DETECTOR': 'Query Runner',
         'SEVERITY': 'High'
     })]
     try:
         log_alerts(ctx, alerts)
         log.fatal("Query failure successfully logged", e)
+        pass
     except Exception as e:
         log.fatal("Failed to log query failure", e)
+        pass
 
 
 def snowalert_query(query_name: str):
     log.info(f"{query_name} processing...")
+    metadata = {}
+    metadata['NAME'] = query_name
 
     ctx = connect_and_execute()
 
+    metadata['START_TIME'] = datetime.datetime.utcnow()
     attempt = 0
     while attempt <= 1:
         try:
@@ -125,13 +138,18 @@ def snowalert_query(query_name: str):
                 WHERE event_time > {GROUPING_CUTOFF}
             '''
             results = ctx.cursor().execute(query).fetchall()
+
         except Exception as e:
             if attempt > 1:
                 log_failure(ctx, query_name, e)
+                log.metadata_fill(metadata, status='failure', exception=e)
+                pass
             else:
                 log.info(f"Query {query_name} failed to run, retrying...")
                 continue
 
+    log.metadata_fill(metadata, status='success', rows=ctx.cursor().rowcount)
+    RUN_METADATA['QUERY_HISTORY'].append(metadata)
     log.info(f"{query_name} done.")
     return results, ctx
 
@@ -157,11 +175,28 @@ def query_for_alerts(query_name: str):
     process_results(results, ctx, query_name)
 
 
+def record_metadata(ctx, metadata):
+    statement = f'''
+        INSERT INTO {METADATA_TABLE}
+            (event_time, v) select {metadata['RUN_START_TIME']},
+            PARSE_JSON(column1) from values({json.dumps(metadata)}))
+        '''
+    try:
+        ctx.cursor().execute(statement)
+    except Exception as e:
+        log.fatal("Metadata failed to log")
+        log_failure(ctx, "Metadata Logging", e, event_data=metadata, description="The run metadata failed to log")
+
+
 def main():
     # Force warehouse resume so query runner doesn't have a bunch of queries waiting for warehouse resume
+    RUN_METADATA['RUN_START_TIME'] = datetime.datetime.utcnow()
     ctx = connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
     for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
         query_for_alerts(query_name)
+
+    RUN_METADATA['RUN_END_TIME'] = datetime.datetime.utcnow()
+    RUN_METADATA['RUN_DURATION'] = RUN_METADATA['RUN_END_TIME'] - RUN_METADATA['RUN_START_TIME']
 
     if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)

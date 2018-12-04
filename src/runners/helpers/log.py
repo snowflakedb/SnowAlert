@@ -37,3 +37,11 @@ def metric(metric, namespace, dimensions, value):
             'Value': value
         }]
     )
+
+
+def metadata_fill(metadata, status, rows=0, exception=None):
+    metadata['END_TIME'] = datetime.datetime.utcnow()
+    metadata['RUN_TIME'] = metadata['END_TIME'] - metadata['RUN_TIME']
+    metadata['ROWS'] = rows
+    metadata['STATUS'] = status
+    metadata['EXCEPTION'] = exception
