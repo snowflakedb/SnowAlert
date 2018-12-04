@@ -7,11 +7,12 @@ export const initialState: SnowAlertRulesState = {
   isFetching: false,
   rules: [],
   currentRuleView: null,
+  filter: null,
 };
 
 export const rules: Reducer<SnowAlertRulesState> = (
   state = initialState,
-  action: RulesActions.LoadRulesActions | RulesActions.EditRulesActions,
+  action: RulesActions.LoadRulesActions | RulesActions.EditRulesActions | RulesActions.ChangeFilterAction,
 ) => {
   const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
 
@@ -66,6 +67,13 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {body: newBody}) : r)),
+      };
+
+    // updating filter
+    case RulesActions.CHANGE_CURRENT_FILTER:
+      return {
+        ...state,
+        filter: action.payload,
       };
   }
   return state;

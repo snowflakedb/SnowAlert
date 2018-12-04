@@ -62,6 +62,7 @@ export interface SnowAlertRulesState {
   readonly isFetching: boolean;
   readonly rules: ReadonlyArray<SnowAlertRule>;
   readonly currentRuleView: string | null;
+  readonly filter: string | null;
 }
 
 export interface State {

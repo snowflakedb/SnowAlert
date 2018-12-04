@@ -52,6 +52,13 @@ export const changeRuleBody = (ruleBody: string | null) => async (dispatch: Disp
   dispatch(createAction(CHANGE_CURRENT_RULE_BODY, ruleBody));
 };
 
+// updating filter
+export const CHANGE_CURRENT_FILTER = 'CHANGE_CURRENT_FILTER';
+export type ChangeFilterAction = ActionWithPayload<typeof CHANGE_CURRENT_FILTER, string>;
+export const changeFilter = (filter: string | null) => async (dispatch: Dispatch) => {
+  dispatch(createAction(CHANGE_CURRENT_FILTER, filter));
+};
+
 // saving rule body
 export const SAVE_RULE_REQUEST = 'SAVE_RULE_REQUEST';
 export const SAVE_RULE_SUCCESS = 'SAVE_RULE_SUCCESS';
