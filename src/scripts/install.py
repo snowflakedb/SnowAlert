@@ -24,6 +24,7 @@ GRANT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE};',
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE};',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
+    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE};',
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE};',
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
@@ -43,6 +44,26 @@ CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS {DATA_SCHEMA};",
     f"CREATE SCHEMA IF NOT EXISTS {RULES_SCHEMA};",
     f"CREATE SCHEMA IF NOT EXISTS {RESULTS_SCHEMA};",
+]
+
+CREATE_UDTF_FUNCTIONS = [
+    f"USE DATABASE {DATABASE};",
+    f"USE SCHEMA {DATA_SCHEMA};",
+    f"""CREATE OR REPLACE FUNCTION time_slices (n NUMBER, s TIMESTAMP, e TIMESTAMP)
+          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
+          AS '
+            SELECT
+              DATEADD(sec, DATEDIFF(sec, s, e) * SEQ4() / n, s) AS slice_start,
+              DATEADD(sec, DATEDIFF(sec, s, e) * 1 / n, slice_start) AS slice_end
+            FROM TABLE(GENERATOR(ROWCOUNT => n))
+          '
+        ;
+    """,
+    f"""CREATE OR REPLACE FUNCTION time_slices_before_t (num_slices NUMBER, seconds_in_slice NUMBER, t TIMESTAMP_NTZ)
+          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
+          AS 'SELECT slice_start, slice_end FROM TABLE(time_slices( num_slices, DATEADD(sec, -seconds_in_slice * num_slices, t), t ))'
+        ;
+    """,
 ]
 
 CREATE_TABLES_QUERIES = [
@@ -229,6 +250,7 @@ def setup_warehouse(do_attempt):
     do_attempt("Creating database", CREATE_DATABASE_QUERY)
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
+    do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
 
 
 def setup_user(do_attempt):
