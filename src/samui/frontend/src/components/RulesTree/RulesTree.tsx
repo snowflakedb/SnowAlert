@@ -1,12 +1,13 @@
 import {
   // Icon,
   Tree,
+  Input,
 } from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
-import {loadSnowAlertRules, changeRule} from '../../actions/rules';
+import {loadSnowAlertRules, changeRule, changeFilter} from '../../actions/rules';
 import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
@@ -14,6 +15,7 @@ import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 import './RulesTree.css';
 
 const TreeNode = Tree.TreeNode;
+const Search = Input.Search;
 
 interface OwnProps {
   target: SnowAlertRule['target'];
@@ -22,6 +24,7 @@ interface OwnProps {
 interface DispatchProps {
   loadSnowAlertRules: typeof loadSnowAlertRules;
   changeRule: typeof changeRule;
+  changeFilter: typeof changeFilter;
 }
 
 interface StateProps {
@@ -39,13 +42,14 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   generateTree = (rules: SnowAlertRulesState['rules'], target: SnowAlertRule['target']) => {
     const queries: Array<SnowAlertRule> = [];
     const suppressions: Array<SnowAlertRule> = [];
+    var filter = this.props.rules.filter || '';
 
     for (let rule of rules)
       if (rule.target === target) {
-        if (rule.type === 'QUERY') {
+        if (rule.type === 'QUERY' && (filter == '' || rule.title.includes(filter.toUpperCase()))) {
           queries.push(rule);
         }
-        if (rule.type === 'SUPPRESSION') {
+        if (rule.type === 'SUPPRESSION' && (filter == '' || rule.title.includes(filter.toUpperCase()))) {
           suppressions.push(rule);
         }
       }
@@ -79,9 +83,12 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   render() {
     var rules = this.props.rules.rules;
     return (
-      <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
-        {this.generateTree(rules, this.props.target)}
-      </Tree>
+      <div>
+        <Search placeholder="Query Name" onChange={e => this.props.changeFilter(e.target.value)} style={{width: 200}} />
+        <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
+          {this.generateTree(rules, this.props.target)}
+        </Tree>
+      </div>
     );
   }
 }
@@ -97,6 +104,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     {
       loadSnowAlertRules: loadSnowAlertRules,
       changeRule,
+      changeFilter,
     },
     dispatch,
   );
