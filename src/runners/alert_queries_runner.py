@@ -11,7 +11,7 @@ from helpers import log
 from helpers.db import connect_and_execute, load_rules
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
-RUN_METADATA = {'QUERY_HISTORY': []}  # Contains metadata about this run
+RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'ALERT QUERIES'}  # Contains metadata about this run
 
 
 def alert_group(alert) -> str:
@@ -73,7 +73,7 @@ def update_recent_alerts(ctx, alert_map):
 
 def log_alerts(ctx, alerts):
     if len(alerts):
-        print("Logging alerts...")
+        print("Recording alerts.")
         format_string = ", ".join(["(%s)"] * len(alerts))
         try:
             ctx.cursor().execute((
@@ -143,6 +143,7 @@ def snowalert_query(query_name: str):
             if attempt > 1:
                 log_failure(ctx, query_name, e)
                 log.metadata_fill(metadata, status='failure', exception=e)
+                RUN_METADATA['QUERY_HISTORY'].append(metadata)
                 pass
             else:
                 log.info(f"Query {query_name} failed to run, retrying...")
@@ -176,15 +177,20 @@ def query_for_alerts(query_name: str):
 
 
 def record_metadata(ctx, metadata):
+    metadata['RUN_START_TIME'] = str(metadata['RUN_START_TIME'])   # We wantd them to be objects for mathing
+    metadata['RUN_END_TIME'] = str(metadata['RUN_END_TIME'])       # then convert to string for json serializing
+    metadata['RUN_DURATION'] = str(metadata['RUN_DURATION'])
+
     statement = f'''
         INSERT INTO {METADATA_TABLE}
-            (event_time, v) select {metadata['RUN_START_TIME']},
-            PARSE_JSON(column1) from values({json.dumps(metadata)}))
+            (event_time, v) select '{metadata['RUN_START_TIME']}',
+            PARSE_JSON(column1) from values('{json.dumps(metadata)}')
         '''
     try:
+        log.info("Recording run metadata...")
         ctx.cursor().execute(statement)
     except Exception as e:
-        log.fatal("Metadata failed to log")
+        log.fatal("Metadata failed to log", e)
         log_failure(ctx, "Metadata Logging", e, event_data=metadata, description="The run metadata failed to log")
 
 
@@ -197,6 +203,7 @@ def main():
 
     RUN_METADATA['RUN_END_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_DURATION'] = RUN_METADATA['RUN_END_TIME'] - RUN_METADATA['RUN_START_TIME']
+    record_metadata(ctx, RUN_METADATA)
 
     if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
