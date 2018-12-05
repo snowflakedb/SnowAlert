@@ -13,7 +13,7 @@ import boto3
 import snowflake.connector
 
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
-from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE
+from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, METADATA_TABLE
 from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX, VIOLATION_SQUELCH_POSTFIX
 from runners.helpers import log
@@ -86,7 +86,13 @@ CREATE_TABLES_QUERIES = [
         , suppressed BOOLEAN
         , suppression_rule STRING DEFAULT NULL
       );
-    """
+    """,
+    f"""
+      CREATE TABLE IF NOT EXISTS {METADATA_TABLE}(
+          event_time TIMESTAMP_LTZ
+          , v VARIANT
+          );
+      """
 ]
 
 CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queries ( suppression_spec VARIANT );"
