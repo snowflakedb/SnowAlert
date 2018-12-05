@@ -7,6 +7,9 @@ import snowflake.connector
 from . import log
 from .auth import load_pkb
 from .dbconfig import ACCOUNT, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconnect import snowflake_connect
+
+CACHED_CONNECTION = None
 
 
 def retry(f, E=Exception, n=3):
@@ -29,11 +32,19 @@ def preflight_checks(ctx):
 
 
 def connect(run_preflight_checks=True):
+    global CACHED_CONNECTION
+    if CACHED_CONNECTION:
+        return CACHED_CONNECTION
+
+    connect_db, authenticator, pk = (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
+                                    (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
+
     try:
-        connection = retry(lambda: snowflake.connector.connect(
+        connection = retry(lambda: connect_db(
             user=USER,
             account=ACCOUNT,
-            private_key=load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
+            private_key=pk,
+            authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
             network_timeout=TIMEOUT
         ))
