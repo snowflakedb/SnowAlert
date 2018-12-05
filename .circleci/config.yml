@@ -19,7 +19,6 @@ jobs:
       - run:
           name: install_snowalert_dependencies
           command: |
-            cd src
             python -m venv .venv
             source .venv/bin/activate
             pip install src/
