@@ -42,7 +42,7 @@ def run_suppression(squelch_name):
 
 
 def record_metadata(ctx, metadata):
-    metadata['RUN_START_TIME'] = str(metadata['RUN_START_TIME'])   # We wantd them to be objects for mathing
+    metadata['RUN_START_TIME'] = str(metadata['RUN_START_TIME'])   # We want them to be objects for mathing
     metadata['RUN_END_TIME'] = str(metadata['RUN_END_TIME'])       # then convert to string for json serializing
     metadata['RUN_DURATION'] = str(metadata['RUN_DURATION'])
 
@@ -52,7 +52,7 @@ def record_metadata(ctx, metadata):
             PARSE_JSON(column1) from values('{json.dumps(metadata)}')
         '''
     try:
-        log.info("Recording run metadata...")
+        log.info("Recording run metadata.")
         ctx.cursor().execute(statement)
     except Exception as e:
         log.fatal("Metadata failed to log", e)

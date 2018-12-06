@@ -17,7 +17,7 @@ def log_alerts(ctx, alerts):
     suppression fails to execute.
     """
     if len(alerts):
-        print("Logging alerts...")
+        print("Recording alerts.")
         format_string = ", ".join(["(%s)"] * len(alerts))
         try:
             ctx.cursor().execute(
@@ -123,7 +123,7 @@ def record_metadata(ctx, metadata):
             PARSE_JSON(column1) from values('{json.dumps(metadata)}')
         '''
     try:
-        log.info("Recording run metadata...")
+        log.info("Recording run metadata.")
         ctx.cursor().execute(statement)
     except Exception as e:
         log.fatal("Metadata failed to log", e)
