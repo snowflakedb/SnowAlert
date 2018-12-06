@@ -16,7 +16,7 @@ def log_alerts(ctx, alerts):
     something goes wrong.
     """
     if len(alerts):
-        print("Logging alerts...")
+        print("Recording alerts.")
         try:
             ctx.cursor().execute(
                 f'''
