@@ -114,11 +114,10 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
     })]
     try:
         log_alerts(ctx, alerts)
-        log.fatal("Query failure successfully logged", e)
-        pass
+        log.info("Query failure logged.", e)
+
     except Exception as e:
         log.fatal("Failed to log query failure", e)
-        pass
 
 
 def snowalert_query(query_name: str):
@@ -144,10 +143,9 @@ def snowalert_query(query_name: str):
                 log_failure(ctx, query_name, e)
                 log.metadata_fill(metadata, status='failure', exception=e)
                 RUN_METADATA['QUERY_HISTORY'].append(metadata)
-                pass
+
             else:
                 log.info(f"Query {query_name} failed to run, retrying...")
-                continue
 
     log.metadata_fill(metadata, status='success', rows=ctx.cursor().rowcount)
     RUN_METADATA['QUERY_HISTORY'].append(metadata)
