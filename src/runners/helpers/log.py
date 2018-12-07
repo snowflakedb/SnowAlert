@@ -39,12 +39,12 @@ def metric(metric, namespace, dimensions, value):
     )
 
 
-def metadata_fill(metadata, status, rows=0, exception=None):
+def metadata_fill(metadata, status, rows=0, e=None):
     metadata['END_TIME'] = datetime.datetime.utcnow()
     metadata['RUN_TIME'] = metadata['END_TIME'] - metadata['START_TIME']
     metadata['ROWS'] = rows
     metadata['STATUS'] = status
-    metadata['EXCEPTION'] = exception
+    metadata['EXCEPTION'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
     metadata['START_TIME'] = str(metadata['START_TIME'])  # This is mildly gross, but we record them as
     metadata['END_TIME'] = str(metadata['END_TIME'])      # datetime objects so we can do math on them, then
     metadata['RUN_TIME'] = str(metadata['RUN_TIME'])      # convert to string so we can json serialize.
