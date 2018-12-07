@@ -129,6 +129,7 @@ def snowalert_query(query_name: str):
 
     metadata['START_TIME'] = datetime.datetime.utcnow()
     attempt = 0
+    results = []
     while attempt <= 1:
         try:
             attempt += 1
@@ -141,13 +142,15 @@ def snowalert_query(query_name: str):
         except Exception as e:
             if attempt > 1:
                 log_failure(ctx, query_name, e)
-                log.metadata_fill(metadata, status='failure', exception=e)
+                log.metadata_fill(metadata, status='failure', e=e)
                 RUN_METADATA['QUERY_HISTORY'].append(metadata)
 
             else:
                 log.info(f"Query {query_name} failed to run, retrying...")
 
-    log.metadata_fill(metadata, status='success', rows=ctx.cursor().rowcount)
+    if type(metadata['START_TIME']) is not str:
+        log.metadata_fill(metadata, status='success', rows=ctx.cursor().rowcount)
+
     RUN_METADATA['QUERY_HISTORY'].append(metadata)
     log.info(f"{query_name} done.")
     return results, ctx
