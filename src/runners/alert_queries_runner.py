@@ -8,7 +8,7 @@ from typing import Dict, Tuple
 
 from config import ALERTS_TABLE, METADATA_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
-from helpers.db import connect_and_execute, load_rules
+from helpers.db import connect_and_execute, execute, load_rules
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'ALERT QUERIES'}  # Contains metadata about this run
@@ -64,7 +64,7 @@ def update_recent_alerts(ctx, alert_map):
             update_array
         )
         ctx.cursor().execute(
-            f"MERGE INTO {RESULTS_SCHEMA}.alerts s"
+            f"MERGE INTO {ALERTS_TABLE} s"
             f" USING {RESULTS_SCHEMA}.counter_table t"
             f" ON s.alert:ALERT_ID = t.ALERT_ID WHEN MATCHED THEN UPDATE"
             f" SET s.COUNTER = t.COUNTER;"
@@ -120,12 +120,10 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
         log.fatal("Failed to log query failure", e)
 
 
-def snowalert_query(query_name: str):
+def snowalert_query(ctx, query_name: str):
     log.info(f"{query_name} processing...")
     metadata = {}
     metadata['NAME'] = query_name
-
-    ctx = connect_and_execute()
 
     metadata['START_TIME'] = datetime.datetime.utcnow()
     attempt = 0
@@ -153,10 +151,10 @@ def snowalert_query(query_name: str):
 
     RUN_METADATA['QUERY_HISTORY'].append(metadata)
     log.info(f"{query_name} done.")
-    return results, ctx
+    return results
 
 
-def process_results(results, ctx, query_name):
+def process_results(ctx, results, query_name):
     alerts = []
     recent_alerts = get_existing_alerts(ctx, query_name)
     for res in results:
@@ -172,9 +170,9 @@ def process_results(results, ctx, query_name):
     update_recent_alerts(ctx, recent_alerts)
 
 
-def query_for_alerts(query_name: str):
-    results, ctx = snowalert_query(query_name)
-    process_results(results, ctx, query_name)
+def query_for_alerts(ctx, query_name: str):
+    results = snowalert_query(ctx, query_name)
+    process_results(ctx, results, query_name)
 
 
 def record_metadata(ctx, metadata):
@@ -200,10 +198,10 @@ def main(rule_name=None):
     RUN_METADATA['RUN_START_TIME'] = datetime.datetime.utcnow()
     ctx = connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
     if rule_name:
-        query_for_alerts(rule_name)
+        query_for_alerts(ctx, rule_name)
     else:
         for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
-            query_for_alerts(query_name)
+            query_for_alerts(ctx, query_name)
 
     RUN_METADATA['RUN_END_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_DURATION'] = RUN_METADATA['RUN_END_TIME'] - RUN_METADATA['RUN_START_TIME']
