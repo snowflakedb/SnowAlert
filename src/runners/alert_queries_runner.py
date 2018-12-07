@@ -58,7 +58,8 @@ def update_recent_alerts(ctx, alert_map):
             update_array_length = update_array_length + 1
     if update_array_length:
         format_string = ", ".join(["(%s, %s)"] * update_array_length)
-        ctx.cursor().execute(f"CREATE TEMPORARY TABLE {RESULTS_SCHEMA}.counter_table(ALERT_ID string, COUNTER number);")
+        execute(ctx, f"DROP TABLE IF EXISTS {RESULTS_SCHEMA}.counter_table;")
+        execute(ctx, f"CREATE TEMPORARY TABLE {RESULTS_SCHEMA}.counter_table(ALERT_ID string, COUNTER number);")
         ctx.cursor().execute(
             f"INSERT INTO {RESULTS_SCHEMA}.counter_table (ALERT_ID, COUNTER) VALUES {format_string};",
             update_array
