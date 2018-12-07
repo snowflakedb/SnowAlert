@@ -195,12 +195,15 @@ def record_metadata(ctx, metadata):
         log_failure(ctx, "Metadata Logging", e, event_data=metadata, description="The run metadata failed to log")
 
 
-def main():
+def main(rule_name=None):
     # Force warehouse resume so query runner doesn't have a bunch of queries waiting for warehouse resume
     RUN_METADATA['RUN_START_TIME'] = datetime.datetime.utcnow()
     ctx = connect_and_execute("ALTER SESSION SET USE_CACHED_RESULT=FALSE;")
-    for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
-        query_for_alerts(query_name)
+    if rule_name:
+        query_for_alerts(rule_name)
+    else:
+        for query_name in load_rules(ctx, ALERT_QUERY_POSTFIX):
+            query_for_alerts(query_name)
 
     RUN_METADATA['RUN_END_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_DURATION'] = RUN_METADATA['RUN_END_TIME'] - RUN_METADATA['RUN_START_TIME']
