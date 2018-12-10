@@ -113,7 +113,7 @@ const querySQL: ParserGenerator<QueryFields> = {
     if (!nextField) throw 'err0';
     do {
       var {body, field, value} = nextField;
-      fields.select[field] = value;
+      fields.select[field] = value.replace(/\n       /g, '\n');
     } while ((nextField = stripField(body)));
 
     var {body, from} = stripFrom(body);
@@ -128,7 +128,7 @@ const querySQL: ParserGenerator<QueryFields> = {
   generate: fields => {
     return (
       `SELECT ${Object.entries(fields.select)
-        .map(([k, v]) => `${v} AS ${k}`)
+        .map(([k, v]) => `${v.replace(/\n/g, '\n       ')} AS ${k}`)
         .join('\n     , ')}\n` +
       `FROM ${fields.from}\n` +
       `WHERE 1=${fields.enabled ? '1' : '0'}\n` +
@@ -216,7 +216,6 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
             spellCheck={false}
             value={fs.rulesString || ''}
             onChange={changeField('', 'rulesString')}
-            style={{fontFamily: 'Hack, monospace'}}
           />
         </div>
       );
@@ -323,7 +322,6 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
                 value={fs ? fs.where : ''}
                 spellCheck={false}
                 autosize={{minRows: 1}}
-                style={{fontFamily: 'Hack, monospace'}}
                 onChange={changeField('', 'where')}
               />
 
@@ -460,7 +458,6 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
                 value={fs ? fs.where : ''}
                 spellCheck={false}
                 autosize={{minRows: 1}}
-                style={{fontFamily: 'Hack, monospace'}}
                 onChange={changeField('', 'where')}
               />
 
