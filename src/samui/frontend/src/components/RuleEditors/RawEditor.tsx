@@ -35,7 +35,6 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           value={rule ? rule.body : ''}
           spellCheck={false}
           autosize={{minRows: 30, maxRows: 50}}
-          style={{fontFamily: 'Hack, monospace'}}
           onChange={e => this.props.changeRuleBody(e.target.value)}
         />
         <Button
