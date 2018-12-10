@@ -34,7 +34,6 @@ def snowflake_connect(**kwargs):
             u"""
             Opens a new network connection
             """
-            print("in right one")
             self.converter = self._converter_class(
                 use_sfbinaryformat=False,
                 use_numpy=self._numpy)
