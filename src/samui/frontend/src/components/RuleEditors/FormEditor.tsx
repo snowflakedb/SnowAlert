@@ -86,9 +86,9 @@ const querySQL: ParserGenerator<QueryFields> = {
     }
 
     function stripFrom(body: string): {body: string; from: string} {
-      const [match, from] = body.match(/^\s*FROM (\S*)/i) || raise('err1');
+      const [match, from] = body.match(/^\s*FROM ([\S\s]*)\nWHERE/im) || raise('err1');
       return {
-        body: body.substr(match.length),
+        body: body.substr(match.length - 5),
         from,
       };
     }
