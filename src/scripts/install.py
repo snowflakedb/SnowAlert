@@ -7,6 +7,7 @@ from getpass import getpass
 import os
 import re
 from typing import List, Optional, Tuple
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 import boto3
@@ -175,6 +176,28 @@ CREATE_SAMPLE_VIOLATION_QUERIES = [
 ]
 
 
+def url_process(url):
+    region = None
+    account = None
+    res = urlsplit(url)
+    path = res.path or res.netloc
+
+    c = path.split('.')
+
+    if len(c) == 1:
+        account = c[0]
+    else:
+        if path.endswith("snowflakecomputing.com"):
+            if len(c) == 3:
+                account = c[0]
+                region = 'us-west-2'
+            if len(c) == 4:
+                region = c[0]
+                account = c[1]
+
+    return region, account
+
+
 def login():
     config = ConfigParser()
     if config.read(os.path.expanduser('~/.snowsql/config')) and 'connections' in config:
@@ -191,7 +214,13 @@ def login():
     print("This is the installer for SnowAlert; it will set up all of the resources needed for SnowAlert to run.")
 
     if not account:
-        account = input("Snowflake account where SnowAlert can store data, rules, and results: ")
+        while 1:
+            url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
+            region, account = url_process(url)
+            if not account:
+                print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
+            else:
+                break
     else:
         print(f"Loaded from ~/.snowcli/config: account '{account}'")
 
@@ -206,7 +235,8 @@ def login():
     else:
         print(f"Loaded from ~/.snowcli/config: password {'*' * len(password)}")
 
-    region = region or input("Region of your Snowflake account [blank for us-west-2]: ")
+    if not region:
+        region = input("Region of your Snowflake account [blank for us-west-2]: ")
 
     connect_kwargs = {'user': username, 'account': account}
     if password == '':
