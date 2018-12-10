@@ -11,7 +11,8 @@
 ~~~
 
 ## Developing SAMUI
-=======
+
+~~~
 docker build -t snowalert .
 ~~~
 
