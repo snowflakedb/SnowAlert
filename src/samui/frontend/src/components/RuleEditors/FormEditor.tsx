@@ -38,7 +38,7 @@ function raise(e: string): never {
 const suppressionSQL: ParserGenerator<SuppressionFields> = {
   parse: body => {
     function stripStart(body: string): {rest: string; from: string} | null {
-      const headRe = /^SELECT (?:\*|alert)\s+FROM ([a-z.]+)\s+WHERE suppressed IS NULL\s+/im;
+      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+/im;
       const m = body.match(headRe);
       return m ? {rest: body.substr(m[0].length), from: m[1]} : null;
     }
@@ -211,6 +211,15 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
       const fs = fields as SuppressionFields;
       form = (
         <div>
+          <h3>FROM</h3>
+          <Input.TextArea
+            disabled={!canParse(rule) || rule.isSaving}
+            autosize={{minRows: 1}}
+            value={fs ? fs.from : ''}
+            onChange={changeField('', 'from')}
+          />
+
+          <h3>WHERE</h3>
           <Input.TextArea
             disabled={!canParse(rule) || rule.isSaving}
             autosize={{minRows: 30, maxRows: 50}}
