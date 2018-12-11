@@ -12,12 +12,14 @@ from .dbconnect import snowflake_connect
 CACHED_CONNECTION = None
 
 
-def retry(f, E=Exception, n=3):
+def retry(f, E=Exception, n=3, log_errors=True):
     while 1:
         try:
             return f()
-        except E:
+        except E as e:
             n -= 1
+            if log_errors:
+                log.error(e)
             if n < 0:
                 raise
 
