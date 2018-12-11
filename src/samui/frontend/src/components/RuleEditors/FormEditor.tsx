@@ -38,7 +38,7 @@ function raise(e: string): never {
 const suppressionSQL: ParserGenerator<SuppressionFields> = {
   parse: body => {
     function stripStart(body: string): {rest: string; from: string} | null {
-      const headRe = /^SELECT \*\s+FROM ([a-z.]+)\s+WHERE suppressed IS NULL\s+/im;
+      const headRe = /^SELECT (?:\*|alert)\s+FROM ([a-z.]+)\s+WHERE suppressed IS NULL\s+/im;
       const m = body.match(headRe);
       return m ? {rest: body.substr(m[0].length), from: m[1]} : null;
     }
@@ -73,15 +73,16 @@ const querySQL: ParserGenerator<QueryFields> = {
   parse: body => {
     function stripField(body: string): {body: string; field: string; value: string} | null {
       const match = body.match(/^\s*(?:SELECT|,)\s*([\s\S]*?)\s*AS ([\S^,]*)$/im);
-      if (match) {
+      if (!match || body.match(/^\s*FROM/i)) {
+        // in case of sub-queries, FROM match needs to be explicit
+        return null;
+      } else {
         const [m, value, field] = match;
         return {
           body: body.substr(m.length),
           field,
           value,
         };
-      } else {
-        return null;
       }
     }
 
@@ -182,7 +183,7 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
       );
 
     const SQL = rule.type === 'SUPPRESSION' ? suppressionSQL : querySQL;
-    const fields = canParse(rule) ? SQL.parse(rule.body) : null;
+    const fields = canParse(rule, true) ? SQL.parse(rule.body) : null;
     if (!fields) {
       return (
         <Col span={12}>
