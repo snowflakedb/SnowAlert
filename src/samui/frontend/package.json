@@ -17,9 +17,9 @@
     "moment": "^2.22.2",
     "path-to-regexp": "^2.2.1",
     "rc-drawer": "^1.5.1",
-    "react": "^16.4.1",
+    "react": "^16.6.3",
     "react-document-title": "^2.0.3",
-    "react-dom": "^16.4.1",
+    "react-dom": "^16.6.3",
     "react-fittext": "^1.0.0",
     "react-redux": "^5.0.7",
     "react-router-redux": "^5.0.0-alpha.9",
@@ -53,12 +53,12 @@
     "@types/enquire.js": "^2.1.1",
     "@types/history": "^4.6.2",
     "@types/jwt-decode": "^2.2.1",
-    "@types/lodash": "^4.14.110",
-    "@types/node": "^10.5.1",
+    "@types/lodash": "^4.14.119",
+    "@types/node": "^10.12.12",
     "@types/react-document-title": "^2.0.2",
-    "@types/react-dom": "^16.0.6",
+    "@types/react-dom": "^16.0.11",
     "@types/react-redux": "^6.0.3",
-    "@types/react-router-redux": "^5.0.15",
+    "@types/react-router-redux": "^5.0.17",
     "@types/stylus": "^0.48.29",
     "fork-ts-checker-webpack-plugin": "^0.2.10",
     "husky": "^1.2.0",
@@ -77,6 +77,6 @@
     "tslint": "^5.10.0",
     "tslint-config-prettier": "^1.13.0",
     "tslint-react": "^3.6.0",
-    "typescript": "^3.2.1"
+    "typescript": "^3.2.2"
   }
 }
