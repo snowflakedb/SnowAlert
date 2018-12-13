@@ -64,3 +64,24 @@ def create_rule():
         return jsonify(success=False, message=e.msg, rule=json)
 
     return jsonify(success=True, rule=json)
+
+
+@rules_api.route('/delete', methods=['POST'])
+def delete_rule():
+    json = request.get_json()
+    rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
+    logger.info(f'Deleting rule {rule_title}_{rule_target}_{rule_type}')
+
+    ctx = db.connect()
+    try:
+        view_name = f"{rule_title}_{rule_target}_{rule_type}"
+        new_view_name = f"{rule_title}_{rule_target}_{rule_type}_DELETED"
+        ctx.cursor().execute(
+            f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
+        ).fetchall()
+        if 'body' in json and 'savedBody' in json:
+            json['savedBody'] = rule_body
+    except snowflake.connector.errors.ProgrammingError as e:
+        return jsonify(success=False, message=e.msg, rule=json)
+
+    return jsonify(success=True, rule=json)

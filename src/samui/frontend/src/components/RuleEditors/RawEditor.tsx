@@ -4,7 +4,7 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {getRules} from '../../reducers/rules';
-import {changeRuleBody, saveRule} from '../../actions/rules';
+import {changeRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
 
@@ -15,6 +15,7 @@ interface OwnProps {}
 interface DispatchProps {
   changeRuleBody: typeof changeRuleBody;
   saveRule: typeof saveRule;
+  deleteRule: typeof deleteRule;
 }
 
 interface StateProps {
@@ -51,6 +52,9 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
         >
           <Icon type="rollback" theme="outlined" /> Revert
         </Button>
+        <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && this.props.deleteRule(rule)}>
+          <Icon type="delete" theme="outlined" /> Delete
+        </Button>
       </div>
     );
   }
@@ -61,6 +65,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     {
       changeRuleBody,
       saveRule,
+      deleteRule,
     },
     dispatch,
   );

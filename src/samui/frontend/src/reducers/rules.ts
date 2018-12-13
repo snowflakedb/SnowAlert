@@ -66,7 +66,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
     | RulesActions.LoadRulesActions
     | RulesActions.EditRulesActions
     | RulesActions.ChangeFilterAction
-    | RulesActions.NewRuleAction,
+    | RulesActions.NewRuleAction
+    | RulesActions.DeleteRuleActions
+    | RulesActions.NewRuleAction
 ) => {
   const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
 
@@ -161,6 +163,22 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         filter: action.payload,
+      };
+
+    // deleting rule
+    case RulesActions.DELETE_RULE_REQUEST:
+      return {
+        ...state,
+      };
+    case RulesActions.DELETE_RULE_SUCCESS:
+      return {
+        ...state,
+        rules: state.rules.filter(r => r.title !== action.payload.title),
+      };
+    case RulesActions.DELETE_RULE_FAILURE:
+      alert('RULE_DELETION_FAILURE ${message}');
+      return {
+        ...state,
       };
   }
   return state;
