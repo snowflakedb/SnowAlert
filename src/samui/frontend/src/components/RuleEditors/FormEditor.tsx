@@ -1,4 +1,4 @@
-import {Button, Checkbox, Col, Icon, Input} from 'antd';
+import {Button, Checkbox, Col, Icon, Input, Switch} from 'antd';
 import {isEqual} from 'lodash';
 import * as React from 'react';
 import {connect} from 'react-redux';
@@ -177,8 +177,8 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
     const rule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);
     if (!rule)
       return (
-        <Col span={12}>
-          <h3>No Rule Selected</h3>
+        <Col span={16}>
+          <h3>Loaded {rules.length} rules from Snowflake.</h3>
         </Col>
       );
 
@@ -187,23 +187,28 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
     if (!fields) {
       return (
         <Col span={12}>
-          <h3>Can't parse</h3>
+          <h3>Invalid rule format, use the SQL Editor.</h3>
         </Col>
       );
     }
 
     function changeField(fieldName: string, prop: string = 'select') {
-      return ({target}: any) => {
-        if (!rule || !target) return;
+      return (x: any) => {
+        if (!rule) return;
+        var newValue = typeof x == 'boolean' ? x : x.target.value || x.target.checked || '';
         var fields = SQL.parse(rule.body);
         if (!fields) return;
         if (fieldName === '') {
-          fields[prop] = target.value || target.checked || '';
+          fields[prop] = newValue;
         } else {
-          fields[prop][fieldName] = target.value || target.checked || '';
+          fields[prop][fieldName] = newValue;
         }
         changeRuleBody((SQL.generate as any)(fields));
       };
+    }
+
+    function toggleEnabled(checked: boolean) {
+      changeField('', 'enabled')(checked);
     }
 
     var form;
@@ -472,9 +477,9 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
               />
 
               <h3>ENABLED</h3>
-              <Checkbox checked={Boolean(fs && fs.enabled)} onChange={changeField('', 'enabled')}>
+              <Switch defaultChecked={Boolean(fs && fs.enabled)} onChange={toggleEnabled}>
                 Enabled
-              </Checkbox>
+              </Switch>
             </Col>
           </div>
         );
