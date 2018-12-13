@@ -103,4 +103,30 @@ export const saveRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
   }
 };
 
-export type EditRulesActions = ChangeRuleAction | ChangeRuleBodyAction | SaveRuleActions | ChangeTitleAction;
+export const DELETE_RULE_REQUEST = 'DELETE_RULE_REQUEST';
+export const DELETE_RULE_SUCCESS = 'DELETE_RULE_SUCCESS';
+export const DELETE_RULE_FAILURE = 'DELETE_RULE_FAILURE';
+
+export const DeleteRuleAction = {
+  deleteRuleRequest: () => createAction(DELETE_RULE_REQUEST),
+  deleteRuleSuccess: (response: SnowAlertRule) => createAction(DELETE_RULE_SUCCESS, response),
+  deleteRuleFailure: (error: {message: string; rule: SnowAlertRule}) => createAction(DELETE_RULE_FAILURE, error),
+};
+
+export type DeleteRuleActions = ActionsUnion<typeof DeleteRuleAction>;
+
+export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
+  dispatch(createAction(DELETE_RULE_REQUEST, rule));
+  try {
+    const response = await api.deleteRule(rule);
+    if (response.success) {
+      dispatch(DeleteRuleAction.deleteRuleSuccess(response.rule));
+    } else {
+      throw response;
+    }
+  } catch (error) {
+    dispatch(DeleteRuleAction.deleteRuleFailure(error));
+  }
+};
+
+export type EditRulesActions = ChangeRuleAction | ChangeRuleBodyAction | SaveRuleActions | ChangeTitleAction | DeleteRuleActions;
