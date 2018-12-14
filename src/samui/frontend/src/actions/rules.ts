@@ -38,6 +38,23 @@ export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: Get
   }
 };
 
+type RuleTarget = SnowAlertRule['target'];
+type RuleType = SnowAlertRule['type'];
+
+// changing rule title
+export const CHANGE_TITLE = 'CHANGE_TITLE';
+export type ChangeTitleAction = ActionWithPayload<typeof CHANGE_TITLE, {rule: SnowAlertRule; newTitle: string}>;
+export const changeTitle = (rule: SnowAlertRule, newTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(CHANGE_TITLE, {rule, newTitle}));
+};
+
+// changing rule selection
+export const NEW_RULE = 'NEW_RULE';
+export type NewRuleAction = ActionWithPayload<typeof NEW_RULE, {ruleTarget: RuleTarget; ruleType: RuleType}>;
+export const newRule = (ruleTarget: RuleTarget, ruleType: RuleType) => async (dispatch: Dispatch) => {
+  dispatch(createAction(NEW_RULE, {ruleTarget, ruleType}));
+};
+
 // changing rule selection
 export const CHANGE_CURRENT_RULE = 'CHANGE_CURRENT_RULE';
 export type ChangeRuleAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE, string>;
@@ -86,4 +103,4 @@ export const saveRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
   }
 };
 
-export type EditRulesActions = ChangeRuleAction | ChangeRuleBodyAction | SaveRuleActions;
+export type EditRulesActions = ChangeRuleAction | ChangeRuleBodyAction | SaveRuleActions | ChangeTitleAction;
