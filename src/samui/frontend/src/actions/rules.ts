@@ -48,7 +48,7 @@ export const changeTitle = (rule: SnowAlertRule, newTitle: string) => async (dis
   dispatch(createAction(CHANGE_TITLE, {rule, newTitle}));
 };
 
-// changing rule selection
+// adding new rule
 export const NEW_RULE = 'NEW_RULE';
 export type NewRuleAction = ActionWithPayload<typeof NEW_RULE, {ruleTarget: RuleTarget; ruleType: RuleType}>;
 export const newRule = (ruleTarget: RuleTarget, ruleType: RuleType) => async (dispatch: Dispatch) => {

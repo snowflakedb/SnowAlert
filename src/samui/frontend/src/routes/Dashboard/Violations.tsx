@@ -1,4 +1,4 @@
-import {Card, Row, Spin} from 'antd';
+import {Button, Card, Input, Row, Spin} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -11,6 +11,7 @@ import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
+import {changeTitle, newRule} from '../../actions/rules';
 import './Alerts.css';
 
 interface StateProps {
@@ -21,6 +22,8 @@ interface StateProps {
 
 interface DispatchProps {
   getOrganizationIfNeeded: typeof getOrganizationIfNeeded;
+  newRule: typeof newRule;
+  changeTitle: typeof changeTitle;
 }
 
 type AlertsProps = StateProps & DispatchProps;
@@ -57,7 +60,34 @@ class Alerts extends React.PureComponent<AlertsProps> {
         {organization.isFetching ? (
           <Spin size="large" className={'global-spin'} />
         ) : (
-          <Card title="Violations Dashboard" className={'card'} bordered={true}>
+          <Card
+            title={
+              !currentRule ? (
+                'Violations Dashboard'
+              ) : currentRule.savedBody ? (
+                currentRule.title
+              ) : (
+                <Input
+                  style={{width: 300}}
+                  value={currentRule.title}
+                  onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+                />
+              )
+            }
+            className={'card'}
+            bordered={true}
+            extra={
+              <div>
+                <Button type="primary" onClick={() => this.props.newRule('VIOLATION', 'QUERY')}>
+                  + QUERY
+                </Button>
+                &nbsp;
+                <Button type="primary" onClick={() => this.props.newRule('VIOLATION', 'SUPPRESSION')}>
+                  + SUPPRESSION
+                </Button>
+              </div>
+            }
+          >
             <div>
               <Row>
                 <RuleEditor target="VIOLATION" rules={rules.rules} currentRule={currentRule || null} />
@@ -82,6 +112,8 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
       getOrganizationIfNeeded,
+      newRule,
+      changeTitle,
     },
     dispatch,
   );
