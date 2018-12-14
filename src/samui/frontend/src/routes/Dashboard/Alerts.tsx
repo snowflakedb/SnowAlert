@@ -1,70 +1,70 @@
-import {Card, Row, Spin} from 'antd';
+import {Button, Card, Input, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {getOrganizationIfNeeded} from '../../actions/organization';
+import {changeTitle, newRule} from '../../actions/rules';
 import {RuleEditor} from '../../components/Dashboard';
-import Exception from '../../components/Exception/Exception';
-import * as exceptionTypes from '../../constants/exceptionTypes';
 import '../../index.css';
 import {getRules} from '../../reducers/rules';
 import {getAuthDetails} from '../../reducers/auth';
-import {getOrganization} from '../../reducers/organization';
 import * as stateTypes from '../../reducers/types';
 import './Alerts.css';
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
-  organization: stateTypes.OrganizationState;
   rules: stateTypes.SnowAlertRulesState;
 }
 
 interface DispatchProps {
-  getOrganizationIfNeeded: typeof getOrganizationIfNeeded;
+  newRule: typeof newRule;
+  changeTitle: typeof changeTitle;
 }
 
 type AlertsProps = StateProps & DispatchProps;
 
 class Alerts extends React.PureComponent<AlertsProps> {
-  fetchData() {
-    const {auth} = this.props;
-    if (auth.organizationId && auth.token) {
-      this.props.getOrganizationIfNeeded(auth.organizationId, auth.token);
-    }
-  }
-
-  componentDidMount() {
-    this.fetchData();
-  }
+  componentDidMount() {}
 
   render() {
-    const {organization, rules} = this.props;
+    const {rules} = this.props;
     const currentRule = rules.rules.find(r => `${r.title}_${r.target}_${r.type}` == rules.currentRuleView);
-
-    // Make sure organization is loaded first.
-    if (organization.errorMessage) {
-      return (
-        <Exception
-          type={exceptionTypes.NOT_FOUND_ERROR}
-          desc={organization.errorMessage}
-          style={{minHeight: 500, height: '80%'}}
-        />
-      );
-    }
 
     return (
       <div>
-        {organization.isFetching ? (
-          <Spin size="large" className={'global-spin'} />
-        ) : (
-          <Card title="Alerts Dashboard" className={'card'} bordered={true}>
+        <Card
+          className={'card'}
+          title={
+            !currentRule ? (
+              'Alerts Dashboard'
+            ) : currentRule.savedBody ? (
+              currentRule.title
+            ) : (
+              <Input
+                style={{width: 300}}
+                value={currentRule.title}
+                onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+              />
+            )
+          }
+          extra={
             <div>
-              <Row>
-                <RuleEditor target="ALERT" rules={rules.rules} currentRule={currentRule || null} />
-              </Row>
+              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'QUERY')}>
+                + QUERY
+              </Button>
+              &nbsp;
+              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'SUPPRESSION')}>
+                + SUPPRESSION
+              </Button>
             </div>
-          </Card>
-        )}
+          }
+          bordered={true}
+        >
+          <div>
+            <Row>
+              <RuleEditor target="ALERT" rules={rules.rules} currentRule={currentRule || null} />
+            </Row>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -73,7 +73,6 @@ class Alerts extends React.PureComponent<AlertsProps> {
 const mapStateToProps = (state: stateTypes.State) => {
   return {
     auth: getAuthDetails(state),
-    organization: getOrganization(state),
     rules: getRules(state),
   };
 };
@@ -81,7 +80,8 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      getOrganizationIfNeeded,
+      newRule,
+      changeTitle,
     },
     dispatch,
   );
