@@ -1,4 +1,5 @@
 import re
+import os
 
 import snowflake.connector
 
@@ -13,6 +14,7 @@ logger = logbook.Logger(__name__)
 rules_api = Blueprint('rules', __name__)
 
 RULE_PREFIX = "^create( or replace)? view( if not exists)? [^ ]+ (copy grants )?as\n"
+SECRET = os.environ.get("SECRET", "")
 
 
 def unindent(text):
@@ -23,6 +25,9 @@ def unindent(text):
 
 @rules_api.route('', methods=['GET'])
 def get_rules():
+    if request.cookies.get("sid", "") != SECRET:
+        return jsonify(rules=[])
+
     rule_type = request.args.get('type', '%').upper()
     rule_target = request.args.get('target', '%').upper()
 
@@ -48,6 +53,9 @@ def get_rules():
 
 @rules_api.route('', methods=['POST'])
 def create_rule():
+    if request.cookies.get("sid", "") != SECRET:
+        return jsonify(success=False, message="bad sid", rule={})
+
     json = request.get_json()
     rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
@@ -68,6 +76,9 @@ def create_rule():
 
 @rules_api.route('/delete', methods=['POST'])
 def delete_rule():
+    if request.cookies.get("sid", "") != SECRET:
+        return jsonify(success=False, message="bad sid", rule={})
+
     json = request.get_json()
     rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
     logger.info(f'Deleting rule {rule_title}_{rule_target}_{rule_type}')
