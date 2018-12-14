@@ -60,7 +60,11 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           <TreeNode title="Loading..." />
         ) : (
           queries.map(r => (
-            <TreeNode selectable key={`${r.title}_${target}_QUERY`} title={(r.isSaving ? '(saving) ' : '') + r.title} />
+            <TreeNode
+              selectable
+              key={`${r.title}_${target}_QUERY`}
+              title={(r.isSaving ? '(saving) ' : r.savedBody === r.body ? '' : '* ') + r.title}
+            />
           ))
         )}
       </TreeNode>,
@@ -72,7 +76,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             <TreeNode
               selectable
               key={`${r.title}_${target}_SUPPRESSION`}
-              title={(r.isSaving ? '(saving) ' : '') + r.title}
+              title={(r.isSaving ? '(saving) ' : r.savedBody === r.body ? '' : '* ') + r.title}
             />
           ))
         )}

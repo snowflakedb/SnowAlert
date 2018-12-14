@@ -10,9 +10,7 @@ export const initialState: SnowAlertRulesState = {
   filter: null,
 };
 
-const NEW_RULE_BODY = (type: SnowAlertRule['type'], s: string) =>
-  type === 'QUERY'
-    ? `SELECT 'E' AS environment
+const alertQueryBody = (s: string) => `SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
      , 'rule title' AS title
@@ -28,11 +26,39 @@ const NEW_RULE_BODY = (type: SnowAlertRule['type'], s: string) =>
      , '${Math.random()
        .toString(36)
        .substring(2)}' AS query_id
-FROM snowalert.data.\nWHERE 1=1\n  AND 2=2\n;`
-    : `SELECT *
-FROM snowalert.results.alerts
-WHERE suppressed IS NULL
-AND ...;`;
+FROM snowalert.data.\nWHERE 1=1\n  AND 2=2\n;`;
+
+const violationQueryBody = (s: string) => `SELECT 'E' AS environment
+     , 'Predicate' AS object
+     , 'rule title' AS title
+     , 'S: Subject state' AS description
+     , current_timestamp() AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'low' AS severity
+     , '${s}' AS query_name
+     , '${Math.random()
+       .toString(36)
+       .substring(2)}' AS query_id
+FROM snowalert.data.\nWHERE 1=1\n AND 2=2\n;`;
+
+const alertSuppressionBody = (s: string) =>
+  `SELECT *\nFROM snowalert.results.alerts\nWHERE suppressed IS NULL\nAND ...;`;
+
+const violationSuppressionBody = (s: string) =>
+  `SELECT * \nFROM snowalert.results.violations\nWHERE suppressed IS NULL\nAND ...;`;
+
+const NEW_RULE_BODY = (type: SnowAlertRule['type'], target: SnowAlertRule['target'], s: string) => {
+  if (type === 'QUERY' && target === 'ALERT') {
+    return alertQueryBody(s);
+  } else if (type === 'QUERY' && target === 'VIOLATION') {
+    return violationQueryBody(s);
+  } else if (type === 'SUPPRESSION' && target === 'ALERT') {
+    return alertSuppressionBody(s);
+  } else {
+    return violationSuppressionBody(s);
+  }
+};
 
 export const rules: Reducer<SnowAlertRulesState> = (
   state = initialState,
@@ -115,7 +141,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
             target: ruleTarget,
             type: ruleType,
             title: title,
-            body: NEW_RULE_BODY(ruleType, title),
+            body: NEW_RULE_BODY(ruleType, ruleTarget, title),
             savedBody: '',
             isSaving: false,
           },
