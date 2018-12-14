@@ -41,7 +41,6 @@ const RuleEditor = (props: RuleEditorProps) => {
       </Col>
       <Col span={6}>
         <h3>{target} Rules</h3>
-        {/* <Input addonBefore={<Icon type="search" theme="outlined" />} defaultValue="" onChange={...}/> */}
         <RulesTree target={target} />
         <Button
           type="dashed"

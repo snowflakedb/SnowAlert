@@ -10,9 +10,37 @@ export const initialState: SnowAlertRulesState = {
   filter: null,
 };
 
+const NEW_RULE_BODY = (type: SnowAlertRule['type'], s: string) =>
+  type === 'QUERY'
+    ? `SELECT 'E' AS environment
+     , ARRAY_CONSTRUCT('S') AS sources
+     , 'Predicate' AS object
+     , 'rule title' AS title
+     , CURRENT_TIMESTAMP() AS event_time
+     , CURRENT_TIMESTAMP() AS alert_time
+     , 'S: Subject Verb Predicate at ' || alert_time AS description
+     , 'Subject' AS actor
+     , 'Verb' AS action
+     , 'SnowAlert' AS detector
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'low' AS severity
+     , '${s}' AS query_name
+     , '${Math.random()
+       .toString(36)
+       .substring(2)}' AS query_id
+FROM snowalert.data.\nWHERE 1=1\n  AND 2=2\n;`
+    : `SELECT *
+FROM snowalert.results.alerts
+WHERE suppressed IS NULL
+AND ...;`;
+
 export const rules: Reducer<SnowAlertRulesState> = (
   state = initialState,
-  action: RulesActions.LoadRulesActions | RulesActions.EditRulesActions | RulesActions.ChangeFilterAction,
+  action:
+    | RulesActions.LoadRulesActions
+    | RulesActions.EditRulesActions
+    | RulesActions.ChangeFilterAction
+    | RulesActions.NewRuleAction,
 ) => {
   const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
 
@@ -46,7 +74,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
         ),
       };
     case RulesActions.SAVE_RULE_FAILURE:
-      const {rule, message} = action.payload;
+      var {rule, message} = action.payload;
       const viewName = `${rule.title}_${rule.target}_${rule.type}`;
       alert(`SAVE_RULE_FAILURE ${message}`);
       return {
@@ -54,11 +82,44 @@ export const rules: Reducer<SnowAlertRulesState> = (
         rules: state.rules.map(r => (isView(viewName, r) ? Object.assign(r, {isSaving: false}) : r)),
       };
 
+    // updating rule title
+    case RulesActions.CHANGE_TITLE:
+      var {rule, newTitle} = action.payload;
+      newTitle = newTitle
+        .replace(/[\s_]+/g, '_')
+        .toUpperCase()
+        .replace(/[^0-9A-Z_]/g, '');
+      return {
+        ...state,
+        rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {title: newTitle}) : r)),
+        currentRuleView: `${rule.title}_${rule.target}_${rule.type}`,
+      };
+
     // updating which rule is selected
     case RulesActions.CHANGE_CURRENT_RULE:
       return {
         ...state,
         currentRuleView: action.payload,
+      };
+
+    // updating which rule is selected
+    case RulesActions.NEW_RULE:
+      var {ruleType, ruleTarget} = action.payload,
+        title = `RULE_NUMBER_${state.rules.length + 1}`;
+
+      return {
+        ...state,
+        currentRuleView: `${title}_${ruleTarget}_${ruleType}`,
+        rules: state.rules.concat([
+          {
+            target: ruleTarget,
+            type: ruleType,
+            title: title,
+            body: NEW_RULE_BODY(ruleType, title),
+            savedBody: '',
+            isSaving: false,
+          },
+        ]),
       };
 
     // updating rule body

@@ -183,7 +183,7 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
       );
 
     const SQL = rule.type === 'SUPPRESSION' ? suppressionSQL : querySQL;
-    const fields = canParse(rule, true) ? SQL.parse(rule.body) : null;
+    const fields = canParse(rule) ? SQL.parse(rule.body) : null;
     if (!fields) {
       return (
         <Col span={12}>
