@@ -9,6 +9,7 @@ from typing import Dict, Tuple
 from config import ALERTS_TABLE, METADATA_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect_and_execute, execute, load_rules
+from utils import groups_of
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'ALERT QUERIES'}  # Contains metadata about this run
@@ -77,11 +78,13 @@ def log_alerts(ctx, alerts):
         print("Recording alerts.")
         format_string = ", ".join(["(%s)"] * len(alerts))
         try:
-            ctx.cursor().execute((
-                f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
-                f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
-                f'FROM values {format_string};'),
-                alerts)
+            VALUES_INSERT_LIMIT = 16384
+            for alert_group in groups_of(VALUES_INSERT_LIMIT, alerts):
+                ctx.cursor().execute((
+                    f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+                    f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
+                    f'FROM values {format_string};'),
+                    list(filter(None, alert_group)))
         except Exception as e:
             log.fatal("Failed to log alert", e)
             pass
