@@ -1,8 +1,14 @@
 .DS_Store
 .mypy_cache
 build/
+node_modules/
+lib/
+
 docs/build
 docs/doctrees
+src/samui/**/*.css
+
 *.pyc
 *.envs
 *.venv
+*.db
