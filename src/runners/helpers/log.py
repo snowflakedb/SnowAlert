@@ -1,8 +1,8 @@
-from base64 import b64encode
 import traceback
 import sys
 import boto3
 import datetime
+import json
 
 
 def write(*args, stream=sys.stdout):
@@ -40,13 +40,23 @@ def metric(metric, namespace, dimensions, value):
     )
 
 
-def metadata_fill(metadata, status, rows=0, e=None):
-    exception = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
+def metadata_record(ctx, metadata, table, e=None):
+    metadata['EXCEPTION'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
     metadata['END_TIME'] = datetime.datetime.utcnow()
-    metadata['RUN_TIME'] = metadata['END_TIME'] - metadata['START_TIME']
-    metadata['ROWS'] = rows
-    metadata['STATUS'] = status
-    metadata['EXCEPTION'] = b64encode(exception.encode()).decode() if e else None
-    metadata['START_TIME'] = str(metadata['START_TIME'])  # This is mildly gross, but we record them as
-    metadata['END_TIME'] = str(metadata['END_TIME'])      # datetime objects so we can do math on them, then
-    metadata['RUN_TIME'] = str(metadata['RUN_TIME'])      # convert to string so we can json serialize.
+    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
+    metadata['ROW_COUNT'] = ctx.cursor().rowcount or 0
+
+    metadata['START_TIME'] = str(metadata['START_TIME'])
+    metadata['END_TIME'] = str(metadata['END_TIME'])
+
+    statement = f'''
+    INSERT INTO {table}
+        (event_time, v) select '{metadata['START_TIME']}',
+        PARSE_JSON(column1) from values('{json.dumps(metadata)}')
+    '''
+
+    try:
+        info("Recording metadata.")
+        ctx.cursor().execute(statement)
+    except Exception as e:
+        fatal("Metadata failed to log", e)

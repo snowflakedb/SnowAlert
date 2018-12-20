@@ -5,11 +5,11 @@ import uuid
 import datetime
 from typing import List
 
-from config import ALERTS_TABLE, METADATA_TABLE, RULES_SCHEMA, ALERT_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
+from config import ALERTS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE, RULES_SCHEMA, ALERT_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
 from helpers import log
 from helpers.db import connect, load_rules
 
-RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'ALERT SUPPRESSIONS'}  # Contains metadata about this run
+RUN_ID = uuid.uuid4().hex
 
 
 def log_alerts(ctx, alerts):
@@ -82,22 +82,20 @@ def do_suppression(suppression_name, ctx):
 def run_suppressions(squelch_name):
     print(f"Received suppression {squelch_name}")
     metadata = {}
-    metadata['NAME'] = squelch_name
+    metadata['QUERY_NAME'] = squelch_name
+    metadata['RUN_ID'] = RUN_ID
+    metadata['ATTEMPTS'] = 1
+    metadata['START_TIME'] = datetime.datetime.utcnow()
 
     ctx = connect()
 
-    metadata['START_TIME'] = datetime.datetime.utcnow()
-
     try:
         do_suppression(squelch_name, ctx)
+        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
     except Exception as e:
         log_failure(ctx, squelch_name, e)
-        log.metadata_fill(metadata, status='failure', rows=0)
-        RUN_METADATA['QUERY_HISTORY'].append(metadata)
+        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
         pass
-
-    log.metadata_fill(metadata, status='success', rows=ctx.cursor().rowcount)
-    RUN_METADATA['QUERY_HISTORY'].append(metadata)
 
     print(f"Suppression query {squelch_name} executed. ")
 
@@ -112,33 +110,17 @@ def flag_remaining_alerts(ctx) -> List[str]:
     return [name[1] for name in suppression_view_list]
 
 
-def record_metadata(ctx, metadata):
-    metadata['RUN_START_TIME'] = str(metadata['RUN_START_TIME'])   # We wantd them to be objects for mathing
-    metadata['RUN_END_TIME'] = str(metadata['RUN_END_TIME'])       # then convert to string for json serializing
-    metadata['RUN_DURATION'] = str(metadata['RUN_DURATION'])
-
-    statement = f'''
-        INSERT INTO {METADATA_TABLE}
-            (event_time, v) select '{metadata['RUN_START_TIME']}',
-            PARSE_JSON(column1) from values('{json.dumps(metadata)}')
-        '''
-    try:
-        log.info("Recording run metadata.")
-        ctx.cursor().execute(statement)
-    except Exception as e:
-        log.fatal("Metadata failed to log", e)
-        log_failure(ctx, "Metadata Logging", e, event_data=metadata, description="The run metadata failed to log")
-
-
 def main():
-    RUN_METADATA['RUN_START_TIME'] = datetime.datetime.utcnow()
+    RUN_METADATA = {}
+    RUN_METADATA['RUN_TYPE'] = 'ALERT SUPPRESSION'
+    RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
+    RUN_METADATA['RUN_ID'] = RUN_ID
     ctx = connect()
     for squelch_name in load_rules(ctx, ALERT_SQUELCH_POSTFIX):
         run_suppressions(squelch_name)
     flag_remaining_alerts(ctx)
-    RUN_METADATA['RUN_END_TIME'] = datetime.datetime.utcnow()
-    RUN_METADATA['RUN_DURATION'] = RUN_METADATA['RUN_END_TIME'] - RUN_METADATA['RUN_START_TIME']
-    record_metadata(ctx, RUN_METADATA)
+
+    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}], 1)
