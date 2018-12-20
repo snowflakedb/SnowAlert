@@ -3,6 +3,7 @@
 from typing import List
 
 import snowflake.connector
+from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE
 
 from . import log
 from .auth import load_pkb
@@ -33,9 +34,9 @@ def preflight_checks(ctx):
     assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {USER} must not be null"
 
 
-def connect(run_preflight_checks=True):
+def connect(run_preflight_checks=True, flush_cache=False):
     global CACHED_CONNECTION
-    if CACHED_CONNECTION:
+    if CACHED_CONNECTION and not flush_cache:
         return CACHED_CONNECTION
 
     connect_db, authenticator, pk = (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
@@ -77,6 +78,9 @@ def execute(ctx, query):
     try:
         return ctx.cursor().execute(query)
     except snowflake.connector.errors.ProgrammingError as e:
+        if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
+            connect(run_preflight_checks=False, flush_cache=True)
+            return execute(query)
         log.error(e, f"Programming Error in query: {query}")
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
