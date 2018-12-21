@@ -14,7 +14,8 @@ import boto3
 import snowflake.connector
 
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
-from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, METADATA_TABLE
+from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE
+
 from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX, VIOLATION_SQUELCH_POSTFIX
 from runners.helpers import log
@@ -89,7 +90,13 @@ CREATE_TABLES_QUERIES = [
       );
     """,
     f"""
-      CREATE TABLE IF NOT EXISTS {METADATA_TABLE}(
+      CREATE TABLE IF NOT EXISTS {QUERY_METADATA_TABLE}(
+          event_time TIMESTAMP_LTZ
+          , v VARIANT
+          );
+      """,
+    f"""
+      CREATE TABLE IF NOT EXISTS {RUN_METADATA_TABLE}(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
@@ -176,11 +183,11 @@ CREATE_SAMPLE_VIOLATION_QUERIES = [
 ]
 
 
-def url_process(url):
+def parse_snowflake_url(url):
     region = None
     account = None
     res = urlsplit(url)
-    path = res.path or res.netloc
+    path = res.netloc or res.path
 
     c = path.split('.')
 
@@ -211,12 +218,12 @@ def login():
         password = None
         region = None
 
-    print("This is the installer for SnowAlert; it will set up all of the resources needed for SnowAlert to run.")
+    print("Starting installer for SnowAlert.")
 
     if not account:
         while 1:
             url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
-            region, account = url_process(url)
+            region, account = parse_snowflake_url(url)
             if not account:
                 print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
             else:
