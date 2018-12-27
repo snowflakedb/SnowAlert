@@ -4,15 +4,28 @@ import json
 import hashlib
 import uuid
 import datetime
-from typing import Dict, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
-from config import ALERTS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE, RULES_SCHEMA, RESULTS_SCHEMA, ALERT_QUERY_POSTFIX, CLOUDWATCH_METRICS
-from helpers import log
-from helpers.db import connect_and_execute, execute, load_rules
-from utils import groups_of
+from .config import (
+    ALERTS_TABLE,
+    QUERY_METADATA_TABLE,
+    RUN_METADATA_TABLE,
+    RULES_SCHEMA,
+    RESULTS_SCHEMA,
+    ALERT_QUERY_POSTFIX,
+    CLOUDWATCH_METRICS,
+)
+from .helpers import log
+from .helpers.db import connect_and_execute, execute, load_rules
+from .utils import groups_of
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 RUN_ID = uuid.uuid4().hex
+QUERY_HISTORY: List = []
+RUN_METADATA = {
+    'QUERY_HISTORY': QUERY_HISTORY,
+    'RUN_TYPE': 'ALERT QUERIES'
+}
 
 
 def alert_group(alert) -> str:
@@ -22,7 +35,7 @@ def alert_group(alert) -> str:
 
 
 # Deduplicate events if similar exists within GROUPING_CUTOFF
-def get_existing_alerts(ctx, alert_type) -> Dict[str, Tuple[object, int, bool]]:
+def get_existing_alerts(ctx, alert_type) -> Dict[str, List[Union[object, int, bool]]]:
     alert_map = {}
     recent_alerts = ctx.cursor().execute(
         f"SELECT alert, counter FROM {ALERTS_TABLE} "
@@ -126,13 +139,14 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
 
 def snowalert_query(ctx, query_name: str):
     log.info(f"{query_name} processing...")
-    metadata = {}
+    metadata: Dict[str, Any] = {}
     metadata['QUERY_NAME'] = query_name
     metadata['RUN_ID'] = RUN_ID
     metadata['ATTEMPTS'] = 1
 
     metadata['START_TIME'] = datetime.datetime.utcnow()
     attempt = 0
+    results: List[Tuple[str]] = []
     while attempt <= 1:
         try:
             attempt += 1
@@ -153,6 +167,8 @@ def snowalert_query(ctx, query_name: str):
                 metadata['ATTEMPTS'] += 1
 
     log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+
+    QUERY_HISTORY.append(metadata)
     log.info(f"{query_name} done.")
     return results
 

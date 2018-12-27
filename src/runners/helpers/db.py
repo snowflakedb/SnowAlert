@@ -98,11 +98,11 @@ def connect_and_fetchall(query):
 
 
 ###
-# Looking
+# SnowAlert specific helpers, similar to ORM
 ###
 
 def load_rules(ctx, postfix) -> List[str]:
-    from config import RULES_SCHEMA
+    from runners.config import RULES_SCHEMA
     try:
         views = ctx.cursor().execute(f'SHOW VIEWS IN {RULES_SCHEMA}').fetchall()
     except Exception as e:

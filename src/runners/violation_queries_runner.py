@@ -5,9 +5,16 @@ import json
 import os
 import uuid
 
-from config import VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE, RULES_SCHEMA, VIOLATION_QUERY_POSTFIX, CLOUDWATCH_METRICS
-from helpers.db import connect_and_fetchall, connect_and_execute, load_rules
-from helpers import log
+from .config import (
+    VIOLATIONS_TABLE,
+    QUERY_METADATA_TABLE,
+    RUN_METADATA_TABLE,
+    RULES_SCHEMA,
+    VIOLATION_QUERY_POSTFIX,
+    CLOUDWATCH_METRICS,
+)
+from .helpers.db import connect_and_fetchall, connect_and_execute, load_rules
+from .helpers import log
 
 RUN_ID = uuid.uuid4().hex
 

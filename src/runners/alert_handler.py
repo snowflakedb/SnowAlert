@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
 import json
-from plugins import create_jira
 import datetime
 import uuid
 
-from helpers import log
-from helpers.db import connect_and_execute
-
-from config import ALERTS_TABLE, DATABASE, CLOUDWATCH_METRICS
+from .config import ALERTS_TABLE, DATABASE, CLOUDWATCH_METRICS
+from .helpers import db, log
+from .plugins import create_jira
 
 
 def log_alerts(ctx, alerts):
@@ -74,7 +72,7 @@ def record_ticket_id(connection, ticket_id, alert_id):
 
 
 def main():
-    ctx = connect_and_execute(f'USE DATABASE {DATABASE};')
+    ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
     alerts = get_new_alerts(ctx)
     print('Found', len(alerts), 'new alerts to handle.')
 

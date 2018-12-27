@@ -5,9 +5,16 @@ import uuid
 import datetime
 from typing import List
 
-from config import ALERTS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE, RULES_SCHEMA, ALERT_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
-from helpers import log
-from helpers.db import connect, load_rules
+from .config import (
+    ALERTS_TABLE,
+    QUERY_METADATA_TABLE,
+    RUN_METADATA_TABLE,
+    RULES_SCHEMA,
+    ALERT_SQUELCH_POSTFIX,
+    CLOUDWATCH_METRICS,
+)
+from .helpers import log
+from .helpers.db import connect, load_rules
 
 RUN_ID = uuid.uuid4().hex
 

@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 
 import datetime
-from config import VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE, RULES_SCHEMA, VIOLATION_SQUELCH_POSTFIX, CLOUDWATCH_METRICS
-from helpers import log
-from helpers.db import connect, load_rules
 import uuid
+
+from .config import (
+    VIOLATIONS_TABLE,
+    QUERY_METADATA_TABLE,
+    RUN_METADATA_TABLE,
+    RULES_SCHEMA,
+    VIOLATION_SQUELCH_POSTFIX,
+    CLOUDWATCH_METRICS,
+)
+from .helpers import db, log
 
 RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'VIOLATION SUPPRESSIONS'}  # Contains metadata about this run
 RUN_ID = uuid.uuid4().hex
@@ -23,7 +30,7 @@ def run_suppression(squelch_name):
     metadata['RUN_ID'] = RUN_ID
     metadata['ATTEMPTS'] = 1
     metadata['START_TIME'] = datetime.datetime.utcnow()
-    ctx = connect()
+    ctx = db.connect()
     print(f"Received suppression {squelch_name}")
     try:
         ctx.cursor().execute(f"""
@@ -48,8 +55,8 @@ def main():
     RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
     RUN_METADATA['RUN_ID'] = RUN_ID
 
-    ctx = connect()
-    for squelch_name in load_rules(ctx, VIOLATION_SQUELCH_POSTFIX):
+    ctx = db.connect()
+    for squelch_name in db.load_rules(ctx, VIOLATION_SQUELCH_POSTFIX):
         run_suppression(squelch_name)
     flag_remaining_alerts(ctx)
 
