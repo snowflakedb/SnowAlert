@@ -17,23 +17,29 @@ jobs:
           - app-venv-  # fallback to using the latest cache if no exact match is found
 
       - run:
-          name: install_snowalert_dependencies
+          name: install_dependencies
           command: |
+            cd src
             python -m venv .venv
-            ls -al . ; ls -al .venv ; ls -al .venv/bin
             source .venv/bin/activate
-            pip install src/
+            pip install --upgrade pip
+            pip install .
+            pip install mypy
 
       - save_cache:
           paths:
-            - ./.venv
+            - ./src/.venv
           key: app-venv-{{ checksum "src/setup.py" }}
 
       - run:
-          name: run tests
+          name: run static analysis
           command: |
-            source ./.venv/bin/activate
-            pyflakes ./src
+            cd src
+            source .venv/bin/activate
+            touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
+            pyflakes ./scripts ./runners
+            MYPYPATH="`pwd`/.venv/lib/python3.7/site-packages/" \
+              mypy --config-file mypy.ini ./runners ./scripts
 
       # - run:
       #     name: do the build
@@ -46,7 +52,7 @@ jobs:
 
   build-docs:
     docker:
-      - image: circleci/python:3.6.1
+      - image: circleci/python:3.7.2
 
     working_directory: ~/project
 

@@ -12,3 +12,4 @@ src/samui/**/*.css
 *.envs
 *.venv
 *.db
+*.egg-info/
