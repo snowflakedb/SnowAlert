@@ -1,0 +1,18 @@
+FROM r-base:latest
+
+COPY ./src/sars/temp.R /sfc/temp.R
+
+RUN apt-get update \
+&& apt-get install -y python3-pip python3-venv
+
+
+RUN mkdir -p /sfc/snowalert
+RUN python3 -m venv /sfc/snowalert/venv
+ENV PATH="/sfc/snowalert/venv/bin:${PATH}"
+COPY ./src /sfc/snowalert/src
+
+
+
+RUN PYTHONPATH='' pip3 install wheel /sfc/snowalert/src/
+#RUN R -e "suppressMessages(install.packages('dplyr'))"
+CMD /sfc/snowalert/src/sars/run.sh

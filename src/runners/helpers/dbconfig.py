@@ -14,4 +14,4 @@ WAREHOUSE = os.environ.get('SA_WAREHOUSE', "snowalert")
 DATABASE = os.environ.get('SA_DATABASE', "snowalert")
 
 # connection properties
-TIMEOUT = 500
+TIMEOUT = 500000
