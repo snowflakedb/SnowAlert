@@ -129,6 +129,12 @@ export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
   }
 };
 
+export const UPDATE_INTERIM_TITLE = 'UPDATE_INTERIM_TITLE';
+export type UpdateInterimTitleAction = ActionWithPayload<typeof UPDATE_INTERIM_TITLE, string>;
+export const updateInterimTitle = (newTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(UPDATE_INTERIM_TITLE, newTitle));
+};
+
 export const RENAME_RULE_REQUEST = 'RENAME_RULE_REQUEST';
 export const RENAME_RULE_SUCCESS = 'RENAME_RULE_SUCCESS';
 export const RENAME_RULE_FAILURE = 'RENAME_RULE_FAILURE';
@@ -161,4 +167,5 @@ export type EditRulesActions =
   | SaveRuleActions
   | ChangeTitleAction
   | DeleteRuleActions
-  | RenameRuleActions;
+  | RenameRuleActions
+  | UpdateInterimTitleAction;
