@@ -55,7 +55,7 @@ export interface SnowAlertRule {
   readonly body: string;
   readonly savedBody: string;
   readonly isSaving: boolean;
-  newTitle: string | null;
+  readonly newTitle: string | null;
 }
 
 export interface SnowAlertRulesState {

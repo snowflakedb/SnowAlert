@@ -11,7 +11,7 @@ import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
-import {changeTitle, newRule, renameRule} from '../../actions/rules';
+import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
 import './Alerts.css';
 
 interface StateProps {
@@ -25,6 +25,7 @@ interface DispatchProps {
   newRule: typeof newRule;
   changeTitle: typeof changeTitle;
   renameRule: typeof renameRule;
+  updateInterimTitle: typeof updateInterimTitle;
 }
 
 type AlertsProps = StateProps & DispatchProps;
@@ -71,7 +72,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
                     id="title_input"
                     style={{width: 300}}
                     defaultValue={currentRule.title}
-                    onChange={e => (currentRule.newTitle = e.target.value)}
+                    onChange={e => this.props.updateInterimTitle(e.target.value)}
                   />
                   <Button
                     type="primary"
@@ -130,6 +131,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       newRule,
       changeTitle,
       renameRule,
+      updateInterimTitle,
     },
     dispatch,
   );
