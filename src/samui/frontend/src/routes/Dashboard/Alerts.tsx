@@ -2,7 +2,7 @@ import {Button, Card, Input, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {changeTitle, newRule, renameRule} from '../../actions/rules';
+import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
 import {RuleEditor} from '../../components/Dashboard';
 import '../../index.css';
 import {getRules} from '../../reducers/rules';
@@ -19,6 +19,7 @@ interface DispatchProps {
   newRule: typeof newRule;
   changeTitle: typeof changeTitle;
   renameRule: typeof renameRule;
+  updateInterimTitle: typeof updateInterimTitle;
 }
 
 type AlertsProps = StateProps & DispatchProps;
@@ -43,7 +44,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
                   id="title_input"
                   style={{width: 300}}
                   defaultValue={currentRule.title}
-                  onChange={e => (currentRule.newTitle = e.target.value)}
+                  onChange={e => this.props.updateInterimTitle(e.target.value)}
                 />
                 <Button
                   type="primary"
@@ -98,6 +99,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       newRule,
       changeTitle,
       renameRule,
+      updateInterimTitle,
     },
     dispatch,
   );

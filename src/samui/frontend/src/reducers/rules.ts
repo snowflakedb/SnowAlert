@@ -69,7 +69,8 @@ export const rules: Reducer<SnowAlertRulesState> = (
     | RulesActions.NewRuleAction
     | RulesActions.DeleteRuleActions
     | RulesActions.NewRuleAction
-    | RulesActions.RenameRuleActions,
+    | RulesActions.RenameRuleActions
+    | RulesActions.UpdateInterimTitleAction,
 ) => {
   const isView = (v: string | null, r: SnowAlertRule) => v && v == `${r.title}_${r.target}_${r.type}`;
 
@@ -182,6 +183,15 @@ export const rules: Reducer<SnowAlertRulesState> = (
       alert(`RULE_DELETION_FAILURE ${message}`);
       return {
         ...state,
+      };
+
+    //Updating the interim title for a rule
+    case RulesActions.UPDATE_INTERIM_TITLE:
+      return {
+        ...state,
+        rules: state.rules.map(
+          r => (isView(state.currentRuleView, r) ? Object.assign(r, {newTitle: action.payload}) : r),
+        ),
       };
 
     // renaming rules
