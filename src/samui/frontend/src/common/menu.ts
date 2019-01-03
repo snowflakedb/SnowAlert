@@ -3,6 +3,12 @@ import * as stateTypes from '../reducers/types';
 
 const menuData: stateTypes.MenuData = [
   {
+    name: 'Policies',
+    icon: 'file-done',
+    path: 'dashboard/policies',
+    roles: [roles.ADMIN, roles.USER],
+  },
+  {
     name: 'Alerts',
     icon: 'table',
     path: 'dashboard/alerts',

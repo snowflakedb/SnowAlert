@@ -37,15 +37,21 @@ def get_rules():
     return jsonify(
         rules=[
             {
-                "title": re.sub('_(alert|violation)_(query|suppression)$', '', rule['name'], flags=re.I),
+                "title": re.sub('_(alert|violation|policy)_(query|suppression|definition)$', '', rule['name'], flags=re.I),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
                 "body": unindent(re.sub(RULE_PREFIX, '', rule['text'], flags=re.I)),
+                "results": (
+                    list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{rule['name']};"))
+                    if rule['name'].endswith("_POLICY_DEFINITION")
+                    else None
+                ),
             } for rule in rules if (
                 rule['name'].endswith("_ALERT_QUERY")
                 or rule['name'].endswith("_ALERT_SUPPRESSION")
                 or rule['name'].endswith("_VIOLATION_QUERY")
                 or rule['name'].endswith("_VIOLATION_SUPPRESSION")
+                or rule['name'].endswith("_POLICY_DEFINITION")
             )
         ]
     )
