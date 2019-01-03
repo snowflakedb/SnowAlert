@@ -6,6 +6,7 @@ setup(
     packages=['runners', 'runners.helpers', 'runners.plugins'],
     install_requires=[
         'jira==2.0.0',
+        'PyYAML==3.13',
         'snowflake-connector-python==1.7.3',
         'snowflake-sqlalchemy==1.1.2',
         'mypy==0.650',

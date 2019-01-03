@@ -3,13 +3,11 @@
 import os
 import sys
 
-from . import (
-    alert_queries_runner,
-    alert_suppressions_runner,
-    alert_handler,
-    violation_queries_runner,
-    violation_suppressions_runner,
-)
+from runners import alert_queries_runner
+from runners import alert_suppressions_runner
+from runners import alert_handler
+from runners import violation_queries_runner
+from runners import violation_suppressions_runner
 
 
 def main(command, rule_name=None):
