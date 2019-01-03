@@ -49,8 +49,10 @@ export interface ViewportState {
 }
 
 export interface SnowAlertRule {
-  readonly target: 'ALERT' | 'VIOLATION';
-  readonly type: 'QUERY' | 'SUPPRESSION';
+  readonly target: 'ALERT' | 'VIOLATION' | 'POLICY';
+  readonly type: 'QUERY' | 'SUPPRESSION' | 'DEFINITION';
+  readonly passing?: boolean;
+  readonly results?: {TITLE: string; PASSING: boolean}[];
   readonly title: string;
   readonly body: string;
   readonly savedBody: string;
