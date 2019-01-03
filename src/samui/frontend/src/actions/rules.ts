@@ -1,7 +1,8 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {createAction, ActionWithPayload, GetState} from './action-helpers';
+import {Policy} from '../store/rules';
+import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
 // load rules
@@ -48,11 +49,77 @@ export const changeTitle = (rule: SnowAlertRule, newTitle: string) => async (dis
   dispatch(createAction(CHANGE_TITLE, {rule, newTitle}));
 };
 
+// changing rule title
+export const UPDATE_POLICY_TITLE = 'UPDATE_POLICY_TITLE';
+export type UpdatePolicyTitleAction = ActionWithPayload<
+  typeof UPDATE_POLICY_TITLE,
+  {viewName: string; newTitle: string}
+>;
+export const updatePolicyTitle = (viewName: string, newTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(UPDATE_POLICY_TITLE, {viewName, newTitle}));
+};
+
+// changing rule description
+export const UPDATE_POLICY_DESCRIPTION = 'UPDATE_POLICY_DESCRIPTION';
+export type UpdatePolicyDescriptionAction = ActionWithPayload<
+  typeof UPDATE_POLICY_DESCRIPTION,
+  {viewName: string; newDescription: string}
+>;
+export const updatePolicyDescription = (viewName: string, newDescription: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(UPDATE_POLICY_DESCRIPTION, {viewName, newDescription}));
+};
+
 // adding new rule
 export const NEW_RULE = 'NEW_RULE';
 export type NewRuleAction = ActionWithPayload<typeof NEW_RULE, {ruleTarget: RuleTarget; ruleType: RuleType}>;
 export const newRule = (ruleTarget: RuleTarget, ruleType: RuleType) => async (dispatch: Dispatch) => {
   dispatch(createAction(NEW_RULE, {ruleTarget, ruleType}));
+};
+
+// edit rule
+export const EDIT_RULE = 'EDIT_RULE';
+export type EditRuleAction = ActionWithPayload<typeof EDIT_RULE, string>;
+export const editRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(EDIT_RULE, ruleTitle));
+};
+
+// revert rule
+export const REVERT_RULE = 'REVERT_RULE';
+export type RevertRuleAction = ActionWithPayload<typeof REVERT_RULE, Policy>;
+export const revertRule = (policy?: Policy) => async (dispatch: Dispatch) => {
+  dispatch(createAction(REVERT_RULE, policy));
+};
+
+// delete subpolicy
+export const DELETE_SUBPOLICY = 'DELETE_SUBPOLICY';
+export type DeleteSubpolicyAction = ActionWithPayload<typeof DELETE_SUBPOLICY, {ruleTitle: string; i: number}>;
+export const deleteSubpolicy = (ruleTitle: string, i: number) => async (dispatch: Dispatch) => {
+  dispatch(createAction(DELETE_SUBPOLICY, {ruleTitle, i}));
+};
+
+// edit subpolicy
+export const EDIT_SUBPOLICY = 'EDIT_SUBPOLICY';
+export type SubpolicyChange = {title?: string; condition?: string};
+export type EditSubpolicyAction = ActionWithPayload<
+  typeof EDIT_SUBPOLICY,
+  {ruleTitle: string; i: number; change: SubpolicyChange}
+>;
+export const editSubpolicy = (ruleTitle: string, i: number, change: SubpolicyChange) => async (dispatch: Dispatch) => {
+  dispatch(createAction(EDIT_SUBPOLICY, {ruleTitle, i, change}));
+};
+
+// add subpolicy
+export const ADD_POLICY = 'ADD_POLICY';
+export type AddPolicyAction = Action<typeof ADD_POLICY>;
+export const addPolicy = () => async (dispatch: Dispatch) => {
+  dispatch(createAction(ADD_POLICY));
+};
+
+// add subpolicy
+export const ADD_SUBPOLICY = 'ADD_SUBPOLICY';
+export type AddSubpolicyAction = ActionWithPayload<typeof ADD_SUBPOLICY, {ruleTitle: string}>;
+export const addSubpolicy = (ruleTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(ADD_SUBPOLICY, {ruleTitle}));
 };
 
 // changing rule selection
@@ -162,10 +229,18 @@ export const renameRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
 };
 
 export type EditRulesActions =
+  | AddPolicyAction
+  | AddSubpolicyAction
+  | EditSubpolicyAction
   | ChangeRuleAction
   | ChangeRuleBodyAction
-  | SaveRuleActions
   | ChangeTitleAction
   | DeleteRuleActions
+  | DeleteSubpolicyAction
+  | EditRuleAction
   | RenameRuleActions
+  | RevertRuleAction
+  | SaveRuleActions
+  | UpdatePolicyTitleAction
+  | UpdatePolicyDescriptionAction
   | UpdateInterimTitleAction;

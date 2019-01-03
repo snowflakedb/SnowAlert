@@ -1,4 +1,4 @@
-import {Icon, Layout} from 'antd';
+import {Layout} from 'antd';
 import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import {connect} from 'react-redux';
@@ -118,13 +118,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
           <Content style={{margin: '24px 24px 0', height: '100%'}}>
             <AuthorizedRoute component={content.component} roles={content.roles} />
           </Content>
-          <GlobalFooter
-            copyright={
-              <div>
-                Copyright <Icon type="copyright" /> 2018 Snowflake Computing, Inc.
-              </div>
-            }
-          />
+          <GlobalFooter copyright={<div />} />
         </Layout>
       </Layout>
     );

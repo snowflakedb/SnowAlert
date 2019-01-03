@@ -37,15 +37,21 @@ def get_rules():
     return jsonify(
         rules=[
             {
-                "title": re.sub('_(alert|violation)_(query|suppression)$', '', rule['name'], flags=re.I),
+                "title": re.sub('_(alert|violation|policy)_(query|suppression|definition)$', '', rule['name'], flags=re.I),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
                 "body": unindent(re.sub(RULE_PREFIX, '', rule['text'], flags=re.I)),
+                "results": (
+                    list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{rule['name']};"))
+                    if rule['name'].endswith("_POLICY_DEFINITION")
+                    else None
+                ),
             } for rule in rules if (
                 rule['name'].endswith("_ALERT_QUERY")
                 or rule['name'].endswith("_ALERT_SUPPRESSION")
                 or rule['name'].endswith("_VIOLATION_QUERY")
                 or rule['name'].endswith("_VIOLATION_SUPPRESSION")
+                or rule['name'].endswith("_POLICY_DEFINITION")
             )
         ]
     )
@@ -60,14 +66,28 @@ def create_rule():
     rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
+    # support for full queries with comments frontend sends comments
+    rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
+    m = re.match(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body)
+    comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
+    comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ''
+
     ctx = db.connect()
     try:
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         ctx.cursor().execute(
-            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS AS\n{rule_body}"""
+            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS {comment_clause}AS\n{rule_body}"""
         ).fetchall()
+
         if 'body' in json and 'savedBody' in json:
             json['savedBody'] = rule_body
+
+        json['results'] = (
+            list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{view_name};"))
+            if view_name.endswith("_POLICY_DEFINITION")
+            else None
+        )
+
     except snowflake.connector.errors.ProgrammingError as e:
         return jsonify(success=False, message=e.msg, rule=json)
 
