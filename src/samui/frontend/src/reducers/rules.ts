@@ -96,6 +96,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {isSaving: true}) : r)),
+        policies: state.policies.map(
+          p => (p.view_name == state.currentRuleView ? Object.assign(p, {isSaving: true}) : p),
+        ),
       };
 
     case RulesActions.SAVE_RULE_SUCCESS:

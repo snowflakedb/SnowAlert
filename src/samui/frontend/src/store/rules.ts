@@ -106,7 +106,7 @@ export class Policy {
 
   get body(): string {
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name}_POLICY_DEFINITION COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
       `  COMMENT='${this.title.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies

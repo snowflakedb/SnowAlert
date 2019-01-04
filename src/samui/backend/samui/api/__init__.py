@@ -68,7 +68,7 @@ def create_rule():
 
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
-    m = next(re.finditer(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body))
+    m = re.match(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body)
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
     comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ''
 

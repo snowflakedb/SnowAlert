@@ -113,7 +113,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                               style={{marginRight: 10}}
                               onClick={() => this.props.saveRule(policy.raw)}
                             >
-                              {policy.raw.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
+                              {policy.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
                             </Button>
                             <Button type="default" disabled={false} onClick={() => this.props.revertRule(policy)}>
                               Cancel
