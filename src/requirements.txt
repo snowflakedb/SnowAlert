@@ -25,7 +25,7 @@ PyJWT==1.6.4
 pyOpenSSL==18.0.0
 python-dateutil==2.7.5
 pytz==2018.7
-PyYAML==3.13
+PyYAML==4.2b1
 requests==2.20.1
 requests-oauthlib==1.0.0
 requests-toolbelt==0.8.0
