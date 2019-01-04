@@ -77,7 +77,7 @@ export class Policy {
   load_body(sql: string, results: stateTypes.SnowAlertRule['results']) {
     const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
       descrRe = /^  COMMENT='([^']+)'\nAS\n/gm,
-      subplRe = /^  SELECT '([^']+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
+      subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
 
     const vnameMatch = vnameRe.exec(sql) || raise('no vname match'),
       vnameAfter = sql.substr(vnameMatch[0].length);
@@ -98,7 +98,7 @@ export class Policy {
       this.subpolicies.push({
         i,
         passing: results ? results[i++].PASSING : false,
-        title: matchSubpl[1],
+        title: matchSubpl[1].replace(/\\'/g, "'"),
         condition: matchSubpl[2],
       });
     } while (rest.replace(/\s/g, ''));
@@ -107,10 +107,10 @@ export class Policy {
   get body(): string {
     return (
       `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name}_POLICY_DEFINITION COPY GRANTS\n` +
-      `  COMMENT='${this.title}'\n` +
+      `  COMMENT='${this.title.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
-        .map(sp => `  SELECT '${sp.title}' AS title\n` + `       , ${sp.condition} AS passing`)
+        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n` + `       , ${sp.condition} AS passing`)
         .join('\nUNION ALL\n') +
       `\n;\n`
     );

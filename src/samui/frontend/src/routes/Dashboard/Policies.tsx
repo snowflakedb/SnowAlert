@@ -1,4 +1,4 @@
-import {Avatar, Badge, Button, Card, Icon, Input, List, Table, Row} from 'antd';
+import {Avatar, Badge, Button, Card, Divider, Icon, Input, List, Table, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -65,19 +65,21 @@ class Policies extends React.PureComponent<PoliciesProps> {
       rules: {policies, currentRuleView},
     } = this.props;
 
+    // extra={
+    //   <div>
+    //     <Button type="primary" disabled={true} onClick={() => this.props.newRule('POLICY', 'DEFINITION')}>
+    //       + POLICY
+    //     </Button>
+    //   </div>
+    // }
+
     return (
-      <Card
-        title={'Policies Dashboard'}
-        className={'card'}
-        bordered={true}
-        extra={
-          <div>
-            <Button type="primary" disabled={true} onClick={() => this.props.newRule('POLICY', 'DEFINITION')}>
-              + POLICY
-            </Button>
-          </div>
-        }
-      >
+      <Card>
+        <Card.Meta
+          title="Policies"
+          description="A policy is a security requirement defined by the organization for its protection. You can create a policy and add violation queries to it for automatic policy validation"
+        />
+        <Divider />
         <Row>
           <List
             itemLayout="vertical"
@@ -108,6 +110,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             <Button
                               type="primary"
                               disabled={policy.isSaving || policy.isSaved}
+                              style={{marginRight: 10}}
                               onClick={() => this.props.saveRule(policy.raw)}
                             >
                               {policy.raw.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
@@ -117,9 +120,9 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             </Button>
                           </span>
                         ) : (
-                          <a onClick={() => this.props.editRule(policy.view_name)} style={{float: 'right'}}>
+                          <Button onClick={() => this.props.editRule(policy.view_name)} style={{float: 'right'}}>
                             <Icon type="edit" /> edit
-                          </a>
+                          </Button>
                         ))}
                     </span>
                   }
@@ -171,7 +174,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             policy.isEditing ? (
                               <div>
                                 <Button type="danger" onClick={() => this.props.deleteSubpolicy(policy.view_name, i)}>
-                                  rm
+                                  <Icon type="delete" />
                                 </Button>
                               </div>
                             ) : (
