@@ -1,6 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
+import {Policy} from '../store/rules';
 import {createAction, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -53,6 +54,45 @@ export const NEW_RULE = 'NEW_RULE';
 export type NewRuleAction = ActionWithPayload<typeof NEW_RULE, {ruleTarget: RuleTarget; ruleType: RuleType}>;
 export const newRule = (ruleTarget: RuleTarget, ruleType: RuleType) => async (dispatch: Dispatch) => {
   dispatch(createAction(NEW_RULE, {ruleTarget, ruleType}));
+};
+
+// edit rule
+export const EDIT_RULE = 'EDIT_RULE';
+export type EditRuleAction = ActionWithPayload<typeof EDIT_RULE, string>;
+export const editRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(EDIT_RULE, ruleTitle));
+};
+
+// revert rule
+export const REVERT_RULE = 'REVERT_RULE';
+export type RevertRuleAction = ActionWithPayload<typeof REVERT_RULE, Policy>;
+export const revertRule = (policy?: Policy) => async (dispatch: Dispatch) => {
+  dispatch(createAction(REVERT_RULE, policy));
+};
+
+// delete subpolicy
+export const DELETE_SUBPOLICY = 'DELETE_SUBPOLICY';
+export type DeleteSubpolicyAction = ActionWithPayload<typeof DELETE_SUBPOLICY, {ruleTitle: string; i: number}>;
+export const deleteSubpolicy = (ruleTitle: string, i: number) => async (dispatch: Dispatch) => {
+  dispatch(createAction(DELETE_SUBPOLICY, {ruleTitle, i}));
+};
+
+// edit subpolicy
+export const EDIT_SUBPOLICY = 'EDIT_SUBPOLICY';
+export type SubpolicyChange = {title?: string; condition?: string};
+export type EditSubpolicyAction = ActionWithPayload<
+  typeof EDIT_SUBPOLICY,
+  {ruleTitle: string; i: number; change: SubpolicyChange}
+>;
+export const editSubpolicy = (ruleTitle: string, i: number, change: SubpolicyChange) => async (dispatch: Dispatch) => {
+  dispatch(createAction(EDIT_SUBPOLICY, {ruleTitle, i, change}));
+};
+
+// add subpolicy
+export const ADD_SUBPOLICY = 'ADD_SUBPOLICY';
+export type AddSubpolicyAction = ActionWithPayload<typeof ADD_SUBPOLICY, {ruleTitle: string}>;
+export const addSubpolicy = (ruleTitle: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(ADD_SUBPOLICY, {ruleTitle}));
 };
 
 // changing rule selection
@@ -162,10 +202,15 @@ export const renameRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
 };
 
 export type EditRulesActions =
+  | AddSubpolicyAction
+  | EditSubpolicyAction
   | ChangeRuleAction
   | ChangeRuleBodyAction
-  | SaveRuleActions
   | ChangeTitleAction
   | DeleteRuleActions
+  | DeleteSubpolicyAction
+  | EditRuleAction
   | RenameRuleActions
+  | RevertRuleAction
+  | SaveRuleActions
   | UpdateInterimTitleAction;
