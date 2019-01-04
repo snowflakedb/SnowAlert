@@ -66,14 +66,28 @@ def create_rule():
     rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
+    # support for full queries with comments frontend sends comments
+    rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
+    m = next(re.finditer(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body))
+    comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
+    comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ''
+
     ctx = db.connect()
     try:
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         ctx.cursor().execute(
-            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS AS\n{rule_body}"""
+            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS {comment_clause}AS\n{rule_body}"""
         ).fetchall()
+
         if 'body' in json and 'savedBody' in json:
             json['savedBody'] = rule_body
+
+        json['results'] = (
+            list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{view_name};"))
+            if view_name.endswith("_POLICY_DEFINITION")
+            else None
+        )
+
     except snowflake.connector.errors.ProgrammingError as e:
         return jsonify(success=False, message=e.msg, rule=json)
 

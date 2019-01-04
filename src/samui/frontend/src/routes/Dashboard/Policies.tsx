@@ -1,4 +1,4 @@
-import {Avatar, Badge, Button, Card, List, Table, Row} from 'antd';
+import {Avatar, Badge, Button, Card, Icon, Input, List, Table, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -6,13 +6,20 @@ import '../../index.css';
 
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
+import {Policy} from '../../store/rules';
 import {
-  changeTitle,
+  addSubpolicy,
+  editSubpolicy,
   changeRule,
+  changeTitle,
+  editRule,
+  loadSnowAlertRules,
   newRule,
   renameRule,
+  revertRule,
+  saveRule,
+  deleteSubpolicy,
   updateInterimTitle,
-  loadSnowAlertRules,
 } from '../../actions/rules';
 import './Policies.css';
 
@@ -21,112 +28,30 @@ interface StateProps {
 }
 
 interface DispatchProps {
-  loadSnowAlertRules: typeof loadSnowAlertRules;
-  newRule: typeof newRule;
+  addSubpolicy: typeof addSubpolicy;
+  editSubpolicy: typeof editSubpolicy;
   changeRule: typeof changeRule;
   changeTitle: typeof changeTitle;
+  deleteSubpolicy: typeof deleteSubpolicy;
+  editRule: typeof editRule;
+  loadSnowAlertRules: typeof loadSnowAlertRules;
+  newRule: typeof newRule;
   renameRule: typeof renameRule;
+  revertRule: typeof revertRule;
+  saveRule: typeof saveRule;
   updateInterimTitle: typeof updateInterimTitle;
 }
 
 type PoliciesProps = StateProps & DispatchProps;
 
-function raise(e: string): never {
-  throw e;
-}
-
-// function matchAll(regexp: RegExp, s: string): string[][] {
-//   var matches: string[][] = [];
-//   s.replace(regexp, (...args) => {
-//     matches.push(args);
-//     return '';
-//   });
-//   return matches;
-// };
-
-function successDot(status: boolean) {
+function successDot(status?: boolean) {
   return status ? (
-    <Avatar size={15} style={{color: 'green', backgroundColor: '#b5e2a2'}} />
+    <Avatar size={15} style={{backgroundColor: '#b5e2a2'}} />
+  ) : status === undefined ? (
+    <Avatar size={15} style={{backgroundColor: 'lightgray'}} />
   ) : (
-    <Avatar size={15} style={{color: 'red', backgroundColor: '#fde3cf'}} />
+    <Avatar size={15} style={{backgroundColor: '#fde3cf'}} />
   );
-}
-
-class PolicyRule {
-  _raw: stateTypes.SnowAlertRule;
-  views: string;
-  comment: string;
-  subpolicies: {title: string; passing: boolean; condition: string}[];
-
-  constructor(rule: stateTypes.SnowAlertRule) {
-    this.raw = rule;
-  }
-
-  get raw() {
-    return this._raw;
-  }
-
-  set raw(r) {
-    this._raw = r;
-    this.parse_body(r.body, r.results);
-  }
-
-  get view_name(): string {
-    return this.raw.title + '_POLICY_DEFINITION';
-  }
-
-  get passing(): boolean {
-    return this.subpolicies.every(x => x.passing);
-  }
-
-  get title() {
-    return this.comment.replace(/\n.*$/g, '');
-  }
-
-  get description() {
-    return this.comment.replace(/^.*?\n/g, '');
-  }
-
-  parse_body(sql: string, results: stateTypes.SnowAlertRule['results']) {
-    const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) COPY GRANTS\n  /m,
-      descrRe = /^COMMENT='([^']+)'\nAS\n/gm,
-      subplRe = /^  SELECT '([^']+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
-
-    const vnameMatch = vnameRe.exec(sql) || raise('no vname match'),
-      vnameAfter = sql.substr(vnameMatch[0].length);
-
-    const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match'),
-      descrAfter = vnameAfter.substr(descrMatch[0].length);
-
-    this.comment = descrMatch[1];
-    this.subpolicies = [];
-
-    var rest = descrAfter;
-    var i = 0;
-
-    do {
-      var matchSubpl = subplRe.exec(rest) || raise('no title match'),
-        rest = rest.substr(matchSubpl[0].length);
-
-      this.subpolicies.push({
-        passing: results ? results[i++].PASSING : false,
-        title: matchSubpl[1],
-        condition: matchSubpl[2],
-      });
-    } while (rest);
-  }
-
-  get body(): string {
-    return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name}_POLICY_DEFINITION COPY GRANTS\n` +
-      `  COMMENT='${this.title}\n'` +
-      `AS\n` +
-      this.subpolicies
-        .map(sp => `  SELECT '${sp.title}' AS title\n` + `       , '${sp.condition}' AS passing`)
-        .join('\nUNION ALL\n') +
-      `;\n`
-    );
-  }
 }
 
 class Policies extends React.PureComponent<PoliciesProps> {
@@ -137,10 +62,8 @@ class Policies extends React.PureComponent<PoliciesProps> {
 
   render() {
     const {
-      rules: {rules, currentRuleView},
+      rules: {policies, currentRuleView},
     } = this.props;
-
-    const policies = rules.filter(r => r.target == 'POLICY').map(r => new PolicyRule(r));
 
     return (
       <Card
@@ -149,7 +72,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
         bordered={true}
         extra={
           <div>
-            <Button type="primary" onClick={() => this.props.newRule('POLICY', 'DEFINITION')}>
+            <Button type="primary" disabled={true} onClick={() => this.props.newRule('POLICY', 'DEFINITION')}>
               + POLICY
             </Button>
           </div>
@@ -159,8 +82,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
           <List
             itemLayout="vertical"
             dataSource={policies}
-            pagination={false}
-            renderItem={(policy: PolicyRule) => (
+            renderItem={(policy: Policy) => (
               <List.Item>
                 <List.Item.Meta
                   title={
@@ -170,7 +92,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                         style={{color: 'green', backgroundColor: '#b5e2a2', marginRight: 10}}
                       />
                       <Badge
-                        count={`${policy.subpolicies.filter(x => !x.passing).length}`}
+                        count={`${policy.subpolicies.filter(x => x.passing === false).length}`}
                         style={{color: 'red', backgroundColor: '#fde3cf', marginRight: 10}}
                       />
                       <a
@@ -180,6 +102,25 @@ class Policies extends React.PureComponent<PoliciesProps> {
                       >
                         {policy.title}
                       </a>
+                      {policy.view_name == currentRuleView &&
+                        (policy.isEditing ? (
+                          <span style={{float: 'right'}}>
+                            <Button
+                              type="primary"
+                              disabled={policy.isSaving || policy.isSaved}
+                              onClick={() => this.props.saveRule(policy.raw)}
+                            >
+                              {policy.raw.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
+                            </Button>
+                            <Button type="default" disabled={false} onClick={() => this.props.revertRule(policy)}>
+                              Cancel
+                            </Button>
+                          </span>
+                        ) : (
+                          <a onClick={() => this.props.editRule(policy.view_name)} style={{float: 'right'}}>
+                            <Icon type="edit" /> edit
+                          </a>
+                        ))}
                     </span>
                   }
                   description={policy.description}
@@ -189,12 +130,63 @@ class Policies extends React.PureComponent<PoliciesProps> {
                     <Table
                       pagination={false}
                       columns={[
-                        {title: '', dataIndex: 'passing', key: 'passing', render: successDot, width: 5},
-                        {title: 'title', dataIndex: 'title', key: 'title'},
-                        {title: 'condition', dataIndex: 'condition', key: 'condition'},
+                        {title: '', dataIndex: 'passing', key: 'passing', width: 5, render: successDot},
+                        {
+                          title: 'Title',
+                          dataIndex: 'title',
+                          key: 'title',
+                          render: (text, record, i) =>
+                            policy.isEditing ? (
+                              <Input.TextArea
+                                disabled={policy.isSaving}
+                                autosize={{minRows: 1, maxRows: 1}}
+                                value={text}
+                                onChange={e => this.props.editSubpolicy(policy.view_name, i, {title: e.target.value})}
+                              />
+                            ) : (
+                              text
+                            ),
+                        },
+                        {
+                          title: 'Condition',
+                          dataIndex: 'condition',
+                          key: 'condition',
+                          render: (text, record, i) =>
+                            policy.isEditing ? (
+                              <Input.TextArea
+                                disabled={policy.isSaving}
+                                autosize={{minRows: 1, maxRows: 1}}
+                                value={text}
+                                onChange={e =>
+                                  this.props.editSubpolicy(policy.view_name, i, {condition: e.target.value})
+                                }
+                              />
+                            ) : (
+                              text
+                            ),
+                        },
+                        {
+                          title: 'Actions',
+                          render: (text, record, i) =>
+                            policy.isEditing ? (
+                              <div>
+                                <Button type="danger" onClick={() => this.props.deleteSubpolicy(policy.view_name, i)}>
+                                  rm
+                                </Button>
+                              </div>
+                            ) : (
+                              <div />
+                            ),
+                        },
                       ]}
                       dataSource={policy.subpolicies}
+                      rowKey={'i'}
                     />
+                  )}
+                  {policy.isEditing && (
+                    <Button onClick={() => this.props.addSubpolicy(policy.view_name)} style={{margin: 10}}>
+                      add subpolicy
+                    </Button>
                   )}
                 </div>
               </List.Item>
@@ -215,11 +207,17 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      loadSnowAlertRules,
-      newRule,
+      addSubpolicy,
+      editSubpolicy,
       changeRule,
       changeTitle,
+      deleteSubpolicy,
+      editRule,
+      loadSnowAlertRules,
+      newRule,
       renameRule,
+      revertRule,
+      saveRule,
       updateInterimTitle,
     },
     dispatch,
