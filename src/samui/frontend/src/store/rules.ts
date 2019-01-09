@@ -27,6 +27,15 @@ export class Subpolicy {
   }
 }
 
+const BLANK_POLICY = (view_name: string) =>
+  `CREATE OR REPLACE VIEW x.y.${view_name}_POLICY_DEFINITION COPY GRANTS
+  COMMENT='Policy Title
+description goes here'
+AS
+  SELECT 'subpolicy title' AS title
+       , true AS passing
+;`;
+
 export class Policy {
   _raw: stateTypes.SnowAlertRule;
   views: string;
@@ -41,7 +50,23 @@ export class Policy {
     this.isEditing = false;
   }
 
-  get resetCopy() {
+  static create() {
+    const viewName = `PD_${Math.random()
+      .toString(36)
+      .substring(2)}`;
+    return new Policy({
+      target: 'POLICY',
+      type: 'DEFINITION',
+      title: viewName,
+      results: [{PASSING: undefined, TITLE: 'subpolicy title'}],
+      body: BLANK_POLICY(viewName),
+      savedBody: '',
+      isSaving: false,
+      newTitle: '',
+    });
+  }
+
+  get copy() {
     return new Policy(this._raw);
   }
 
@@ -55,7 +80,11 @@ export class Policy {
   }
 
   get isSaved() {
-    return this._raw.body == this._raw.savedBody;
+    return this._raw.savedBody !== '';
+  }
+
+  get isEdited() {
+    return this._raw.body !== this._raw.savedBody;
   }
 
   get view_name(): string {
@@ -68,6 +97,14 @@ export class Policy {
 
   get title() {
     return this.comment.replace(/\n.*$/g, '');
+  }
+
+  set title(newTitle) {
+    this.comment = this.comment.replace(/^.*?\n/, `${newTitle}\n`);
+  }
+
+  set description(newDescription) {
+    this.comment = this.comment.replace(/\n.*$/, `\n${newDescription}`);
   }
 
   get description() {
@@ -107,7 +144,7 @@ export class Policy {
   get body(): string {
     return (
       `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
-      `  COMMENT='${this.title.replace(/'/g, "\\'")}'\n` +
+      `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
         .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n` + `       , ${sp.condition} AS passing`)

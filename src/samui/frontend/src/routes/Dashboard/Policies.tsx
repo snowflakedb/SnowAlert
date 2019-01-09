@@ -8,10 +8,12 @@ import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
 import {Policy} from '../../store/rules';
 import {
+  addPolicy,
   addSubpolicy,
   editSubpolicy,
   changeRule,
-  changeTitle,
+  updatePolicyTitle,
+  updatePolicyDescription,
   editRule,
   loadSnowAlertRules,
   newRule,
@@ -28,10 +30,12 @@ interface StateProps {
 }
 
 interface DispatchProps {
+  addPolicy: typeof addPolicy;
   addSubpolicy: typeof addSubpolicy;
   editSubpolicy: typeof editSubpolicy;
   changeRule: typeof changeRule;
-  changeTitle: typeof changeTitle;
+  updatePolicyTitle: typeof updatePolicyTitle;
+  updatePolicyDescription: typeof updatePolicyDescription;
   deleteSubpolicy: typeof deleteSubpolicy;
   editRule: typeof editRule;
   loadSnowAlertRules: typeof loadSnowAlertRules;
@@ -46,11 +50,11 @@ type PoliciesProps = StateProps & DispatchProps;
 
 function successDot(status?: boolean) {
   return status ? (
-    <Avatar size={15} style={{backgroundColor: '#b5e2a2'}} />
+    <Icon type="check-circle" theme="twoTone" twoToneColor="#52c41a" />
   ) : status === undefined ? (
     <Avatar size={15} style={{backgroundColor: 'lightgray'}} />
   ) : (
-    <Avatar size={15} style={{backgroundColor: '#fde3cf'}} />
+    <Icon type="exclamation-circle" theme="twoTone" twoToneColor="#ff3434" />
   );
 }
 
@@ -65,19 +69,20 @@ class Policies extends React.PureComponent<PoliciesProps> {
       rules: {policies, currentRuleView},
     } = this.props;
 
-    // extra={
-    //   <div>
-    //     <Button type="primary" disabled={true} onClick={() => this.props.newRule('POLICY', 'DEFINITION')}>
-    //       + POLICY
-    //     </Button>
-    //   </div>
-    // }
-
     return (
-      <Card>
+      <Card
+        extra={
+          <Button onClick={() => this.props.addPolicy()}>
+            <Icon type="audit" /> new policy
+          </Button>
+        }
+      >
         <Card.Meta
           title="Policies"
-          description="A policy is a security requirement defined by the organization for its protection. You can create a policy and add violation queries to it for automatic policy validation"
+          description={`
+            A policy is a security requirement defined by the organization for its protection.
+            You can create a policy and add violation queries to it for automatic policy validation.
+          `}
         />
         <Divider />
         <Row>
@@ -91,25 +96,33 @@ class Policies extends React.PureComponent<PoliciesProps> {
                     <span>
                       <Badge
                         count={`${policy.subpolicies.filter(x => x.passing).length}`}
-                        style={{color: 'green', backgroundColor: '#b5e2a2', marginRight: 10}}
+                        style={{color: '#52c41a', backgroundColor: '#eafbe1', marginRight: 10}}
                       />
                       <Badge
                         count={`${policy.subpolicies.filter(x => x.passing === false).length}`}
-                        style={{color: 'red', backgroundColor: '#fde3cf', marginRight: 10}}
+                        style={{color: '#ff3434', backgroundColor: '#ffe5e5', marginRight: 10}}
                       />
-                      <a
-                        onClick={() =>
-                          this.props.changeRule(policy.view_name == currentRuleView ? '' : policy.view_name)
-                        }
-                      >
-                        {policy.title}
-                      </a>
+                      {policy.isEditing ? (
+                        <Input
+                          value={policy.title}
+                          style={{width: 500}}
+                          onChange={e => this.props.updatePolicyTitle(policy.view_name, e.currentTarget.value)}
+                        />
+                      ) : (
+                        <a
+                          onClick={() =>
+                            this.props.changeRule(policy.view_name == currentRuleView ? '' : policy.view_name)
+                          }
+                        >
+                          {policy.title}
+                        </a>
+                      )}
                       {policy.view_name == currentRuleView &&
                         (policy.isEditing ? (
                           <span style={{float: 'right'}}>
                             <Button
                               type="primary"
-                              disabled={policy.isSaving || policy.isSaved}
+                              disabled={policy.isSaving || !policy.isEdited}
                               style={{marginRight: 10}}
                               onClick={() => this.props.saveRule(policy.raw)}
                             >
@@ -126,7 +139,17 @@ class Policies extends React.PureComponent<PoliciesProps> {
                         ))}
                     </span>
                   }
-                  description={policy.description}
+                  description={
+                    policy.isEditing ? (
+                      <Input
+                        value={policy.description}
+                        style={{width: 500}}
+                        onChange={e => this.props.updatePolicyDescription(policy.view_name, e.currentTarget.value)}
+                      />
+                    ) : (
+                      policy.description
+                    )
+                  }
                 />
                 <div>
                   {policy.view_name == currentRuleView && (
@@ -173,7 +196,11 @@ class Policies extends React.PureComponent<PoliciesProps> {
                           render: (text, record, i) =>
                             policy.isEditing ? (
                               <div>
-                                <Button type="danger" onClick={() => this.props.deleteSubpolicy(policy.view_name, i)}>
+                                <Button
+                                  type="danger"
+                                  disabled={policy.subpolicies.length < 2}
+                                  onClick={() => this.props.deleteSubpolicy(policy.view_name, i)}
+                                >
                                   <Icon type="delete" />
                                 </Button>
                               </div>
@@ -210,10 +237,12 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
+      addPolicy,
       addSubpolicy,
       editSubpolicy,
       changeRule,
-      changeTitle,
+      updatePolicyTitle,
+      updatePolicyDescription,
       deleteSubpolicy,
       editRule,
       loadSnowAlertRules,

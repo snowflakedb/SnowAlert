@@ -54,7 +54,7 @@ export interface SnowAlertRule {
   readonly type: 'QUERY' | 'SUPPRESSION' | 'DEFINITION';
   readonly passing?: boolean;
   readonly isEditing?: boolean;
-  readonly results?: {TITLE: string; PASSING: boolean}[];
+  readonly results?: {TITLE: string; PASSING?: boolean}[];
   readonly title: string;
   readonly body: string;
   readonly savedBody: string;

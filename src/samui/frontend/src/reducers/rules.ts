@@ -117,7 +117,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
 
     case RulesActions.SAVE_RULE_FAILURE:
       var {rule, message} = action.payload;
-      const viewName = `${rule.title}_${rule.target}_${rule.type}`;
+      var viewName = `${rule.title}_${rule.target}_${rule.type}`;
       alert(`SAVE_RULE_FAILURE ${message}`);
       return {
         ...state,
@@ -135,6 +135,24 @@ export const rules: Reducer<SnowAlertRulesState> = (
         ...state,
         rules: state.rules.map(r => (isView(state.currentRuleView, r) ? Object.assign(r, {title: newTitle}) : r)),
         currentRuleView: `${rule.title}_${rule.target}_${rule.type}`,
+      };
+
+    // update_title
+    case RulesActions.UPDATE_POLICY_TITLE:
+      var {viewName, newTitle} = action.payload;
+      return {
+        ...state,
+        policies: state.policies.map(p => (viewName !== p.view_name ? p : Object.assign(p, {title: newTitle}))),
+      };
+
+    // update_title
+    case RulesActions.UPDATE_POLICY_DESCRIPTION:
+      var {viewName, newDescription} = action.payload;
+      return {
+        ...state,
+        policies: state.policies.map(
+          p => (viewName !== p.view_name ? p : Object.assign(p, {description: newDescription})),
+        ),
       };
 
     // updating which rule is selected
@@ -159,7 +177,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       var policy = action.payload;
       return {
         ...state,
-        policies: state.policies.map(r => (state.currentRuleView == r.view_name ? policy.resetCopy : r)),
+        policies: state.policies
+          .filter(r => r.isSaved)
+          .map(r => (state.currentRuleView === r.view_name ? policy.copy : r)),
       };
 
     // delete subpolicy
@@ -186,6 +206,16 @@ export const rules: Reducer<SnowAlertRulesState> = (
               ? p
               : Object.assign(p, {subpolicies: p.subpolicies.concat(new Subpolicy(p.subpolicies.length))}),
         ),
+      };
+
+    // add subpolicy
+    case RulesActions.ADD_POLICY:
+      var p = Policy.create();
+      p.isEditing = true;
+      return {
+        ...state,
+        policies: [p].concat(state.policies),
+        currentRuleView: p.view_name,
       };
 
     // add subpolicy
