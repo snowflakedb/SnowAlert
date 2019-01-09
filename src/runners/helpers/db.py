@@ -115,7 +115,7 @@ def load_rules(ctx, postfix) -> List[str]:
 
 
 def insert_alerts(alerts, ctx=CACHED_CONNECTION):
-    from .dbconfig import ALERTS_TABLE
+    from runners.config import ALERTS_TABLE
     format_string = ", ".join(["(%s)"] * len(alerts))
     ctx.cursor().execute((
         f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
