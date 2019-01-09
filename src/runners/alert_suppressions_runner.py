@@ -37,7 +37,7 @@ def log_alerts(ctx, alerts):
                 alerts
             )
         except Exception as e:
-            log.fatal("Failed to log alert", e)
+            log.error("Failed to log alert", e)
     else:
         print("No alerts to log.")
 
@@ -68,10 +68,10 @@ def log_failure(ctx, suppression_name, e, event_data=None, description=None):
     alerts.append(json.dumps(alert))
     try:
         log_alerts(ctx, alerts)
-        log.fatal(f"Suppression {suppression_name} failure successfully logged", e)
+        log.error(f"Suppression {suppression_name} failure successfully logged", e)
     except Exception as e:
         print(f"Failed to log suppression failure")
-        log.fatal("Failed to log suppression failure", e)
+        log.error("Failed to log suppression failure", e)
 
 
 def do_suppression(suppression_name, ctx):
@@ -112,7 +112,7 @@ def flag_remaining_alerts(ctx) -> List[str]:
         query = f"UPDATE {ALERTS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;"
         suppression_view_list = ctx.cursor().execute(query)
     except Exception as e:
-        log.fatal("Failed to flag remaining alerts as unsuppressed", e)
+        log.error("Failed to flag remaining alerts as unsuppressed", e)
 
     return [name[1] for name in suppression_view_list]
 

@@ -21,7 +21,7 @@ def flag_remaining_alerts(ctx):
     try:
         ctx.cursor().execute(f"UPDATE {VIOLATIONS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;")
     except Exception as e:
-        log.fatal("Failed to flag remaining alerts as unsuppressed", e)
+        log.error("Failed to flag remaining alerts as unsuppressed", e)
 
 
 def run_suppression(squelch_name):
