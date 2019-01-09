@@ -26,8 +26,8 @@ def log_alerts(ctx, alerts):
                 alerts
             )
         except Exception as e:
-            log.fatal("Failed to log alert", e)
-            pass
+            log.error("Failed to log alert", e)
+
     else:
         print("No alerts to log.")
 
@@ -54,8 +54,7 @@ def log_failure(ctx, alert, e):
         log_alerts(ctx, alerts)
         ctx.cursor().execute(f"DELETE FROM {ALERTS_TABLE} where ALERT:ALERT_ID = '{alert['ALERT_ID']}';")
     except Exception as e:
-        log.fatal("Failed to log alert creation failure", e)
-        pass
+        log.error("Failed to log alert creation failure", e)
 
 
 def get_new_alerts(connection):

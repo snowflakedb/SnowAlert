@@ -53,7 +53,7 @@ def connect(run_preflight_checks=True):
             preflight_checks(connection)
 
     except Exception as e:
-        log.fatal(e, "Failed to connect.")
+        log.error(e, "Failed to connect.")
 
     execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
 

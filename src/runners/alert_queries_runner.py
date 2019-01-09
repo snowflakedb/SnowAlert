@@ -95,8 +95,8 @@ def log_alerts(ctx, alerts):
                 db.insert_alerts(list(filter(None, alert_group)))
 
         except Exception as e:
-            log.fatal("Failed to log alert", e)
-            pass
+            log.error("Failed to log alert", e)
+
     else:
         print("No alerts to log.")
 
@@ -130,7 +130,7 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
         log.info("Query failure logged.", e)
 
     except Exception as e:
-        log.fatal("Failed to log query failure", e)
+        log.error("Failed to log query failure", e)
 
 
 def snowalert_query(ctx, query_name: str):
