@@ -112,3 +112,13 @@ def load_rules(ctx, postfix) -> List[str]:
     log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
 
     return rules
+
+
+def insert_alerts(alerts, ctx=CACHED_CONNECTION):
+    from .dbconfig import ALERTS_TABLE
+    format_string = ", ".join(["(%s)"] * len(alerts))
+    ctx.cursor().execute((
+        f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+        f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
+        f'FROM values {format_string};'),
+        alerts)

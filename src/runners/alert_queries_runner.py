@@ -15,7 +15,7 @@ from .config import (
     ALERT_QUERY_POSTFIX,
     CLOUDWATCH_METRICS,
 )
-from .helpers import log
+from .helpers import db, log
 from .helpers.db import connect_and_execute, execute, load_rules
 from .utils import groups_of
 
@@ -89,15 +89,11 @@ def update_recent_alerts(ctx, alert_map):
 def log_alerts(ctx, alerts):
     if len(alerts):
         print("Recording alerts.")
-        format_string = ", ".join(["(%s)"] * len(alerts))
         try:
             VALUES_INSERT_LIMIT = 16384
             for alert_group in groups_of(VALUES_INSERT_LIMIT, alerts):
-                ctx.cursor().execute((
-                    f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
-                    f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
-                    f'FROM values {format_string};'),
-                    list(filter(None, alert_group)))
+                db.insert_alerts(list(filter(None, alert_group)))
+
         except Exception as e:
             log.fatal("Failed to log alert", e)
             pass
