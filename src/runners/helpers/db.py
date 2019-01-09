@@ -114,9 +114,9 @@ def load_rules(ctx, postfix) -> List[str]:
     return rules
 
 
-def insert_alerts(alerts, ctx=CACHED_CONNECTION):
-    if CACHED_CONNECTION is None:
-        ctx = connect()
+def insert_alerts(alerts, ctx=None):
+    if ctx is None:
+        ctx = CACHED_CONNECTION or connect()
     from runners.config import ALERTS_TABLE
     format_string = ", ".join(["(%s)"] * len(alerts))
     ctx.cursor().execute((
