@@ -1,18 +1,20 @@
-FROM r-base:latest
+FROM python:3.7-slim-stretch
 
-COPY ./src/sars/temp.R /sfc/temp.R
+WORKDIR /var/task
+#FROM r-base:latest
+
+#RUN pip install --upgrade pip virtualenv pyflakes
+#RUN mkdir -p ./snowalert
+#RUN python3 -m venv ./snowalert/venv
+#ENV PATH="./snowalert/venv/bin:${PATH}"
+
+COPY ./src ./snowalert/src
+
+RUN pip3 install wheel ./snowalert/src/
 
 RUN apt-get update \
-&& apt-get install -y python3-pip python3-venv
+&& apt-get install -y r-base vim
 
+RUN R -e "install.packages('dplyr', repos = 'https://cloud.r-project.org')"
 
-RUN mkdir -p /sfc/snowalert
-RUN python3 -m venv /sfc/snowalert/venv
-ENV PATH="/sfc/snowalert/venv/bin:${PATH}"
-COPY ./src /sfc/snowalert/src
-
-
-
-RUN PYTHONPATH='' pip3 install wheel /sfc/snowalert/src/
-#RUN R -e "suppressMessages(install.packages('dplyr'))"
-CMD /sfc/snowalert/src/sars/run.sh
+CMD ./snowalert/src/sars/run.sh

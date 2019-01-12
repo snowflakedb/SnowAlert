@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 require('dplyr')
 results <- read.csv(file("stdin"),stringsAsFactors=FALSE)
-aws_inventory <- read.csv(file="/aws_inventory.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
+aws_inventory <- read.csv(file="./aws_inventory.csv", header=TRUE, sep=",", stringsAsFactors=FALSE)
 merged <- merge(results, aws_inventory, by='INSTANCE_ID', all.x=TRUE)
 merged$DAY <- as.Date(merged$DAY,"%Y-%m-%d", tz="GMT")
 merged$PROCESS <- gsub('"','',merged$PROCESS)

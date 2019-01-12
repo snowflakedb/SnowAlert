@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python
 import csv
 import sys
 import logging
@@ -29,11 +29,12 @@ def pull_aws_data():
                 finished = True
             offset += limit
 
+
 def query_snowflake(query):
-    global writer, lock
+    global writer #, lock
     finished = False
     offset = 0
-    limit = 100000
+    limit = 10000000
     while(not finished):
         num_results = 0
         conn = db.connect()
@@ -42,11 +43,11 @@ def query_snowflake(query):
         data = db.fetch(conn, query_with_limit)
         for row in data:
             num_results += 1
-            with lock:
-                if writer is None:
-                    writer = csv.DictWriter(sys.stdout , row.keys())
-                    writer.writeheader()
-                writer.writerow(row)
+            #with lock:
+            if writer is None:
+                writer = csv.DictWriter(sys.stdout , row.keys())
+                writer.writeheader()
+            writer.writerow(row)
         if(num_results < limit):
             finished = True
         offset += limit
@@ -59,21 +60,21 @@ queries = []
 
 
 deployments=[]
-#deployments.append("awsuseast1citadel")
+deployments.append("awsuseast1citadel")
 deployments.append("awsuseast1goldman")
 deployments.append("awsuseast1att")
 deployments.append("azwesteurope")
 deployments.append("prod1_capone")
 deployments.append("va_capone")
-#deployments.append("prod1")
-#deployments.append("dev")
-#deployments.append("au")
-#deployments.append("eu")
-#deployments.append("ie")
-#deployments.append("va")
+deployments.append("prod1")
+deployments.append("dev")
+deployments.append("au")
+deployments.append("eu")
+deployments.append("ie")
+deployments.append("va")
 
 for i in deployments:
-    queries.append("select DAY, PROCESS, INSTANCE_ID, NUM_STARTS AS HITS from SNOWALERT.DATA.{} order by DAY, PROCESS, INSTANCE_ID".format(i))
+    queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from SNOWALERT.DATA.{} order by DAY, PROCESS, INSTANCE_ID".format(i))
 
 
 
@@ -82,9 +83,13 @@ def init(l):
     global lock, writer
     lock = l
     writer = None
-l = multiprocessing.Lock()
-pool = multiprocessing.Pool(len(deployments),initializer=init, initargs=(l,))
+#l = multiprocessing.Lock()
+#pool = multiprocessing.Pool(len(deployments),initializer=init, initargs=(l,))
 
-results = pool.map(query_snowflake, queries)
-pool.close()
-pool.join()
+#results = pool.map(query_snowflake, queries)
+#pool.close()
+#pool.join()
+writer = None
+for query in queries:
+    query_snowflake(query)
+
