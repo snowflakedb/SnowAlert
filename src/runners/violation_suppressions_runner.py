@@ -3,15 +3,15 @@
 import datetime
 import uuid
 
-from .config import (
-    VIOLATIONS_TABLE,
-    QUERY_METADATA_TABLE,
-    RUN_METADATA_TABLE,
-    RULES_SCHEMA,
-    VIOLATION_SQUELCH_POSTFIX,
+from runners.config import (
     CLOUDWATCH_METRICS,
+    QUERY_METADATA_TABLE,
+    RULES_SCHEMA,
+    RUN_METADATA_TABLE,
+    VIOLATION_SQUELCH_POSTFIX,
+    VIOLATIONS_TABLE,
 )
-from .helpers import db, log
+from runners.helpers import db, log
 
 RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'VIOLATION SUPPRESSIONS'}  # Contains metadata about this run
 RUN_ID = uuid.uuid4().hex

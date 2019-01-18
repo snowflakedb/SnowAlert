@@ -1,0 +1,10 @@
+.git
+.circleci
+docs/
+src/samui/
+**/.venv
+**/.mypy_cache
+**/.DS_Store
+**/__pycache__
+**/*.pyc
+**/node_modules
