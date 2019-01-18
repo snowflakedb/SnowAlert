@@ -1,4 +1,4 @@
-import os
+from os import environ
 from urllib.parse import urlencode
 
 from requests.auth import HTTPBasicAuth
@@ -11,15 +11,14 @@ logger = logbook.Logger(__name__)
 
 oauth_api = Blueprint('oauth', __name__)
 
-OAUTH_CLIENT_ID = os.environ.get('OAUTH_CLIENT_ID', '')
-OAUTH_SECRET_ID = os.environ.get('OAUTH_SECRET_ID', '')
-
 
 @oauth_api.route('/redirect', methods=['POST'])
 def oauth_redirect():
     json = request.get_json()
     account = json.get('account')
     return_href = json.get('return_href')
+
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
 
     return jsonify(url=f"https://{account}.snowflakecomputing.com/oauth/authorize?" + urlencode({
         'client_id': OAUTH_CLIENT_ID,
@@ -35,6 +34,9 @@ def oauth_return():
     code = json.get('code')
     account = json.get('account')
     redirect_uri = json.get('redirect_uri')
+
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
+    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.upper()}', '')
 
     response = requests.post(
         f'https://{account}.snowflakecomputing.com/oauth/token-request',

@@ -21,6 +21,12 @@ const tokenConfig = (token: string | null) => ({
   },
 });
 
+const authHeader = () => {
+  const account = localStorage.getItem('account') || '';
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
+  return {Authorization: JSON.stringify(auth)};
+};
+
 const handleResponse = (response: AxiosResponse) => {
   return response.data;
 };
@@ -94,37 +100,29 @@ export const clearNotifications = (token: string | null) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const saveRule = (rule: SnowAlertRule) => {
-  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-  return axios
-    .post('/api/sa/rules', rule, {headers: {Authorization: JSON.stringify(auth)}})
+export const saveRule = (rule: SnowAlertRule) =>
+  axios
+    .post('/api/sa/rules', rule, {headers: authHeader()})
     .then(handleResponse)
     .catch(handleError);
-};
 
-export const deleteRule = (rule: SnowAlertRule) => {
-  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-  return axios
-    .post('/api/sa/rules/delete', rule, {headers: {Authorization: JSON.stringify(auth)}})
+export const deleteRule = (rule: SnowAlertRule) =>
+  axios
+    .post('/api/sa/rules/delete', rule, {headers: authHeader()})
     .then(handleResponse)
     .catch(handleError);
-};
 
-export const renameRule = (rule: SnowAlertRule) => {
-  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-  return axios
-    .post('/api/sa/rules/rename', rule, {headers: {Authorization: JSON.stringify(auth)}})
+export const renameRule = (rule: SnowAlertRule) =>
+  axios
+    .post('/api/sa/rules/rename', rule, {headers: authHeader()})
     .then(handleResponse)
     .catch(handleError);
-};
 
-export const loadSnowAlertRules = () => {
-  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-  return axios
-    .get('/api/sa/rules', {headers: {Authorization: JSON.stringify(auth)}})
+export const loadSnowAlertRules = () =>
+  axios
+    .get('/api/sa/rules', {headers: authHeader()})
     .then(handleResponse)
     .catch(handleError);
-};
 
 export const oauthLogin = (returnArgs: any) =>
   axios

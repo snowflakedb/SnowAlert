@@ -145,13 +145,14 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 
     // const notificationsData = this.getNotificationsData();
 
-    const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+    const account = localStorage.getItem('account') || '';
+    const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
 
     return (
       <Header className={'header'}>
         <Icon className={'trigger'} type={menuCollapsed ? 'menu-unfold' : 'menu-fold'} onClick={this.toggle} />
         <div className={'right'}>
-          {auth.username ? (
+          {auth && auth.username ? (
             <Dropdown overlay={menu}>
               <span className={'action account'}>
                 <span className={'name'}>{auth.username}</span>

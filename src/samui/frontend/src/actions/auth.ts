@@ -48,13 +48,15 @@ export const oauthLogin = (account: string, code: string, redirect_uri: string) 
   try {
     localStorage.setItem('account', account);
     const response = await api.oauthLogin({account, code, redirect_uri});
-    const t = response.tokens;
-    if (t && t.error) {
-      throw {message: `${t.error}: ${t.message}`};
+    const toks = response.tokens;
+    if (toks && toks.error) {
+      throw {message: `${toks.error}: ${toks.message}`};
     }
-    dispatch(LoginActions.oauthReturnSuccess(t));
     const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-    localStorage.setItem('auth', JSON.stringify(Object.assign(auth, t)));
+    toks.account = account;
+    localStorage.setItem('auth', JSON.stringify(Object.assign(auth, {[account]: toks})));
+
+    dispatch(LoginActions.oauthReturnSuccess(toks));
     dispatch(push(routes.DEFAULT));
   } catch (error) {
     dispatch(LoginActions.oauthReturnFailure(error.message));

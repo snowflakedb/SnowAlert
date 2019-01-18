@@ -44,7 +44,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     e.preventDefault();
     this.props.form.validateFields((err: string, values: FormProps) => {
       if (!err) {
-        localStorage.setItem('auth', JSON.stringify(values));
+        localStorage.setItem('account', values.account);
         this.props.oauthRedirect(values.account, location.href);
       } else {
         this.setState({

@@ -2,6 +2,7 @@
 """
 from base64 import b64decode
 from typing import Optional
+from os import environ
 
 import boto3
 from cryptography.hazmat.backends import default_backend
@@ -9,7 +10,7 @@ from cryptography.hazmat.primitives import serialization
 from requests import post
 from requests.auth import HTTPBasicAuth
 
-from .dbconfig import REGION, OAUTH_CLIENT_ID, OAUTH_SECRET_ID
+from .dbconfig import REGION
 
 
 def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> bytes:
@@ -43,6 +44,9 @@ def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> byte
 
 
 def oauth_refresh(account: str, refresh_token: str) -> str:
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
+    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.upper()}', '')
+
     return post(
         f'https://{account}.snowflakecomputing.com/oauth/token-request',
         auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
