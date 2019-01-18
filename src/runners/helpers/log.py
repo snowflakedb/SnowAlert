@@ -59,4 +59,4 @@ def metadata_record(ctx, metadata, table, e=None):
         info("Recording metadata.")
         ctx.cursor().execute(statement)
     except Exception as e:
-        fatal("Metadata failed to log", e)
+        error("Metadata failed to log", e)

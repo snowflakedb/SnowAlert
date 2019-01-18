@@ -106,7 +106,8 @@ def load_rules(ctx, postfix) -> List[str]:
     try:
         views = ctx.cursor().execute(f'SHOW VIEWS IN {RULES_SCHEMA}').fetchall()
     except Exception as e:
-        log.fatal(e, f"Loading '{postfix}' rules failed.")
+        log.error(e, f"Loading '{postfix}' rules failed.")
+        return []
 
     rules = [name[1] for name in views if name[1].lower().endswith(postfix)]
     log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
