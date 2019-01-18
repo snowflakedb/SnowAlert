@@ -13,5 +13,8 @@ ROLE = os.environ.get('SA_ROLE', "snowalert")
 WAREHOUSE = os.environ.get('SA_WAREHOUSE', "snowalert")
 DATABASE = os.environ.get('SA_DATABASE', "snowalert")
 
+OAUTH_CLIENT_ID = os.environ.get('OAUTH_CLIENT_ID', '')
+OAUTH_SECRET_ID = os.environ.get('OAUTH_SECRET_ID', '')
+
 # connection properties
 TIMEOUT = 500

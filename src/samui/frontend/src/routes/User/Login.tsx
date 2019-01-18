@@ -1,10 +1,8 @@
-import {Alert, Button, Checkbox, Form, Icon, Input} from 'antd';
+import {Alert, Button, Form, Icon, Input} from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {loginIfNeeded} from '../../actions/auth';
-import Link from '../../components/Link';
-import * as routes from '../../constants/routes';
+import {oauthLogin, oauthRedirect} from '../../actions/auth';
 import {getAuthStatus} from '../../reducers/auth';
 import * as stateTypes from '../../reducers/types';
 import './Login.css';
@@ -16,7 +14,8 @@ interface OwnProps {
 }
 
 interface DispatchProps {
-  loginIfNeeded: typeof loginIfNeeded;
+  oauthLogin: typeof oauthLogin;
+  oauthRedirect: typeof oauthRedirect;
 }
 
 interface StateProps {
@@ -30,9 +29,7 @@ interface State {
 type LoginFormProps = OwnProps & DispatchProps & StateProps;
 
 interface FormProps {
-  email: string;
-  password: string;
-  remember: boolean;
+  account: string;
 }
 
 class LoginForm extends React.Component<LoginFormProps, State> {
@@ -47,7 +44,8 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     e.preventDefault();
     this.props.form.validateFields((err: string, values: FormProps) => {
       if (!err) {
-        this.props.loginIfNeeded(values.email, values.password, values.remember);
+        localStorage.setItem('auth', JSON.stringify(values));
+        this.props.oauthRedirect(values.account, location.href);
       } else {
         this.setState({
           errorMessage: err,
@@ -56,78 +54,73 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     });
   };
 
-  validatePassword = (rule: any, value: string, callback: (message?: string) => void) => {
-    if (!value || value.length >= 8) {
-      callback();
-    } else {
-      callback('Your password must contain at least 8 characters');
-    }
-  };
-
   render() {
     const {getFieldDecorator} = this.props.form;
+    const m = location.search.match(/\?code=([0-9A-F]+)/);
+    const code = m ? m[1] : null;
+
+    const account = JSON.parse(localStorage.getItem('auth') || '{}').account || localStorage.getItem('account') || '';
+
+    if (code && account) {
+      const redirect_uri = location.origin + location.pathname;
+      this.props.oauthLogin(account, code, redirect_uri);
+    }
+
     return (
-      <div className={'main'}>
-        <Form className={'login'} onSubmit={this.login}>
-          <Form.Item>
-            {getFieldDecorator('email', {
-              rules: [
-                {
-                  required: true,
-                  message: 'Please enter your email!',
-                },
-                {
-                  type: 'email',
-                  message: 'Sorry, this is not a valid email',
-                },
-              ],
-            })(<Input prefix={<Icon className={'prefix-icon'} type={'mail'} />} placeholder={'Email'} />)}
-          </Form.Item>
-          <Form.Item>
-            {getFieldDecorator('password', {
-              rules: [
-                {
-                  required: true,
-                  message: 'Please enter your Password!',
-                },
-                {
-                  validator: this.validatePassword,
-                },
-              ],
-            })(
-              <Input
-                prefix={<Icon className={'prefix-icon'} type={'lock'} />}
-                type={'password'}
-                placeholder={'Password'}
-              />,
-            )}
-          </Form.Item>
-          {this.props.auth.errorMessage && (
-            <Alert
-              style={{marginBottom: '20px'}}
-              type={'error'}
-              message={this.props.auth.errorMessage}
-              showIcon={true}
-            />
-          )}
-          <Form.Item style={{marginBottom: 0}}>
-            {getFieldDecorator('remember', {
-              valuePropName: 'checked',
-              initialValue: true,
-            })(<Checkbox>Remember me</Checkbox>)}
-            <a style={{float: 'right'}} href={'javascript:void(0)'}>
-              Forgot password
-            </a>
-          </Form.Item>
-          <Form.Item style={{marginBottom: '12px'}}>
-            <Button type={'primary'} htmlType={'submit'} loading={this.props.auth.isFetching} className={'form-button'}>
-              Log in
-            </Button>
-          </Form.Item>
-          <Button type={'primary'} className={'form-button'}>
-            <Link route={routes.REGISTER}>Sign Up</Link>
-          </Button>
-        </Form>
+      <div className={'login'}>
+        <h1>
+          <img src="/favicon.ico" style={{height: 50}} /> SnowAlert
+        </h1>
+        {code ? (
+          <div className={'main'}>
+            <h2>Acquiring Access Token</h2>
+            <h5>Buckle up your seatbelt, Dorothy</h5>
+            <Icon type="loading" style={{marginLeft: 250, marginTop: 50}} />
+          </div>
+        ) : (
+          <div className={'main'}>
+            <h2>Sign in to your account</h2>
+            <h5>Enter your account's Snowflake URL</h5>
+            <Form className={'login'} onSubmit={this.login}>
+              <Form.Item>
+                {getFieldDecorator('account', {
+                  initialValue: account || '',
+                  rules: [
+                    {
+                      required: true,
+                      message: 'Enter your account name',
+                    },
+                  ],
+                })(
+                  <Input
+                    prefix={<Icon className={'prefix-icon'} type={'api'} />}
+                    placeholder={'your-account-url'}
+                    addonAfter={'.snowflakecomputing.com'}
+                  />,
+                )}
+              </Form.Item>
+              {this.props.auth.errorMessage && (
+                <Alert
+                  style={{marginBottom: '20px'}}
+                  type={'error'}
+                  message={this.props.auth.errorMessage}
+                  showIcon={true}
+                />
+              )}
+              <Form.Item style={{marginBottom: '12px'}}>
+                <Button
+                  type={'primary'}
+                  size={'large'}
+                  htmlType={'submit'}
+                  loading={this.props.auth.isFetching}
+                  className={'form-button'}
+                >
+                  Continue &rarr;
+                </Button>
+              </Form.Item>
+            </Form>
+          </div>
+        )}
       </div>
     );
   }
@@ -142,7 +135,8 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      loginIfNeeded,
+      oauthLogin,
+      oauthRedirect,
     },
     dispatch,
   );

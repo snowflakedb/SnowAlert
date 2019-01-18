@@ -94,26 +94,46 @@ export const clearNotifications = (token: string | null) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const saveRule = (rule: SnowAlertRule) =>
+export const saveRule = (rule: SnowAlertRule) => {
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+  return axios
+    .post('/api/sa/rules', rule, {headers: {Authorization: JSON.stringify(auth)}})
+    .then(handleResponse)
+    .catch(handleError);
+};
+
+export const deleteRule = (rule: SnowAlertRule) => {
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+  return axios
+    .post('/api/sa/rules/delete', rule, {headers: {Authorization: JSON.stringify(auth)}})
+    .then(handleResponse)
+    .catch(handleError);
+};
+
+export const renameRule = (rule: SnowAlertRule) => {
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+  return axios
+    .post('/api/sa/rules/rename', rule, {headers: {Authorization: JSON.stringify(auth)}})
+    .then(handleResponse)
+    .catch(handleError);
+};
+
+export const loadSnowAlertRules = () => {
+  const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+  return axios
+    .get('/api/sa/rules', {headers: {Authorization: JSON.stringify(auth)}})
+    .then(handleResponse)
+    .catch(handleError);
+};
+
+export const oauthLogin = (returnArgs: any) =>
   axios
-    .post('/api/sa/rules', rule)
+    .post('/api/sa/oauth/return', returnArgs)
     .then(handleResponse)
     .catch(handleError);
 
-export const deleteRule = (rule: SnowAlertRule) =>
+export const oauthRedirect = (redirectArgs: any) =>
   axios
-    .post('/api/sa/rules/delete', rule)
-    .then(handleResponse)
-    .catch(handleError);
-
-export const renameRule = (rule: SnowAlertRule) =>
-  axios
-    .post('/api/sa/rules/rename', rule)
-    .then(handleResponse)
-    .catch(handleError);
-
-export const loadSnowAlertRules = () =>
-  axios
-    .get('/api/sa/rules')
+    .post('/api/sa/oauth/redirect', redirectArgs)
     .then(handleResponse)
     .catch(handleError);

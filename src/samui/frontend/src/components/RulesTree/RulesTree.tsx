@@ -106,7 +106,7 @@ const mapStateToProps = (state: State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      loadSnowAlertRules: loadSnowAlertRules,
+      loadSnowAlertRules,
       changeRule,
       changeFilter,
     },

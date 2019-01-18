@@ -1,8 +1,35 @@
 @import "../../constants/constants.styl"
 
+body
+  background: #f0f2f5
+
+.login
+  h1, h2, h5
+    text-align: center
+    user-select: none
+
+  h1
+    padding: 15px
+    width: 100%
+    background: white
+    border-bottom: 2px solid lightgray
+
 .main
-  width: 368px
-  margin: 0 auto
+  width: 500px
+  margin: 150px auto
+
+  border: 1px solid lightgray
+  background: white
+  box-shadow: 0 0 20px lightgray
+  padding: 25px 50px
+  border-radius: 5px
+
+  h2
+    font-size: 210%
+
+  h5
+    font-size: 100%
+    margin-bottom: 12px
 
   .login
 
@@ -17,3 +44,6 @@
 
     .form-button
       width: 100%
+
+    input
+      text-align: right

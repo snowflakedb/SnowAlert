@@ -41,10 +41,6 @@ def snowflake_connect(**kwargs):
             self._rest = SnowflakeRestful(
                 host=self.host,
                 port=self.port,
-                proxy_host=self.proxy_host,
-                proxy_port=self.proxy_port,
-                proxy_user=self.proxy_user,
-                proxy_password=self.proxy_password,
                 protocol=self._protocol,
                 inject_client_pause=self._inject_client_pause,
                 connection=self)

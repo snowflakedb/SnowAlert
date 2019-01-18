@@ -1,10 +1,12 @@
+import hmac
+import json
 import re
 import os
 
 import snowflake.connector
 
 from runners.config import RULES_SCHEMA
-from runners.helpers import db
+from runners.helpers import db, dbconfig
 
 from flask import Blueprint, request, jsonify
 import logbook
@@ -25,14 +27,19 @@ def unindent(text):
 
 @rules_api.route('', methods=['GET'])
 def get_rules():
-    if request.cookies.get("sid", "") != SECRET:
+    if not hmac.compare_digest(request.cookies.get("sid", ""), SECRET):
         return jsonify(rules=[])
 
     rule_type = request.args.get('type', '%').upper()
     rule_target = request.args.get('target', '%').upper()
 
     logger.info(f'Fetching {rule_target}_{rule_type} rules...')
-    ctx = db.connect()
+
+    oauth = json.loads(request.headers.get('Authorization', '{}'))
+    if not oauth and not dbconfig.PRIVATE_KEY:
+        return jsonify(success=False, message='please log in')
+
+    ctx = db.connect(oauth=oauth, run_preflight_checks=False)
     rules = db.fetch(ctx, f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN {RULES_SCHEMA};")
     return jsonify(
         rules=[
@@ -59,11 +66,11 @@ def get_rules():
 
 @rules_api.route('', methods=['POST'])
 def create_rule():
-    if request.cookies.get("sid", "") != SECRET:
+    if not hmac.compare_digest(request.cookies.get("sid", ""), SECRET):
         return jsonify(success=False, message="bad sid", rule={})
 
-    json = request.get_json()
-    rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
+    data = request.get_json()
+    rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
     # support for full queries with comments frontend sends comments
@@ -72,69 +79,72 @@ def create_rule():
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
     comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ''
 
-    ctx = db.connect()
     try:
+        oauth = json.loads(request.headers.get('Authorization', '{}'))
+        ctx = db.connect(oauth=oauth, run_preflight_checks=False)
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         ctx.cursor().execute(
             f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS {comment_clause}AS\n{rule_body}"""
         ).fetchall()
 
-        if 'body' in json and 'savedBody' in json:
-            json['savedBody'] = rule_body
+        if 'body' in data and 'savedBody' in data:
+            data['savedBody'] = rule_body
 
-        json['results'] = (
+        data['results'] = (
             list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{view_name};"))
             if view_name.endswith("_POLICY_DEFINITION")
             else None
         )
 
     except snowflake.connector.errors.ProgrammingError as e:
-        return jsonify(success=False, message=e.msg, rule=json)
+        return jsonify(success=False, message=e.msg, rule=data)
 
-    return jsonify(success=True, rule=json)
+    return jsonify(success=True, rule=data)
 
 
 @rules_api.route('/delete', methods=['POST'])
 def delete_rule():
-    if request.cookies.get("sid", "") != SECRET:
+    if not hmac.compare_digest(request.cookies.get("sid", ""), SECRET):
         return jsonify(success=False, message="bad sid", rule={})
 
-    json = request.get_json()
-    rule_title, rule_type, rule_target, rule_body = json['title'], json['type'], json['target'], json['body']
+    data = request.get_json()
+    rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
     logger.info(f'Deleting rule {rule_title}_{rule_target}_{rule_type}')
 
-    ctx = db.connect()
     try:
+        oauth = json.loads(request.headers.get('Authorization', '{}'))
+        ctx = db.connect(oauth=oauth, run_preflight_checks=False)
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         new_view_name = f"{rule_title}_{rule_target}_{rule_type}_DELETED"
         ctx.cursor().execute(
             f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
         ).fetchall()
-        if 'body' in json and 'savedBody' in json:
-            json['savedBody'] = rule_body
+        if 'body' in data and 'savedBody' in data:
+            data['savedBody'] = rule_body
     except snowflake.connector.errors.ProgrammingError as e:
-        return jsonify(success=False, message=e.msg, rule=json)
+        return jsonify(success=False, message=e.msg, rule=data)
 
-    return jsonify(success=True, rule=json)
+    return jsonify(success=True, rule=data)
 
 
 @rules_api.route('/rename', methods=['POST'])
 def rename_rule():
-    if request.cookies.get("sid", "") != SECRET:
+    if not hmac.compare_digest(request.cookies.get("sid", ""), SECRET):
         return jsonify(success=False, message="bad sid", rule={})
 
-    json = request.get_json()
-    rule_title, rule_type, rule_target, new_title = json['title'], json['type'], json['target'], json['newTitle']
+    data = request.get_json()
+    rule_title, rule_type, rule_target, new_title = data['title'], data['type'], data['target'], data['newTitle']
     logger.info(f'Renaming rule {rule_title}_{rule_target}_{rule_type}')
 
-    ctx = db.connect()
     try:
+        oauth = json.loads(request.headers.get('Authorization', '{}'))
+        ctx = db.connect(oauth=oauth, run_preflight_checks=False)
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         new_view_name = f"{new_title}_{rule_target}_{rule_type}"
         ctx.cursor().execute(
             f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
         ).fetchall()
     except snowflake.connector.errors.ProgrammingError as e:
-        return jsonify(success=False, message=e.msg, rule=json)
+        return jsonify(success=False, message=e.msg, rule=data)
 
-    return jsonify(success=True, rule=json)
+    return jsonify(success=True, rule=data)

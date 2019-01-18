@@ -6,8 +6,10 @@ from typing import Optional
 import boto3
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from requests import post
+from requests.auth import HTTPBasicAuth
 
-from .dbconfig import REGION
+from .dbconfig import REGION, OAUTH_CLIENT_ID, OAUTH_SECRET_ID
 
 
 def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> bytes:
@@ -38,3 +40,17 @@ def load_pkb(p8_private_key: bytes, encrypted_password: Optional[bytes]) -> byte
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption()
     )
+
+
+def oauth_refresh(account: str, refresh_token: str) -> str:
+    return post(
+        f'https://{account}.snowflakecomputing.com/oauth/token-request',
+        auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
+        headers={
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        data={
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh_token,
+        },
+    ).json().get('access_token')

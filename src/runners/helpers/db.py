@@ -3,22 +3,25 @@
 from typing import List
 
 import snowflake.connector
-from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE
+from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
 
 from . import log
-from .auth import load_pkb
+from .auth import load_pkb, oauth_refresh
 from .dbconfig import ACCOUNT, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
 CACHED_CONNECTION = None
 
 
-def retry(f, E=Exception, n=3, log_errors=True):
+def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
     while 1:
         try:
             return f()
         except E as e:
             n -= 1
+            for exception, handler in handlers:
+                if isinstance(e, exception):
+                    return handler(e)
             if log_errors:
                 log.error(e)
             if n < 0:
@@ -34,23 +37,35 @@ def preflight_checks(ctx):
     assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {USER} must not be null"
 
 
-def connect(run_preflight_checks=True, flush_cache=False):
+def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
+    account = oauth.get('account')
+    oauth_refresh_token = oauth.get('refresh_token')
+    oauth_access_token = oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
+    oauth_username = oauth.get('username')
+    oauth_account = oauth.get('account')
+
     global CACHED_CONNECTION
-    if CACHED_CONNECTION and not flush_cache:
+    if CACHED_CONNECTION and not flush_cache and not oauth_access_token:
         return CACHED_CONNECTION
 
-    connect_db, authenticator, pk = (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
-                                    (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
+    connect_db, authenticator, pk = \
+        (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None) if oauth_access_token else \
+        (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
+        (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
 
-    try:
-        connection = retry(lambda: connect_db(
-            user=USER,
-            account=ACCOUNT,
+    def connect():
+        return connect_db(
+            user=oauth_username or USER,
+            account=oauth_account or ACCOUNT,
+            token=oauth_access_token,
             private_key=pk,
             authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
             network_timeout=TIMEOUT
-        ))
+        )
+
+    try:
+        connection = retry(connect)
 
         if run_preflight_checks:
             preflight_checks(connection)
@@ -58,9 +73,11 @@ def connect(run_preflight_checks=True, flush_cache=False):
     except Exception as e:
         log.fatal(e, "Failed to connect.")
 
-    execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
+    if not oauth_access_token:
+        execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
 
-    CACHED_CONNECTION = connection
+    if not CACHED_CONNECTION and not oauth_access_token:
+        CACHED_CONNECTION = connection
     return connection
 
 
@@ -80,7 +97,7 @@ def execute(ctx, query):
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
-            return execute(query)
+            return execute(ctx, query)
         log.error(e, f"Programming Error in query: {query}")
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 

@@ -56,9 +56,9 @@ export const getRouterData = () => {
     // [routes.USER]: {
     //   component: dynamicWrapper(() => import('../layouts/UserLayout')),
     // },
-    // [routes.LOGIN]: {
-    //   component: dynamicWrapper(() => import('../routes/User/Login')),
-    // },
+    [routes.LOGIN]: {
+      component: dynamicWrapper(() => import('../routes/User/Login')),
+    },
     // [routes.REGISTER]: {
     //   component: dynamicWrapper(() => import('../routes/User/Register')),
     // },
