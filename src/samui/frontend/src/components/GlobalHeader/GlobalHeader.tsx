@@ -1,10 +1,11 @@
 import {
   // Avatar,
-  Divider,
-  // Dropdown,
+  Button,
+  // Divider,
+  Dropdown,
   Icon,
   Layout,
-  // Menu,
+  Menu,
   // Spin,
   // Tag,
   // Tooltip
@@ -16,13 +17,13 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 import {logoutAndRedirect} from '../../actions/auth';
 import {clearNotificationsIfNeeded, loadNotificationsIfNeeded} from '../../actions/notifications';
-import * as routes from '../../constants/routes';
+// import * as routes from '../../constants/routes';
 import {getAuthDetails} from '../../reducers/auth';
 import {getNotifications} from '../../reducers/notifications';
 import {State} from '../../reducers/types';
 import * as stateTypes from '../../reducers/types';
 // import {HeaderSearch} from '../HeaderSearch';
-import Link from '../Link';
+// import Link from '../Link';
 // import {NoticeIcon, NotificationDetails} from '../NoticeIcon';
 import './GlobalHeader.css';
 
@@ -122,34 +123,45 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
       // auth,
       // notifications,
       menuCollapsed,
-      isMobile,
-      logo,
+      // isMobile,
+      // logo,
     } = this.props;
-    // const menu = (
-    //   <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
-    //     <Menu.Item disabled={true}>
-    //       <Icon type="user" />Profile
-    //     </Menu.Item>
-    //     <Menu.Item disabled={true}>
-    //       <Icon type="setting" />Settings
-    //     </Menu.Item>
-    //     <Menu.Divider />
-    //     <Menu.Item key="logout">
-    //       <Icon type="logout" />Sign out
-    //     </Menu.Item>
-    //   </Menu>
-    // );
+
+    const menu = (
+      <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
+        <Menu.Item key="logout">
+          <Icon type="logout" />
+          Sign out
+        </Menu.Item>
+      </Menu>
+    );
+    // <Menu.Item disabled={true}>
+    //   <Icon type="setting" />Settings
+    // </Menu.Item>
+    // <Menu.Item disabled={true}>
+    //   <Icon type="user" />Profile
+    // </Menu.Item>
+    // <Menu.Divider />
+
     // const notificationsData = this.getNotificationsData();
+
+    const account = localStorage.getItem('account') || '';
+    const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
+
     return (
       <Header className={'header'}>
-        {isMobile && [
-          <Link route={routes.DEFAULT} className={'header-logo'} key={'logo'}>
-            <img src={logo} alt={'logo'} width={32} />
-          </Link>,
-          <Divider type="vertical" key="line" />,
-        ]}
         <Icon className={'trigger'} type={menuCollapsed ? 'menu-unfold' : 'menu-fold'} onClick={this.toggle} />
         <div className={'right'}>
+          {auth && auth.username ? (
+            <Dropdown overlay={menu}>
+              <span className={'action account'}>
+                <span className={'name'}>{auth.username}</span>
+              </span>
+            </Dropdown>
+          ) : (
+            <Button href="/login">login</Button>
+          )}
+
           {/*
           <HeaderSearch
             className={'action search'}
@@ -180,12 +192,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
             clearText={'Clear'}
           />
           {auth.email ? (
-            <Dropdown overlay={menu}>
-              <span className={'action account'}>
-                <Avatar size="small" className={'avatar'} src={auth.avatar} />
-                <span className={'name'}>{auth.email}</span>
-              </span>
-            </Dropdown>
+
           ) : (
             <Spin size="small" style={{marginLeft: 8}} />
           )}

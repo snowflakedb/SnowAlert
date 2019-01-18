@@ -1,6 +1,7 @@
 # Introduction
 
-#### SnowAlert is a new project, more guidelines coming soon.
+SnowAlert is an open source project with contributions from Snowflake's security team as well as collaborating
+security teams. Please reach out to us if you're interested in making SnowAlert better, we'd love to be in touch.
 
 # Technical
 

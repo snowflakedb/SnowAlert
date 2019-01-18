@@ -10,13 +10,58 @@ export const LOGIN_REQUEST = 'LOGIN_REQUEST';
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
 export const LOGIN_FAILURE = 'LOGIN_FAILURE';
 
+export const OAUTH_RETURN_REQUEST = 'OAUTH_RETURN_REQUEST';
+export const OAUTH_RETURN_SUCCESS = 'OAUTH_RETURN_SUCCESS';
+export const OAUTH_RETURN_FAILURE = 'OAUTH_RETURN_FAILURE';
+
+export const OAUTH_REDIRECT_REQUEST = 'OAUTH_REDIRECT_REQUEST';
+export const OAUTH_REDIRECT_SUCCESS = 'OAUTH_REDIRECT_SUCCESS';
+export const OAUTH_REDIRECT_FAILURE = 'OAUTH_REDIRECT_FAILURE';
+
 export const LoginActions = {
   loginRequest: () => createAction(LOGIN_REQUEST),
   loginSuccess: (token: string) => createAction(LOGIN_SUCCESS, token),
   loginFailure: (errorMessage: string) => createAction(LOGIN_FAILURE, errorMessage),
+
+  oauthRedirectRequest: (redirectArgs: {account: string}) => createAction(OAUTH_REDIRECT_REQUEST, redirectArgs),
+  oauthRedirectFailure: (errorMessage: string) => createAction(OAUTH_REDIRECT_FAILURE, errorMessage),
+
+  oauthReturnRequest: (returnArgs: {code: string; account: string}) => createAction(OAUTH_RETURN_REQUEST, returnArgs),
+  oauthReturnSuccess: (auth: any) => createAction(OAUTH_RETURN_SUCCESS, auth),
+  oauthReturnFailure: (errorMessage: string) => createAction(OAUTH_RETURN_FAILURE, errorMessage),
 };
 
 export type LoginActions = ActionsUnion<typeof LoginActions>;
+
+export const oauthRedirect = (account: string, return_href: string) => async (dispatch: Dispatch) => {
+  try {
+    const response = await api.oauthRedirect({account, return_href});
+    if (response.url) {
+      location.href = response.url;
+    }
+  } catch (error) {
+    dispatch(LoginActions.oauthRedirectFailure(error.message));
+  }
+};
+
+export const oauthLogin = (account: string, code: string, redirect_uri: string) => async (dispatch: Dispatch) => {
+  try {
+    localStorage.setItem('account', account);
+    const response = await api.oauthLogin({account, code, redirect_uri});
+    const toks = response.tokens;
+    if (toks && toks.error) {
+      throw {message: `${toks.error}: ${toks.message}`};
+    }
+    const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+    toks.account = account;
+    localStorage.setItem('auth', JSON.stringify(Object.assign(auth, {[account]: toks})));
+
+    dispatch(LoginActions.oauthReturnSuccess(toks));
+    dispatch(push(routes.DEFAULT));
+  } catch (error) {
+    dispatch(LoginActions.oauthReturnFailure(error.message));
+  }
+};
 
 const shouldLogin = (state: State) => {
   const auth = state.auth;
@@ -56,7 +101,7 @@ export const LogoutAction = {
 export type LogoutAction = ActionsUnion<typeof LogoutAction>;
 
 export const logoutAndRedirect = () => (dispatch: Dispatch) => {
-  localStorage.removeItem('token');
+  localStorage.removeItem('auth');
   dispatch(LogoutAction.logout());
   dispatch(push(routes.LOGIN));
 };
