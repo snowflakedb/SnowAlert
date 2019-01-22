@@ -8,7 +8,7 @@ security teams. Please reach out to us if you're interested in making SnowAlert 
 ## Building docker container
 
 ~~~
-./build snowalert
+docker build -t snowsec/snowalert .
 ~~~
 
 ## Developing SAMUI
