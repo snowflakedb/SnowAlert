@@ -14,7 +14,7 @@ which configures your database, and
 
 .. code::
 
-    docker run --env-file snowalert-{account}.envs snowsec/snowalert ./run
+    docker run -it --env-file snowalert-{account}.envs snowsec/snowalert ./run all
 
 which runs the SnowAlert functions.
 
