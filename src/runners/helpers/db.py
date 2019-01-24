@@ -1,6 +1,7 @@
 """Helper specific to SnowAlert connecting to the database"""
 
 from typing import List
+from os import environ
 
 import snowflake.connector
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
@@ -139,12 +140,34 @@ def load_rules(ctx, postfix) -> List[str]:
 
 
 def insert_alerts(alerts, ctx=None):
+    from runners.config import ALERTS_TABLE
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
-    from runners.config import ALERTS_TABLE
-    format_string = ", ".join(["(%s)"] * len(alerts))
-    ctx.cursor().execute((
-        f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
-        f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
-        f'FROM values {format_string};'),
-        alerts)
+
+    ctx.cursor().execute(
+        (
+            f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+            f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
+            f'FROM values {", ".join(["(%s)"] * len(alerts))};'
+        ),
+        alerts
+    )
+
+
+def insert_violations(violations, ctx=None):
+    from runners.config import VIOLATIONS_TABLE
+    if ctx is None:
+        ctx = CACHED_CONNECTION or connect()
+
+    output_column = environ.get('output_column', 'result')
+    time_column = environ.get('time_column', 'alert_time')
+
+    ctx.cursor().execute(
+        f"""
+        INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
+        SELECT PARSE_JSON(column1):ALERT_TIME,
+               PARSE_JSON(column1)
+        FROM VALUES {", ".join(["(%s)"] * len(violations))};
+        """,
+        violations
+    )

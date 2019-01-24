@@ -56,7 +56,9 @@ def metadata_record(ctx, metadata, table, e=None):
     '''
 
     try:
-        info("Recording metadata.")
+        info("Recording metadata...")
         ctx.cursor().execute(statement)
+        info("done.")
+
     except Exception as e:
         error("Metadata failed to log", e)
