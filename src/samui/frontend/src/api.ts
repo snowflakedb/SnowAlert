@@ -24,7 +24,7 @@ const tokenConfig = (token: string | null) => ({
 const authHeader = () => {
   const account = localStorage.getItem('account') || '';
   const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
-  return {Authorization: JSON.stringify(auth)};
+  return {Authorization: JSON.stringify(auth || {})};
 };
 
 const handleResponse = (response: AxiosResponse) => {
