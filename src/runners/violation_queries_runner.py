@@ -6,7 +6,6 @@ import os
 import uuid
 
 from runners.config import (
-    VIOLATIONS_TABLE,
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
     RULES_SCHEMA,
@@ -16,22 +15,6 @@ from runners.config import (
 from runners.helpers import db, log
 
 RUN_ID = uuid.uuid4().hex
-
-
-def log_alerts(ctx, alerts):
-    output_column = os.environ.get('output_column', 'result')
-    time_column = os.environ.get('time_column', 'alert_time')
-
-    if len(alerts):
-        ctx.cursor().execute(
-            f"""
-            INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-            SELECT PARSE_JSON(column1):ALERT_TIME,
-                   PARSE_JSON(column1)
-            FROM VALUES {", ".join(["(%s)"] * len(alerts))};
-            """,
-            alerts
-        )
 
 
 def snowalert_query(query_name):
@@ -46,15 +29,7 @@ def snowalert_query(query_name):
     """)
 
     log.info(f"{query_name} done.")
-    return results, ctx
-
-
-def process_results(results, ctx, query_name, metadata):
-    alerts = []
-    for res in results:
-        jres = json.loads(res[0])
-        alerts.append(json.dumps(jres))
-    log_alerts(ctx, alerts)
+    return [json.dumps(json.loads(res[0])) for res in results], ctx
 
 
 def run_query(query_name):
@@ -65,7 +40,7 @@ def run_query(query_name):
     metadata['START_TIME'] = datetime.datetime.utcnow()
     results, ctx = snowalert_query(query_name)
     log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
-    process_results(results, ctx, query_name, metadata)
+    db.insert_violations(ctx, results)
 
 
 def main():
