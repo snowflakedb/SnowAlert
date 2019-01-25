@@ -18,6 +18,15 @@ which configures your database, and
 
 which runs the SnowAlert functions.
 
+Finally, we have a (work in progress!) SnowAlert Management UI, which you can use to edit your rules —
+
+.. code::
+
+    docker run -it -d -p 8000:8000 --env-file snowalert-{account}.envs snowsec/samui
+
+This is a work in progress, which supports some features not yet in General Availability like OAuth, so don't hesitate
+to ask your account manager or reach out to us with questions at snowalert@snowflake.com.
+
 Requirements
 ------------
 
