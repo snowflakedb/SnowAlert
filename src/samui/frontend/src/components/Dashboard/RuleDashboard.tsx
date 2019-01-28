@@ -1,8 +1,8 @@
 import {Button, Col, Row, Icon} from 'antd';
 import * as React from 'react';
 import {RulesTree} from '../RulesTree';
-import {RawEditor, FormEditor} from '../RuleEditors';
-import './RuleEditor.css';
+import {RawEditor, QueryEditor} from '../RuleEditors';
+import './RuleDashboard.css';
 import {Tabs} from 'antd';
 import {SnowAlertRule} from '../../reducers/types';
 
@@ -24,21 +24,22 @@ function download(filename: string, text: string) {
   document.body.removeChild(element);
 }
 
-const RuleEditor = (props: RuleEditorProps) => {
+const RuleDashboard = (props: RuleEditorProps) => {
   const {rules, target, currentRule} = props;
 
   return (
     <Row gutter={32}>
       <Col span={16}>
         <Tabs defaultActiveKey="1">
-          <TabPane tab="Form Editor" key="1" disabled={!FormEditor.canParse(currentRule)}>
-            <FormEditor />
+          <TabPane tab="Form Editor" key="1" disabled={!currentRule}>
+            <QueryEditor />
           </TabPane>
           <TabPane tab="SQL Editor" key="2">
             <RawEditor />
           </TabPane>
         </Tabs>
       </Col>
+
       <Col span={6}>
         <h3>{target} Rules</h3>
         <RulesTree target={target} />
@@ -65,4 +66,4 @@ const RuleEditor = (props: RuleEditorProps) => {
   );
 };
 
-export default RuleEditor;
+export default RuleDashboard;

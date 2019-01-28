@@ -1,3 +1,3 @@
-import RuleEditor from './RuleEditor';
+import RuleDashboard from './RuleDashboard';
 
-export {RuleEditor};
+export {RuleDashboard};

@@ -36,19 +36,47 @@ AS
        , true AS passing
 ;`;
 
-export class Policy {
+abstract class SQLBackedRule {
   _raw: stateTypes.SnowAlertRule;
-  views: string;
-  comment: string;
+
   isSaving: boolean;
   isEditing: boolean;
-  subpolicies: Subpolicy[];
 
   constructor(rule: stateTypes.SnowAlertRule) {
     this.raw = rule;
     this.isSaving = false;
     this.isEditing = false;
   }
+
+  set raw(r: stateTypes.SnowAlertRule) {
+    this._raw = r;
+    this.load_body(r.body, r.results);
+  }
+
+  get view_name(): string {
+    return `${this._raw.title}_${this._raw.target}_${this._raw.type}`;
+  }
+
+  get isSaved() {
+    return this._raw.savedBody !== '';
+  }
+
+  get isEdited() {
+    return this._raw.body !== this._raw.savedBody;
+  }
+
+  get raw() {
+    return Object.assign({}, this._raw, {body: this.body});
+  }
+
+  abstract load_body(body: string, results?: stateTypes.SnowAlertRule['results']): void;
+  abstract get body(): string;
+}
+
+export class Policy extends SQLBackedRule {
+  views: string;
+  comment: string;
+  subpolicies: Subpolicy[];
 
   static create() {
     const viewName = `PD_${Math.random()
@@ -68,27 +96,6 @@ export class Policy {
 
   get copy() {
     return new Policy(this._raw);
-  }
-
-  get raw() {
-    return Object.assign({}, this._raw, {body: this.body});
-  }
-
-  set raw(r) {
-    this._raw = r;
-    this.load_body(r.body, r.results);
-  }
-
-  get isSaved() {
-    return this._raw.savedBody !== '';
-  }
-
-  get isEdited() {
-    return this._raw.body !== this._raw.savedBody;
-  }
-
-  get view_name(): string {
-    return this._raw.title + '_POLICY_DEFINITION';
   }
 
   get passing(): boolean {
@@ -150,6 +157,133 @@ export class Policy {
         .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n` + `       , ${sp.condition} AS passing`)
         .join('\nUNION ALL\n') +
       `\n;\n`
+    );
+  }
+}
+
+interface QueryFields {
+  select: {
+    [prop: string]: string;
+  };
+  from: string;
+  enabled: boolean;
+  where: string;
+}
+
+export class Query extends SQLBackedRule {
+  comment: string;
+  fields: QueryFields;
+
+  load_body(sql: string) {
+    this.comment = '';
+
+    function stripField(sql: string): {sql: string; field: string; value: string} | null {
+      const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?)\s*AS ([\S^,]*)$/im);
+      if (!match || sql.match(/^\s*FROM/i)) {
+        // in case of sub-queries, FROM match needs to be explicit
+        return null;
+      } else {
+        const [m, value, field] = match;
+        return {
+          sql: sql.substr(m.length),
+          field,
+          value,
+        };
+      }
+    }
+
+    function stripFrom(sql: string): {sql: string; from: string} {
+      const [match, from] = sql.match(/^\s*FROM ([\S\s]*)\nWHERE/im) || raise('err1');
+      return {
+        sql: sql.substr(match.length - 5),
+        from,
+      };
+    }
+
+    function stripWhere(sql: string): {enabled: boolean; where: string; more: boolean} {
+      const [match, enabled, where] = sql.match(/^\s*WHERE 1=([0|1])\s*AND ([\s\S]*?)\s*;$/im) || raise('err2');
+      return {
+        enabled: enabled === '1',
+        where,
+        more: match.length !== sql.length,
+      };
+    }
+
+    var fields = {
+      select: {},
+      from: '',
+      enabled: false,
+      where: '',
+    };
+
+    var nextField = stripField(sql);
+    if (!nextField) throw 'err0';
+    do {
+      var {sql, field, value} = nextField;
+      fields.select[field] = value.replace(/\n       /g, '\n');
+    } while ((nextField = stripField(sql)));
+
+    var {sql, from} = stripFrom(sql);
+    fields.from = from;
+
+    var {enabled, where} = stripWhere(sql);
+    fields.enabled = enabled;
+    fields.where = where;
+
+    this.fields = fields;
+  }
+
+  get body() {
+    return (
+      `SELECT ${Object.entries(this.fields.select)
+        .map(([k, v]) => `${v.replace(/\n/g, '\n       ')} AS ${k}`)
+        .join('\n     , ')}\n` +
+      `FROM ${this.fields.from}\n` +
+      `WHERE 1=${this.fields.enabled ? '1' : '0'}\n` +
+      `  AND ${this.fields.where}\n;`
+    );
+  }
+}
+
+interface SuppressionFields {
+  from: string;
+  rulesString: string;
+  rules: Array<string>;
+}
+
+export class Suppression extends SQLBackedRule {
+  fields: SuppressionFields;
+
+  load_body(sql: string) {
+    function stripStart(sql: string): {rest: string; from: string} | null {
+      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+/im;
+      const m = sql.match(headRe);
+      return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
+    }
+
+    function stripRule(sql: string): {rule: string; rest: string} | null {
+      const ruleRe = /^(\s*(;\s*|AND[\s\S]*?)\s*)(?:AND[\s\S]*|;)/im;
+      const m = sql.match(ruleRe);
+      return m ? {rule: m[2], rest: sql.substr(m[1].length)} : null;
+    }
+
+    var {rest, from} = stripStart(sql) || raise('err0');
+    const rulesString = rest.replace(/;\s*$/gm, ''); // hack until array UI ready
+    var {rule, rest} = stripRule(rest) || raise('err1');
+    var rules = [];
+    while (rest.length > 1) {
+      rules.push(rule);
+      var {rule, rest} = stripRule(rest) || raise('err2');
+    }
+
+    rules.push(rule);
+    return {rules, from, rulesString};
+  }
+  get body() {
+    // const whereClauseLines = ['WHERE 1=1', 'AND suppressed IS NULL'].concat(fields.rules)
+    return (
+      `SELECT *\n` + `FROM ${this.fields.from}\n` + `WHERE suppressed IS NULL\n` + `${this.fields.rulesString};`
+      // `${whereClauseLines.join('\n  ')}\n;`
     );
   }
 }

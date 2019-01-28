@@ -3,7 +3,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 import {getOrganizationIfNeeded} from '../../actions/organization';
-import {RuleEditor} from '../../components/Dashboard';
+import {RuleDashboard} from '../../components/Dashboard';
 import Exception from '../../components/Exception/Exception';
 import * as exceptionTypes from '../../constants/exceptionTypes';
 import '../../index.css';
@@ -106,7 +106,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
           >
             <div>
               <Row>
-                <RuleEditor target="VIOLATION" rules={rules.rules} currentRule={currentRule || null} />
+                <RuleDashboard target="VIOLATION" rules={rules.rules} currentRule={currentRule || null} />
               </Row>
             </div>
           </Card>
