@@ -6,6 +6,7 @@ import {bindActionCreators, Dispatch} from 'redux';
 import {getRules} from '../../reducers/rules';
 import {Query} from '../../store/rules';
 import {updateRuleBody, updateRule, saveRule, deleteRule} from '../../actions/rules';
+import EditableTagGroup from '../EditableTagGroup';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
 
@@ -25,10 +26,17 @@ interface boolFieldDefinition {
   setValue(q: Query, v: boolean): Query;
 }
 
+interface tagGroupFieldDefinition {
+  title: string[];
+  type: 'tagGroup';
+  getValue(r: any): string[];
+  setValue(q: Query, v: string[]): Query;
+}
+
 interface OwnProps {
   cols: {
     span: number;
-    fields: (stringFieldsDefinition | boolFieldDefinition)[];
+    fields: (stringFieldsDefinition | boolFieldDefinition | tagGroupFieldDefinition)[];
   }[];
 }
 
@@ -96,6 +104,17 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                     >
                       {field.title}
                     </Switch>
+                  </div>
+                ) : field.type === 'tagGroup' ? (
+                  <div key={`col-${i}`}>
+                    <h3>{field.title}</h3>
+                    <EditableTagGroup
+                      disabled={q.isSaving}
+                      defaultTags={field.getValue(q)}
+                      onChange={(e: string[]) => updateRule(currentRuleView, field.setValue(q, e))}
+                    >
+                      {field.title}
+                    </EditableTagGroup>
                   </div>
                 ) : null,
             )}
