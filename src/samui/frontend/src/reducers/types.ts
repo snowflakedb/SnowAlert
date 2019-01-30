@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {RouterState} from 'react-router-redux';
-import {Policy} from '../store/rules';
+import {Policy, Query} from '../store/rules';
 
 export interface AuthDetails {
   readonly isAuthenticated: boolean;
@@ -67,6 +67,7 @@ export interface SnowAlertRulesState {
   readonly isFetching: boolean;
   readonly rules: ReadonlyArray<SnowAlertRule>;
   readonly policies: ReadonlyArray<Policy>;
+  readonly queries: ReadonlyArray<Query>;
   readonly currentRuleView: string | null;
   readonly filter: string | null;
 }

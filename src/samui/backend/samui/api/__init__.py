@@ -47,7 +47,7 @@ def get_rules():
                 "title": re.sub('_(alert|violation|policy)_(query|suppression|definition)$', '', rule['name'], flags=re.I),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
-                "body": unindent(re.sub(RULE_PREFIX, '', rule['text'], flags=re.I)),
+                "body": rule['text'],
                 "results": (
                     list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{rule['name']};"))
                     if rule['name'].endswith("_POLICY_DEFINITION")
@@ -77,15 +77,15 @@ def create_rule():
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
     m = re.match(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body)
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
-    comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ''
+    comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ' '
+
+    view_name = f"{rule_title}_{rule_target}_{rule_type}"
+    rule_body = f"CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
 
     try:
         oauth = json.loads(request.headers.get('Authorization') or '{}')
         ctx = db.connect(oauth=oauth, run_preflight_checks=False)
-        view_name = f"{rule_title}_{rule_target}_{rule_type}"
-        ctx.cursor().execute(
-            f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS {comment_clause}AS\n{rule_body}"""
-        ).fetchall()
+        ctx.cursor().execute(rule_body).fetchall()
 
         if 'body' in data and 'savedBody' in data:
             data['savedBody'] = rule_body
