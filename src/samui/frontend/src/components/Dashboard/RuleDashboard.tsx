@@ -55,7 +55,7 @@ const RuleDashboard = (props: RuleEditorProps) => {
                     },
                     {
                       title: 'Tags',
-                      type: 'string',
+                      type: 'tagGroup',
                       getValue: (q: Query) => q.tags.join(', '),
                       setValue: (q: Query, v: string) => q.copy({tags: v.length ? v.split(', ') : []}),
                     },
