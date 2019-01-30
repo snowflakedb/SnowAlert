@@ -4,7 +4,7 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {getRules} from '../../reducers/rules';
-import {changeRuleBody, saveRule, deleteRule} from '../../actions/rules';
+import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
 
@@ -13,7 +13,7 @@ import './RawEditor.css';
 interface OwnProps {}
 
 interface DispatchProps {
-  changeRuleBody: typeof changeRuleBody;
+  updateRuleBody: typeof updateRuleBody;
   saveRule: typeof saveRule;
   deleteRule: typeof deleteRule;
 }
@@ -26,33 +26,38 @@ type RawEditorProps = OwnProps & DispatchProps & StateProps;
 
 class RawEditor extends React.PureComponent<RawEditorProps> {
   render() {
-    const {currentRuleView, rules} = this.props.rules;
-    const rule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);
+    const {currentRuleView, queries} = this.props.rules;
+    const q = queries.find(q => q.view_name === currentRuleView);
+    const rule = q;
 
     return (
       <div>
         <Input.TextArea
           disabled={!rule || rule.isSaving}
-          value={rule ? rule.body : ''}
+          value={rule ? rule.raw.body : ''}
           spellCheck={false}
           autosize={{minRows: 30, maxRows: 50}}
-          onChange={e => this.props.changeRuleBody(e.target.value)}
+          onChange={e => this.props.updateRuleBody(e.target.value)}
         />
         <Button
           type="primary"
-          disabled={!rule || rule.isSaving || rule.savedBody == rule.body}
-          onClick={() => rule && this.props.saveRule(rule)}
+          disabled={!rule || rule.isSaving || !rule.isSaved || !rule.isEdited}
+          onClick={() => rule && this.props.saveRule(rule.raw)}
         >
           {rule && rule.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
         </Button>
         <Button
           type="default"
-          disabled={!rule || rule.isSaving || rule.savedBody == rule.body}
-          onClick={() => rule && this.props.changeRuleBody(rule.savedBody)}
+          disabled={!rule || rule.isSaving || !rule.isSaved || !rule.isEdited}
+          onClick={() => rule && this.props.updateRuleBody(rule.raw.savedBody)}
         >
           <Icon type="rollback" theme="outlined" /> Revert
         </Button>
-        <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && this.props.deleteRule(rule)}>
+        <Button
+          type="default"
+          disabled={!rule || rule.isSaving}
+          onClick={() => rule && this.props.deleteRule(rule.raw)}
+        >
           <Icon type="delete" theme="outlined" /> Delete
         </Button>
       </div>
@@ -63,7 +68,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      changeRuleBody,
+      updateRuleBody,
       saveRule,
       deleteRule,
     },

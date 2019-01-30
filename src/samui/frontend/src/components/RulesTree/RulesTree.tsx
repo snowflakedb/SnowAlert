@@ -11,6 +11,7 @@ import {loadSnowAlertRules, changeRule, changeFilter} from '../../actions/rules'
 import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
+import {Query} from '../../store/rules';
 
 import './RulesTree.css';
 
@@ -39,36 +40,42 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     this.props.changeRule('');
   }
 
-  generateTree = (rules: SnowAlertRulesState['rules'], target: SnowAlertRule['target']) => {
-    const queries: Array<SnowAlertRule> = [];
+  generateTree = (
+    queries: ReadonlyArray<Query>,
+    rules: SnowAlertRulesState['rules'],
+    target: SnowAlertRule['target'],
+  ) => {
     const suppressions: Array<SnowAlertRule> = [];
     var filter = this.props.rules.filter || '';
 
+    function queryFilter(query: Query) {
+      return target == query.raw.target && (filter === '' || query.view_name.includes(filter.toUpperCase()));
+    }
+
     for (let rule of rules)
       if (rule.target === target) {
-        if (rule.type === 'QUERY' && (filter == '' || rule.title.includes(filter.toUpperCase()))) {
-          queries.push(rule);
-        }
         if (rule.type === 'SUPPRESSION' && (filter == '' || rule.title.includes(filter.toUpperCase()))) {
           suppressions.push(rule);
         }
       }
 
     return [
-      <TreeNode key="queries" title="Queries" selectable={false}>
+      <TreeNode key="queries" title={`${target} Queries`} selectable={false}>
         {this.props.rules.isFetching ? (
           <TreeNode title="Loading..." />
         ) : (
-          queries.map(r => (
-            <TreeNode
-              selectable
-              key={`${r.title}_${target}_QUERY`}
-              title={(r.isSaving ? '(saving) ' : r.savedBody === r.body ? '' : '* ') + r.title}
-            />
-          ))
+          queries
+            .filter(queryFilter)
+            .map(r => (
+              <TreeNode
+                selectable
+                key={`${r.view_name}`}
+                title={(r.isSaving ? '(saving) ' : r.isSaved ? '' : '* ') + r.title}
+              />
+            ))
         )}
       </TreeNode>,
-      <TreeNode key="suppressions" title="Suppressions" selectable={false}>
+      <TreeNode key="suppressions" title={`${target} Suppressions`} selectable={false}>
         {this.props.rules.isFetching ? (
           <TreeNode title="Loading..." />
         ) : (
@@ -85,12 +92,19 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   };
 
   render() {
-    var rules = this.props.rules.rules;
+    var {
+      target,
+      rules: {rules, queries},
+    } = this.props;
     return (
       <div>
-        <Search placeholder="Query Name" onChange={e => this.props.changeFilter(e.target.value)} style={{width: 200}} />
+        <Search
+          style={{width: 200}}
+          placeholder={`${target} Query Name`}
+          onChange={e => this.props.changeFilter(e.target.value)}
+        />
         <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
-          {this.generateTree(rules, this.props.target)}
+          {this.generateTree(queries, rules, target)}
         </Tree>
       </div>
     );

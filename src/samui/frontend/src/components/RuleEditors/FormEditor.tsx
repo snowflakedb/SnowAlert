@@ -5,7 +5,7 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {getRules} from '../../reducers/rules';
-import {changeRuleBody, saveRule, deleteRule} from '../../actions/rules';
+import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 
@@ -160,7 +160,7 @@ function canParse(rule: SnowAlertRule | null, debug: boolean = false): boolean {
 interface OwnProps {}
 
 interface DispatchProps {
-  changeRuleBody: typeof changeRuleBody;
+  updateRuleBody: typeof updateRuleBody;
   saveRule: typeof saveRule;
   deleteRule: typeof deleteRule;
 }
@@ -173,7 +173,7 @@ type FormEditorProps = OwnProps & DispatchProps & StateProps;
 
 class FormEditor extends React.PureComponent<FormEditorProps> {
   render() {
-    const {changeRuleBody} = this.props;
+    const {updateRuleBody} = this.props;
     const {currentRuleView, rules} = this.props.rules;
     const rule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);
     if (!rule)
@@ -204,7 +204,7 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
         } else {
           fields[prop][fieldName] = newValue;
         }
-        changeRuleBody((SQL.generate as any)(fields));
+        updateRuleBody((SQL.generate as any)(fields));
       };
     }
 
@@ -509,7 +509,7 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
           <Button
             type="default"
             disabled={!canParse(rule) || rule.isSaving || rule.savedBody == rule.body}
-            onClick={() => rule && changeRuleBody(rule.savedBody)}
+            onClick={() => rule && updateRuleBody(rule.savedBody)}
           >
             <Icon type="rollback" theme="outlined" /> Revert
           </Button>
@@ -529,7 +529,7 @@ class FormEditor extends React.PureComponent<FormEditorProps> {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      changeRuleBody,
+      updateRuleBody,
       saveRule,
       deleteRule,
     },

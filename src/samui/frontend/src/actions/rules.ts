@@ -1,7 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {Policy} from '../store/rules';
+import {Policy, Query} from '../store/rules';
 import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -84,6 +84,13 @@ export const editRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
   dispatch(createAction(EDIT_RULE, ruleTitle));
 };
 
+// update rule
+export const UPDATE_RULE = 'UPDATE_RULE';
+export type UpdateRuleAction = ActionWithPayload<typeof UPDATE_RULE, {ruleViewName: string; rule: Query}>;
+export const updateRule = (ruleViewName: string, rule: Query) => async (dispatch: Dispatch) => {
+  dispatch(createAction(UPDATE_RULE, {ruleViewName, rule}));
+};
+
 // revert rule
 export const REVERT_RULE = 'REVERT_RULE';
 export type RevertRuleAction = ActionWithPayload<typeof REVERT_RULE, Policy>;
@@ -133,7 +140,7 @@ export const changeRule = (ruleTitle?: string) => async (dispatch: Dispatch) => 
 // updating rule body
 export const CHANGE_CURRENT_RULE_BODY = 'CHANGE_CURRENT_RULE_BODY';
 export type ChangeRuleBodyAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE_BODY, string>;
-export const changeRuleBody = (ruleBody: string | null) => async (dispatch: Dispatch) => {
+export const updateRuleBody = (ruleBody: string | null) => async (dispatch: Dispatch) => {
   dispatch(createAction(CHANGE_CURRENT_RULE_BODY, ruleBody));
 };
 
@@ -239,6 +246,7 @@ export type EditRulesActions =
   | DeleteRuleActions
   | DeleteSubpolicyAction
   | EditRuleAction
+  | UpdateRuleAction
   | RenameRuleActions
   | RevertRuleAction
   | SaveRuleActions

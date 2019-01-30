@@ -28,60 +28,58 @@ class Alerts extends React.PureComponent<AlertsProps> {
   componentDidMount() {}
 
   render() {
-    const {rules} = this.props;
-    const currentRule = rules.rules.find(r => `${r.title}_${r.target}_${r.type}` == rules.currentRuleView);
+    const {queries, rules, currentRuleView} = this.props.rules;
+    const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);
 
     return (
-      <div>
-        <Card
-          className={'card'}
-          title={
-            !currentRule ? (
-              'Alerts Dashboard'
-            ) : currentRule.savedBody ? (
-              <div>
-                <Input
-                  id="title_input"
-                  style={{width: 300}}
-                  defaultValue={currentRule.title}
-                  onChange={e => this.props.updateInterimTitle(e.target.value)}
-                />
-                <Button
-                  type="primary"
-                  shape="circle"
-                  icon="edit"
-                  size="small"
-                  onClick={() => this.props.renameRule(currentRule)}
-                />
-              </div>
-            ) : (
+      <Card
+        className={'card'}
+        title={
+          !currentRule ? (
+            'Alerts Dashboard'
+          ) : currentRule.savedBody ? (
+            <div>
               <Input
+                id="title_input"
                 style={{width: 300}}
                 value={currentRule.title}
-                onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+                onChange={e => this.props.updateInterimTitle(e.target.value)}
               />
-            )
-          }
-          extra={
-            <div>
-              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'QUERY')}>
-                + QUERY
-              </Button>
-              &nbsp;
-              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'SUPPRESSION')}>
-                + SUPPRESSION
-              </Button>
+              <Button
+                type="primary"
+                shape="circle"
+                icon="edit"
+                size="small"
+                onClick={() => this.props.renameRule(currentRule)}
+              />
             </div>
-          }
-          bordered={true}
-        >
+          ) : (
+            <Input
+              style={{width: 300}}
+              value={currentRule.title}
+              onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+            />
+          )
+        }
+        extra={
           <div>
-            <Row>
-              <RuleDashboard target="ALERT" rules={rules.rules} currentRule={currentRule || null} />
-            </Row>
+            <Button type="primary" onClick={() => this.props.newRule('ALERT', 'QUERY')}>
+              + QUERY
+            </Button>
+            &nbsp;
+            <Button type="primary" onClick={() => this.props.newRule('ALERT', 'SUPPRESSION')}>
+              + SUPPRESSION
+            </Button>
           </div>
-        </Card>
-      </div>
+        }
+        bordered={true}
+      >
+        <div>
+          <Row>
+            <RuleDashboard target="ALERT" rules={rules} queries={queries} currentRuleView={currentRuleView} />
+          </Row>
+        </div>
+      </Card>
     );
   }
 }
