@@ -162,12 +162,13 @@ def insert_violations(violations, ctx=None):
     output_column = environ.get('output_column', 'result')
     time_column = environ.get('time_column', 'alert_time')
 
-    ctx.cursor().execute(
-        f"""
-        INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-        SELECT PARSE_JSON(column1):ALERT_TIME,
-               PARSE_JSON(column1)
-        FROM VALUES {", ".join(["(%s)"] * len(violations))};
-        """,
-        violations
-    )
+    if len(violations) > 0:
+        ctx.cursor().execute(
+            f"""
+            INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
+            SELECT PARSE_JSON(column1):ALERT_TIME,
+                   PARSE_JSON(column1)
+            FROM VALUES {", ".join(["(%s)"] * len(violations))};
+            """,
+            violations
+        )
