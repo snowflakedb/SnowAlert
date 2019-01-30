@@ -40,7 +40,7 @@ def run_query(query_name):
     metadata['START_TIME'] = datetime.datetime.utcnow()
     results, ctx = snowalert_query(query_name)
     log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
-    db.insert_violations(ctx, results)
+    db.insert_violations(results, ctx)
 
 
 def main():
