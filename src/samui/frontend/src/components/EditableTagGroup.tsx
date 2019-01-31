@@ -23,9 +23,14 @@ export default class EditableTagGroup extends React.Component<Props, State> {
     };
   }
 
+  get tags() {
+    var t = this.props.tags;
+    return t.length ? t.split(', ') : [];
+  }
+
   handleClose = (removedTag: string) => {
     if (this.props.disabled) return;
-    const tags = this.props.tags.split(', ').filter((tag: string) => tag !== removedTag);
+    const tags = this.tags.filter((tag: string) => tag !== removedTag);
     this.props.onChange(tags.join(', '));
   };
 
@@ -40,7 +45,7 @@ export default class EditableTagGroup extends React.Component<Props, State> {
   handleInputConfirm = () => {
     const state = this.state;
     const inputValue = state.inputValue;
-    let tags = this.props.tags.split(', ');
+    let tags = this.tags;
     if (inputValue && tags.indexOf(inputValue) === -1) {
       tags = [...tags, inputValue];
     }
@@ -54,11 +59,10 @@ export default class EditableTagGroup extends React.Component<Props, State> {
   saveInputRef = (input: any) => (this.input = input);
 
   render() {
-    const {tags} = this.props;
     const {inputVisible, inputValue} = this.state;
     return (
       <div>
-        {tags.split(', ').map((tag: string, index: number) => {
+        {this.tags.map((tag: string, index: number) => {
           const isLongTag = tag.length > 20;
           const tagElem = (
             <Tag key={tag} closable={true} afterClose={() => this.handleClose(tag)}>

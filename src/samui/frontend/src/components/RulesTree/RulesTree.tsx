@@ -70,7 +70,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
               <TreeNode
                 selectable
                 key={`${r.view_name}`}
-                title={(r.isSaving ? '(saving) ' : r.isSaved ? '' : '* ') + r.title}
+                title={(r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title}
               />
             ))
         )}

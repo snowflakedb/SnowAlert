@@ -127,26 +127,22 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
       // logo,
     } = this.props;
 
+    const account = localStorage.getItem('account') || '';
+    const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
+
     const menu = (
       <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
         <Menu.Item key="logout">
-          <Icon type="logout" />
-          Sign out
+          <Icon type="logout" /> Sign out
         </Menu.Item>
       </Menu>
     );
-    // <Menu.Item disabled={true}>
-    //   <Icon type="setting" />Settings
-    // </Menu.Item>
     // <Menu.Item disabled={true}>
     //   <Icon type="user" />Profile
     // </Menu.Item>
     // <Menu.Divider />
 
     // const notificationsData = this.getNotificationsData();
-
-    const account = localStorage.getItem('account') || '';
-    const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
 
     return (
       <Header className={'header'}>
@@ -156,12 +152,12 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
             <Dropdown overlay={menu}>
               <span className={'action account'}>
                 <span className={'name'}>
-                  {auth.username} @ {auth.account}
+                  {auth.username} ({auth.scope.replace(/^refresh_token session:role:/, '')}) @ {auth.account}
                 </span>
               </span>
             </Dropdown>
           ) : (
-            <Button href="/login">Sign In</Button>
+            <Button href="/login">Sign in</Button>
           )}
 
           {/*

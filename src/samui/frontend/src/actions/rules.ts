@@ -184,7 +184,7 @@ export const DELETE_RULE_FAILURE = 'DELETE_RULE_FAILURE';
 
 export const DeleteRuleAction = {
   deleteRuleRequest: () => createAction(DELETE_RULE_REQUEST),
-  deleteRuleSuccess: (response: SnowAlertRule) => createAction(DELETE_RULE_SUCCESS, response),
+  deleteRuleSuccess: (response: string) => createAction(DELETE_RULE_SUCCESS, response),
   deleteRuleFailure: (error: {message: string; rule: SnowAlertRule}) => createAction(DELETE_RULE_FAILURE, error),
 };
 
@@ -195,7 +195,7 @@ export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
   try {
     const response = await api.deleteRule(rule);
     if (response.success) {
-      dispatch(DeleteRuleAction.deleteRuleSuccess(response.rule));
+      dispatch(DeleteRuleAction.deleteRuleSuccess(response.view_name));
     } else {
       throw response;
     }
