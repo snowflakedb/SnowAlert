@@ -4,6 +4,7 @@ import {
   Input,
 } from 'antd';
 import * as React from 'react';
+import * as _ from 'lodash';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
@@ -12,6 +13,7 @@ import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 import {Query} from '../../store/rules';
+import {QueryEditor} from '../RuleEditors';
 
 import './RulesTree.css';
 
@@ -40,6 +42,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     this.props.changeRule('');
   }
 
+  qe = QueryEditor;
+
   generateTree = (
     queries: ReadonlyArray<Query>,
     rules: SnowAlertRulesState['rules'],
@@ -49,7 +53,13 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     var filter = this.props.rules.filter || '';
 
     function queryFilter(query: Query) {
-      return target == query.raw.target && (filter === '' || query.view_name.includes(filter.toUpperCase()));
+      // console.log(query.tags, filter.split(' '), _.intersection(query.tags, filter.split(' ')).length > 0)
+      return (
+        target == query.raw.target &&
+        (filter === '' ||
+          query.view_name.includes(filter.toUpperCase()) ||
+          _.intersection(query.tags, filter.split(' ')).length > 0)
+      );
     }
 
     for (let rule of rules)
