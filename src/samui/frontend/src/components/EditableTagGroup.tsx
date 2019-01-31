@@ -1,21 +1,31 @@
 import * as React from 'react';
 import {Tag, Input, Tooltip, Icon} from 'antd';
 
-export default class EditableTagGroup extends React.Component<any, any> {
+interface Props {
+  disabled: boolean;
+  tags: string;
+  onChange: (e: string) => void;
+}
+
+interface State {
+  inputVisible: boolean;
+  inputValue: '';
+}
+
+export default class EditableTagGroup extends React.Component<Props, State> {
   input: any;
 
-  constructor(props: any) {
+  constructor(props: Props) {
     super(props);
     this.state = {
-      tags: props.defaultTags.split(', ') || [],
       inputVisible: false,
       inputValue: '',
     };
   }
 
   handleClose = (removedTag: string) => {
-    const tags = this.state.tags.filter((tag: string) => tag !== removedTag);
-    this.setState({tags});
+    if (this.props.disabled) return;
+    const tags = this.props.tags.split(', ').filter((tag: string) => tag !== removedTag);
     this.props.onChange(tags.join(', '));
   };
 
@@ -30,13 +40,12 @@ export default class EditableTagGroup extends React.Component<any, any> {
   handleInputConfirm = () => {
     const state = this.state;
     const inputValue = state.inputValue;
-    let tags = state.tags;
+    let tags = this.props.tags.split(', ');
     if (inputValue && tags.indexOf(inputValue) === -1) {
       tags = [...tags, inputValue];
     }
     this.props.onChange(tags.join(', '));
     this.setState({
-      tags,
       inputVisible: false,
       inputValue: '',
     });
@@ -45,11 +54,11 @@ export default class EditableTagGroup extends React.Component<any, any> {
   saveInputRef = (input: any) => (this.input = input);
 
   render() {
-    const {tags, inputVisible, inputValue} = this.state;
-    console.log(tags);
+    const {tags} = this.props;
+    const {inputVisible, inputValue} = this.state;
     return (
       <div>
-        {tags.map((tag: string, index: number) => {
+        {tags.split(', ').map((tag: string, index: number) => {
           const isLongTag = tag.length > 20;
           const tagElem = (
             <Tag key={tag} closable={true} afterClose={() => this.handleClose(tag)}>
@@ -85,5 +94,3 @@ export default class EditableTagGroup extends React.Component<any, any> {
     );
   }
 }
-
-//ReactDOM.render(<EditableTagGroup onChange={console.log} defaultTags={['a']} />, mountNode);

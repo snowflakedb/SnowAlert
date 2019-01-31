@@ -27,10 +27,10 @@ interface boolFieldDefinition {
 }
 
 interface tagGroupFieldDefinition {
-  title: string[];
+  title: string;
   type: 'tagGroup';
-  getValue(r: any): string[];
-  setValue(q: Query, v: string[]): Query;
+  getValue(r: any): string;
+  setValue(q: Query, v: string): Query;
 }
 
 interface OwnProps {
@@ -110,8 +110,8 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                     <h3>{field.title}</h3>
                     <EditableTagGroup
                       disabled={q.isSaving}
-                      defaultTags={field.getValue(q)}
-                      onChange={(e: string[]) => updateRule(currentRuleView, field.setValue(q, e))}
+                      tags={field.getValue(q)}
+                      onChange={e => updateRule(currentRuleView, field.setValue(q, e))}
                     >
                       {field.title}
                     </EditableTagGroup>
@@ -121,7 +121,6 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
           </Col>
         ))}
         <Col span={24}>
-          {console.log(`isSaving=${q.isSaving} isSaved=${q.isSaved} isEdited=${q.isEdited}`)}
           <Button
             type="primary"
             disabled={q.isSaving || !q.isSaved || !q.isEdited}
