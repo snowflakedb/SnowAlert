@@ -56,7 +56,7 @@ abstract class SQLBackedRule {
       this.load_body(r.body, r.results);
       this.isParsed = true;
     } catch (e) {
-      console.log(`error parsing >${r.body}< ${e}`);
+      // console.log(`error parsing >${r.body}< ${e}`);
       this.isParsed = false;
     }
   }
@@ -191,7 +191,7 @@ export class Query extends SQLBackedRule {
   tags: string[];
 
   copy(toMerge: any) {
-    return _.merge(_.cloneDeep(this), toMerge);
+    return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
   }
 
   load_body(sql: string) {
