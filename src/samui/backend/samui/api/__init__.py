@@ -15,7 +15,6 @@ logger = logbook.Logger(__name__)
 
 rules_api = Blueprint('rules', __name__)
 
-RULE_PREFIX = "^create( or replace)? view( if not exists)? [^ ]+ (copy grants )?as\n"
 SECRET = os.environ.get("SECRET", "")
 
 
@@ -75,9 +74,9 @@ def create_rule():
 
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
-    m = re.match(r"^  COMMENT='((?:\\'|[^'])+)'\nAS\n", rule_body)
+    m = re.match(r"^  COMMENT='((?:\\'|[^'])*)'\nAS\n", rule_body)
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
-    comment_clause = f"\n  COMMENT='{comment}'\n" if comment else ' '
+    comment_clause = f"\n  COMMENT='{comment}'\n"
 
     view_name = f"{rule_title}_{rule_target}_{rule_type}"
     rule_body = f"CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
@@ -124,7 +123,7 @@ def delete_rule():
     except snowflake.connector.errors.ProgrammingError as e:
         return jsonify(success=False, message=e.msg, rule=data)
 
-    return jsonify(success=True, rule=data)
+    return jsonify(success=True, view_name=view_name, rule=data)
 
 
 @rules_api.route('/rename', methods=['POST'])

@@ -13,7 +13,7 @@ export const initialState: SnowAlertRulesState = {
   queries: [],
 };
 
-const alertQueryBody = (s: string) => `SELECT 'E' AS environment
+const alertQueryBody = (s: string, qid: string) => `SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
      , 'rule title' AS title
@@ -26,9 +26,7 @@ const alertQueryBody = (s: string) => `SELECT 'E' AS environment
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity
      , '${s}' AS query_name
-     , '${Math.random()
-       .toString(36)
-       .substring(2)}' AS query_id
+     , '${qid}' AS query_id
 FROM snowalert.data.\nWHERE 1=1\n  AND 2=2\n;`;
 
 const violationQueryBody = (s: string) => `SELECT 'E' AS environment
@@ -51,9 +49,9 @@ const alertSuppressionBody = (s: string) =>
 const violationSuppressionBody = (s: string) =>
   `SELECT * \nFROM snowalert.results.violations\nWHERE suppressed IS NULL\nAND ...;`;
 
-const NEW_RULE_BODY = (type: SnowAlertRule['type'], target: SnowAlertRule['target'], s: string) => {
+const NEW_RULE_BODY = (type: SnowAlertRule['type'], target: SnowAlertRule['target'], s: string, qid: string) => {
   if (type === 'QUERY' && target === 'ALERT') {
-    return alertQueryBody(s);
+    return alertQueryBody(s, qid);
   } else if (type === 'QUERY' && target === 'VIOLATION') {
     return violationQueryBody(s);
   } else if (type === 'SUPPRESSION' && target === 'ALERT') {
@@ -253,12 +251,15 @@ export const rules: Reducer<SnowAlertRulesState> = (
     // updating which rule is selected
     case RulesActions.NEW_RULE:
       var {ruleType, ruleTarget} = action.payload,
-        title = `RULE_NUMBER_${state.rules.length + 1}`,
+        qid = Math.random()
+          .toString(36)
+          .substring(2),
+        title = `RULE_${qid}`,
         newRule = {
           target: ruleTarget,
           type: ruleType,
           title: title,
-          body: NEW_RULE_BODY(ruleType, ruleTarget, title),
+          body: NEW_RULE_BODY(ruleType, ruleTarget, title, qid),
           savedBody: '',
           isSaving: false,
           isEditing: false,
@@ -305,7 +306,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
     case RulesActions.DELETE_RULE_SUCCESS:
       return {
         ...state,
-        rules: state.rules.filter(r => r.title !== action.payload.title),
+        currentRuleView: '',
+        rules: state.rules.filter(r => !isView(action.payload, r)),
+        queries: state.queries.filter(q => q.view_name !== action.payload),
       };
     case RulesActions.DELETE_RULE_FAILURE:
       var {rule, message} = action.payload;

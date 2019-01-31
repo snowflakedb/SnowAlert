@@ -123,14 +123,14 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
         <Col span={24}>
           <Button
             type="primary"
-            disabled={q.isSaving || !q.isSaved || !q.isEdited}
+            disabled={q.isSaving || (!q.isEdited && q.isSaved)}
             onClick={() => q && saveRule(q.raw)}
           >
             {q && q.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
           </Button>
           <Button
             type="default"
-            disabled={q.isSaving || !q.isSaved || !q.isEdited}
+            disabled={q.isSaving || (!q.isEdited && q.isSaved)}
             onClick={() => q && updateRuleBody(q.raw.savedBody)}
           >
             <Icon type="rollback" theme="outlined" /> Revert
