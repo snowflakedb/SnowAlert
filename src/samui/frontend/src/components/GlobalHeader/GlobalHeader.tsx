@@ -155,11 +155,13 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
           {auth && auth.username ? (
             <Dropdown overlay={menu}>
               <span className={'action account'}>
-                <span className={'name'}>{auth.username}</span>
+                <span className={'name'}>
+                  {auth.username} @ {auth.account}
+                </span>
               </span>
             </Dropdown>
           ) : (
-            <Button href="/login">login</Button>
+            <Button href="/login">Sign In</Button>
           )}
 
           {/*
