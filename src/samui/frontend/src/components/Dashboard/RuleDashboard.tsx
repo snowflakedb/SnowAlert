@@ -42,19 +42,19 @@ const RuleDashboard = (props: RuleEditorProps) => {
                   span: 24,
                   fields: [
                     {
-                      title: 'Title',
+                      title: 'Rule Title',
                       type: 'string',
                       getValue: (q: Query) => q.fields.select.title,
                       setValue: (q: Query, v: string) => q.copy({fields: {select: {title: v}}}),
                     },
                     {
-                      title: 'Description',
+                      title: 'Rule Summary',
                       type: 'string',
                       getValue: (q: Query) => q.description,
                       setValue: (q: Query, v: string) => q.copy({description: v}),
                     },
                     {
-                      title: 'Tags',
+                      title: 'Rule Tags',
                       type: 'tagGroup',
                       getValue: (q: Query) => q.tags.join(', '),
                       setValue: (q: Query, v: string) => q.copy({tags: v.length ? v.split(', ') : []}),
