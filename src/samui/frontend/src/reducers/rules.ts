@@ -254,7 +254,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
         qid = Math.random()
           .toString(36)
           .substring(2),
-        title = `RULE_${qid}`,
+        title = `${ruleTarget.substr(0, 1)}${ruleType.substr(0, 1)}_${qid}`,
         newRule = {
           target: ruleTarget,
           type: ruleType,
