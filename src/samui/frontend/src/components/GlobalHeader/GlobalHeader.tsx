@@ -119,14 +119,6 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
   };
 
   render() {
-    const {
-      // auth,
-      // notifications,
-      menuCollapsed,
-      // isMobile,
-      // logo,
-    } = this.props;
-
     const account = localStorage.getItem('account') || '';
     const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
 
@@ -137,22 +129,15 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
         </Menu.Item>
       </Menu>
     );
-    // <Menu.Item disabled={true}>
-    //   <Icon type="user" />Profile
-    // </Menu.Item>
-    // <Menu.Divider />
-
-    // const notificationsData = this.getNotificationsData();
 
     return (
       <Header className={'header'}>
-        <Icon className={'trigger'} type={menuCollapsed ? 'menu-unfold' : 'menu-fold'} onClick={this.toggle} />
         <div className={'right'}>
           {auth && auth.username ? (
-            <Dropdown overlay={menu}>
+            <Dropdown overlay={menu} trigger={['click']}>
               <span className={'action account'}>
                 <span className={'name'}>
-                  {auth.username} ({auth.scope.replace(/^refresh_token session:role:/, '')}) @ {auth.account}
+                  user {auth.username}, role {auth.scope.replace(/^refresh_token session:role:/, '')} @ {auth.account}
                 </span>
               </span>
             </Dropdown>
