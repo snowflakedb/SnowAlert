@@ -53,12 +53,11 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     var filter = this.props.rules.filter || '';
 
     function queryFilter(query: Query) {
-      // console.log(query.tags, filter.split(' '), _.intersection(query.tags, filter.split(' ')).length > 0)
       return (
-        target == query.raw.target &&
-        (filter === '' ||
-          query.view_name.includes(filter.toUpperCase()) ||
-          _.intersection(query.tags, filter.split(' ')).length > 0)
+        filter === '' ||
+        query.view_name.includes(filter.toUpperCase()) ||
+        query.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
+        _.intersection(query.tags, filter.split(' ')).length > 0
       );
     }
 
@@ -75,6 +74,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           <TreeNode title="Loading..." />
         ) : (
           queries
+            .filter(q => target === q.raw.target)
             .filter(queryFilter)
             .map(r => (
               <TreeNode
