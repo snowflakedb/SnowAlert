@@ -48,6 +48,18 @@ CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS {RESULTS_SCHEMA};",
 ]
 
+# SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS target
+#      , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS type
+#      , table_name
+#      , REGEXP_REPLACE(view_definition, '[\\s\\S]*\'([^\']*)\' AS query_id[\\s\\S]*', '\\1', 1, 0, 'i') AS qid
+#      , REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\']*)[\\s\\S]*', '\\1') AS tags
+# FROM snowalert.information_schema.views
+# WHERE table_schema='RULES'
+#   AND table_name LIKE '%_QUERY'
+#   AND tags IS NOT NULL
+#   AND tags NOT LIKE '%\'%'
+# ;
+
 CREATE_UDTF_FUNCTIONS = [
     f"USE DATABASE {DATABASE};",
     f"USE SCHEMA {DATA_SCHEMA};",
