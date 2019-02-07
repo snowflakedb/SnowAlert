@@ -154,21 +154,28 @@ def insert_alerts(alerts, ctx=None):
     )
 
 
-def insert_violations(violations, ctx=None):
-    from runners.config import VIOLATIONS_TABLE
+def insert_violations_query_run(query_name, ctx=None):
+    from runners.config import VIOLATIONS_TABLE, RULES_SCHEMA
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
     output_column = environ.get('output_column', 'result')
     time_column = environ.get('time_column', 'alert_time')
+    time_filter_unit = environ.get('time_filter_unit', 'day')
+    time_filter_amount = -1 * int(environ.get('time_filter_amount', 1))
 
-    if len(violations) > 0:
-        ctx.cursor().execute(
-            f"""
-            INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-            SELECT PARSE_JSON(column1):ALERT_TIME,
-                   PARSE_JSON(column1)
-            FROM VALUES {", ".join(["(%s)"] * len(violations))};
-            """,
-            violations
-        )
+    CUTOFF_TIME = f'DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())'
+
+    log.info(f"{query_name} processing...")
+    result = ctx.cursor().execute(
+        f"""
+        INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
+            SELECT alert_time, OBJECT_CONSTRUCT(*)
+            FROM {RULES_SCHEMA}.{query_name}
+            WHERE alert_time > {CUTOFF_TIME}
+        ;
+        """
+    ).fetchall()
+    log.info(f"{query_name} created {result[0][0]} rows.")
+
+    return ctx
