@@ -183,10 +183,7 @@ const RuleDashboard = (props: RuleEditorProps) => {
           onClick={() => {
             download(
               `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
-              rules
-                .map(r => [`${r.title}_${r.target}_${r.type}`, r.body])
-                .map(([name, body]) => `CREATE OR REPLACE VIEW rules.${name} COPY GRANTS AS\n${body};`)
-                .join('\n\n'),
+              rules.map(r => [`${r.title}_${r.target}_${r.type}`, r.body]).join('\n\n'),
             );
           }}
         >
