@@ -69,7 +69,7 @@ export interface SnowAlertRulesState {
   readonly policies: ReadonlyArray<Policy>;
   readonly queries: ReadonlyArray<Query>;
   readonly currentRuleView: string | null;
-  readonly filter: string | null;
+  readonly filter: string;
 }
 
 export interface State {

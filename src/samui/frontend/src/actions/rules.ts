@@ -154,16 +154,16 @@ export const changeFilter = (filter: string | null) => async (dispatch: Dispatch
 // add tag filter
 export const ADD_TAG_FILTER = 'ADD_TAG_FILTER';
 export type AddTagFilterAction = ActionWithPayload<typeof ADD_TAG_FILTER, string>;
-export const addTagFilter = (tagfilter: string) => async (dispatch: Dispatch) => {
-  dispatch(createAction(ADD_TAG_FILTER, tagfilter));
-}
+export const addTagFilter = (tag: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(ADD_TAG_FILTER, tag));
+};
 
 // remove tag filter
 export const REMOVE_TAG_FILTER = 'REMOVE_TAG_FILTER';
 export type RemoveTagFilterAction = ActionWithPayload<typeof REMOVE_TAG_FILTER, string>;
-export const removeTagFilter = (tagfilter: string) => async (dispatch: Dispatch) => {
-  dispatch(createAction(REMOVE_TAG_FILTER, tagfilter));
-}
+export const removeTagFilter = (tag: string) => async (dispatch: Dispatch) => {
+  dispatch(createAction(REMOVE_TAG_FILTER, tag));
+};
 
 // saving rule body
 export const SAVE_RULE_REQUEST = 'SAVE_RULE_REQUEST';
@@ -253,6 +253,7 @@ export const renameRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
 export type EditRulesActions =
   | AddPolicyAction
   | AddSubpolicyAction
+  | AddTagFilterAction
   | EditSubpolicyAction
   | ChangeRuleAction
   | ChangeRuleBodyAction
@@ -262,6 +263,7 @@ export type EditRulesActions =
   | EditRuleAction
   | UpdateRuleAction
   | RenameRuleActions
+  | RemoveTagFilterAction
   | RevertRuleAction
   | SaveRuleActions
   | UpdatePolicyTitleAction
