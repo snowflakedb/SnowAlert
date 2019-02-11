@@ -1,16 +1,41 @@
-import {Button, Col, Icon, Input, Switch} from 'antd';
+import {Button, Col, Icon, Input, Switch, Tag} from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {getRules} from '../../reducers/rules';
 import {Query} from '../../store/rules';
-import {updateRuleBody, updateRule, saveRule, deleteRule} from '../../actions/rules';
+import {updateRuleBody, updateRule, saveRule, deleteRule, addTagFilter, removeTagFilter} from '../../actions/rules';
 import EditableTagGroup from '../EditableTagGroup';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
 
 import './QueryEditor.css';
+
+const { CheckableTag } = Tag;
+
+interface tagProps {
+  onCheckedOn: void;
+  onCheckedOff: void;
+  addTagFilter: typeof addTagFilter;
+  removeTagFilter: typeof removeTagFilter;
+}
+
+interface tagState {
+  checked: boolean
+}
+
+class ToggleTag extends React.Component <tagProps, tagState>  {
+  state = { checked: true };
+
+  handleChange = (checked: boolean) => {
+    this.setState({ checked });
+  }
+
+   render() {
+    return <CheckableTag {...this.props} checked={this.state.checked} onChange={this.handleChange} />;
+  }
+}
 
 interface stringFieldsDefinition {
   title: string;
@@ -53,16 +78,28 @@ interface StateProps {
 
 type QueryEditorProps = OwnProps & DispatchProps & StateProps;
 
+function getTagArray(q: ReadonlyArray<Query>) {
+  var t = Array.from(new Set(q.flatMap(g => g.tags))).join(', ')
+  var res = ToggleTag[]
+
+  for (var i = 0; i < t.length; i++) {
+      res.push(<ToggleTag onCheckedOn={addTagFilter(t[i])} onCheckedOff={removeTagFilter(t[i])}/>)
+  }
+}
+
 class QueryEditor extends React.PureComponent<QueryEditorProps> {
+
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
     const {currentRuleView, rules, queries} = this.props.rules;
     const q = queries.find(q => q.view_name === currentRuleView);
+    var tagArr = getTagArray(queries)
 
     if (!(currentRuleView && q && q instanceof Query && q.isParsed)) {
       return (
         <Col span={16}>
           <h3>Loaded {rules.length} rules from Snowflake.</h3>
+          query tags: {getTagArray(queries)}
         </Col>
       );
     }

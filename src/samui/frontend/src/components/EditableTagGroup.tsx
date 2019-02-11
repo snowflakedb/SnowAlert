@@ -1,6 +1,9 @@
 import * as React from 'react';
 import {Tag, Input, Tooltip, Icon} from 'antd';
 
+
+const { CheckableTag } = Tag;
+
 interface Props {
   disabled: boolean;
   tags: string;
