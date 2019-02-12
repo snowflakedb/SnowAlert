@@ -6,7 +6,7 @@ import {Query, Policy, Subpolicy} from '../store/rules';
 export const initialState: SnowAlertRulesState = {
   currentRuleView: null,
   errorMessage: null,
-  filter: null,
+  filter: '',
   isFetching: false,
   rules: [],
   policies: [],
@@ -296,6 +296,19 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         filter: action.payload,
+      };
+
+    // tag filter
+    case RulesActions.ADD_TAG_FILTER:
+      return {
+        ...state,
+        filter: `${state.filter} tag[${action.payload}]`,
+      };
+
+    case RulesActions.REMOVE_TAG_FILTER:
+      return {
+        ...state,
+        filter: state.filter.replace(` tag[${action.payload}]`, ''),
       };
 
     // deleting rule

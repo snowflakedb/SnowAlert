@@ -1,16 +1,53 @@
-import {Button, Col, Icon, Input, Switch} from 'antd';
+import {Button, Col, Icon, Input, Switch, Tag} from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
+import * as _ from 'lodash';
 
 import {getRules} from '../../reducers/rules';
 import {Query} from '../../store/rules';
-import {updateRuleBody, updateRule, saveRule, deleteRule} from '../../actions/rules';
+import {updateRuleBody, updateRule, saveRule, deleteRule, addTagFilter, removeTagFilter} from '../../actions/rules';
 import EditableTagGroup from '../EditableTagGroup';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
 
 import './QueryEditor.css';
+
+const {CheckableTag} = Tag;
+
+interface TagToggleProps {
+  onCheckedOn: () => any;
+  onCheckedOff: () => any;
+  defaultChecked: boolean;
+  size: number;
+}
+
+interface TagToggleState {
+  checked: boolean;
+}
+
+class TagToggle extends React.Component<TagToggleProps, TagToggleState> {
+  state = {checked: this.props.defaultChecked};
+
+  handleChange = (checked: boolean) => {
+    this.setState({checked});
+    if (checked) {
+      this.props.onCheckedOn();
+    } else {
+      this.props.onCheckedOff();
+    }
+  };
+
+  render() {
+    return (
+      <span style={{zoom: this.props.size}}>
+        <CheckableTag checked={this.state.checked} onChange={this.handleChange}>
+          {this.props.children}
+        </CheckableTag>
+      </span>
+    );
+  }
+}
 
 interface stringFieldsDefinition {
   title: string;
@@ -45,6 +82,8 @@ interface DispatchProps {
   updateRule: typeof updateRule;
   saveRule: typeof saveRule;
   deleteRule: typeof deleteRule;
+  addTagFilter: typeof addTagFilter;
+  removeTagFilter: typeof removeTagFilter;
 }
 
 interface StateProps {
@@ -54,6 +93,29 @@ interface StateProps {
 type QueryEditorProps = OwnProps & DispatchProps & StateProps;
 
 class QueryEditor extends React.PureComponent<QueryEditorProps> {
+  getTagArray(q: ReadonlyArray<Query>) {
+    var tags: {
+      [tagName: string]: number;
+    } = _.flatMap(Array.from(q), g => g.tags).reduce((ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}), {});
+    var res = [];
+
+    for (let [tag, count] of Object.entries(tags)) {
+      res.push(
+        <TagToggle
+          key={tag}
+          size={count}
+          defaultChecked={!!this.props.rules.filter.match(new RegExp(`\b${tag}\b`))}
+          onCheckedOn={() => this.props.addTagFilter(tag)}
+          onCheckedOff={() => this.props.removeTagFilter(tag)}
+        >
+          {tag}
+        </TagToggle>,
+      );
+    }
+
+    return res;
+  }
+
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
     const {currentRuleView, rules, queries} = this.props.rules;
@@ -63,6 +125,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
       return (
         <Col span={16}>
           <h3>Loaded {rules.length} rules from Snowflake.</h3>
+          query tags: {this.getTagArray(queries)}
         </Col>
       );
     }
@@ -151,6 +214,8 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       updateRule,
       saveRule,
       deleteRule,
+      addTagFilter,
+      removeTagFilter,
     },
     dispatch,
   );

@@ -20,6 +20,15 @@ import './RulesTree.css';
 const TreeNode = Tree.TreeNode;
 const Search = Input.Search;
 
+function allMatchedCaptures(regexp: RegExp, s: string): string[][] {
+  var matches: string[][] = [];
+  s.replace(regexp, (m, ...args) => {
+    matches.push(args.slice(0, args.length - 2));
+    return '';
+  });
+  return matches;
+}
+
 interface OwnProps {
   target: SnowAlertRule['target'];
 }
@@ -50,14 +59,15 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     target: SnowAlertRule['target'],
   ) => {
     const suppressions: Array<SnowAlertRule> = [];
-    var filter = this.props.rules.filter || '';
+    var filter = this.props.rules.filter;
 
     function queryFilter(query: Query) {
+      let filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
       return (
         filter === '' ||
         query.view_name.includes(filter.toUpperCase()) ||
         query.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
-        _.intersection(query.tags, filter.split(' ')).length > 0
+        _.intersection(query.tags, filterTags).length === filterTags.length
       );
     }
 
@@ -104,13 +114,14 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   render() {
     var {
       target,
-      rules: {rules, queries},
+      rules: {rules, queries, filter},
     } = this.props;
     return (
       <div>
         <Search
           style={{width: 200}}
           placeholder={`${target} Query Name`}
+          value={filter}
           onChange={e => this.props.changeFilter(e.target.value)}
         />
         <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>

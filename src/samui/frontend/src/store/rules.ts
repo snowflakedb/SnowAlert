@@ -5,15 +5,6 @@ function raise(e: string): never {
   throw e;
 }
 
-// function matchAll(regexp: RegExp, s: string): string[][] {
-//   var matches: string[][] = [];
-//   s.replace(regexp, (...args) => {
-//     matches.push(args);
-//     return '';
-//   });
-//   return matches;
-// };
-
 export class Subpolicy {
   i: number;
   title: string;
