@@ -31,7 +31,6 @@ class TagToggle extends React.Component<TagToggleProps, TagToggleState> {
 
   handleChange = (checked: boolean) => {
     this.setState({checked});
-    console.log(checked);
     if (checked) {
       this.props.onCheckedOn();
     } else {
@@ -95,10 +94,9 @@ type QueryEditorProps = OwnProps & DispatchProps & StateProps;
 
 class QueryEditor extends React.PureComponent<QueryEditorProps> {
   getTagArray(q: ReadonlyArray<Query>) {
-    var tags: {[tagName: string]: number} = _.flatMap(Array.from(q), g => g.tags).reduce(
-      (ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}),
-      {},
-    );
+    var tags: {
+      [tagName: string]: number;
+    } = _.flatMap(Array.from(q), g => g.tags).reduce((ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}), {});
     var res = [];
 
     for (let [tag, count] of Object.entries(tags)) {
