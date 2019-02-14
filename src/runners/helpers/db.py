@@ -167,15 +167,19 @@ def insert_violations_query_run(query_name, ctx=None):
     CUTOFF_TIME = f'DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())'
 
     log.info(f"{query_name} processing...")
-    result = ctx.cursor().execute(
-        f"""
-        INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-            SELECT alert_time, OBJECT_CONSTRUCT(*)
-            FROM {RULES_SCHEMA}.{query_name}
-            WHERE alert_time > {CUTOFF_TIME}
-        ;
-        """
-    ).fetchall()
-    log.info(f"{query_name} created {result[0][0]} rows.")
+    try:
+        result = ctx.cursor().execute(
+            f"""
+            INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
+                SELECT alert_time, OBJECT_CONSTRUCT(*)
+                FROM {RULES_SCHEMA}.{query_name}
+                WHERE alert_time > {CUTOFF_TIME}
+            ;
+            """
+        ).fetchall()
+        log.info(f"{query_name} created {result[0][0]} rows.")
+
+    except Exception as e:
+        log.info(f"{query_name} run threw an exception:", e)
 
     return ctx
