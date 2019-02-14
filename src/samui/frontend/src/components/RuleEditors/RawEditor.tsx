@@ -37,7 +37,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           disabled={!rule || rule.isSaving}
           value={rule ? rule.raw.body : ''}
           spellCheck={false}
-          autosize={{minRows: 30, maxRows: 50}}
+          autosize={{minRows: 30}}
           onChange={e => this.props.updateRuleBody(e.target.value)}
         />
         <Button

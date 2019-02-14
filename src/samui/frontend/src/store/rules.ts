@@ -209,15 +209,14 @@ export class Query extends SQLBackedRule {
     }
 
     function parseComment(comment: string): {description: string; tags: string[]} {
-      const descriptionRe = /^([\s\S]*?)\n\s*(?:@tags )(.*)$/m;
-
+      const descriptionRe = /^([\s\S]*?)(?:\n  @tags (.*))?$/m;
       const descriptionMatch = descriptionRe.exec(comment);
 
       var description = descriptionMatch ? descriptionMatch[1] : '';
 
       return {
         description: description.replace(/^  /gm, '').replace(/\n$/, ''),
-        tags: descriptionMatch ? descriptionMatch[2].split(', ') : [],
+        tags: descriptionMatch && descriptionMatch[2] ? descriptionMatch[2].split(', ') : [],
       };
     }
 
