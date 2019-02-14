@@ -27,15 +27,13 @@ function download(filename: string, text: string) {
 }
 
 const RuleDashboard = (props: RuleEditorProps) => {
-  const {rules, target, currentRuleView, queries} = props;
-  const query = queries.find(q => q.view_name == currentRuleView);
-  const formEditorEnabled = query && query.isParsed;
+  const {rules, target} = props;
 
   return (
     <Row gutter={32}>
       <Col span={16}>
         <Tabs defaultActiveKey="1">
-          <TabPane tab="Form Editor" key="1" disabled={!formEditorEnabled}>
+          <TabPane tab="Form Editor" key="1">
             <QueryEditor
               cols={[
                 {
