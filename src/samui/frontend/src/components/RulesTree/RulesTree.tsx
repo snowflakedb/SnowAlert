@@ -67,7 +67,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         filter === '' ||
         query.view_name.includes(filter.toUpperCase()) ||
         query.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
-        _.intersection(query.tags, filterTags).length === filterTags.length
+        (filterTags.length > 0 && _.intersection(query.tags, filterTags).length === filterTags.length)
       );
     }
 
