@@ -28,7 +28,7 @@ type AlertsProps = StateProps & DispatchProps;
 
 class Alerts extends React.PureComponent<AlertsProps> {
   render() {
-    const {rules, currentRuleView} = this.props.rules;
+    const {rules, currentRuleView, queries} = this.props.rules;
     const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` === currentRuleView);
 
     return (
@@ -76,7 +76,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
       >
         <div>
           <Row>
-            <RuleDashboard target="VIOLATION" queries={[]} rules={rules} currentRuleView={currentRuleView} />
+            <RuleDashboard target="VIOLATION" queries={queries} rules={rules} currentRuleView={currentRuleView} />
           </Row>
         </div>
       </Card>
