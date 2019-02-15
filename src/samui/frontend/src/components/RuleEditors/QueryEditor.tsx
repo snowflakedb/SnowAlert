@@ -56,6 +56,11 @@ interface stringFieldsDefinition {
   setValue(q: Query, v: string): Query;
 }
 
+export interface QueryEditorColumn {
+  span: number;
+  fields: (stringFieldsDefinition | boolFieldDefinition | tagGroupFieldDefinition)[];
+}
+
 interface boolFieldDefinition {
   title: string;
   type: 'boolean';
@@ -71,10 +76,7 @@ interface tagGroupFieldDefinition {
 }
 
 interface OwnProps {
-  cols: {
-    span: number;
-    fields: (stringFieldsDefinition | boolFieldDefinition | tagGroupFieldDefinition)[];
-  }[];
+  cols: QueryEditorColumn[];
 }
 
 interface DispatchProps {
