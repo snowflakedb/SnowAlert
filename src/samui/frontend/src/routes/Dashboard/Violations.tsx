@@ -41,7 +41,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
               <Input
                 id="title_input"
                 style={{width: 300}}
-                defaultValue={currentRule.title}
+                value={currentRule.title}
                 onChange={e => this.props.updateInterimTitle(e.target.value)}
               />
               <Button
