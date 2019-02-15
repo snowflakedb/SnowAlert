@@ -75,7 +75,7 @@ abstract class SQLBackedRule {
     return Object.assign({}, this._raw, this.isParsed ? {body: this.body} : undefined);
   }
 
-  abstract load_body(body: string, results?: stateTypes.SnowAlertRule['results']): void;
+  abstract load(body: string, results?: stateTypes.SnowAlertRule['results']): void;
   abstract get body(): string;
 }
 
@@ -124,7 +124,7 @@ export class Policy extends SQLBackedRule {
     return this.comment.replace(/^.*?\n/g, '');
   }
 
-  load_body(sql: string, results: stateTypes.SnowAlertRule['results']) {
+  load(sql: string, results: stateTypes.SnowAlertRule['results']) {
     const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
       descrRe = /^  COMMENT='([^']+)'\nAS\n/gm,
       subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
@@ -185,7 +185,7 @@ export class Query extends SQLBackedRule {
     return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
   }
 
-  load_body(sql: string) {
+  load(sql: string) {
     function stripComment(sql: string): {sql: string; comment: string; view_name: string} {
       const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
         descrRe = /^  COMMENT='([^']*)'\nAS\n/gm;
@@ -221,7 +221,7 @@ export class Query extends SQLBackedRule {
     }
 
     function stripField(sql: string): {sql: string; field: string; value: string} | null {
-      const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?)\s*AS ([\S^,]*)$/im);
+      const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?) AS (\w*)$/im);
       if (!match || sql.match(/^\s*FROM/i)) {
         // in case of sub-queries, FROM match needs to be explicit
         return null;
@@ -307,7 +307,7 @@ interface SuppressionFields {
 export class Suppression extends SQLBackedRule {
   fields: SuppressionFields;
 
-  load_body(sql: string) {
+  load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
       const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+/im;
       const m = sql.match(headRe);
