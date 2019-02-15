@@ -40,7 +40,7 @@ class TagToggle extends React.Component<TagToggleProps, TagToggleState> {
 
   render() {
     return (
-      <span style={{zoom: this.props.size}}>
+      <span style={{zoom: 1 + Math.log(this.props.size)}}>
         <CheckableTag checked={this.state.checked} onChange={this.handleChange}>
           {this.props.children}
         </CheckableTag>
