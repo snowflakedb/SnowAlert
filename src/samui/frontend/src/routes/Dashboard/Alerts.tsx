@@ -25,8 +25,6 @@ interface DispatchProps {
 type AlertsProps = StateProps & DispatchProps;
 
 class Alerts extends React.PureComponent<AlertsProps> {
-  componentDidMount() {}
-
   render() {
     const {queries, rules, currentRuleView} = this.props.rules;
     const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);

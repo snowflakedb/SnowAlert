@@ -94,9 +94,9 @@ type QueryEditorProps = OwnProps & DispatchProps & StateProps;
 
 class QueryEditor extends React.PureComponent<QueryEditorProps> {
   getTagArray(q: ReadonlyArray<Query>) {
-    var tags: {
+    const tags: {
       [tagName: string]: number;
-    } = _.flatMap(Array.from(q), g => g.tags).reduce((ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}), {});
+    } = _.flatMap(Array.from(q), q => q.tags).reduce((ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}), {});
     var res = [];
 
     for (let [tag, count] of Object.entries(tags)) {
