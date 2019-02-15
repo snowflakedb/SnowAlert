@@ -44,8 +44,8 @@ abstract class SQLBackedRule {
   set raw(r: stateTypes.SnowAlertRule) {
     this._raw = r;
     try {
-      this.load_body(r.body, r.results);
-      this.isParsed = true;
+      this.load(r.body, r.results);
+      this.isParsed = this.body === r.body;
     } catch (e) {
       // console.log(`error parsing >${r.body}< ${e}`);
       this.isParsed = false;
