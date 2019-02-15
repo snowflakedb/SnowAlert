@@ -71,15 +71,15 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         if run_preflight_checks:
             preflight_checks(connection)
 
+        if not oauth_access_token:
+            execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
+
+        if not CACHED_CONNECTION and not oauth_access_token:
+            CACHED_CONNECTION = connection
+        return connection
+
     except Exception as e:
         log.error(e, "Failed to connect.")
-
-    if not oauth_access_token:
-        execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
-
-    if not CACHED_CONNECTION and not oauth_access_token:
-        CACHED_CONNECTION = connection
-    return connection
 
 
 def fetch(ctx, query):
