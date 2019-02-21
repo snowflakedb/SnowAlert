@@ -136,62 +136,59 @@ CREATE_SAMPLE_DATA_QUERIES = [
 ]
 
 CREATE_SAMPLE_ALERT_QUERIES = [
-    f"""
-      CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.snowflake_login_without_mfa_{ALERT_QUERY_POSTFIX} AS
-        SELECT 'Successful Snowflake login without MFA' AS title
-             , array_construct('successful_snowflake_logins') AS sources
-             , user_name AS object
-             , 'SnowAlert' AS environment
-             , event_timestamp AS event_time
-             , CURRENT_TIMESTAMP() AS alert_time
-             , reported_client_type || ' logging in as ' || user_name || ' from ' || client_ip AS description
-             , user_name AS actor
-             , 'login' AS action
-             , 'SnowAlert' AS detector
-             , OBJECT_CONSTRUCT(*) AS event_data
-             , 'low' AS severity
-             , 'snowflake_login_without_mfa' AS query_name
-             , '{uuid4().hex}' AS query_id
-          FROM {DATA_SCHEMA}.successful_snowflake_logins_v
-          WHERE 1=1
-            AND second_authentication_factor IS NULL
-            AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
-        ;
-    """,
-    f"""
-      CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.snowflake_login_without_mfa_{ALERT_SQUELCH_POSTFIX} AS
-        SELECT * FROM {ALERTS_TABLE}
-        WHERE suppressed IS NULL
-          AND alert:AffectedObject = 'DESIGNATED_NOMFA_USER'
-        ;
-    """,
+f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.snowflake_login_without_mfa_{ALERT_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='Alerts on someone logging into Snowflake without MFA
+  @tags snowflake, mfa requirements'
+AS
+SELECT 'Successful Snowflake login without MFA' AS title
+     , array_construct('successful_snowflake_logins') AS sources
+     , user_name AS object
+     , 'SnowAlert' AS environment
+     , event_timestamp AS event_time
+     , CURRENT_TIMESTAMP() AS alert_time
+     , reported_client_type || ' logging in as ' || user_name || ' from ' || client_ip AS description
+     , user_name AS actor
+     , 'login' AS action
+     , 'SnowAlert' AS detector
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'low' AS severity
+     , 'snowflake_login_without_mfa' AS query_name
+     , '{uuid4().hex}' AS query_id
+FROM {DATA_SCHEMA}.successful_snowflake_logins_v
+WHERE 1=1
+  AND second_authentication_factor IS NULL
+  AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
+;""",
+f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.snowflake_login_without_mfa_{ALERT_SQUELCH_POSTFIX} COPY GRANTS AS
+SELECT * FROM {ALERTS_TABLE}
+WHERE suppressed IS NULL
+  AND alert:AffectedObject = 'DESIGNATED_NOMFA_USER'
+;""",
 ]
 
 CREATE_SAMPLE_VIOLATION_QUERIES = [
-    f"""
-      CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_QUERY_POSTFIX} AS
-        SELECT 'SnowAlert' AS environment
-             , 'Violations' AS object
-             , 'No Violations Too Long' AS title
-             , CURRENT_TIMESTAMP() AS alert_time
-             , 'There have been no violations in the past 3 days.' AS description
-             , NULL AS event_data
-             , 'snowalert' AS detector
-             , 'low' AS severity
-             , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
-             , 'no_violation_queries_in_too_long' AS query_name
-        FROM {DATA_SCHEMA}.violations_in_days_past_v
-        WHERE 1=1
-          AND count=0
-        ;
-    """,
-    f"""
-      CREATE VIEW IF NOT EXISTS {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_SQUELCH_POSTFIX} AS
-        SELECT * FROM {VIOLATIONS_TABLE}
-        WHERE suppressed IS NULL
-          AND 1=0
-        ;
-    """,
+f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='When we don't have violations defined, or everything is just a little too quiet.'
+AS
+SELECT 'SnowAlert' AS environment
+     , 'Violations' AS object
+     , 'No Violations Too Long' AS title
+     , CURRENT_TIMESTAMP() AS alert_time
+     , 'There have been no violations in the past 3 days.' AS description
+     , NULL AS event_data
+     , 'snowalert' AS detector
+     , 'low' AS severity
+     , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
+     , 'no_violation_queries_in_too_long' AS query_name
+FROM {DATA_SCHEMA}.violations_in_days_past_v
+WHERE 1=1
+  AND count=0
+;""",
+f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_SQUELCH_POSTFIX} COPY GRANTSAS
+SELECT * FROM {VIOLATIONS_TABLE}
+WHERE suppressed IS NULL
+  AND 1=0
+;""",
 ]
 
 
