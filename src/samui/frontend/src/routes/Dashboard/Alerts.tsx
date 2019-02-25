@@ -24,12 +24,12 @@ interface DispatchProps {
   updateInterimTitle: typeof updateInterimTitle;
 }
 
-type AlertsProps = StateProps & DispatchProps;
+type Props = StateProps & DispatchProps;
 
-class Alerts extends React.PureComponent<AlertsProps> {
+class AlertsDashboard extends React.PureComponent<Props> {
   render() {
-    const {queries, rules, currentRuleView} = this.props.rules;
-    const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` == currentRuleView);
+    const {queries, suppressions, currentRuleView} = this.props.rules;
+    const currentRule = queries.find(q => q.view_name === currentRuleView);
 
     return (
       <Card
@@ -37,27 +37,11 @@ class Alerts extends React.PureComponent<AlertsProps> {
         title={
           !currentRule ? (
             'Alerts Dashboard'
-          ) : currentRule.savedBody ? (
-            <div>
-              <Input
-                id="title_input"
-                style={{width: 300}}
-                value={currentRule.title}
-                onChange={e => this.props.updateInterimTitle(e.target.value)}
-              />
-              <Button
-                type="primary"
-                shape="circle"
-                icon="edit"
-                size="small"
-                onClick={() => this.props.renameRule(currentRule)}
-              />
-            </div>
           ) : (
             <Input
               style={{width: 300}}
               value={currentRule.title}
-              onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+              onChange={e => this.props.changeTitle(currentRule.raw, e.target.value)}
             />
           )
         }
@@ -78,8 +62,8 @@ class Alerts extends React.PureComponent<AlertsProps> {
           <Row>
             <RuleDashboard
               target="ALERT"
-              rules={rules}
               queries={queries}
+              suppressions={suppressions}
               currentRuleView={currentRuleView}
               formFields={[
                 {
@@ -241,4 +225,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 export default connect<StateProps, DispatchProps>(
   mapStateToProps,
   mapDispatchToProps,
-)(Alerts);
+)(AlertsDashboard);

@@ -12,7 +12,7 @@ import * as stateTypes from '../../reducers/types';
 import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
 import {Query} from '../../store/rules';
 
-import './Alerts.css';
+import './Violations.css';
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
@@ -26,19 +26,19 @@ interface DispatchProps {
   updateInterimTitle: typeof updateInterimTitle;
 }
 
-type AlertsProps = StateProps & DispatchProps;
+type ViolationsProps = StateProps & DispatchProps;
 
-class Alerts extends React.PureComponent<AlertsProps> {
+class Violations extends React.PureComponent<ViolationsProps> {
   render() {
-    const {rules, currentRuleView, queries} = this.props.rules;
-    const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` === currentRuleView);
+    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const currentRule = [...queries, ...suppressions].find(r => r.view_name === currentRuleView);
 
     return (
       <Card
         title={
           !currentRule ? (
             'Violations Dashboard'
-          ) : currentRule.savedBody ? (
+          ) : currentRule.isSaved ? (
             <div>
               <Input
                 id="title_input"
@@ -51,14 +51,14 @@ class Alerts extends React.PureComponent<AlertsProps> {
                 shape="circle"
                 icon="edit"
                 size="small"
-                onClick={() => this.props.renameRule(currentRule)}
+                onClick={() => this.props.renameRule(currentRule.raw)}
               />
             </div>
           ) : (
             <Input
               style={{width: 300}}
               value={currentRule.title}
-              onChange={e => this.props.changeTitle(currentRule, e.target.value)}
+              onChange={e => this.props.changeTitle(currentRule.raw, e.target.value)}
             />
           )
         }
@@ -81,7 +81,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
             <RuleDashboard
               target="VIOLATION"
               queries={queries}
-              rules={rules}
+              suppressions={suppressions}
               currentRuleView={currentRuleView}
               formFields={[
                 {
@@ -129,7 +129,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
                       setValue: (q: Query, v: string) => q.copy({fields: {select: {object: v}}}),
                     },
                     {
-                      title: 'Alert Time',
+                      title: 'Violation Time',
                       type: 'string',
                       getValue: (q: Query) => q.fields.select.alert_time,
                       setValue: (q: Query, v: string) => q.copy({fields: {select: {alert_time: v}}}),
@@ -221,4 +221,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 export default connect<StateProps, DispatchProps>(
   mapStateToProps,
   mapDispatchToProps,
-)(Alerts);
+)(Violations);

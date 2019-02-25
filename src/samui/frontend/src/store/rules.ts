@@ -28,7 +28,7 @@ AS
        , true AS passing
 ;`;
 
-abstract class SQLBackedRule {
+export abstract class SQLBackedRule {
   _raw: stateTypes.SnowAlertRule;
 
   isSaving: boolean;
@@ -39,6 +39,10 @@ abstract class SQLBackedRule {
     this.raw = rule;
     this.isSaving = false;
     this.isEditing = false;
+  }
+
+  copy(toMerge: any) {
+    return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
   }
 
   set raw(r: stateTypes.SnowAlertRule) {
@@ -68,6 +72,8 @@ abstract class SQLBackedRule {
   }
 
   get isEdited() {
+    console.log('raw.body', this.raw.body);
+    console.log('_raw.savedBody', this._raw.savedBody);
     return this.raw.body !== this._raw.savedBody;
   }
 
@@ -100,7 +106,7 @@ export class Policy extends SQLBackedRule {
     });
   }
 
-  get copy() {
+  copy() {
     return new Policy(this._raw);
   }
 
@@ -180,10 +186,6 @@ export class Query extends SQLBackedRule {
   fields: QueryFields;
   description: string;
   tags: string[];
-
-  copy(toMerge: any) {
-    return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
-  }
 
   load(sql: string) {
     function stripComment(sql: string): {sql: string; comment: string; view_name: string} {
@@ -306,6 +308,8 @@ interface SuppressionFields {
 
 export class Suppression extends SQLBackedRule {
   fields: SuppressionFields;
+  tags: string[];
+  rules: string[];
 
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
@@ -329,9 +333,13 @@ export class Suppression extends SQLBackedRule {
       var {rule, rest} = stripRule(rest) || raise('err2');
     }
 
+    this.tags = [];
+    this.rules = rules;
+
     rules.push(rule);
     return {rules, from, rulesString};
   }
+
   get body() {
     // const whereClauseLines = ['WHERE 1=1', 'AND suppressed IS NULL'].concat(fields.rules)
     return (

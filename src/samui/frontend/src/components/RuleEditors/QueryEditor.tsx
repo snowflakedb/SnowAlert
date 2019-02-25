@@ -120,13 +120,13 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
 
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
-    const {currentRuleView, rules, queries} = this.props.rules;
+    const {currentRuleView, queries} = this.props.rules;
     const q = queries.find(q => q.view_name === currentRuleView);
 
     if (!(currentRuleView && q && q instanceof Query && q.isParsed)) {
       return (
         <Col span={16}>
-          <h3>Loaded {rules.length} rules from Snowflake.</h3>
+          <h3>Loaded {queries.length} queries from Snowflake.</h3>
           query tags: {this.getTagArray(queries)}
         </Col>
       );

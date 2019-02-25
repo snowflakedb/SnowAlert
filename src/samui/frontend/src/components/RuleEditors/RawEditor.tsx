@@ -4,7 +4,6 @@ import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
 import {getRules} from '../../reducers/rules';
-import {Query} from '../../store/rules';
 import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
@@ -27,11 +26,11 @@ type RawEditorProps = OwnProps & DispatchProps & StateProps;
 
 class RawEditor extends React.PureComponent<RawEditorProps> {
   render() {
-    const {currentRuleView, queries, rules} = this.props.rules;
-    const q = queries.find(q => q.view_name === currentRuleView);
-    const rule = q || rules.find(r => `${r.title}_${r.target}_${r.type}` === currentRuleView);
+    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const rules = [...queries, ...suppressions];
+    const rule = rules.find(r => r.view_name === currentRuleView);
 
-    return rule instanceof Query ? (
+    return (
       <div>
         <Input.TextArea
           disabled={!rule || rule.isSaving}
@@ -59,33 +58,6 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           disabled={!rule || rule.isSaving}
           onClick={() => rule && this.props.deleteRule(rule.raw)}
         >
-          <Icon type="delete" theme="outlined" /> Delete
-        </Button>
-      </div>
-    ) : (
-      <div>
-        <Input.TextArea
-          disabled={!rule || rule.isSaving}
-          value={rule ? rule.body : ''}
-          spellCheck={false}
-          autosize={{minRows: 30, maxRows: 50}}
-          onChange={e => this.props.updateRuleBody(e.target.value)}
-        />
-        <Button
-          type="primary"
-          disabled={!rule || rule.isSaving || rule.savedBody == rule.body}
-          onClick={() => rule && this.props.saveRule(rule)}
-        >
-          {rule && rule.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
-        </Button>
-        <Button
-          type="default"
-          disabled={!rule || rule.isSaving || rule.savedBody == rule.body}
-          onClick={() => rule && this.props.updateRuleBody(rule.savedBody)}
-        >
-          <Icon type="rollback" theme="outlined" /> Revert
-        </Button>
-        <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && this.props.deleteRule(rule)}>
           <Icon type="delete" theme="outlined" /> Delete
         </Button>
       </div>
