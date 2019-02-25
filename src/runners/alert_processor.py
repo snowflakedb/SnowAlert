@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+import json
+import uuid
+
+from .config import ALERTS_TABLE, DATABASE
+from .helpers import db, log
+
+CORRELATION_PERIOD = -60
+
+
+def get_correlation_id(ctx, alert):
+    try:
+        actor = alert['ACTOR']
+        object = alert['OBJECT']
+        action = alert['ACTION']
+        time = alert['EVENT_TIME']
+    except Exception as e:
+        log.error(f"Alert missing a required field: {e.args[0]}", e)
+        return uuid.uuid4().hex
+
+    # select the most recent alert which matches the correlation logic
+
+    query = f"""select * from {ALERTS_TABLE}
+    where alert:ACTOR = '{actor}'
+    and (alert:OBJECT = '{object}' or alert:ACTION = '{action}')
+    and correlation_ID is not null
+    and event_time > dateadd(minutes, {CORRELATION_PERIOD}, '{time}')
+    order by event_time desc
+    limit 1
+    """
+
+    try:
+        match = ctx.cursor().execute(query).fetchall()
+    except Exception as e:
+        log.error("Failed unexpectedly while getting correlation matches", e)
+
+    if len(match) > 0:
+        try:
+            correlation_id = match[0][7]
+        except Exception:
+            correlation_id = uuid.uuid4().hex
+    else:
+        correlation_id = uuid.uuid4().hex
+
+    return correlation_id
+
+
+def assess_correlation(ctx):
+
+    get_alerts = f"""select * from {ALERTS_TABLE}
+    where correlation_ID is null
+    and alert_time > dateadd(hour, -2, current_timestamp())
+    """
+
+    alerts = ctx.cursor().execute(get_alerts).fetchall()
+    log.info(f"Found {len(alerts)} for correlation")
+
+    for row in alerts:
+        try:
+            alert_body = json.loads(row[0])
+        except Exception as e:
+            log.error("Failed unexpectedly while loading alert inside alert_processor.assess_correlation", e)
+            continue
+
+        alert_id = alert_body['ALERT_ID']
+        correlation_id = get_correlation_id(ctx, alert_body)
+        log.info(f"the correlation id for alert {alert_id} is {correlation_id}")
+
+        q = f"""UPDATE {ALERTS_TABLE} SET correlation_ID = '{correlation_id}'
+                WHERE ALERT:ALERT_ID = '{alert_id}'
+            """
+
+        try:
+            ctx.cursor().execute(q)
+            log.info("correlation id successfully updated")
+        except Exception as e:
+            log.error(f"Failed to update alert {alert_id} with new correlation id", e)
+            continue
+
+
+def main():
+    ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
+    assess_correlation(ctx)
