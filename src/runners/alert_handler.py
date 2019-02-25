@@ -57,17 +57,17 @@ def log_failure(ctx, alert, e):
         log.error("Failed to log alert creation failure", e)
 
 
-def get_new_alerts(connection):
+def get_new_alerts(ctx):
     get_alerts_query = f'SELECT * FROM {ALERTS_TABLE} WHERE ticket IS NULL AND suppressed=FALSE LIMIT 100'
-    results = connection.cursor().execute(get_alerts_query).fetchall()
+    results = ctx.cursor().execute(get_alerts_query).fetchall()
     print('Found', len(results), 'new alerts.')
     return results
 
 
-def record_ticket_id(connection, ticket_id, alert_id):
+def record_ticket_id(ctx, ticket_id, alert_id):
     query = f"UPDATE {ALERTS_TABLE} SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
     print('Updating alert table:', query)
-    connection.cursor().execute(query)
+    ctx.cursor().execute(query)
 
 
 def main():
@@ -88,6 +88,7 @@ def main():
             ticket_id = create_jira.create_jira_ticket(
                 alert_id=alert['ALERT_ID'],
                 query_id=alert['QUERY_ID'],
+                group_id=alert['GROUP_ID'],
                 query_name=alert['QUERY_NAME'],
                 environment=alert['ENVIRONMENT'],
                 sources=alert['SOURCES'],
