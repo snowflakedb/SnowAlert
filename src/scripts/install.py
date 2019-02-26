@@ -168,7 +168,7 @@ WHERE suppressed IS NULL
 
 CREATE_SAMPLE_VIOLATION_QUERIES = [
 f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='When we don't have violations defined, or everything is just a little too quiet.'
+  COMMENT='When we don\\'t have violations defined, or everything is just a little too quiet.'
 AS
 SELECT 'SnowAlert' AS environment
      , 'Violations' AS object
@@ -184,7 +184,7 @@ FROM {DATA_SCHEMA}.violations_in_days_past_v
 WHERE 1=1
   AND count=0
 ;""",
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_SQUELCH_POSTFIX} COPY GRANTSAS
+f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.no_violation_queries_in_too_long_{VIOLATION_SQUELCH_POSTFIX} COPY GRANTS AS
 SELECT * FROM {VIOLATIONS_TABLE}
 WHERE suppressed IS NULL
   AND 1=0
