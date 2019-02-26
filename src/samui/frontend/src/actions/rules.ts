@@ -44,13 +44,6 @@ type RuleTarget = SnowAlertRule['target'];
 type RuleType = SnowAlertRule['type'];
 
 // changing rule title
-export const CHANGE_TITLE = 'CHANGE_TITLE';
-export type ChangeTitleAction = ActionWithPayload<typeof CHANGE_TITLE, {rule: SnowAlertRule; newTitle: string}>;
-export const changeTitle = (rule: SnowAlertRule, newTitle: string) => async (dispatch: Dispatch) => {
-  dispatch(createAction(CHANGE_TITLE, {rule, newTitle}));
-};
-
-// changing rule title
 export const UPDATE_POLICY_TITLE = 'UPDATE_POLICY_TITLE';
 export type UpdatePolicyTitleAction = ActionWithPayload<
   typeof UPDATE_POLICY_TITLE,
@@ -218,12 +211,6 @@ export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
   }
 };
 
-export const UPDATE_INTERIM_TITLE = 'UPDATE_INTERIM_TITLE';
-export type UpdateInterimTitleAction = ActionWithPayload<typeof UPDATE_INTERIM_TITLE, string>;
-export const updateInterimTitle = (newTitle: string) => async (dispatch: Dispatch) => {
-  dispatch(createAction(UPDATE_INTERIM_TITLE, newTitle));
-};
-
 export const RENAME_RULE_REQUEST = 'RENAME_RULE_REQUEST';
 export const RENAME_RULE_SUCCESS = 'RENAME_RULE_SUCCESS';
 export const RENAME_RULE_FAILURE = 'RENAME_RULE_FAILURE';
@@ -257,7 +244,6 @@ export type EditRulesActions =
   | EditSubpolicyAction
   | ChangeRuleAction
   | ChangeRuleBodyAction
-  | ChangeTitleAction
   | DeleteRuleActions
   | DeleteSubpolicyAction
   | EditRuleAction
@@ -267,5 +253,4 @@ export type EditRulesActions =
   | RevertRuleAction
   | SaveRuleActions
   | UpdatePolicyTitleAction
-  | UpdatePolicyDescriptionAction
-  | UpdateInterimTitleAction;
+  | UpdatePolicyDescriptionAction;

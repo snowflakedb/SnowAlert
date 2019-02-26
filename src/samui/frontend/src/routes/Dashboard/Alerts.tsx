@@ -1,8 +1,8 @@
-import {Button, Card, Input, Row} from 'antd';
+import {Button, Card, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
+import {newRule, renameRule} from '../../actions/rules';
 import {RuleDashboard} from '../../components/Dashboard';
 import '../../index.css';
 import {getRules} from '../../reducers/rules';
@@ -19,9 +19,7 @@ interface StateProps {
 
 interface DispatchProps {
   newRule: typeof newRule;
-  changeTitle: typeof changeTitle;
   renameRule: typeof renameRule;
-  updateInterimTitle: typeof updateInterimTitle;
 }
 
 type Props = StateProps & DispatchProps;
@@ -34,17 +32,7 @@ class AlertsDashboard extends React.PureComponent<Props> {
     return (
       <Card
         className={'card'}
-        title={
-          !currentRule ? (
-            'Alerts Dashboard'
-          ) : (
-            <Input
-              style={{width: 300}}
-              value={currentRule.title}
-              onChange={e => this.props.changeTitle(currentRule.raw, e.target.value)}
-            />
-          )
-        }
+        title={!currentRule ? 'Alerts Dashboard' : <h3>{currentRule.title}</h3>}
         extra={
           <div>
             <Button type="primary" onClick={() => this.props.newRule('ALERT', 'QUERY')}>
@@ -78,8 +66,8 @@ class AlertsDashboard extends React.PureComponent<Props> {
                     {
                       title: 'Rule Summary',
                       type: 'string',
-                      getValue: (q: Query) => q.description,
-                      setValue: (q: Query, v: string) => q.copy({description: v}),
+                      getValue: (q: Query) => q.summary,
+                      setValue: (q: Query, v: string) => q.copy({summary: v}),
                     },
                     {
                       title: 'Rule Tags',
@@ -214,9 +202,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
       newRule,
-      changeTitle,
       renameRule,
-      updateInterimTitle,
     },
     dispatch,
   );

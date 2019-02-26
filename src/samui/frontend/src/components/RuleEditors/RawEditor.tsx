@@ -41,14 +41,14 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
         />
         <Button
           type="primary"
-          disabled={!rule || rule.isSaving || !rule.isSaved || !rule.isEdited}
+          disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
           onClick={() => rule && this.props.saveRule(rule.raw)}
         >
           {rule && rule.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
         </Button>
         <Button
           type="default"
-          disabled={!rule || rule.isSaving || !rule.isSaved || !rule.isEdited}
+          disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
           onClick={() => rule && this.props.updateRuleBody(rule.raw.savedBody)}
         >
           <Icon type="rollback" theme="outlined" /> Revert

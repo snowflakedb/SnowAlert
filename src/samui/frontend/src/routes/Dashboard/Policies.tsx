@@ -21,7 +21,6 @@ import {
   revertRule,
   saveRule,
   deleteSubpolicy,
-  updateInterimTitle,
 } from '../../actions/rules';
 import './Policies.css';
 
@@ -43,7 +42,6 @@ interface DispatchProps {
   renameRule: typeof renameRule;
   revertRule: typeof revertRule;
   saveRule: typeof saveRule;
-  updateInterimTitle: typeof updateInterimTitle;
 }
 
 type PoliciesProps = StateProps & DispatchProps;
@@ -142,12 +140,12 @@ class Policies extends React.PureComponent<PoliciesProps> {
                   description={
                     policy.isEditing ? (
                       <Input
-                        value={policy.description}
+                        value={policy.summary}
                         style={{width: 500}}
                         onChange={e => this.props.updatePolicyDescription(policy.view_name, e.currentTarget.value)}
                       />
                     ) : (
-                      policy.description
+                      policy.summary
                     )
                   }
                 />
@@ -250,7 +248,6 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
       renameRule,
       revertRule,
       saveRule,
-      updateInterimTitle,
     },
     dispatch,
   );

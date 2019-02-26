@@ -1,4 +1,4 @@
-import {Button, Card, Input, Row} from 'antd';
+import {Button, Card, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -9,7 +9,7 @@ import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
-import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
+import {newRule, renameRule} from '../../actions/rules';
 import {Query} from '../../store/rules';
 
 import './Violations.css';
@@ -21,9 +21,7 @@ interface StateProps {
 
 interface DispatchProps {
   newRule: typeof newRule;
-  changeTitle: typeof changeTitle;
   renameRule: typeof renameRule;
-  updateInterimTitle: typeof updateInterimTitle;
 }
 
 type ViolationsProps = StateProps & DispatchProps;
@@ -35,33 +33,7 @@ class Violations extends React.PureComponent<ViolationsProps> {
 
     return (
       <Card
-        title={
-          !currentRule ? (
-            'Violations Dashboard'
-          ) : currentRule.isSaved ? (
-            <div>
-              <Input
-                id="title_input"
-                style={{width: 300}}
-                value={currentRule.title}
-                onChange={e => this.props.updateInterimTitle(e.target.value)}
-              />
-              <Button
-                type="primary"
-                shape="circle"
-                icon="edit"
-                size="small"
-                onClick={() => this.props.renameRule(currentRule.raw)}
-              />
-            </div>
-          ) : (
-            <Input
-              style={{width: 300}}
-              value={currentRule.title}
-              onChange={e => this.props.changeTitle(currentRule.raw, e.target.value)}
-            />
-          )
-        }
+        title={!currentRule ? 'Violations Dashboard' : <h3>{currentRule.title}</h3>}
         className={'card'}
         bordered={true}
         extra={
@@ -96,8 +68,8 @@ class Violations extends React.PureComponent<ViolationsProps> {
                     {
                       title: 'Rule Summary',
                       type: 'string',
-                      getValue: (q: Query) => q.description,
-                      setValue: (q: Query, v: string) => q.copy({description: v}),
+                      getValue: (q: Query) => q.summary,
+                      setValue: (q: Query, v: string) => q.copy({summary: v}),
                     },
                     {
                       title: 'Rule Tags',
@@ -210,9 +182,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     {
       getOrganizationIfNeeded,
       newRule,
-      changeTitle,
       renameRule,
-      updateInterimTitle,
     },
     dispatch,
   );
