@@ -1,4 +1,4 @@
-import {Button, Card, Input, Row} from 'antd';
+import {Button, Card, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -9,10 +9,10 @@ import {getAuthDetails} from '../../reducers/auth';
 import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
-import {changeTitle, newRule, renameRule, updateInterimTitle} from '../../actions/rules';
+import {newRule, renameRule} from '../../actions/rules';
 import {Query} from '../../store/rules';
 
-import './Alerts.css';
+import './Violations.css';
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
@@ -21,47 +21,19 @@ interface StateProps {
 
 interface DispatchProps {
   newRule: typeof newRule;
-  changeTitle: typeof changeTitle;
   renameRule: typeof renameRule;
-  updateInterimTitle: typeof updateInterimTitle;
 }
 
-type AlertsProps = StateProps & DispatchProps;
+type ViolationsProps = StateProps & DispatchProps;
 
-class Alerts extends React.PureComponent<AlertsProps> {
+class Violations extends React.PureComponent<ViolationsProps> {
   render() {
-    const {rules, currentRuleView, queries} = this.props.rules;
-    const currentRule = rules.find(r => `${r.title}_${r.target}_${r.type}` === currentRuleView);
+    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const currentRule = [...queries, ...suppressions].find(r => r.view_name === currentRuleView);
 
     return (
       <Card
-        title={
-          !currentRule ? (
-            'Violations Dashboard'
-          ) : currentRule.savedBody ? (
-            <div>
-              <Input
-                id="title_input"
-                style={{width: 300}}
-                value={currentRule.title}
-                onChange={e => this.props.updateInterimTitle(e.target.value)}
-              />
-              <Button
-                type="primary"
-                shape="circle"
-                icon="edit"
-                size="small"
-                onClick={() => this.props.renameRule(currentRule)}
-              />
-            </div>
-          ) : (
-            <Input
-              style={{width: 300}}
-              value={currentRule.title}
-              onChange={e => this.props.changeTitle(currentRule, e.target.value)}
-            />
-          )
-        }
+        title={!currentRule ? 'Violations Dashboard' : <h3>{currentRule.title}</h3>}
         className={'card'}
         bordered={true}
         extra={
@@ -81,7 +53,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
             <RuleDashboard
               target="VIOLATION"
               queries={queries}
-              rules={rules}
+              suppressions={suppressions}
               currentRuleView={currentRuleView}
               formFields={[
                 {
@@ -96,8 +68,8 @@ class Alerts extends React.PureComponent<AlertsProps> {
                     {
                       title: 'Rule Summary',
                       type: 'string',
-                      getValue: (q: Query) => q.description,
-                      setValue: (q: Query, v: string) => q.copy({description: v}),
+                      getValue: (q: Query) => q.summary,
+                      setValue: (q: Query, v: string) => q.copy({summary: v}),
                     },
                     {
                       title: 'Rule Tags',
@@ -129,7 +101,7 @@ class Alerts extends React.PureComponent<AlertsProps> {
                       setValue: (q: Query, v: string) => q.copy({fields: {select: {object: v}}}),
                     },
                     {
-                      title: 'Alert Time',
+                      title: 'Violation Time',
                       type: 'string',
                       getValue: (q: Query) => q.fields.select.alert_time,
                       setValue: (q: Query, v: string) => q.copy({fields: {select: {alert_time: v}}}),
@@ -210,9 +182,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
     {
       getOrganizationIfNeeded,
       newRule,
-      changeTitle,
       renameRule,
-      updateInterimTitle,
     },
     dispatch,
   );
@@ -221,4 +191,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 export default connect<StateProps, DispatchProps>(
   mapStateToProps,
   mapDispatchToProps,
-)(Alerts);
+)(Violations);

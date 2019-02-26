@@ -133,7 +133,7 @@ def load_rules(ctx, postfix) -> List[str]:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
 
-    rules = [name[1] for name in views if name[1].lower().endswith(postfix)]
+    rules = [name[1] for name in views if name[1].endswith(postfix)]
     log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
 
     return rules

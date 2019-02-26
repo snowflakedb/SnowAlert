@@ -12,7 +12,7 @@ import {loadSnowAlertRules, changeRule, changeFilter} from '../../actions/rules'
 import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
-import {Query} from '../../store/rules';
+import {Query, Suppression} from '../../store/rules';
 import {QueryEditor} from '../RuleEditors';
 
 import './RulesTree.css';
@@ -55,28 +55,19 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
 
   generateTree = (
     queries: ReadonlyArray<Query>,
-    rules: SnowAlertRulesState['rules'],
+    suppressions: ReadonlyArray<Suppression>,
     target: SnowAlertRule['target'],
+    filter: string,
   ) => {
-    const suppressions: Array<SnowAlertRule> = [];
-    var filter = this.props.rules.filter;
-
-    function queryFilter(query: Query) {
+    function ruleFilter(rule: Query | Suppression) {
       let filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
       return (
         filter === '' ||
-        query.view_name.includes(filter.toUpperCase()) ||
-        query.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
-        (filterTags.length > 0 && _.intersection(query.tags, filterTags).length === filterTags.length)
+        rule.view_name.includes(filter.toUpperCase()) ||
+        rule.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
+        (filterTags.length > 0 && _.intersection(rule.tags, filterTags).length === filterTags.length)
       );
     }
-
-    for (let rule of rules)
-      if (rule.target === target) {
-        if (rule.type === 'SUPPRESSION' && (filter == '' || rule.title.includes(filter.toUpperCase()))) {
-          suppressions.push(rule);
-        }
-      }
 
     return [
       <TreeNode key="queries" title={`${target} Queries`} selectable={false}>
@@ -85,7 +76,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         ) : (
           queries
             .filter(q => target === q.raw.target)
-            .filter(queryFilter)
+            .filter(ruleFilter)
             .map(r => (
               <TreeNode
                 selectable
@@ -99,13 +90,16 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         {this.props.rules.isFetching ? (
           <TreeNode title="Loading..." />
         ) : (
-          suppressions.map(r => (
-            <TreeNode
-              selectable
-              key={`${r.title}_${target}_SUPPRESSION`}
-              title={(r.isSaving ? '(saving) ' : r.savedBody === r.body ? '' : '* ') + r.title}
-            />
-          ))
+          suppressions
+            .filter(s => target === s.raw.target)
+            .filter(ruleFilter)
+            .map(s => (
+              <TreeNode
+                selectable
+                key={s.view_name}
+                title={(s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title}
+              />
+            ))
         )}
       </TreeNode>,
     ];
@@ -114,7 +108,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   render() {
     var {
       target,
-      rules: {rules, queries, filter},
+      rules: {queries, suppressions, filter},
     } = this.props;
     return (
       <div>
@@ -125,7 +119,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           onChange={e => this.props.changeFilter(e.target.value)}
         />
         <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
-          {this.generateTree(queries, rules, target)}
+          {this.generateTree(queries, suppressions, target, filter)}
         </Tree>
       </div>
     );

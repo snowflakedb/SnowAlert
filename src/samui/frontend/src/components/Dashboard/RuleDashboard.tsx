@@ -5,21 +5,21 @@ import {RawEditor, QueryEditor, QueryEditorColumn} from '../RuleEditors';
 import './RuleDashboard.css';
 import {Tabs} from 'antd';
 import {SnowAlertRule} from '../../reducers/types';
-import {Query} from '../../store/rules';
+import {Query, Suppression} from '../../store/rules';
 
 const TabPane = Tabs.TabPane;
 
 interface RuleEditorProps {
   target: SnowAlertRule['target'];
-  rules: ReadonlyArray<SnowAlertRule>;
   currentRuleView: string | null;
   queries: ReadonlyArray<Query>;
+  suppressions: ReadonlyArray<Suppression>;
   formFields: ReadonlyArray<QueryEditorColumn>;
 }
 
 function download(filename: string, text: string) {
   var element = document.createElement('a');
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
   element.setAttribute('download', filename);
   element.style.display = 'none';
   document.body.appendChild(element);
@@ -27,8 +27,7 @@ function download(filename: string, text: string) {
   document.body.removeChild(element);
 }
 
-const RuleDashboard = (props: RuleEditorProps) => {
-  const {rules, target, currentRuleView, queries} = props;
+const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFields}: RuleEditorProps) => {
   const query = queries.find(q => q.view_name === currentRuleView);
   const formEditorEnabled = query && query.isParsed;
 
@@ -37,7 +36,7 @@ const RuleDashboard = (props: RuleEditorProps) => {
       <Col span={16}>
         <Tabs defaultActiveKey="1">
           <TabPane tab="Form Editor" key="1" disabled={!formEditorEnabled}>
-            <QueryEditor cols={props.formFields} />
+            <QueryEditor cols={formFields} />
           </TabPane>
           <TabPane tab="SQL Editor" key="2">
             <RawEditor />
@@ -49,11 +48,11 @@ const RuleDashboard = (props: RuleEditorProps) => {
         <RulesTree target={target} />
         <Button
           type="dashed"
-          disabled={rules.length == 0}
+          disabled={queries.length == 0}
           onClick={() => {
             download(
               `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
-              rules.map(r => [`${r.title}_${r.target}_${r.type}`, r.body]).join('\n\n'),
+              [...queries, ...suppressions].map(q => q.body).join('\n\n'),
             );
           }}
         >
