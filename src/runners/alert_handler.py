@@ -69,43 +69,76 @@ def record_ticket_id(ctx, ticket_id, alert_id):
     print('Updating alert table:', query)
     ctx.cursor().execute(query)
 
+# We get a list of alerts that don't have tickets. For each alert, check the group_id of the alert; if there is no alert that has that group_id and a ticket_id, create a ticket for that alert.
+# if there is an alert with a matching group_id and a ticket_id, update the body of the ticket with the new alert instead.
+
 
 def main():
     ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
     alerts = get_new_alerts(ctx)
-    print('Found', len(alerts), 'new alerts to handle.')
+    log.info('Found', len(alerts), 'new alerts to handle.')
 
     for row in alerts:
         try:
             alert = json.loads(row[0])
+            group_id = row[7]
         except Exception as e:
             log.error("Failed unexpectedly", e)
             continue
-        print('Creating ticket for alert', alert)
+        log.info('Creating ticket for alert', alert)
 
-        # Create a new ticket in JIRA for the alert
-        try:
-            ticket_id = create_jira.create_jira_ticket(
-                alert_id=alert['ALERT_ID'],
-                query_id=alert['QUERY_ID'],
-                group_id=alert['GROUP_ID'],
-                query_name=alert['QUERY_NAME'],
-                environment=alert['ENVIRONMENT'],
-                sources=alert['SOURCES'],
-                actor=alert['ACTOR'],
-                object=alert['OBJECT'],
-                action=alert['ACTION'],
-                title=alert['TITLE'],
-                event_time=alert['EVENT_TIME'],
-                alert_time=alert['ALERT_TIME'],
-                description=alert['DESCRIPTION'],
-                detector=alert['DETECTOR'],
-                event_data=alert['EVENT_DATA'],
-                severity=alert['SEVERITY'])
-        except Exception as e:
-            log.error(e, f"Failed to create ticket for alert {alert}")
-            log_failure(ctx, alert, e)
-            continue
+        # We check against the group ID for alerts in that group with the same ticket
+        query = f"""SELECT * from {ALERTS_TABLE} where GROUP_ID = '{group_id}' and TICKET is not null
+                    ORDER BY EVENT_TIME DESC
+                    LIMIT 1
+                """
+        if group_id is None:
+            correlated_results = []
+        else:
+            correlated_results = ctx.cursor().execute(query).fetchall()
+
+        log.info(f"Discovered {len(correlated_results)} correlated results")
+
+        if len(correlated_results) > 0:
+
+            # There is a group with a ticket that exists, so we should append to that ticket
+            ticket_id = correlated_results[0][3]
+            log.info(f"Found ticket {ticket_id}")
+            ticket_status = create_jira.check_ticket_status(ticket_id)
+            log.info(f"The status of the ticket is: {ticket_status}")
+
+            if str(ticket_status) == 'To Do':  # the status of the jira ticket doesn't get returned as a string; it gets returned as a class and a straight comparison to a string will always fail
+                log.info("Appending to ticket body")
+                try:
+                    create_jira.append_to_body(ticket_id, alert)
+                except Exception as e:
+                    log.error(f"Failed to append alert {alert['ALERT_ID']} to ticket {ticket_id}.", e)
+                    try:
+                        ticket_id = create_jira.create_jira_ticket(alert)
+                    except Exception as e:
+                        log.error(e, f"Failed to create ticket for alert {alert}")
+                        log_failure(ctx, alert, e)
+                    continue
+            else:
+                log.info("The ticket is in progress; creating new ticket")
+                # The ticket is already in progress, we shouldn't change it
+                # Create a new ticket in JIRA for the alert
+                try:
+                    ticket_id = create_jira.create_jira_ticket(alert)
+                except Exception as e:
+                    log.error(e, f"Failed to create ticket for alert {alert}")
+                    log_failure(ctx, alert, e)
+                    continue
+        else:
+            # There is no group with a ticket that exists
+            # Create a new ticket in JIRA for the alert
+            try:
+                ticket_id = create_jira.create_jira_ticket(alert)
+                log.info(f"Created ticket {ticket_id}")
+            except Exception as e:
+                log.error(e, f"Failed to create ticket for alert {alert}")
+                log_failure(ctx, alert, e)
+                continue
 
         # Record the new ticket id in the alert table
         record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])

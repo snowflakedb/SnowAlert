@@ -19,17 +19,23 @@ GROUPING_PERIOD = -60
 
 def get_group_id(ctx, alert):
     # In order to define a group, two alerts need to happen within an hour of each other, share an actor, and share either an action or an object
-    actor = alert['ACTOR']
-    object = alert['OBJECT']
-    action = alert['ACTION']
-    time = alert['EVENT_TIME']
+    # if any of these fields are missing, the alert is not going to be useful for investigation
+    try:
+        actor = alert['ACTOR']
+        object = alert['OBJECT']
+        action = alert['ACTION']
+        time = alert['EVENT_TIME']
+    except Exception as e:
+        log.error(f"Alert missing a required field: {e.args[0]}", e)
+        return uuid.uuid4().hex
 
     # select the most recent alert which matches the grouping logic
 
     query = f"""select * from {ALERTS_TABLE}
-    where alert:ACTOR = {actor}
-    and (alert:OBJECT = {object} or alert:ACTION = {action})
-    and event_time > dateadd(minutes, {GROUPING_PERIOD}, {time})
+    where alert:ACTOR = '{actor}'
+    and (alert:OBJECT = '{object}' or alert:ACTION = '{action}')
+    and GROUP_ID is not null
+    and event_time > dateadd(minutes, {GROUPING_PERIOD}, '{time}')
     order by event_time desc
     limit 1
     """
@@ -37,12 +43,12 @@ def get_group_id(ctx, alert):
     try:
         match = ctx.cursor().execute(query).fetchall()
     except Exception as e:
-        log.error("Failed unexpectedly", e)
+        log.error("Failed unexpectedly while getting group matches", e)
 
     if len(match) > 0:
-        match = json.loads(match[0])
-        group_id = match['GROUP_ID']
-        if group_id is None:
+        try:
+            group_id = match[0][7]
+        except Exception:
             group_id = uuid.uuid4().hex
     else:
         group_id = uuid.uuid4().hex
@@ -54,31 +60,36 @@ def get_group_id(ctx, alert):
 # this probably means deconstructing the alert into json, modifying the json, and then updating the table with the new json. This might be a bit tricky.
 
 def assess_grouping(ctx):
+
     get_alerts = f"""select * from {ALERTS_TABLE}
-    where alert:GROUP_ID is null
+    where GROUP_ID is null
     and alert_time > dateadd(hour, -2, current_timestamp())
     """
 
     alerts = ctx.cursor().execute(get_alerts).fetchall()
+    log.info(f"Found {len(alerts)} for grouping")
 
     for row in alerts:
         try:
             alert_body = json.loads(row[0])
         except Exception as e:
-            log.error("Failed unexpectedly", e)
+            log.error("Failed unexpectedly while loading alert inside alert_processor.assess_grouping", e)
             continue
 
         alert_id = alert_body['ALERT_ID']
-        alert_body['GROUP_ID'] = get_group_id(ctx, alert_body)
+        group_id = get_group_id(ctx, alert_body)
+        log.info(f"the group id for alert {alert_id} is {group_id}")
 
-        q = f"""UPDATE {ALERTS_TABLE} SET ALERT = {json.dumps(alert_body)}
-                WHERE ALERT:ALERT_ID = {alert_id}
+        q = f"""UPDATE {ALERTS_TABLE} SET GROUP_ID = '{group_id}'
+                WHERE ALERT:ALERT_ID = '{alert_id}'
             """
 
         try:
             ctx.cursor().execute(q)
+            log.info("group id successfully updated")
         except Exception as e:
             log.error(f"Failed to update alert {alert_id} with new group id", e)
+            continue
 
 
 def main():

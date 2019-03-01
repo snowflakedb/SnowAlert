@@ -30,6 +30,7 @@ def main(command, rule_name=None):
             alert_suppressions_runner.main()
             alert_processor.main()
             if os.environ.get('JIRA_USER'):
+                print("starting the jira handler, condition was true")
                 alert_handler.main()
             else:
                 print("No JIRA_USER in env, skipping handler.")
