@@ -1,0 +1,17 @@
+CREATE OR REPLACE VIEW {RULES_SCHEMA}.NO_VIOLATION_QUERIES_IN_TOO_LONG_{VIOLATION_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='We don\'t have violations defined or everything is just a little too quiet.'
+AS
+SELECT 'SnowAlert' AS environment
+     , 'Violations' AS object
+     , 'No Violations Too Long' AS title
+     , CURRENT_TIMESTAMP() AS alert_time
+     , 'There have been no violations in the past 3 days.' AS description
+     , NULL AS event_data
+     , 'snowalert' AS detector
+     , 'low' AS severity
+     , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
+     , 'no_violation_queries_in_too_long' AS query_name
+FROM {DATA_SCHEMA}.violations_in_days_past_v
+WHERE 1=1
+  AND count=0
+;

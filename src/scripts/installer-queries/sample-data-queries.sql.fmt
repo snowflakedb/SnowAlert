@@ -1,0 +1,12 @@
+CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.successful_snowflake_logins_v AS
+  SELECT *
+  FROM TABLE(snowflake_sample_data.information_schema.login_history())
+  WHERE is_success='YES'
+;
+
+CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.violations_in_days_past_v AS
+  SELECT COUNT(*) AS count
+       , 3 AS days_past
+  FROM snowalert.results.violations
+  WHERE alert_time > DATEADD('day', -3, CURRENT_DATE())
+;

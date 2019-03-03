@@ -13,13 +13,29 @@ from uuid import uuid4
 import boto3
 import snowflake.connector
 
+from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
+from runners.config import VIOLATION_QUERY_POSTFIX
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
 from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE
 
-from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
-from runners.config import VIOLATION_QUERY_POSTFIX
 from runners.helpers import log
 from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
+
+
+def read_queries(file):
+    vars = {
+        'uuid': uuid4().hex,
+        'ALERTS_TABLE': ALERTS_TABLE,
+        'DATA_SCHEMA': DATA_SCHEMA,
+        'RULES_SCHEMA': RULES_SCHEMA,
+        'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
+        'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
+        'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
+    }
+    pwd = os.path.dirname(os.path.realpath(__file__))
+    tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
+    return tmpl.format(**vars).split(';')
+
 
 GRANT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
@@ -115,76 +131,6 @@ CREATE_TABLES_QUERIES = [
 ]
 
 CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queries ( suppression_spec VARIANT );"
-
-CREATE_SAMPLE_DATA_QUERIES = [
-    f"""
-      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.successful_snowflake_logins_v AS
-        SELECT *
-        FROM TABLE(snowflake_sample_data.information_schema.login_history())
-        WHERE is_success='YES'
-      ;
-    """,
-    f"""
-      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.violations_in_days_past_v AS
-        SELECT COUNT(*) AS count
-             , 3 AS days_past
-        FROM snowalert.results.violations
-        WHERE alert_time > DATEADD('day', -3, CURRENT_DATE())
-        ;
-    """,
-]
-
-CREATE_SAMPLE_ALERT_QUERIES = [
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.SNOWFLAKE_LOGIN_WITHOUT_MFA_{ALERT_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='Alerts on someone logging into Snowflake without MFA
-  @tags snowflake, mfa requirements'
-AS
-SELECT 'Successful Snowflake login without MFA' AS title
-     , array_construct('successful_snowflake_logins') AS sources
-     , user_name AS object
-     , 'SnowAlert' AS environment
-     , event_timestamp AS event_time
-     , CURRENT_TIMESTAMP() AS alert_time
-     , reported_client_type || ' logging in as ' || user_name || ' from ' || client_ip AS description
-     , user_name AS actor
-     , 'login' AS action
-     , 'SnowAlert' AS detector
-     , OBJECT_CONSTRUCT(*) AS event_data
-     , 'low' AS severity
-     , 'snowflake_login_without_mfa' AS query_name
-     , '{uuid4().hex}' AS query_id
-FROM {DATA_SCHEMA}.successful_snowflake_logins_v
-WHERE 1=1
-  AND second_authentication_factor IS NULL
-  AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
-;""",
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} COPY GRANTS AS
-SELECT *
-FROM {ALERTS_TABLE}
-WHERE suppressed IS NULL
-  AND alert:AffectedObject = 'DESIGNATED_NOMFA_USER'
-;""",
-]
-
-CREATE_SAMPLE_VIOLATION_QUERIES = [
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.NO_VIOLATION_QUERIES_IN_TOO_LONG_{VIOLATION_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='We don\\'t have violations defined or everything is just a little too quiet.'
-AS
-SELECT 'SnowAlert' AS environment
-     , 'Violations' AS object
-     , 'No Violations Too Long' AS title
-     , CURRENT_TIMESTAMP() AS alert_time
-     , 'There have been no violations in the past 3 days.' AS description
-     , NULL AS event_data
-     , 'snowalert' AS detector
-     , 'low' AS severity
-     , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
-     , 'no_violation_queries_in_too_long' AS query_name
-FROM {DATA_SCHEMA}.violations_in_days_past_v
-WHERE 1=1
-  AND count=0
-;"""
-]
 
 
 def parse_snowflake_url(url):
@@ -312,9 +258,9 @@ def setup_user(do_attempt):
 
 
 def setup_samples(ctx):
-    do_attempt("Creating data view", CREATE_SAMPLE_DATA_QUERIES)
-    do_attempt("Creating sample alert", CREATE_SAMPLE_ALERT_QUERIES)
-    do_attempt("Creating sample violation", CREATE_SAMPLE_VIOLATION_QUERIES)
+    do_attempt("Creating data view", read_queries('sample-data-queries'))
+    do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
+    do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
 
 
 def jira_integration():
