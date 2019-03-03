@@ -29,7 +29,7 @@ const BLANK_POLICY = (view_name: string) =>
   `;`;
 
 function stripComment(sql: string): {sql: string; comment: string; view_name: string} {
-  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
+  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/im,
     descrRe = /^  COMMENT='((?:\\'|[^'])*)'\nAS\n/gm;
 
   const vnameMatch = vnameRe.exec(sql);
@@ -73,7 +73,7 @@ export abstract class SQLBackedRule {
       this.load(r.body, r.results);
       this.isParsed = this.body === r.body;
     } catch (e) {
-      // console.log(`error parsing >${r.body}< ${e}`);
+      console.log(`error parsing >${r.body}< ${e}`);
       this.isParsed = false;
     }
   }
@@ -329,9 +329,13 @@ export class Suppression extends SQLBackedRule {
 
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
+      const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS AS\s*\n/im;
+      const vnameMatch = sql.match(vnameRe) || raise('nostart');
+      const rest = sql.substr(vnameMatch[0].length);
+
       const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+/im;
       const m = sql.match(headRe);
-      return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
+      return m ? {rest: rest.substr(m[0].length), from: m[1]} : null;
     }
 
     function stripRule(sql: string): {rule: string; rest: string} | null {
@@ -342,6 +346,8 @@ export class Suppression extends SQLBackedRule {
 
     var {sql} = stripComment(sql);
     var {rest, from} = stripStart(sql) || raise('err0');
+    console.log('start', from, rest);
+
     const rulesString = rest.replace(/;\s*$/gm, ''); // hack until array UI ready
     var {rule, rest} = stripRule(rest) || raise('err1');
     var rules = [];
@@ -364,7 +370,7 @@ export class Suppression extends SQLBackedRule {
       `SELECT *\n` +
       `FROM ${this.fields.from}\n` +
       `WHERE suppressed IS NULL\n` +
-      `${this.fields.rulesString};`
+      `  ${this.fields.rulesString};`
       // `${whereClauseLines.join('\n  ')}\n;`
     );
   }
