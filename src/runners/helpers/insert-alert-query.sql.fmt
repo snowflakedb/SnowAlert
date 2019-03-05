@@ -1,0 +1,52 @@
+MERGE INTO {ALERTS_TABLE} USING (
+
+  SELECT ANY_VALUE(alert) AS alert
+       , SUM(counter) AS counter
+       , MIN(alert_time) AS alert_time
+       , MIN(event_time) AS event_time
+
+  FROM (
+
+    SELECT alert, alert_time, event_time, counter
+    FROM {ALERTS_TABLE}
+    WHERE alert:EVENT_TIME BETWEEN {from_time_sql} AND {to_time_sql}
+      AND '{query_name}' = alert:QUERY_NAME
+
+    UNION ALL
+
+    SELECT OBJECT_CONSTRUCT(
+             'ALERT_ID', UUID_STRING(),
+             'QUERY_NAME', '{query_name}',
+             'QUERY_ID', QUERY_ID,
+             'ENVIRONMENT', ENVIRONMENT,
+             'SOURCES', SOURCES,
+             'ACTOR', ACTOR,
+             'OBJECT', OBJECT,
+             'ACTION', ACTION,
+             'TITLE', TITLE,
+             'EVENT_TIME', EVENT_TIME,
+             'ALERT_TIME', ALERT_TIME,
+             'DESCRIPTION', DESCRIPTION,
+             'DETECTOR', DETECTOR,
+             'EVENT_DATA', EVENT_DATA,
+             'SEVERITY', SEVERITY
+           ) AS alert
+         , alert_time
+         , event_time
+         , 1 AS counter
+    FROM {RULES_SCHEMA}.{query_name}
+    WHERE alert:EVENT_TIME BETWEEN {from_time_sql} AND {to_time_sql}
+
+  )
+  GROUP BY alert:OBJECT, alert:DESCRIPTION
+
+) new
+ON {ALERTS_TABLE}.alert = new.alert
+
+WHEN MATCHED
+THEN UPDATE SET counter = new.counter
+
+WHEN NOT MATCHED
+THEN INSERT (alert, counter, alert_time, event_time)
+     VALUES (new.alert, new.counter, new.alert_time, new.event_time)
+;

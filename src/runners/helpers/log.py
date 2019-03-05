@@ -42,23 +42,22 @@ def metric(metric, namespace, dimensions, value):
 
 def metadata_record(ctx, metadata, table, e=None):
     metadata['EXCEPTION'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
-    metadata['END_TIME'] = datetime.datetime.utcnow()
-    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
     metadata['ROW_COUNT'] = ctx.cursor().rowcount or 0
 
+    metadata['END_TIME'] = datetime.datetime.utcnow()
+    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
     metadata['START_TIME'] = str(metadata['START_TIME'])
     metadata['END_TIME'] = str(metadata['END_TIME'])
 
-    statement = f'''
+    sql = f'''
     INSERT INTO {table}
         (event_time, v) select '{metadata['START_TIME']}',
         PARSE_JSON(column1) from values('{json.dumps(metadata)}')
     '''
 
     try:
-        info("Recording metadata...")
-        ctx.cursor().execute(statement)
-        info("done.")
+        ctx.cursor().execute(sql)
+        info("Metadata recorded.")
 
     except Exception as e:
         error("Metadata failed to log", e)

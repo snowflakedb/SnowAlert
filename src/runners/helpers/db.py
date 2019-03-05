@@ -1,7 +1,7 @@
 """Helper specific to SnowAlert connecting to the database"""
 
 from typing import List
-from os import environ
+from os import environ, path
 
 import snowflake.connector
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
@@ -152,6 +152,33 @@ def insert_alerts(alerts, ctx=None):
         ),
         alerts
     )
+
+
+def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
+    from runners.config import ALERTS_TABLE, RULES_SCHEMA
+    if ctx is None:
+        ctx = CACHED_CONNECTION or connect()
+
+    log.info(f"{query_name} processing...")
+
+    try:
+        pwd = path.dirname(path.realpath(__file__))
+        sql = open(f'{pwd}/insert-alert-query.sql.fmt').read().format(
+            RULES_SCHEMA=RULES_SCHEMA,
+            ALERTS_TABLE=ALERTS_TABLE,
+            from_time_sql=from_time_sql,
+            query_name=query_name,
+            to_time_sql=to_time_sql,
+        )
+        result = ctx.cursor().execute(sql).fetchall()
+        created_count, updated_count = result[0]
+        log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
+
+    except Exception as e:
+        log.info(f"{query_name} run threw an exception:", e)
+        return 0, 0
+
+    return created_count, updated_count
 
 
 def insert_violations_query_run(query_name, ctx=None):
