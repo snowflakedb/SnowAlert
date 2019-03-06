@@ -79,6 +79,7 @@ def escape_jira_strings(v):
 def append_to_body(id, alert):
     issue = jira.issue(id)
     description = get_ticket_description(issue)
+    log.info(f"Appending data to ticket {id}")
     description = description + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     alert['SOURCES'] = ', '.join(alert['SOURCES'])
     alert['EVENT_DATA'] = yaml.dump(alert['EVENT_DATA'], indent=4, default_flow_style=False)
@@ -108,7 +109,7 @@ def create_jira_ticket(alert):
 
     body = jira_ticket_body(alert)
 
-    print(f'Creating new JIRA ticket for {alert["TITLE"]} in project', PROJECT)
+    log.info(f'Creating new JIRA ticket for {alert["TITLE"]} in project', PROJECT)
     new_issue = jira.create_issue(project=PROJECT,
                                   issuetype={'name': 'Story'},
                                   summary=alert['TITLE'],
@@ -118,7 +119,9 @@ def create_jira_ticket(alert):
 
 
 def check_ticket_status(id):
-    return jira.issue(id).fields.status
+    status = str(jira.issue(id).fields.status)
+    log.info(f"Ticket {id} status is {status}")
+    return str(status)
 
 
 def get_ticket_description(id):

@@ -69,8 +69,9 @@ def record_ticket_id(ctx, ticket_id, alert_id):
     print('Updating alert table:', query)
     ctx.cursor().execute(query)
 
-# We get a list of alerts that don't have tickets. For each alert, check the group_id of the alert; if there is no alert that has that group_id and a ticket_id, create a ticket for that alert.
-# if there is an alert with a matching group_id and a ticket_id, update the body of the ticket with the new alert instead.
+# We get a list of alerts that don't have tickets. For each alert, check the correlation_id of the alert; if there is no
+# alert that has that correlation_id and a ticket_id, create a ticket for that alert. if there is an alert with a matching
+# correlation_id and a ticket_id, update the body of the ticket with the new alert instead.
 
 
 def main():
@@ -81,34 +82,28 @@ def main():
     for row in alerts:
         try:
             alert = json.loads(row[0])
-            group_id = row[7]
+            correlation_id = row[7]
         except Exception as e:
             log.error("Failed unexpectedly", e)
             continue
         log.info('Creating ticket for alert', alert)
 
-        # We check against the group ID for alerts in that group with the same ticket
-        query = f"""SELECT * from {ALERTS_TABLE} where GROUP_ID = '{group_id}' and TICKET is not null
+        # We check against the correlation ID for alerts in that correlation with the same ticket
+        query = f"""SELECT * from {ALERTS_TABLE} where CORRELATION_ID = '{correlation_id}' and TICKET is not null
                     ORDER BY EVENT_TIME DESC
                     LIMIT 1
                 """
-        if group_id is None:
-            correlated_results = []
-        else:
-            correlated_results = ctx.cursor().execute(query).fetchall()
+        correlated_results = ctx.cursor().execute(query).fetchall() if correlation_id else []
 
         log.info(f"Discovered {len(correlated_results)} correlated results")
 
         if len(correlated_results) > 0:
 
-            # There is a group with a ticket that exists, so we should append to that ticket
+            # There is a correlation with a ticket that exists, so we should append to that ticket
             ticket_id = correlated_results[0][3]
-            log.info(f"Found ticket {ticket_id}")
             ticket_status = create_jira.check_ticket_status(ticket_id)
-            log.info(f"The status of the ticket is: {ticket_status}")
 
-            if str(ticket_status) == 'To Do':  # the status of the jira ticket doesn't get returned as a string; it gets returned as a class and a straight comparison to a string will always fail
-                log.info("Appending to ticket body")
+            if ticket_status == 'To Do':
                 try:
                     create_jira.append_to_body(ticket_id, alert)
                 except Exception as e:
@@ -120,7 +115,6 @@ def main():
                         log_failure(ctx, alert, e)
                     continue
             else:
-                log.info("The ticket is in progress; creating new ticket")
                 # The ticket is already in progress, we shouldn't change it
                 # Create a new ticket in JIRA for the alert
                 try:
@@ -130,11 +124,10 @@ def main():
                     log_failure(ctx, alert, e)
                     continue
         else:
-            # There is no group with a ticket that exists
+            # There is no correlation with a ticket that exists
             # Create a new ticket in JIRA for the alert
             try:
                 ticket_id = create_jira.create_jira_ticket(alert)
-                log.info(f"Created ticket {ticket_id}")
             except Exception as e:
                 log.error(e, f"Failed to create ticket for alert {alert}")
                 log_failure(ctx, alert, e)
