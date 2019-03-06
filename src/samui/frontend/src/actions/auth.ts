@@ -33,9 +33,9 @@ export const LoginActions = {
 
 export type LoginActions = ActionsUnion<typeof LoginActions>;
 
-export const oauthRedirect = (account: string, return_href: string) => async (dispatch: Dispatch) => {
+export const oauthRedirect = (account: string, returnHref: string) => async (dispatch: Dispatch) => {
   try {
-    const response = await api.oauthRedirect({account, return_href});
+    const response = await api.oauthRedirect({account, returnHref});
     if (response.url) {
       location.href = response.url;
     }
@@ -44,10 +44,10 @@ export const oauthRedirect = (account: string, return_href: string) => async (di
   }
 };
 
-export const oauthLogin = (account: string, code: string, redirect_uri: string) => async (dispatch: Dispatch) => {
+export const oauthLogin = (account: string, code: string, redirectUri: string) => async (dispatch: Dispatch) => {
   try {
     localStorage.setItem('account', account);
-    const response = await api.oauthLogin({account, code, redirect_uri});
+    const response = await api.oauthLogin({account, code, redirectUri});
     const toks = response.tokens;
     if (toks && toks.error) {
       throw {message: `${toks.error}: ${toks.message}`};

@@ -131,7 +131,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     );
 
     return (
-      <Header className={'header'}>
+      <Header className={'header'} tagName={'header'}>
         <div className={'right'}>
           {auth && auth.username ? (
             <Dropdown overlay={menu} trigger={['click']}>

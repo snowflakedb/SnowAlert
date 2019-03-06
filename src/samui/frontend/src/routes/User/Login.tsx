@@ -62,8 +62,8 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     const account = JSON.parse(localStorage.getItem('auth') || '{}').account || localStorage.getItem('account') || '';
 
     if (code && account) {
-      const redirect_uri = location.origin + location.pathname;
-      this.props.oauthLogin(account, code, redirect_uri);
+      const redirectUri = location.origin + location.pathname;
+      this.props.oauthLogin(account, code, redirectUri);
     }
 
     return (

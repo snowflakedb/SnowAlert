@@ -29,7 +29,7 @@ type ViolationsProps = StateProps & DispatchProps;
 class Violations extends React.PureComponent<ViolationsProps> {
   render() {
     const {currentRuleView, queries, suppressions} = this.props.rules;
-    const currentRule = [...queries, ...suppressions].find(r => r.view_name === currentRuleView);
+    const currentRule = [...queries, ...suppressions].find(r => r.viewName === currentRuleView);
 
     return (
       <Card

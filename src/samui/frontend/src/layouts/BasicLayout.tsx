@@ -101,7 +101,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     }
 
     const layout = (
-      <Layout>
+      <Layout tagName="header">
         <DrawerSiderMenu
           logo={logo}
           menuData={getMenuData()}
@@ -109,13 +109,13 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
           isMobile={this.state.isMobile}
           onCollapse={this.handleMenuCollapse}
         />
-        <Layout>
+        <Layout tagName="main">
           <GlobalHeader
             menuCollapsed={this.state.menuCollapsed}
             isMobile={this.state.isMobile}
             onMenuCollapse={this.handleMenuCollapse}
           />
-          <Content style={{margin: '24px 24px 0', height: '100%'}}>
+          <Content style={{margin: '24px 24px 0', height: '100%'}} tagName="section">
             <AuthorizedRoute component={content.component} roles={content.roles} />
           </Content>
           <GlobalFooter copyright={<div />} />

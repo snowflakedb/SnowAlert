@@ -1,13 +1,13 @@
-import {Button, Col, Row, Icon} from 'antd';
+import {Button, Col, Icon, Row} from 'antd';
 import * as React from 'react';
 import {RulesTree} from '../RulesTree';
-import {RawEditor, QueryEditor, QueryEditorColumn} from '../RuleEditors';
+import {QueryEditor, QueryEditorColumn, RawEditor} from '../RuleEditors';
 import './RuleDashboard.css';
 import {Tabs} from 'antd';
 import {SnowAlertRule} from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
 
-const TabPane = Tabs.TabPane;
+const {TabPane} = Tabs;
 
 interface RuleEditorProps {
   target: SnowAlertRule['target'];
@@ -18,7 +18,7 @@ interface RuleEditorProps {
 }
 
 function download(filename: string, text: string) {
-  var element = document.createElement('a');
+  const element = document.createElement('a');
   element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
   element.setAttribute('download', filename);
   element.style.display = 'none';
@@ -28,7 +28,7 @@ function download(filename: string, text: string) {
 }
 
 const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFields}: RuleEditorProps) => {
-  const query = queries.find(q => q.view_name === currentRuleView);
+  const query = queries.find(q => q.viewName === currentRuleView);
   const formEditorEnabled = query && query.isParsed;
 
   return (
@@ -48,7 +48,7 @@ const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFiel
         <RulesTree target={target} />
         <Button
           type="dashed"
-          disabled={queries.length == 0}
+          disabled={queries.length === 0}
           onClick={() => {
             download(
               `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,

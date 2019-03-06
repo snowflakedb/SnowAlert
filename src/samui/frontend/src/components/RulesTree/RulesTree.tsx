@@ -13,7 +13,6 @@ import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
-import {QueryEditor} from '../RuleEditors';
 
 import './RulesTree.css';
 
@@ -21,7 +20,7 @@ const TreeNode = Tree.TreeNode;
 const Search = Input.Search;
 
 function allMatchedCaptures(regexp: RegExp, s: string): string[][] {
-  var matches: string[][] = [];
+  const matches: string[][] = [];
   s.replace(regexp, (m, ...args) => {
     matches.push(args.slice(0, args.length - 2));
     return '';
@@ -51,8 +50,6 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     this.props.changeRule('');
   }
 
-  qe = QueryEditor;
-
   generateTree = (
     queries: ReadonlyArray<Query>,
     suppressions: ReadonlyArray<Suppression>,
@@ -60,10 +57,10 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     filter: string,
   ) => {
     function ruleFilter(rule: Query | Suppression) {
-      let filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
+      const filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
       return (
         filter === '' ||
-        rule.view_name.includes(filter.toUpperCase()) ||
+        rule.viewName.includes(filter.toUpperCase()) ||
         rule.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
         (filterTags.length > 0 && _.intersection(rule.tags, filterTags).length === filterTags.length)
       );
@@ -79,8 +76,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             .filter(ruleFilter)
             .map(r => (
               <TreeNode
-                selectable
-                key={`${r.view_name}`}
+                selectable={true}
+                key={`${r.viewName}`}
                 title={(r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title}
               />
             ))
@@ -95,8 +92,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             .filter(ruleFilter)
             .map(s => (
               <TreeNode
-                selectable
-                key={s.view_name}
+                selectable={true}
+                key={s.viewName}
                 title={(s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title}
               />
             ))
@@ -106,7 +103,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   };
 
   render() {
-    var {
+    const {
       target,
       rules: {queries, suppressions, filter},
     } = this.props;

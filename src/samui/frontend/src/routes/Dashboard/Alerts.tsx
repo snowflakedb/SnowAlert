@@ -27,7 +27,7 @@ type Props = StateProps & DispatchProps;
 class AlertsDashboard extends React.PureComponent<Props> {
   render() {
     const {queries, suppressions, currentRuleView} = this.props.rules;
-    const currentRule = queries.find(q => q.view_name === currentRuleView);
+    const currentRule = queries.find(q => q.viewName === currentRuleView);
 
     return (
       <Card

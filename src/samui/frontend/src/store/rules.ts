@@ -19,8 +19,8 @@ export class Subpolicy {
   }
 }
 
-const BLANK_POLICY = (view_name: string) =>
-  `CREATE OR REPLACE VIEW x.y.${view_name}_POLICY_DEFINITION COPY GRANTS` +
+const BLANK_POLICY = (viewName: string) =>
+  `CREATE OR REPLACE VIEW x.y.${viewName}_POLICY_DEFINITION COPY GRANTS` +
   `  COMMENT='Policy Title` +
   `description goes here'` +
   `AS` +
@@ -28,25 +28,25 @@ const BLANK_POLICY = (view_name: string) =>
   `       , true AS passing` +
   `;`;
 
-function stripComment(sql: string): {sql: string; comment: string; view_name: string} {
-  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/im,
-    descrRe = /^  COMMENT='((?:\\'|[^'])*)'\nAS\n/gm;
+function stripComment(body: string): {rest: string; comment: string; viewName: string} {
+  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/im;
+  const descrRe = /^  COMMENT='((?:\\'|[^'])*)'\nAS\n/gm;
 
-  const vnameMatch = vnameRe.exec(sql);
+  const vnameMatch = vnameRe.exec(body);
 
   if (!vnameMatch) {
-    return {sql, comment: '', view_name: ''};
+    return {rest: body, comment: '', viewName: ''};
   }
 
-  const vnameAfter = sql.substr(vnameMatch[0].length);
+  const vnameAfter = body.substr(vnameMatch[0].length);
 
-  const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match'),
-    descrAfter = vnameAfter.substr(descrMatch[0].length);
+  const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match');
+  const descrAfter = vnameAfter.substr(descrMatch[0].length);
 
   return {
-    sql: descrAfter,
+    rest: descrAfter,
     comment: descrMatch[1],
-    view_name: vnameMatch[1],
+    viewName: vnameMatch[1],
   };
 }
 
@@ -67,6 +67,10 @@ export abstract class SQLBackedRule {
     return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
   }
 
+  get raw() {
+    return Object.assign({}, this._raw, this.isParsed ? {body: this.body} : undefined);
+  }
+
   set raw(r: stateTypes.SnowAlertRule) {
     this._raw = r;
     try {
@@ -78,7 +82,7 @@ export abstract class SQLBackedRule {
     }
   }
 
-  get view_name(): string {
+  get viewName(): string {
     return `${this._raw.title}_${this._raw.target}_${this._raw.type}`;
   }
 
@@ -99,10 +103,6 @@ export abstract class SQLBackedRule {
 
   get isEdited() {
     return this.raw.body !== this._raw.savedBody;
-  }
-
-  get raw() {
-    return Object.assign({}, this._raw, this.isParsed ? {body: this.body} : undefined);
   }
 
   abstract load(body: string, results?: stateTypes.SnowAlertRule['results']): void;
@@ -142,11 +142,11 @@ export class Policy extends SQLBackedRule {
     return this.comment.replace(/\n.*$/g, '');
   }
 
-  set title(newTitle) {
+  set title(newTitle: string) {
     this.comment = this.comment.replace(/^.*?\n/, `${newTitle}\n`);
   }
 
-  set summary(newDescription) {
+  set summary(newDescription: string) {
     this.comment = this.comment.replace(/\n.*$/, `\n${newDescription}`);
   }
 
@@ -155,25 +155,25 @@ export class Policy extends SQLBackedRule {
   }
 
   load(sql: string, results: stateTypes.SnowAlertRule['results']) {
-    const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
-      descrRe = /^  COMMENT='([^']+)'\nAS\n/gm,
-      subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
+    const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m;
+    const descrRe = /^  COMMENT='([^']+)'\nAS\n/gm;
+    const subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
 
-    const vnameMatch = vnameRe.exec(sql) || raise('no vname match'),
-      vnameAfter = sql.substr(vnameMatch[0].length);
+    const vnameMatch = vnameRe.exec(sql) || raise('no vname match');
+    const vnameAfter = sql.substr(vnameMatch[0].length);
 
-    const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match'),
-      descrAfter = vnameAfter.substr(descrMatch[0].length);
+    const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match');
+    const descrAfter = vnameAfter.substr(descrMatch[0].length);
 
     this.comment = descrMatch[1];
     this.subpolicies = [];
 
-    var rest = descrAfter;
-    var i = 0;
+    let rest = descrAfter;
+    let i = 0;
 
     do {
-      var matchSubpl = subplRe.exec(rest) || raise(`no title match >${sql}|${rest}<`),
-        rest = rest.substr(matchSubpl[0].length);
+      const matchSubpl = subplRe.exec(rest) || raise(`no title match >${sql}|${rest}<`);
+      rest = rest.substr(matchSubpl[0].length);
 
       this.subpolicies.push({
         i,
@@ -186,7 +186,7 @@ export class Policy extends SQLBackedRule {
 
   get body(): string {
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
@@ -211,12 +211,12 @@ export class Query extends SQLBackedRule {
   summary: string;
   tags: string[];
 
-  load(sql: string) {
+  load(body: string) {
     function parseComment(comment: string): {summary: string; tags: string[]} {
       const summaryRe = /^([\s\S]*?)(?:\n  @tags (.*))?$/m;
       const summaryMatch = summaryRe.exec(comment);
 
-      var summary = summaryMatch ? summaryMatch[1] : '';
+      const summary = summaryMatch ? summaryMatch[1] : '';
 
       return {
         summary: summary
@@ -227,7 +227,7 @@ export class Query extends SQLBackedRule {
       };
     }
 
-    function stripField(sql: string): {sql: string; field: string; value: string} | null {
+    function stripField(sql: string): {rest: string; field: string; value: string} | null {
       const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?) AS (\w*)$/im);
       if (!match || sql.match(/^\s*FROM/i)) {
         // in case of sub-queries, FROM match needs to be explicit
@@ -235,17 +235,17 @@ export class Query extends SQLBackedRule {
       } else {
         const [m, value, field] = match;
         return {
-          sql: sql.substr(m.length),
+          rest: sql.substr(m.length),
           field,
           value,
         };
       }
     }
 
-    function stripFrom(sql: string): {sql: string; from: string} {
+    function stripFrom(sql: string): {rest: string; from: string} {
       const [match, from] = sql.match(/^\s*FROM ([\S\s]*?)\s+^WHERE\s/im) || raise('no from');
       return {
-        sql: sql.substr(match.length - 6),
+        rest: sql.substr(match.length - 6),
         from,
       };
     }
@@ -259,29 +259,35 @@ export class Query extends SQLBackedRule {
       };
     }
 
-    var fields = {
+    const fields = {
       select: {},
       from: '',
       enabled: false,
       where: '',
     };
 
-    var {comment, sql} = stripComment(sql);
-    var {summary, tags} = parseComment(comment);
+    const query = stripComment(body);
+    let {rest} = query;
+    const {comment} = query;
+    const {summary, tags} = parseComment(comment);
     this.summary = summary;
     this.tags = tags;
 
-    var nextField = stripField(sql);
-    if (!nextField) throw 'err0';
+    let nextField = stripField(rest);
+    if (!nextField) {
+      throw new Error('err0');
+    }
     do {
-      var {sql, field, value} = nextField;
+      const {field, value} = nextField;
       fields.select[field] = value.replace(/\n       /g, '\n');
-    } while ((nextField = stripField(sql)));
+      nextField = stripField(nextField.rest);
+    } while (nextField);
 
-    var {sql, from} = stripFrom(sql);
-    fields.from = from;
+    const afterFrom = stripFrom(rest);
+    rest = afterFrom.rest;
+    fields.from = afterFrom.from;
 
-    var {enabled, where} = stripWhere(sql);
+    const {enabled, where} = stripWhere(rest);
     fields.enabled = enabled;
     fields.where = where;
     this.fields = fields;
@@ -296,10 +302,10 @@ export class Query extends SQLBackedRule {
   }
 
   get body() {
-    var tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
+    const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
 
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')
@@ -319,7 +325,7 @@ export class Query extends SQLBackedRule {
 interface SuppressionFields {
   from: string;
   rulesString: string;
-  rules: Array<string>;
+  rules: string[];
 }
 
 export class Suppression extends SQLBackedRule {
@@ -344,16 +350,21 @@ export class Suppression extends SQLBackedRule {
       return m ? {rule: m[2], rest: sql.substr(m[1].length)} : null;
     }
 
-    var {sql} = stripComment(sql);
-    var {rest, from} = stripStart(sql) || raise('err0');
-    console.log('start', from, rest);
+    let {rest} = stripComment(sql);
+    const afterStart = stripStart(sql) || raise('err0');
+    rest = afterStart.rest;
+    const {from} = afterStart;
 
     const rulesString = rest.replace(/;\s*$/gm, ''); // hack until array UI ready
-    var {rule, rest} = stripRule(rest) || raise('err1');
-    var rules = [];
+    const r = stripRule(rest) || raise('err1');
+    rest = r.rest;
+    let {rule} = r;
+    const rules = [];
     while (rest.length > 1) {
       rules.push(rule);
-      var {rule, rest} = stripRule(rest) || raise(`err2.${rules.length} >${rest}<`);
+      const afterRule = stripRule(rest) || raise(`err2.${rules.length} >${rest}<`);
+      rest = afterRule.rest;
+      rule = afterRule.rule;
     }
 
     this.tags = [];
@@ -366,7 +377,7 @@ export class Suppression extends SQLBackedRule {
   get body() {
     // const whereClauseLines = ['WHERE 1=1', 'AND suppressed IS NULL'].concat(fields.rules)
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS AS\n` +
+      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS AS\n` +
       `SELECT *\n` +
       `FROM ${this.fields.from}\n` +
       `WHERE suppressed IS NULL\n` +

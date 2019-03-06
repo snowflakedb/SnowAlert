@@ -104,18 +104,18 @@ class Policies extends React.PureComponent<PoliciesProps> {
                         <Input
                           value={policy.title}
                           style={{width: 500}}
-                          onChange={e => this.props.updatePolicyTitle(policy.view_name, e.currentTarget.value)}
+                          onChange={e => this.props.updatePolicyTitle(policy.viewName, e.currentTarget.value)}
                         />
                       ) : (
                         <a
                           onClick={() =>
-                            this.props.changeRule(policy.view_name == currentRuleView ? '' : policy.view_name)
+                            this.props.changeRule(policy.viewName === currentRuleView ? '' : policy.viewName)
                           }
                         >
                           {policy.title}
                         </a>
                       )}
-                      {policy.view_name == currentRuleView &&
+                      {policy.viewName === currentRuleView &&
                         (policy.isEditing ? (
                           <span style={{float: 'right'}}>
                             <Button
@@ -131,7 +131,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             </Button>
                           </span>
                         ) : (
-                          <Button onClick={() => this.props.editRule(policy.view_name)} style={{float: 'right'}}>
+                          <Button onClick={() => this.props.editRule(policy.viewName)} style={{float: 'right'}}>
                             <Icon type="edit" /> edit
                           </Button>
                         ))}
@@ -142,7 +142,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                       <Input
                         value={policy.summary}
                         style={{width: 500}}
-                        onChange={e => this.props.updatePolicyDescription(policy.view_name, e.currentTarget.value)}
+                        onChange={e => this.props.updatePolicyDescription(policy.viewName, e.currentTarget.value)}
                       />
                     ) : (
                       policy.summary
@@ -150,7 +150,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                   }
                 />
                 <div>
-                  {policy.view_name == currentRuleView && (
+                  {policy.viewName === currentRuleView && (
                     <Table
                       pagination={false}
                       columns={[
@@ -165,7 +165,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                 disabled={policy.isSaving}
                                 autosize={{minRows: 1, maxRows: 1}}
                                 value={text}
-                                onChange={e => this.props.editSubpolicy(policy.view_name, i, {title: e.target.value})}
+                                onChange={e => this.props.editSubpolicy(policy.viewName, i, {title: e.target.value})}
                               />
                             ) : (
                               text
@@ -182,7 +182,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                 autosize={{minRows: 1, maxRows: 1}}
                                 value={text}
                                 onChange={e =>
-                                  this.props.editSubpolicy(policy.view_name, i, {condition: e.target.value})
+                                  this.props.editSubpolicy(policy.viewName, i, {condition: e.target.value})
                                 }
                               />
                             ) : (
@@ -197,7 +197,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                 <Button
                                   type="danger"
                                   disabled={policy.subpolicies.length < 2}
-                                  onClick={() => this.props.deleteSubpolicy(policy.view_name, i)}
+                                  onClick={() => this.props.deleteSubpolicy(policy.viewName, i)}
                                 >
                                   <Icon type="delete" />
                                 </Button>
@@ -212,7 +212,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                     />
                   )}
                   {policy.isEditing && (
-                    <Button onClick={() => this.props.addSubpolicy(policy.view_name)} style={{margin: 10}}>
+                    <Button onClick={() => this.props.addSubpolicy(policy.viewName)} style={{margin: 10}}>
                       add subpolicy
                     </Button>
                   )}

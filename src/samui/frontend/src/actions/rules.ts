@@ -2,7 +2,7 @@ import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
 import {Policy, Query} from '../store/rules';
-import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
+import {Action, ActionWithPayload, createAction, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
 // load rules
