@@ -5,9 +5,6 @@ import logbook
 
 from samui import config
 from samui.gunicorn_conf import host, port
-from samui.api.v1.user import user_api
-from samui.api.v1.organization import organization_api
-from samui.api.v1.notification import notification_api
 from samui.api import rules_api
 from samui.api.oauth import oauth_api
 from samui.views import app_views
@@ -23,9 +20,6 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 app.register_blueprint(app_views)
-app.register_blueprint(user_api, url_prefix='/api/v1/user')
-app.register_blueprint(organization_api, url_prefix='/api/v1/organization')
-app.register_blueprint(notification_api, url_prefix='/api/v1/notification')
 app.register_blueprint(rules_api, url_prefix='/api/sa/rules')
 app.register_blueprint(oauth_api, url_prefix='/api/sa/oauth')
 
