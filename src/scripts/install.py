@@ -337,6 +337,8 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
     vars = [
         f'SNOWFLAKE_ACCOUNT={account}',
         f'SA_USER={USER}',
+        f'SA_ROLE={ROLE}',
+        f'SA_DATABASE={DATABASE}',
         f'SA_WAREHOUSE={WAREHOUSE}',
         f'REGION={region or "us-west-2"}',
 
