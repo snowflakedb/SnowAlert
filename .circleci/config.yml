@@ -36,9 +36,9 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            pyflakes ./scripts ./runners  # soon -- ./samui/backend
-            MYPYPATH="`pwd`/.venv/lib/python3.7/site-packages/" \
-              mypy --config-file mypy.ini ./runners ./scripts  # soon -- ./samui/backend
+            pyflakes ./scripts ./runners ./samui/backend/samui
+            MYPYPATH="`pwd`/samui/backend/" \
+              mypy --config-file mypy.ini ./runners ./scripts ./samui/backend/samui
 
       # - run:
       #     name: do the build
