@@ -12,8 +12,8 @@ from samui.common import db, bcrypt
 
 logger = logbook.Logger(__name__)
 
-app = Flask(__name__.split('.')[0], static_folder=None)
-app.config.from_object(config.FlaskConfig)
+app = Flask(__name__.split('.')[0])
+app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
 
 db.init_app(app)
