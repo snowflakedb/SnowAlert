@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 
-
 setup(
     name="samui",
     version='1.0',
