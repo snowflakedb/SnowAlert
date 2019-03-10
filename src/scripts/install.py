@@ -134,8 +134,8 @@ CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queri
 
 
 def parse_snowflake_url(url):
-    region = None
     account = None
+    region = None
     res = urlsplit(url)
     path = res.netloc or res.path
 
@@ -145,14 +145,10 @@ def parse_snowflake_url(url):
         account = c[0]
     else:
         if path.endswith("snowflakecomputing.com"):
-            if len(c) == 3:
-                account = c[0]
-                region = 'us-west-2'
-            if len(c) == 4:
-                region = c[0]
-                account = c[1]
+            account = c[0]
+            region = c[1] if len(c) == 4 else 'us-west-2'
 
-    return region, account
+    return account, region
 
 
 def login():
@@ -173,7 +169,7 @@ def login():
     if not account:
         while 1:
             url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
-            region, account = parse_snowflake_url(url)
+            account, region = parse_snowflake_url(url)
             if not account:
                 print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
             else:
@@ -202,9 +198,6 @@ def login():
         connect_kwargs['password'] = password
     if region != '':
         connect_kwargs['region'] = region
-
-    if 'region' in connect_kwargs and connect_kwargs['region'] == 'us-west-2':
-        del connect_kwargs['region']
 
     def attempt(message="doing", todo=None):
         print(f"{message}", end="..", flush=True)
