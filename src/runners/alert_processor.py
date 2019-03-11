@@ -53,8 +53,13 @@ def assess_correlation(ctx):
     and alert_time > dateadd(hour, -2, current_timestamp())
     """
 
-    alerts = ctx.cursor().execute(get_alerts).fetchall()
-    log.info(f"Found {len(alerts)} for correlation")
+    try:
+        alerts = ctx.cursor().execute(get_alerts).fetchall()
+        # alerts = db.fetch(ctx, get_alerts)
+        # log.info(f"Found {len(alerts)} for correlation")
+    except Exception as e:
+        log.error("Unable to get correlation_id, skipping grouping", e)
+        return None
 
     for row in alerts:
         try:

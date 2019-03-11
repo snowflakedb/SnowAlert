@@ -80,11 +80,17 @@ def main():
     log.info('Found', len(alerts), 'new alerts to handle.')
 
     for row in alerts:
+        alert = json.loads(row[0])
         try:
-            alert = json.loads(row[0])
             correlation_id = row[7]
         except Exception as e:
-            log.error("Failed unexpectedly", e)
+            log.error("No CORRELATION_ID in alert", e)
+            try:
+                ticket_id = create_jira.create_jira_ticket(alert)
+            except Exception as e:
+                log.error(e, f"Failed to create ticket for alert {alert}")
+                log_failure(ctx, alert, e)
+                continue
             continue
         log.info('Creating ticket for alert', alert)
 
