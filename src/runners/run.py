@@ -8,6 +8,7 @@ from runners import alert_suppressions_runner
 from runners import alert_handler
 from runners import violation_queries_runner
 from runners import violation_suppressions_runner
+from runners import alert_processor
 
 
 def main(command, rule_name=None):
@@ -22,11 +23,14 @@ def main(command, rule_name=None):
             violation_queries_runner.main(rule_name[3:].upper())
         if rule_name.startswith("VS."):
             violation_suppressions_runner.main(rule_name[3:].upper())
+        alert_processor.main()
     else:
         if command in ['alerts', 'all']:
             alert_queries_runner.main()
             alert_suppressions_runner.main()
+            alert_processor.main()
             if os.environ.get('JIRA_USER'):
+                print("starting the jira handler, condition was true")
                 alert_handler.main()
             else:
                 print("No JIRA_USER in env, skipping handler.")
