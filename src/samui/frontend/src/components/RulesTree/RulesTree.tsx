@@ -1,8 +1,4 @@
-import {
-  // Icon,
-  Tree,
-  Input,
-} from 'antd';
+import {Button, Icon, Tree, Input} from 'antd';
 import * as React from 'react';
 import * as _ from 'lodash';
 import {connect} from 'react-redux';
@@ -18,6 +14,16 @@ import './RulesTree.css';
 
 const TreeNode = Tree.TreeNode;
 const Search = Input.Search;
+
+function download(filename: string, text: string) {
+  const element = document.createElement('a');
+  element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
 
 function allMatchedCaptures(regexp: RegExp, s: string): string[][] {
   const matches: string[][] = [];
@@ -118,6 +124,21 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
           {this.generateTree(queries, suppressions, target, filter)}
         </Tree>
+        <Button
+          type="dashed"
+          disabled={queries.length === 0}
+          onClick={() => {
+            download(
+              `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
+              [...queries, ...suppressions].map(q => q.body).join('\n\n'),
+            );
+          }}
+        >
+          <Icon type="cloud-download" theme="outlined" /> Download SQL
+        </Button>
+        <Button type="dashed" disabled={true}>
+          <Icon type="cloud-upload" theme="outlined" /> Upload SQL
+        </Button>
       </div>
     );
   }

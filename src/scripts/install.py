@@ -34,7 +34,7 @@ def read_queries(file):
     }
     pwd = os.path.dirname(os.path.realpath(__file__))
     tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
-    return tmpl.format(**vars).split(';')
+    return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
 
 
 GRANT_PRIVILEGES_QUERIES = [
