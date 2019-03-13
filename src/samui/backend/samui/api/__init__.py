@@ -88,19 +88,20 @@ def create_rule():
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
     comment_clause = f"\n  COMMENT='{comment}'\n"
 
-    view_name = f"{rule_title}_{rule_target}_{rule_type}"
-    rule_body = f"CREATE OR REPLACE VIEW {RULES_SCHEMA}.{view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
+    view_name = f"{RULES_SCHEMA}.{rule_title}_{rule_target}_{rule_type}"
+    rule_body = f"CREATE OR REPLACE VIEW {view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
 
     try:
         oauth = json.loads(request.headers.get('Authorization') or '{}')
         ctx = db.connect(oauth=oauth, run_preflight_checks=False)
         ctx.cursor().execute(rule_body).fetchall()
+        ctx.cursor().execute(f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}").fetchall()
 
         if 'body' in data and 'savedBody' in data:
             data['savedBody'] = replace_config_vals(rule_body)
 
         data['results'] = (
-            list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{view_name};"))
+            list(db.fetch(ctx, f"SELECT * FROM {view_name};"))
             if view_name.endswith("_POLICY_DEFINITION")
             else None
         )
