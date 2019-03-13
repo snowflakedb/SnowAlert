@@ -34,6 +34,7 @@ def get_correlation_id(ctx, alert):
         match = ctx.cursor().execute(query).fetchall()
     except Exception as e:
         log.error("Failed unexpectedly while getting correlation matches", e)
+        match = []
 
     correlation_id = match[0][7] if len(match) > 0 and len(match[0]) > 7 else uuid.uuid4().hex
 
