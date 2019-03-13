@@ -1,7 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {Policy, Query} from '../store/rules';
+import {Policy, Query, Suppression} from '../store/rules';
 import {Action, ActionWithPayload, createAction, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -79,8 +79,8 @@ export const editRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
 
 // update rule
 export const UPDATE_RULE = 'UPDATE_RULE';
-export type UpdateRuleAction = ActionWithPayload<typeof UPDATE_RULE, {ruleViewName: string; rule: Query}>;
-export const updateRule = (ruleViewName: string, rule: Query) => async (dispatch: Dispatch) => {
+export type UpdateRuleAction = ActionWithPayload<typeof UPDATE_RULE, {ruleViewName: string; rule: Query | Suppression}>;
+export const updateRule = (ruleViewName: string, rule: Query | Suppression) => async (dispatch: Dispatch) => {
   dispatch(createAction(UPDATE_RULE, {ruleViewName, rule}));
 };
 

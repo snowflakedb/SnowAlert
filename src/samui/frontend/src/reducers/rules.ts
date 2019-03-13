@@ -51,12 +51,24 @@ SELECT 'E' AS environment
 FROM snowalert.data.\nWHERE 1=1\n AND 2=2\n;`;
 
 const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_ALERT_SUPPRESSION COPY GRANTS
-SELECT *\nFROM snowalert.results.alerts\nWHERE suppressed IS NULL\nAND ...;`;
+  COMMENT='New Alert Suppression'
+AS
+SELECT alert
+FROM snowalert.results.alerts
+WHERE suppressed IS NULL
+  AND ...
+;`;
 
 const violationSuppressionBody = (
   s: string,
 ) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_VIOLATION_SUPPRESSION COPY GRANTS
-SELECT * \nFROM snowalert.results.violations\nWHERE suppressed IS NULL\nAND ...;`;
+  COMMENT='New Violation Suppression'
+AS
+SELECT alert
+FROM snowalert.results.violations
+WHERE suppressed IS NULL
+  AND ...
+;`;
 
 const NEW_RULE_BODY = (type: SnowAlertRule['type'], target: SnowAlertRule['target'], s: string, qid: string) => {
   if (type === 'QUERY' && target === 'ALERT') {
@@ -172,6 +184,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         queries: state.queries.map(q => (q.viewName === ruleViewName ? r : q)),
+        suppressions: state.suppressions.map(s => (s.viewName === ruleViewName ? r : s)),
       };
     }
 

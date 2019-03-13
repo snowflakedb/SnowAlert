@@ -5,7 +5,7 @@ import {bindActionCreators, Dispatch} from 'redux';
 import * as _ from 'lodash';
 
 import {getRules} from '../../reducers/rules';
-import {Query} from '../../store/rules';
+import {Query, Suppression} from '../../store/rules';
 import {updateRuleBody, updateRule, saveRule, deleteRule, addTagFilter, removeTagFilter} from '../../actions/rules';
 import EditableTagGroup from '../EditableTagGroup';
 
@@ -53,7 +53,7 @@ interface StringFieldsDefinition {
   title: string;
   type: 'string' | 'text';
   getValue(r: any): string;
-  setValue(q: Query, v: string): Query;
+  setValue(q: Query | Suppression, v: string): Query | Suppression;
 }
 
 export interface QueryEditorColumn {
@@ -65,14 +65,14 @@ interface BoolFieldDefinition {
   title: string;
   type: 'boolean';
   getValue(r: any): boolean;
-  setValue(q: Query, v: boolean): Query;
+  setValue(q: Query | Suppression, v: boolean): Query | Suppression;
 }
 
 interface TagGroupFieldDefinition {
   title: string;
   type: 'tagGroup';
   getValue(r: any): string;
-  setValue(q: Query, v: string): Query;
+  setValue(q: Query | Suppression, v: string): Query | Suppression;
 }
 
 interface OwnProps {
@@ -104,9 +104,9 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
       <TagToggle
         key={tag}
         size={count}
-        defaultChecked={!!this.props.rules.filter.match(new RegExp(`\b${tag}\b`))}
         onCheckedOn={() => this.props.addTagFilter(tag)}
         onCheckedOff={() => this.props.removeTagFilter(tag)}
+        defaultChecked={!!this.props.rules.filter.match(new RegExp(`\b${tag}\b`))}
       >
         {tag}
       </TagToggle>
@@ -115,10 +115,10 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
 
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
-    const {currentRuleView, queries} = this.props.rules;
-    const q = queries.find(q => q.viewName === currentRuleView);
+    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const q = [...queries, ...suppressions].find(q => q.viewName === currentRuleView);
 
-    if (!(currentRuleView && q && q instanceof Query && q.isParsed)) {
+    if (!(currentRuleView && q && q.isParsed)) {
       return (
         <Col span={16}>
           <h3>Loaded {queries.length} queries from Snowflake.</h3>
