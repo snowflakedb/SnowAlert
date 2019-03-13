@@ -35,13 +35,7 @@ def get_correlation_id(ctx, alert):
     except Exception as e:
         log.error("Failed unexpectedly while getting correlation matches", e)
 
-    if len(match) > 0:
-        try:
-            correlation_id = match[0][7]
-        except Exception:
-            correlation_id = uuid.uuid4().hex
-    else:
-        correlation_id = uuid.uuid4().hex
+    correlation_id = match[0][7] if len(match) > 0 and len(match[0]) > 7 else uuid.uuid4().hex
 
     return correlation_id
 
@@ -49,7 +43,7 @@ def get_correlation_id(ctx, alert):
 def assess_correlation(ctx):
 
     get_alerts = f"""select * from {ALERTS_TABLE}
-    where correlation_ID is null
+    where correlation_id is null
     and alert_time > dateadd(hour, -2, current_timestamp())
     """
 
