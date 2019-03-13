@@ -5,7 +5,7 @@ import os
 
 import snowflake.connector
 
-from runners.config import RULES_SCHEMA
+from runners.config import RULES_SCHEMA, CONFIG_VARS
 from runners.helpers import db, dbconfig
 
 from flask import Blueprint, request, jsonify
@@ -24,6 +24,13 @@ def unindent(text):
     return text if indent == 0 else re.sub(f'^{" " * indent}', '', text, flags=re.M)
 
 
+def replace_config_vals(rule_body: str) -> str:
+    for k, v in CONFIG_VARS:
+        vregex = v.replace('.', '\\.')
+        rule_body = re.sub(f'\\b{vregex}\\b', f"{{{k}}}", rule_body, flags=re.IGNORECASE)
+    return rule_body
+
+
 @rules_api.route('', methods=['GET'])
 def get_rules():
     if not hmac.compare_digest(request.cookies.get("sid", ""), SECRET):
@@ -40,13 +47,14 @@ def get_rules():
 
     ctx = db.connect(oauth=oauth, run_preflight_checks=False)
     rules = db.fetch(ctx, f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN {RULES_SCHEMA};")
+
     return jsonify(
         rules=[
             {
                 "title": re.sub('_(alert|violation|policy)_(query|suppression|definition)$', '', rule['name'], flags=re.I),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
-                "body": rule['text'],
+                "body": replace_config_vals(rule['text']),
                 "results": (
                     list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{rule['name']};"))
                     if rule['name'].endswith("_POLICY_DEFINITION")
@@ -72,6 +80,8 @@ def create_rule():
     rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
+    rule_body = rule_body.format(**dict(CONFIG_VARS))
+
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
     m = re.match(r"^  COMMENT='((?:\\'|[^'])*)'\nAS\n", rule_body)
@@ -87,7 +97,7 @@ def create_rule():
         ctx.cursor().execute(rule_body).fetchall()
 
         if 'body' in data and 'savedBody' in data:
-            data['savedBody'] = rule_body
+            data['savedBody'] = replace_config_vals(rule_body)
 
         data['results'] = (
             list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{view_name};"))
