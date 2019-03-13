@@ -13,7 +13,7 @@ export const initialState: SnowAlertRulesState = {
   suppressions: [],
 };
 
-const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_ALERT_QUERY COPY GRANTS
+const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
   COMMENT=''
 AS
 SELECT 'E' AS environment
@@ -30,12 +30,12 @@ SELECT 'E' AS environment
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM snowalert.data.\nWHERE 1=1\n  AND 2=2\n;`;
+FROM {DATA_SCHEMA}.\nWHERE 1=1\n  AND 2=2\n;`;
 
 const violationQueryBody = (
   s: string,
   qid: string,
-) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_ALERT_QUERY COPY GRANTS
+) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
   COMMENT=''
 AS
 SELECT 'E' AS environment
@@ -48,24 +48,24 @@ SELECT 'E' AS environment
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM snowalert.data.\nWHERE 1=1\n AND 2=2\n;`;
+FROM {DATA_SCHEMA}.\nWHERE 1=1\n AND 2=2\n;`;
 
-const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_ALERT_SUPPRESSION COPY GRANTS
+const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
 AS
 SELECT alert
-FROM snowalert.results.alerts
+FROM {ALERTS_TABLE}
 WHERE suppressed IS NULL
   AND ...
 ;`;
 
 const violationSuppressionBody = (
   s: string,
-) => `CREATE OR REPLACE VIEW snowalert.rules.${s}_VIOLATION_SUPPRESSION COPY GRANTS
+) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_VIOLATION_SUPPRESSION COPY GRANTS
   COMMENT='New Violation Suppression'
 AS
 SELECT alert
-FROM snowalert.results.violations
+FROM {VIOLATIONS_TABLE}
 WHERE suppressed IS NULL
   AND ...
 ;`;

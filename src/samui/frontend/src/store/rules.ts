@@ -205,7 +205,7 @@ export class Policy extends SQLBackedRule {
 
   get body(): string {
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
@@ -309,7 +309,7 @@ export class Query extends SQLBackedRule {
     const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
 
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')
@@ -383,7 +383,7 @@ export class Suppression extends SQLBackedRule {
     const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
 
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary}` +
       `${tagsLine}'\n` +
       `AS\n` +
