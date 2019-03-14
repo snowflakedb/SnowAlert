@@ -9,8 +9,8 @@ MERGE INTO {ALERTS_TABLE} USING (
 
     SELECT alert, alert_time, event_time, counter
     FROM {ALERTS_TABLE}
-    WHERE alert:EVENT_TIME BETWEEN {from_time_sql} AND {to_time_sql}
-      AND '{query_name}' = alert:QUERY_NAME
+    WHERE event_time BETWEEN {from_time_sql} AND {to_time_sql}
+      AND alert:QUERY_NAME = '{query_name}'
 
     UNION ALL
 
@@ -35,7 +35,7 @@ MERGE INTO {ALERTS_TABLE} USING (
          , event_time
          , 1 AS counter
     FROM {RULES_SCHEMA}.{query_name}
-    WHERE alert:EVENT_TIME BETWEEN {from_time_sql} AND {to_time_sql}
+    WHERE event_time BETWEEN {from_time_sql} AND {to_time_sql}
 
   )
   GROUP BY alert:OBJECT, alert:DESCRIPTION
