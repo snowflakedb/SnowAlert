@@ -49,6 +49,8 @@ def metadata_record(ctx, metadata, table, e=None):
     metadata['START_TIME'] = str(metadata['START_TIME'])
     metadata['END_TIME'] = str(metadata['END_TIME'])
 
+    record_type = metadata.get('QUERY_NAME', 'RUN')
+
     sql = f'''
     INSERT INTO {table}
         (event_time, v) select '{metadata['START_TIME']}',
@@ -57,7 +59,7 @@ def metadata_record(ctx, metadata, table, e=None):
 
     try:
         ctx.cursor().execute(sql)
-        info("Metadata recorded.")
+        info(f"{record_type} metadata recorded.")
 
     except Exception as e:
-        error("Metadata failed to log", e)
+        error(f"{record_type} metadata failed to log.", e)
