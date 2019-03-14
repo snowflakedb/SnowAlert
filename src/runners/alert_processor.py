@@ -46,7 +46,7 @@ def assess_correlation(ctx):
 
     get_alerts = f"""select * from {ALERTS_TABLE}
     where correlation_id is null
-    and suppressed is false
+    and suppressed = false
     and alert_time > dateadd(hour, -2, current_timestamp())
     """
 
