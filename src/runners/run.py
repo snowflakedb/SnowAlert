@@ -45,7 +45,7 @@ def main(command, rule_name=None):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] in ['alerts', 'violations', 'all']:
+    if len(sys.argv) > 1 and sys.argv[1] in ['alerts', 'violations', 'all', 'ingest']:
         main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
     else:
         print('usage: run.py [alerts|violations|all]', file=sys.stderr, flush=True)
