@@ -15,6 +15,12 @@ def get_correlation_id(ctx, alert):
         object = alert['OBJECT']
         action = alert['ACTION']
         time = alert['EVENT_TIME']
+
+        # todo make robust
+        if type(object) is list:
+            o = "', '".join(object)
+            object = f"ARRAY_CONSTRUCT('{o}')"
+
     except Exception as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
         return uuid.uuid4().hex
