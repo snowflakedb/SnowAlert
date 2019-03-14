@@ -60,7 +60,7 @@ def log_failure(ctx, alert, e):
 def get_new_alerts(ctx):
     get_alerts_query = f'SELECT * FROM {ALERTS_TABLE} WHERE ticket IS NULL AND suppressed=FALSE LIMIT 100'
     results = ctx.cursor().execute(get_alerts_query).fetchall()
-    print('Found', len(results), 'new alerts.')
+    print(f'Found {len(results)} new alerts.')
     return results
 
 
@@ -77,7 +77,7 @@ def record_ticket_id(ctx, ticket_id, alert_id):
 def main():
     ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
     alerts = get_new_alerts(ctx)
-    log.info('Found', len(alerts), 'new alerts to handle.')
+    log.info(f'Found {len(alerts)} new alerts to handle.')
 
     for row in alerts:
         alert = json.loads(row[0])
@@ -92,14 +92,20 @@ def main():
                 log_failure(ctx, alert, e)
                 continue
             continue
+
         log.info('Creating ticket for alert', alert)
 
+        CORRELATION_QUERY = f"""
+            SELECT *
+            FROM {ALERTS_TABLE}
+            WHERE correlation_id = '{correlation_id}'
+              AND ticket IS NOT NULL
+            ORDER BY EVENT_TIME DESC
+            LIMIT 1
+        """
+
         # We check against the correlation ID for alerts in that correlation with the same ticket
-        query = f"""SELECT * from {ALERTS_TABLE} where CORRELATION_ID = '{correlation_id}' and TICKET is not null
-                    ORDER BY EVENT_TIME DESC
-                    LIMIT 1
-                """
-        correlated_results = ctx.cursor().execute(query).fetchall() if correlation_id else []
+        correlated_results = ctx.cursor().execute(CORRELATION_QUERY).fetchall() if correlation_id else []
 
         log.info(f"Discovered {len(correlated_results)} correlated results")
 

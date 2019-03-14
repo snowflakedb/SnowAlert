@@ -109,7 +109,7 @@ def create_jira_ticket(alert):
 
     body = jira_ticket_body(alert)
 
-    log.info(f'Creating new JIRA ticket for {alert["TITLE"]} in project', PROJECT)
+    log.info(f'Creating new JIRA ticket for "{alert["TITLE"]}" in project {PROJECT}')
     new_issue = jira.create_issue(project=PROJECT,
                                   issuetype={'name': 'Story'},
                                   summary=alert['TITLE'],
