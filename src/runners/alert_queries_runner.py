@@ -88,7 +88,6 @@ def create_alerts(ctx, rule_name: str) -> int:
 
     try:
         inserted, updated = db.insert_alerts_query_run(rule_name, GROUPING_CUTOFF)
-        return inserted + updated
 
     except Exception as e:
         log_failure(ctx, rule_name, e)
@@ -99,6 +98,8 @@ def create_alerts(ctx, rule_name: str) -> int:
     QUERY_HISTORY.append(metadata)
 
     log.info(f"{rule_name} done.")
+
+    return inserted + updated
 
 
 def main(rule_name=None):
