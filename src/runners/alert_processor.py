@@ -25,6 +25,7 @@ def get_correlation_id(ctx, alert):
     where alert:ACTOR = '{actor}'
     and (alert:OBJECT = '{object}' or alert:ACTION = '{action}')
     and correlation_ID is not null
+    and suppressed = false
     and event_time > dateadd(minutes, {CORRELATION_PERIOD}, '{time}')
     order by event_time desc
     limit 1
