@@ -34,7 +34,6 @@ export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: Get
       const response = await api.loadSnowAlertRules();
       dispatch(LoadRulesActions.loadSnowAlertRulesSuccess(response.rules));
     } catch (error) {
-      location.href = '/login';
       dispatch(LoadRulesActions.loadSnowAlertRulesFailure(error.message));
     }
   }
