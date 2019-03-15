@@ -30,7 +30,8 @@ def get_timestamp():
         limit 1
         """
     try:
-        _, ts = db.connect_and_fetchall(timestamp_query)[0][0]
+        _, ts = db.connect_and_fetchall(timestamp_query)
+        ts = ts[0][0]
         if len(ts) < 1:
             log.error("The okta timestamp is too short or doesn't exist; defaulting to one hour ago")
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
