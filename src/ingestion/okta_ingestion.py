@@ -45,18 +45,17 @@ def get_timestamp():
 
 def main():
     url = 'https://snowbiz.okta.com/api/v1/logs'
-    print("starting loop")
+    log.info("starting loop")
     timestamp = get_timestamp()
     while 1:
-        print(f"url is ${url}")
+        log.info(f"url is ${url}")
         try:
             r = requests.get(url=url, headers=HEADERS, params=timestamp)
             process_logs(json.loads(r.text))
-            print(len(r.text))
             if len(r.text) == 2:
                 break
             url = r.headers['Link'].split(', ')[1].split(';')[0][1:-1]
         except Exception as e:
-            print(e)
+            log.error("Error with Okta logs: ", e)
 
     alooma_pysdk.terminate()
