@@ -62,3 +62,7 @@ def main():
             log.error("Error with Okta logs: ", e)
 
     alooma_pysdk.terminate()
+
+
+if __name__ == "__main__":
+    main()
