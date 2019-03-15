@@ -8,8 +8,9 @@ import requests
 INPUT_TOKEN = environ.get('ALOOMA_OKTA_TOKEN')
 ALOOMA_SDK = alooma_pysdk.PythonSDK(INPUT_TOKEN)
 OKTA_API_KEY = environ.get('OKTA_API_KEY')
+AUTH = "SSWS "+OKTA_API_KEY
 
-HEADERS = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': OKTA_API_KEY}
+HEADERS = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': AUTH}
 
 
 # This should at some point be made more modular so that it works with a bunch of ETL tools and not just alooma.
@@ -51,6 +52,8 @@ def main():
         log.info(f"url is ${url}")
         try:
             r = requests.get(url=url, headers=HEADERS, params=timestamp)
+            if str(r) != '<Response [200]>':
+                log.fatal('OKTA REQUEST FAILED: ', r.text)
             process_logs(json.loads(r.text))
             if len(r.text) == 2:
                 break
