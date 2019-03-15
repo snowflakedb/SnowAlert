@@ -334,7 +334,7 @@ export class Suppression extends SQLBackedRule {
 
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
-      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+AND /im;
+      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\n/im;
       const m = sql.match(headRe);
       return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
     }
@@ -352,7 +352,7 @@ export class Suppression extends SQLBackedRule {
     const {from} = parsedStart;
 
     // hack until string array UI is ready
-    const rulesString = rest.replace(/\n;\s*$/gm, '');
+    const rulesString = rest.replace(/;\s*$/gm, '');
     this.conditions = [rulesString];
 
     // const r = stripRule(rulesString) || raise(`err1 >${rulesString}<`);
@@ -372,7 +372,7 @@ export class Suppression extends SQLBackedRule {
   }
 
   get title() {
-    return this.summary.replace(/\n.*$/g, '');
+    return this.isParsed ? this.summary.replace(/\n.*$/g, '') : this.raw.title;
   }
 
   set title(newTitle: string) {
@@ -384,13 +384,16 @@ export class Suppression extends SQLBackedRule {
 
     return (
       `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
-      `  COMMENT='${this.summary}` +
+      `  COMMENT='${this.summary
+        .replace(/'/g, "\\'")
+        .replace(/^/gm, '  ')
+        .substr(2)}` +
       `${tagsLine}'\n` +
       `AS\n` +
       `SELECT alert\n` +
       `FROM ${this.from}\n` +
       `WHERE suppressed IS NULL\n` +
-      `  AND ${this.conditions[0]}\n` +
+      `${this.conditions[0]}` +
       `;`
     );
   }
