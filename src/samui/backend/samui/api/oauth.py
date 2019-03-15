@@ -16,7 +16,7 @@ oauth_api = Blueprint('oauth', __name__)
 def oauth_redirect():
     json = request.get_json()
     account = json.get('account')
-    return_href = json.get('return_href')
+    returnHref = json.get('returnHref')
 
     OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
 
@@ -24,7 +24,7 @@ def oauth_redirect():
         'client_id': OAUTH_CLIENT_ID,
         'response_type': 'code',
         'scope': 'refresh_token',
-        'redirect_uri': return_href,
+        'redirect_uri': returnHref,
     }))
 
 
@@ -33,7 +33,7 @@ def oauth_return():
     json = request.get_json()
     code = json.get('code')
     account = json.get('account')
-    redirect_uri = json.get('redirect_uri')
+    redirect_uri = json.get('redirectUri')
 
     OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
     OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.upper()}', '')
