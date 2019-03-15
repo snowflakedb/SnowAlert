@@ -25,13 +25,16 @@ def get_timestamp():
 
     # Once pipelines are more strongly integrated with the installer, this table should be a variable
     timestamp_query = """
-        SELECT V:published from SECURITY.ALOOMA.OKTA
-        order by V:published desc
+        SELECT PUBLISHED from SECURITY.ALOOMA.SNOWBIZ_OKTA
+        order by PUBLISHED desc
         limit 1
         """
     try:
         _, ts = db.connect_and_fetchall(timestamp_query)
+        print(ts)
         ts = ts[0][0]
+        ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        print(ts)
         if len(ts) < 1:
             log.error("The okta timestamp is too short or doesn't exist; defaulting to one hour ago")
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
@@ -42,7 +45,10 @@ def get_timestamp():
         ts = datetime.datetime.now() - datetime.timedelta(hours=1)
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
-    return {'since': ts}
+    ret = {'since': ts}
+    print(ret)
+
+    return ret
 
 
 def main():
