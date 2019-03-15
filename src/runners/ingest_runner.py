@@ -9,7 +9,8 @@ def main():
     for name in os.listdir('../ingestion'):
         log.info(f"invoking {name}")
         try:
-            subprocess.call(f"python3 ../ingestion/{name}", shell=True)
+            res = subprocess.call(f"python ../ingestion/{name}", shell=True)
+            log.info("subprocess returns: ", res)
             log.info(f"{name} invoked")
         except Exception as e:
             log.error(f"failed to run {name}", e)
