@@ -27,13 +27,6 @@ type AuthorizedRouteProps = OwnProps & DispatchProps & StateProps;
 class AuthorizedRoute extends React.Component<AuthorizedRouteProps> {
   componentDidMount() {
     this.checkAuth();
-
-    // Redirect to login if needed.
-    const {auth, roles} = this.props;
-    if (!auth.isAuthenticated || !auth.role || (roles && roles.length > 0 && roles.indexOf(auth.role) === -1)) {
-      // authentication-override
-      // this.props.setViewport(routes.LOGIN);
-    }
   }
 
   componentDidUpdate() {
@@ -41,13 +34,11 @@ class AuthorizedRoute extends React.Component<AuthorizedRouteProps> {
   }
 
   checkAuth(props: AuthorizedRouteProps = this.props) {
-    if (!props.auth.isAuthenticated) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        api.validateToken(token).then(() => {
-          this.props.loginSuccess(token);
-        });
-      }
+    const token = localStorage.getItem('token');
+    if (token) {
+      api.validateToken(token).then(() => {
+        this.props.loginSuccess(token);
+      });
     }
   }
 

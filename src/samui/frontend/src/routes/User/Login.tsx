@@ -1,9 +1,8 @@
-import {Alert, Button, Form, Icon, Input} from 'antd';
+import {Button, Form, Icon, Input} from 'antd';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 import {oauthLogin, oauthRedirect} from '../../actions/auth';
-import {getAuthStatus} from '../../reducers/auth';
 import * as stateTypes from '../../reducers/types';
 import './Login.css';
 
@@ -18,9 +17,7 @@ interface DispatchProps {
   oauthRedirect: typeof oauthRedirect;
 }
 
-interface StateProps {
-  auth: stateTypes.AuthStatus;
-}
+interface StateProps {}
 
 interface State {
   errorMessage: string;
@@ -99,22 +96,8 @@ class LoginForm extends React.Component<LoginFormProps, State> {
                   />,
                 )}
               </Form.Item>
-              {this.props.auth.errorMessage && (
-                <Alert
-                  style={{marginBottom: '20px'}}
-                  type={'error'}
-                  message={this.props.auth.errorMessage}
-                  showIcon={true}
-                />
-              )}
               <Form.Item style={{marginBottom: '12px'}}>
-                <Button
-                  type={'primary'}
-                  size={'large'}
-                  htmlType={'submit'}
-                  loading={this.props.auth.isFetching}
-                  className={'form-button'}
-                >
+                <Button type={'primary'} size={'large'} htmlType={'submit'} className={'form-button'}>
                   Continue &rarr;
                 </Button>
               </Form.Item>
@@ -127,9 +110,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
 }
 
 const mapStateToProps = (state: stateTypes.State) => {
-  return {
-    auth: getAuthStatus(state),
-  };
+  return {};
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {

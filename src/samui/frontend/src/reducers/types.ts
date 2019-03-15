@@ -3,11 +3,9 @@ import {RouterState} from 'react-router-redux';
 import {Policy, Query, Suppression} from '../store/rules';
 
 export interface AuthDetails {
-  readonly isAuthenticated: boolean;
   readonly token: string | null;
   readonly email: string | null;
   readonly role: string | null;
-  readonly organizationId: number | null;
   readonly avatar: string | undefined;
 }
 
@@ -32,7 +30,6 @@ export interface Notification {
 export interface NotificationsState {
   readonly errorMessage: string | null;
   readonly isFetching: boolean;
-  readonly notifications: ReadonlyArray<Notification>;
 }
 
 export interface Organization {
@@ -74,8 +71,6 @@ export interface SnowAlertRulesState {
 
 export interface State {
   readonly auth: AuthState;
-  readonly notifications: NotificationsState;
-  readonly organization: OrganizationState;
   readonly router: RouterState;
   readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;

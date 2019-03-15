@@ -11,7 +11,6 @@ import {GlobalFooter} from '../components/GlobalFooter';
 import {GlobalHeader} from '../components/GlobalHeader';
 import {DrawerSiderMenu} from '../components/SiderMenu';
 import * as routes from '../constants/routes';
-import {getAuthStatus} from '../reducers/auth';
 import * as stateTypes from '../reducers/types';
 import {getViewport} from '../reducers/viewport';
 import {enquireScreen, unenquireScreen} from '../utils/media';
@@ -28,7 +27,6 @@ interface OwnProps {
 }
 
 interface StateProps {
-  auth: stateTypes.AuthStatus;
   viewport: stateTypes.ViewportState;
 }
 
@@ -129,7 +127,6 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
 
 const mapStateToProps = (state: stateTypes.State) => {
   return {
-    auth: getAuthStatus(state),
     viewport: getViewport(state),
   };
 };

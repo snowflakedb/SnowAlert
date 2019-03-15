@@ -7,7 +7,6 @@ import {setViewport} from '../actions/viewport';
 import logo from '../assets/logo.png';
 import {GlobalFooter} from '../components/GlobalFooter/index';
 import * as routes from '../constants/routes';
-import {getAuthDetails} from '../reducers/auth';
 import * as stateTypes from '../reducers/types';
 import {getViewport} from '../reducers/viewport';
 import './UserLayout.css';
@@ -41,7 +40,6 @@ interface OwnProps {
 }
 
 interface StateProps {
-  auth: stateTypes.AuthDetails;
   viewport: stateTypes.ViewportState;
 }
 
@@ -53,14 +51,9 @@ type UserLayoutProps = OwnProps & StateProps & DispatchProps;
 
 class UserLayout extends React.PureComponent<UserLayoutProps> {
   componentDidMount() {
-    const {auth} = this.props;
     const {viewport} = this.props.viewport;
 
-    // Redirect if user is already logged in (and the state is updated accordingly).
-    if (auth.isAuthenticated && auth.role) {
-      this.props.setViewport(routes.DEFAULT);
-    } else if (!this.props.routerData[viewport]) {
-      // Handle default route.
+    if (!this.props.routerData[viewport]) {
       this.props.setViewport(routes.LOGIN);
     }
   }
@@ -100,7 +93,6 @@ class UserLayout extends React.PureComponent<UserLayoutProps> {
 
 const mapStateToProps = (state: stateTypes.State) => {
   return {
-    auth: getAuthDetails(state),
     viewport: getViewport(state),
   };
 };

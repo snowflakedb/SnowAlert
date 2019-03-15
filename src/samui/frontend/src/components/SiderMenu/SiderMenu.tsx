@@ -207,9 +207,6 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
   };
 
   checkPermissionItem = (roles: ReadonlyArray<string> | undefined, ItemDom: any) => {
-    if (roles && this.props.auth.isAuthenticated && this.props.auth.role) {
-      return roles.indexOf(this.props.auth.role) !== -1 ? ItemDom : null;
-    }
     return ItemDom;
   };
 

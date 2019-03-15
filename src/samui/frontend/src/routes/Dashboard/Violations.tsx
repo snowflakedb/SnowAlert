@@ -2,11 +2,9 @@ import {Button, Card, Row} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {getOrganizationIfNeeded} from '../../actions/organization';
 import {RuleDashboard} from '../../components/Dashboard';
 import '../../index.css';
 import {getAuthDetails} from '../../reducers/auth';
-import {getOrganization} from '../../reducers/organization';
 import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
 import {newRule, renameRule} from '../../actions/rules';
@@ -200,7 +198,6 @@ class Violations extends React.PureComponent<ViolationsProps> {
 const mapStateToProps = (state: stateTypes.State) => {
   return {
     auth: getAuthDetails(state),
-    organization: getOrganization(state),
     rules: getRules(state),
   };
 };
@@ -208,7 +205,6 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      getOrganizationIfNeeded,
       newRule,
       renameRule,
     },
