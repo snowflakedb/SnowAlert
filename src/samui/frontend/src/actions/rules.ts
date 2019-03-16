@@ -22,7 +22,8 @@ export type LoadRulesActions = ActionsUnion<typeof LoadRulesActions>;
 
 const shouldLoadSnowAlertRules = (state: State) => {
   const rules = state.rules;
-  return !rules.isFetching;
+  const numRulesLoaded = rules.suppressions.length + rules.queries.length + rules.policies.length;
+  return !rules.isFetching && numRulesLoaded === 0;
 };
 
 export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: GetState) => {

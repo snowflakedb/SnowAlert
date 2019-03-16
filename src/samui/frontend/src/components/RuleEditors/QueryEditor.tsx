@@ -9,7 +9,7 @@ import {Query, Suppression} from '../../store/rules';
 import {updateRuleBody, updateRule, saveRule, deleteRule, addTagFilter, removeTagFilter} from '../../actions/rules';
 import EditableTagGroup from '../EditableTagGroup';
 
-import {State, SnowAlertRulesState} from '../../reducers/types';
+import {State, RuleTarget, SnowAlertRulesState} from '../../reducers/types';
 
 import './QueryEditor.css';
 
@@ -77,6 +77,7 @@ interface TagGroupFieldDefinition {
 
 interface OwnProps {
   cols: QueryEditorColumn[];
+  target: RuleTarget;
 }
 
 interface DispatchProps {
@@ -95,12 +96,15 @@ interface StateProps {
 type QueryEditorProps = OwnProps & DispatchProps & StateProps;
 
 class QueryEditor extends React.PureComponent<QueryEditorProps> {
-  getTagArray(qs: ReadonlyArray<Query>) {
-    const tags: {
+  getTagArray(qs: ReadonlyArray<Query | Suppression>) {
+    const tagCounts: {
       [tagName: string]: number;
-    } = _.flatMap(Array.from(qs), q => q.tags).reduce((ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}), {});
+    } = _.flatMap(Array.from(qs), q => q.tags || []).reduce(
+      (ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}),
+      {},
+    );
 
-    return Object.entries(tags).map(([tag, count]) => (
+    return Object.entries(tagCounts).map(([tag, count]) => (
       <TagToggle
         key={tag}
         size={count}
@@ -116,13 +120,16 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
     const {currentRuleView, queries, suppressions} = this.props.rules;
-    const q = [...queries, ...suppressions].find(q => q.viewName === currentRuleView);
+    const rules = [...queries, ...suppressions].filter(q => q.target == this.props.target);
+    const q = rules.find(q => q.viewName === currentRuleView);
 
     if (!(currentRuleView && q && q.isParsed)) {
       return (
         <Col span={16}>
-          <h3>Loaded {queries.length} queries from Snowflake.</h3>
-          query tags: {this.getTagArray(queries)}
+          <h3>
+            {rules.filter(r => r.isParsed).length} parsed / {rules.length} loaded from Snowflake
+          </h3>
+          {this.getTagArray(rules)}
         </Col>
       );
     }
@@ -138,7 +145,6 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                   <Input.TextArea
                     disabled={q.isSaving}
                     spellCheck={false}
-                    autosize={{minRows: 1}}
                     value={field.getValue(q)}
                     onChange={e => updateRule(currentRuleView, field.setValue(q, e.target.value))}
                   />
@@ -149,7 +155,6 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                   <Input.TextArea
                     disabled={q.isSaving}
                     spellCheck={false}
-                    autosize={{minRows: 1}}
                     value={field.getValue(q)}
                     onChange={e => updateRule(currentRuleView, field.setValue(q, e.target.value))}
                   />

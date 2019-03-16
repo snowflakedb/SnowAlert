@@ -30,7 +30,7 @@ const BLANK_POLICY = (viewName: string) =>
 
 function stripComment(body: string): {rest: string; comment: string; viewName: string} {
   const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/im;
-  const descrRe = /^  COMMENT='((?:\\'|[^'])*)'\nAS\n/gm;
+  const descrRe = /^\s*COMMENT='((?:\\'|[^'])*)'\s*\nAS\s*\n/gim;
 
   const vnameMatch = vnameRe.exec(body);
 
@@ -50,19 +50,24 @@ function stripComment(body: string): {rest: string; comment: string; viewName: s
   };
 }
 
-function parseComment(comment: string): {summary: string; tags: string[]} {
-  const summaryRe = /^([\s\S]*?)(?:\n  @tags (.*))?$/m;
-  const summaryMatch = summaryRe.exec(comment);
+function parseComment(comment: string): {summary: string; decorations: {[name: string]: string}} {
+  const decorations: {[name: string]: string} = {};
 
-  const summary = summaryMatch ? summaryMatch[1] : '';
+  const summary = comment
+    .split('\n')
+    .map(line => {
+      const match = line.match(/^\s*@([a-z-]+) (.*)$/i);
+      if (match) {
+        decorations[match[1]] = match[2];
+        return undefined;
+      } else {
+        return line;
+      }
+    })
+    .filter(x => x !== undefined)
+    .join('\n');
 
-  return {
-    summary: summary
-      .replace(/^  /gm, '')
-      .replace(/\n$/, '')
-      .replace(/\\'/g, "'"),
-    tags: summaryMatch && summaryMatch[2] ? summaryMatch[2].split(', ') : [],
-  };
+  return {summary, decorations};
 }
 
 export abstract class SQLBackedRule {
@@ -230,6 +235,10 @@ export class Query extends SQLBackedRule {
   summary: string;
   tags: string[];
 
+  get target() {
+    return this.raw.target;
+  }
+
   load(body: string) {
     function stripField(sql: string): {rest: string; field: string; value: string} | null {
       const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?) AS (\w*)$/im);
@@ -255,7 +264,7 @@ export class Query extends SQLBackedRule {
     }
 
     function stripWhere(sql: string): {enabled: boolean; where: string; more: boolean} {
-      const [match, enabled, where] = sql.match(/^\s*WHERE (1=[01]|)\s*(?:AND )?([\s\S]*?)\s*;$/im) || raise('err2');
+      const [match, enabled, where] = sql.match(/^WHERE (1=[01]|)\s*(?:AND )?([\s\S]*?)\s*;$/im) || raise('err2');
       return {
         enabled: !(enabled === '1=0'),
         where,
@@ -273,9 +282,12 @@ export class Query extends SQLBackedRule {
     const query = stripComment(body);
     let {rest} = query;
     const {comment} = query;
-    const {summary, tags} = parseComment(comment);
+    const {
+      summary,
+      decorations: {tags},
+    } = parseComment(comment);
+    this.tags = tags ? tags.split(', ') : [];
     this.summary = summary;
-    this.tags = tags;
 
     let nextField = stripField(rest);
     if (!nextField) {
@@ -307,6 +319,8 @@ export class Query extends SQLBackedRule {
 
   get body() {
     const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
+    const queryId = this.fields.select.query_id.replace(/'/g, '');
+    const queryLine = `\n  @id ${queryId}`;
 
     return (
       `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
@@ -314,6 +328,7 @@ export class Query extends SQLBackedRule {
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')
         .substr(2)}` +
+      `${queryLine}` +
       `${tagsLine}'\n` +
       `AS\n` +
       `SELECT ${Object.entries(this.fields.select)
@@ -332,6 +347,10 @@ export class Suppression extends SQLBackedRule {
   from: string;
   tags: string[];
 
+  get target() {
+    return this.raw.target;
+  }
+
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
       const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\n/im;
@@ -346,7 +365,10 @@ export class Suppression extends SQLBackedRule {
     // }
 
     const parsedComment = stripComment(sql);
-    const {summary, tags} = parseComment(parsedComment.comment);
+    const {
+      summary,
+      decorations: {tags},
+    } = parseComment(parsedComment.comment);
     const parsedStart = stripStart(parsedComment.rest) || raise('err0');
     var {rest} = parsedStart;
     const {from} = parsedStart;
@@ -366,7 +388,7 @@ export class Suppression extends SQLBackedRule {
     //   rule = afterRule.rule;
     // }
 
-    this.tags = tags;
+    this.tags = tags ? tags.split(', ') : [];
     this.summary = summary;
     this.from = from;
   }

@@ -26,7 +26,7 @@ const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFiel
       <Col span={16}>
         <Tabs defaultActiveKey="1">
           <TabPane tab="Form Editor" key="1" disabled={!formEditorEnabled}>
-            <QueryEditor cols={formFields} />
+            <QueryEditor target={target} cols={formFields} />
           </TabPane>
           <TabPane tab="SQL Editor" key="2">
             <RawEditor />

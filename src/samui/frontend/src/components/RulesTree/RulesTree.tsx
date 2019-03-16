@@ -130,7 +130,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           onClick={() => {
             download(
               `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
-              [...queries, ...suppressions].map(q => q.body).join('\n\n'),
+              [...queries, ...suppressions].map(q => q.raw.body).join('\n\n'),
             );
           }}
         >

@@ -59,6 +59,9 @@ export interface SnowAlertRule {
   readonly newTitle: string | null;
 }
 
+export type RuleTarget = SnowAlertRule['target'];
+export type RuleType = SnowAlertRule['type'];
+
 export interface SnowAlertRulesState {
   readonly errorMessage: null;
   readonly isFetching: boolean;
