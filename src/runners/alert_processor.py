@@ -11,10 +11,10 @@ CORRELATION_PERIOD = -60
 
 def get_correlation_id(ctx, alert):
     try:
-        actor = alert['ACTOR']
-        object = alert['OBJECT']
-        action = alert['ACTION']
-        time = alert['EVENT_TIME']
+        actor = str(alert['ACTOR'])
+        object = str(alert['OBJECT'])
+        action = str(alert['ACTION'])
+        time = str(alert['EVENT_TIME'])
 
         # todo make robust
         if type(object) is list:
