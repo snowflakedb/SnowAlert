@@ -116,8 +116,8 @@ def main(rule_name=None):
             create_alerts(ctx, rule_name)
 
     RUN_METADATA['ROW_COUNT'] = {
-        'inserted': sum(q['ROW_COUNT']['INSERTED'] for q in QUERY_HISTORY),
-        'updated': sum(q['ROW_COUNT']['UPDATED'] for q in QUERY_HISTORY),
+        'INSERTED': sum(q['ROW_COUNT']['INSERTED'] for q in QUERY_HISTORY),
+        'UPDATED': sum(q['ROW_COUNT']['UPDATED'] for q in QUERY_HISTORY),
     }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
