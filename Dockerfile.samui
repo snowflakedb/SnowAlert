@@ -31,4 +31,7 @@ RUN apt-get update \
  && rm -fr node_modules \
  && apt-get purge -y --auto-remove curl gnupg2 apt-transport-https nodejs yarn
 
+# link frontend build into backend venv
+RUN ln -s ./snowalert/src/samui/frontend ./snowalert/venv/lib/python3.7/frontend
+
 CMD python ./snowalert/src/samui/backend/samui/app.py
