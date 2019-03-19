@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import datetime
-import uuid
 
 from runners.config import (
     QUERY_METADATA_TABLE,
@@ -10,8 +9,6 @@ from runners.config import (
     CLOUDWATCH_METRICS,
 )
 from runners.helpers import db, log
-
-RUN_ID = uuid.uuid4().hex
 
 
 def run_query(query_name):

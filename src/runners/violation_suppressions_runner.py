@@ -10,11 +10,9 @@ from runners.config import (
     RUN_METADATA_TABLE,
     VIOLATION_SQUELCH_POSTFIX,
     VIOLATIONS_TABLE,
+    RUN_ID,
 )
 from runners.helpers import db, log
-
-RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'VIOLATION SUPPRESSIONS'}  # Contains metadata about this run
-RUN_ID = uuid.uuid4().hex
 
 
 def flag_remaining_alerts(ctx):

@@ -1,6 +1,10 @@
 import os
+import uuid
 
 from runners.helpers.dbconfig import DATABASE
+
+# generated once per runtime
+RUN_ID = uuid.uuid4().hex
 
 # schema names
 DATA_SCHEMA_NAME = os.environ.get('SA_DATA_SCHEMA_NAME', "data")

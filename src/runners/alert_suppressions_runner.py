@@ -12,10 +12,9 @@ from runners.config import (
     RULES_SCHEMA,
     ALERT_SQUELCH_POSTFIX,
     CLOUDWATCH_METRICS,
+    RUN_ID
 )
 from runners.helpers import db, log
-
-RUN_ID = uuid.uuid4().hex
 
 
 def log_alerts(ctx, alerts):

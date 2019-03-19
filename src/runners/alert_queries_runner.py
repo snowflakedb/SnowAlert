@@ -7,6 +7,7 @@ import datetime
 from typing import Any, Dict, List
 
 from runners.config import (
+    RUN_ID,
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
     ALERT_QUERY_POSTFIX,
@@ -17,12 +18,7 @@ from runners.utils import groups_of
 
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
-RUN_ID = uuid.uuid4().hex
 QUERY_HISTORY: List = []
-RUN_METADATA = {
-    'QUERY_HISTORY': QUERY_HISTORY,
-    'RUN_TYPE': 'ALERT QUERIES'
-}
 
 
 def alert_group(alert) -> str:
