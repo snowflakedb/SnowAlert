@@ -8,7 +8,7 @@ from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTH
 
 from . import log
 from .auth import load_pkb, oauth_refresh
-from .dbconfig import ACCOUNT, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconfig import ACCOUNT, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
 CACHED_CONNECTION = None
@@ -73,6 +73,7 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
 
         if not oauth_access_token:
             execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
+            execute(connection, f'USE DATABASE {DATABASE};')
 
         if not CACHED_CONNECTION and not oauth_access_token:
             CACHED_CONNECTION = connection
