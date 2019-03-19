@@ -25,6 +25,7 @@ from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
 def read_queries(file):
     vars = {
         'uuid': uuid4().hex,
+        'DATABASE': DATABASE,
         'ALERTS_TABLE': ALERTS_TABLE,
         'DATA_SCHEMA': DATA_SCHEMA,
         'RULES_SCHEMA': RULES_SCHEMA,
@@ -62,18 +63,6 @@ CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS {RULES_SCHEMA};",
     f"CREATE SCHEMA IF NOT EXISTS {RESULTS_SCHEMA};",
 ]
-
-# SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS target
-#      , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS type
-#      , table_name
-#      , REGEXP_REPLACE(view_definition, '[\\s\\S]*\'([^\']*)\' AS query_id[\\s\\S]*', '\\1', 1, 0, 'i') AS qid
-#      , REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\']*)[\\s\\S]*', '\\1') AS tags
-# FROM snowalert.information_schema.views
-# WHERE table_schema='RULES'
-#   AND table_name LIKE '%_QUERY'
-#   AND tags IS NOT NULL
-#   AND tags NOT LIKE '%\'%'
-# ;
 
 CREATE_UDTF_FUNCTIONS = [
     f"USE DATABASE {DATABASE};",
@@ -237,6 +226,7 @@ def setup_warehouse(do_attempt):
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
+    do_attempt("Creating standard data views", read_queries('data-views'))
 
 
 def setup_user(do_attempt):

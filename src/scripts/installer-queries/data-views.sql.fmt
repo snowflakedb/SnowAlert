@@ -1,0 +1,21 @@
+CREATE OR REPLACE VIEW {DATA_SCHEMA}.rule_tags COPY GRANTS AS
+SELECT type
+     , target
+     , table_name
+     , query_id
+     , value AS tag
+FROM (
+  SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS type
+       , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS target
+       , table_name
+       , IFF(CONTAINS(comment, '@id'), REGEXP_REPLACE(comment, '[\\s\\S]*@id ([^\n]*)[\\s\\S]*', '\\1'), NULL) AS query_id
+       , IFF(
+           CONTAINS(comment, '@tags'),
+           SPLIT(REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\n]*)[\\s\\S]*', '\\1'), ', '),
+           ARRAY_CONSTRUCT()
+         ) AS tags
+  FROM {DATABASE}.information_schema.views
+  WHERE table_schema='RULES'
+) AS query_tag_list
+, LATERAL FLATTEN(input => query_tag_list.tags)
+;
