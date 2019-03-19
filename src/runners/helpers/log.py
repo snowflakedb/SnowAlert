@@ -42,7 +42,7 @@ def metric(metric, namespace, dimensions, value):
 
 def metadata_record(ctx, metadata, table, e=None):
     metadata['EXCEPTION'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
-    metadata['ROW_COUNT'] = ctx.cursor().rowcount or 0
+    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0})
 
     metadata['END_TIME'] = datetime.datetime.utcnow()
     metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])

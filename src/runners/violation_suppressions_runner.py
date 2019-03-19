@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import datetime
-import uuid
 
 from runners.config import (
     CLOUDWATCH_METRICS,
@@ -23,11 +22,16 @@ def flag_remaining_alerts(ctx):
 
 
 def run_suppression(squelch_name):
-    metadata = {}
-    metadata['QUERY_NAME'] = squelch_name
-    metadata['RUN_ID'] = RUN_ID
-    metadata['ATTEMPTS'] = 1
-    metadata['START_TIME'] = datetime.datetime.utcnow()
+    metadata = {
+        'QUERY_NAME': squelch_name,
+        'RUN_ID': RUN_ID,
+        'ATTEMPTS': 1,
+        'START_TIME': datetime.datetime.utcnow(),
+        'ROW_COUNT': {
+            'INSERTED': 0,  # because of bug below. fix when bug fixed.
+            'UPDATED': 0,
+        }
+    }
     ctx = db.connect()
     print(f"Received suppression {squelch_name}")
     try:
@@ -48,10 +52,15 @@ def run_suppression(squelch_name):
 
 
 def main():
-    RUN_METADATA = {}
-    RUN_METADATA['RUN_TYPE'] = 'VIOLATION SUPPRESSION'
-    RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
-    RUN_METADATA['RUN_ID'] = RUN_ID
+    RUN_METADATA = {
+        'RUN_TYPE': 'VIOLATION SUPPRESSION',
+        'START_TIME': datetime.datetime.utcnow(),
+        'RUN_ID': RUN_ID,
+        'ROW_COUNT': {
+            'INSERTED': 0,  # because of bug above. fix when bug fixed.
+            'UPDATED': 0,
+        }
+    }
 
     ctx = db.connect()
     for squelch_name in db.load_rules(ctx, VIOLATION_SQUELCH_POSTFIX):

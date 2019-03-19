@@ -1,6 +1,6 @@
 """Helper specific to SnowAlert connecting to the database"""
 
-from typing import List
+from typing import List, Tuple
 from os import environ, path
 
 import snowflake.connector
@@ -182,7 +182,7 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
     return created_count, updated_count
 
 
-def insert_violations_query_run(query_name, ctx=None):
+def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     from runners.config import VIOLATIONS_TABLE, RULES_SCHEMA
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
@@ -209,5 +209,6 @@ def insert_violations_query_run(query_name, ctx=None):
 
     except Exception as e:
         log.info(f"{query_name} run threw an exception:", e)
+        return 0, 0
 
-    return ctx
+    return result[0][0], 0

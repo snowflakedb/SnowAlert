@@ -4,7 +4,7 @@ import json
 import hashlib
 import uuid
 import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from runners.config import (
     RUN_ID,
@@ -74,7 +74,7 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
         log.error("Failed to log query failure", e)
 
 
-def create_alerts(ctx, rule_name: str) -> int:
+def create_alerts(ctx, rule_name: str) -> Tuple[int, int]:
     metadata: Dict[str, Any] = {
         'QUERY_NAME': rule_name,
         'RUN_ID': RUN_ID,
@@ -83,19 +83,23 @@ def create_alerts(ctx, rule_name: str) -> int:
     }
 
     try:
-        inserted, updated = db.insert_alerts_query_run(rule_name, GROUPING_CUTOFF)
+        insert_count, update_count = db.insert_alerts_query_run(rule_name, GROUPING_CUTOFF)
+        metadata['ROW_COUNT'] = {
+            'INSERTED': insert_count,
+            'UPDATED': update_count,
+        }
 
     except Exception as e:
         log_failure(ctx, rule_name, e)
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
-        return 0
+        return 0, 0
 
     log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
     QUERY_HISTORY.append(metadata)
 
     log.info(f"{rule_name} done.")
 
-    return inserted + updated
+    return insert_count, update_count
 
 
 def main(rule_name=None):
@@ -111,6 +115,10 @@ def main(rule_name=None):
         for rule_name in db.load_rules(ctx, ALERT_QUERY_POSTFIX):
             create_alerts(ctx, rule_name)
 
+    RUN_METADATA['ROW_COUNT'] = {
+        'inserted': sum(q['ROW_COUNT']['INSERTED'] for q in QUERY_HISTORY),
+        'updated': sum(q['ROW_COUNT']['UPDATED'] for q in QUERY_HISTORY),
+    }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
