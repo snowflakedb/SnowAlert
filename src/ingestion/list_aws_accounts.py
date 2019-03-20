@@ -43,8 +43,12 @@ def load_accounts_list(sf_client,accounts_list):
     snapshotclock = datetime.datetime.utcnow().isoformat()
     sf_client.cursor().execute("insert into " + os.environ['LIST_ACCOUNTS_SNOWFLAKE_TABLE_IDENTIFIER'] + " (timestamp, account) select '" + snapshotclock + "', parse_json(column1) from values" + format_string, (accounts_list))
 
-def handler(event,context):
-    client = get_aws_client()
-    sf_client = get_snowflake_client()
-    accounts_list=get_accounts_list(client)
-    load_accounts_list(sf_client,accounts_list)
+def main():
+    current_time = datetime.datetime.now()
+    if current_time.hour = 1 and current_time.minute > 0 and current_time.minute <= 15:
+        client = get_aws_client()
+        sf_client = get_snowflake_client()
+        accounts_list=get_accounts_list(client)
+        load_accounts_list(sf_client,accounts_list)
+    else:
+        print("It's not time yet!")
