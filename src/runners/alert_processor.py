@@ -28,8 +28,8 @@ def get_correlation_id(ctx, alert):
     # select the most recent alert which matches the correlation logic
 
     query = f"""select * from {ALERTS_TABLE}
-    where alert:ACTOR = '%s'
-    and (alert:OBJECT = '%s' or alert:ACTION = '%s')
+    where alert:ACTOR = %s
+    and (alert:OBJECT = %s or alert:ACTION = %s)
     and correlation_ID is not null
     and suppressed = false
     and event_time > dateadd(minutes, {CORRELATION_PERIOD}, '{time}')
@@ -38,7 +38,7 @@ def get_correlation_id(ctx, alert):
     """
 
     try:
-        match = ctx.cursor().execute(query, actor, object, action).fetchall()
+        match = ctx.cursor().execute(query, [actor, object, action]).fetchall()
     except Exception as e:
         log.error("Failed unexpectedly while getting correlation matches", e)
         match = []
