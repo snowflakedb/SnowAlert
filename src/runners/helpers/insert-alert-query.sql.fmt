@@ -1,4 +1,4 @@
-MERGE INTO {ALERTS_TABLE} USING (
+MERGE INTO results.alerts USING (
 
   SELECT ANY_VALUE(alert) AS alert
        , SUM(counter) AS counter
@@ -8,7 +8,7 @@ MERGE INTO {ALERTS_TABLE} USING (
   FROM (
 
     SELECT alert, alert_time, event_time, counter
-    FROM {ALERTS_TABLE}
+    FROM results.alerts
     WHERE event_time BETWEEN {from_time_sql} AND {to_time_sql}
       AND alert:QUERY_NAME = '{query_name}'
 
@@ -17,31 +17,31 @@ MERGE INTO {ALERTS_TABLE} USING (
     SELECT OBJECT_CONSTRUCT(
              'ALERT_ID', UUID_STRING(),
              'QUERY_NAME', '{query_name}',
-             'QUERY_ID', QUERY_ID,
-             'ENVIRONMENT', ENVIRONMENT,
-             'SOURCES', SOURCES,
-             'ACTOR', ACTOR,
-             'OBJECT', OBJECT,
-             'ACTION', ACTION,
-             'TITLE', TITLE,
-             'EVENT_TIME', EVENT_TIME,
-             'ALERT_TIME', ALERT_TIME,
-             'DESCRIPTION', DESCRIPTION,
-             'DETECTOR', DETECTOR,
-             'EVENT_DATA', EVENT_DATA,
-             'SEVERITY', SEVERITY
+             'QUERY_ID', IFNULL(QUERY_ID, PARSE_JSON('null')),
+             'ENVIRONMENT', IFNULL(ENVIRONMENT, PARSE_JSON('null')),
+             'SOURCES', IFNULL(SOURCES, PARSE_JSON('null')),
+             'ACTOR', IFNULL(ACTOR, PARSE_JSON('null')),
+             'OBJECT', IFNULL(OBJECT, PARSE_JSON('null')),
+             'ACTION', IFNULL(ACTION, PARSE_JSON('null')),
+             'TITLE', IFNULL(TITLE, PARSE_JSON('null')),
+             'EVENT_TIME', IFNULL(EVENT_TIME, PARSE_JSON('null')),
+             'ALERT_TIME', IFNULL(ALERT_TIME, PARSE_JSON('null')),
+             'DESCRIPTION', IFNULL(DESCRIPTION, PARSE_JSON('null')),
+             'DETECTOR', IFNULL(DETECTOR, PARSE_JSON('null')),
+             'EVENT_DATA', IFNULL(EVENT_DATA, PARSE_JSON('null')),
+             'SEVERITY', IFNULL(SEVERITY, PARSE_JSON('null'))
            ) AS alert
          , alert_time
          , event_time
          , 1 AS counter
-    FROM {RULES_SCHEMA}.{query_name}
+    FROM rules.{query_name}
     WHERE event_time BETWEEN {from_time_sql} AND {to_time_sql}
 
   )
   GROUP BY alert:OBJECT, alert:DESCRIPTION
 
 ) new
-ON {ALERTS_TABLE}.alert = new.alert
+ON results.alerts.alert = new.alert
 
 WHEN MATCHED
 THEN UPDATE SET counter = new.counter

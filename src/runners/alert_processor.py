@@ -9,6 +9,25 @@ from .helpers import db, log
 CORRELATION_PERIOD = -60
 
 
+UPDATE_QUERY = f"""
+UPDATE {ALERTS_TABLE}
+SET correlation_id='{{correlation_id}}'
+WHERE alert:ALERT_ID='{{alert_id}}'
+"""
+
+GET_CORRELATED_ALERT = f"""
+SELECT * FROM {ALERTS_TABLE}
+WHERE alert:ACTOR = %s
+  AND (alert:OBJECT = %s OR alert:ACTION = %s)
+  AND correlation_id IS NOT NULL
+  AND NOT IS_NULL_VALUE(alert:ACTOR)
+  AND suppressed = FALSE
+  AND event_time > DATEADD(minutes, {CORRELATION_PERIOD}, '{{time}}')
+ORDER BY event_time DESC
+LIMIT 1
+"""
+
+
 def get_correlation_id(ctx, alert):
     try:
         actor = str(alert['ACTOR'])
@@ -25,17 +44,8 @@ def get_correlation_id(ctx, alert):
         log.error(f"Alert missing a required field: {e.args[0]}", e)
         return uuid.uuid4().hex
 
-    # select the most recent alert which matches the correlation logic
-
-    query = f"""select * from {ALERTS_TABLE}
-    where alert:ACTOR = %s
-    and (alert:OBJECT = %s or alert:ACTION = %s)
-    and correlation_ID is not null
-    and suppressed = false
-    and event_time > dateadd(minutes, {CORRELATION_PERIOD}, '{time}')
-    order by event_time desc
-    limit 1
-    """
+    # select the most recent alert which matches the correlation logicå
+    query = GET_CORRELATED_ALERT.format(time=time)
 
     try:
         match = ctx.cursor().execute(query, [actor, object, action]).fetchall()
@@ -75,12 +85,8 @@ def assess_correlation(ctx):
         correlation_id = get_correlation_id(ctx, alert_body)
         log.info(f"the correlation id for alert {alert_id} is {correlation_id}")
 
-        q = f"""UPDATE {ALERTS_TABLE} SET correlation_ID = '{correlation_id}'
-                WHERE ALERT:ALERT_ID = '{alert_id}'
-            """
-
         try:
-            ctx.cursor().execute(q)
+            ctx.cursor().execute(UPDATE_QUERY)
             log.info("correlation id successfully updated")
         except Exception as e:
             log.error(f"Failed to update alert {alert_id} with new correlation id", e)
