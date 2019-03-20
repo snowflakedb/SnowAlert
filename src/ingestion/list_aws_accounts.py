@@ -52,3 +52,5 @@ def main():
         load_accounts_list(sf_client,accounts_list)
     else:
         print("It's not time yet!")
+
+main()
