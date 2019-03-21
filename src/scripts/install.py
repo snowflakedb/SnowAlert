@@ -53,20 +53,25 @@ GRANT_PRIVILEGES_QUERIES = [
 WAREHOUSE_QUERIES = [
     f"""
       CREATE WAREHOUSE IF NOT EXISTS {WAREHOUSE}
-        WAREHOUSE_SIZE=xsmall WAREHOUSE_TYPE=standard
-        AUTO_SUSPEND=60 AUTO_RESUME=TRUE INITIALLY_SUSPENDED=TRUE;
+        WAREHOUSE_SIZE=xsmall
+        WAREHOUSE_TYPE=standard
+        AUTO_SUSPEND=60
+        AUTO_RESUME=TRUE
+        INITIALLY_SUSPENDED=TRUE
     """
 ]
-CREATE_DATABASE_QUERY = f"CREATE DATABASE IF NOT EXISTS {DATABASE};"
+CREATE_DATABASE_QUERIES = [
+    f"CREATE DATABASE IF NOT EXISTS {DATABASE}",
+    f"USE DATABASE {DATABASE}",
+]
 CREATE_SCHEMAS_QUERIES = [
-    f"CREATE SCHEMA IF NOT EXISTS {DATA_SCHEMA};",
-    f"CREATE SCHEMA IF NOT EXISTS {RULES_SCHEMA};",
-    f"CREATE SCHEMA IF NOT EXISTS {RESULTS_SCHEMA};",
+    f"CREATE SCHEMA IF NOT EXISTS data",
+    f"CREATE SCHEMA IF NOT EXISTS rules",
+    f"CREATE SCHEMA IF NOT EXISTS results",
 ]
 
 CREATE_UDTF_FUNCTIONS = [
-    f"USE DATABASE {DATABASE};",
-    f"USE SCHEMA {DATA_SCHEMA};",
+    f"USE SCHEMA data",
     f"""CREATE OR REPLACE FUNCTION time_slices (n NUMBER, s TIMESTAMP, e TIMESTAMP)
           RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
           AS '
@@ -222,7 +227,7 @@ def load_aws_config() -> Tuple[str, str]:
 
 def setup_warehouse(do_attempt):
     do_attempt("Creating and setting default warehouse", WAREHOUSE_QUERIES)
-    do_attempt("Creating database", CREATE_DATABASE_QUERY)
+    do_attempt("Creating and using database", CREATE_DATABASE_QUERIES)
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)

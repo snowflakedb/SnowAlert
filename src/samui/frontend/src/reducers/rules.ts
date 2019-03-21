@@ -13,7 +13,7 @@ export const initialState: SnowAlertRulesState = {
   suppressions: [],
 };
 
-const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
+const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_QUERY COPY GRANTS
   COMMENT=''
 AS
 SELECT 'E' AS environment
@@ -30,42 +30,37 @@ SELECT 'E' AS environment
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM {DATA_SCHEMA}.\nWHERE 1=1\n  AND 2=2\n;`;
+FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
-const violationQueryBody = (
-  s: string,
-  qid: string,
-) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
+const violationQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_QUERY COPY GRANTS
   COMMENT=''
 AS
 SELECT 'E' AS environment
      , 'Predicate' AS object
      , 'rule title' AS title
      , 'S: Subject state' AS description
-     , current_timestamp() AS alert_time
+     , CURRENT_TIMESTAMP() AS alert_time
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'SnowAlert' AS detector
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM {DATA_SCHEMA}.\nWHERE 1=1\n AND 2=2\n;`;
+FROM data.\nWHERE 1=1\n AND 2=2\n;`;
 
-const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_SUPPRESSION COPY GRANTS
+const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
 AS
 SELECT alert
-FROM {ALERTS_TABLE}
+FROM results.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;
 
-const violationSuppressionBody = (
-  s: string,
-) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_VIOLATION_SUPPRESSION COPY GRANTS
+const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_SUPPRESSION COPY GRANTS
   COMMENT='New Violation Suppression'
 AS
 SELECT alert
-FROM {VIOLATIONS_TABLE}
+FROM violations.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;

@@ -5,10 +5,8 @@ import datetime
 from runners.config import (
     CLOUDWATCH_METRICS,
     QUERY_METADATA_TABLE,
-    RULES_SCHEMA,
     RUN_METADATA_TABLE,
     VIOLATION_SQUELCH_POSTFIX,
-    VIOLATIONS_TABLE,
     RUN_ID,
 )
 from runners.helpers import db, log
@@ -16,7 +14,7 @@ from runners.helpers import db, log
 
 def flag_remaining_alerts(ctx):
     try:
-        ctx.cursor().execute(f"UPDATE {VIOLATIONS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;")
+        ctx.cursor().execute(f"UPDATE results.violations SET suppressed=FALSE WHERE suppressed IS NULL;")
     except Exception as e:
         log.error("Failed to flag remaining alerts as unsuppressed", e)
 
@@ -35,8 +33,8 @@ def run_suppression(squelch_name):
     print(f"Received suppression {squelch_name}")
     try:
         ctx.cursor().execute(f"""
-            MERGE INTO {VIOLATIONS_TABLE} t
-            USING(SELECT result:EVENT_HASH AS event_hash FROM {RULES_SCHEMA}.{squelch_name}) s
+            MERGE INTO results.violations t
+            USING(SELECT result:EVENT_HASH AS event_hash FROM rules.{squelch_name}) s
             ON t.result:EVENT_HASH=s.event_hash
             WHEN MATCHED THEN UPDATE
             SET t.suppressed='true', t.suppression_rule='{squelch_name}';

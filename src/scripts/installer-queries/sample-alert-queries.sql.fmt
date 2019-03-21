@@ -1,9 +1,10 @@
-CREATE OR REPLACE VIEW {RULES_SCHEMA}.SNOWFLAKE_LOGIN_WITHOUT_MFA_{ALERT_QUERY_POSTFIX} COPY GRANTS
+CREATE OR REPLACE VIEW rules.SNOWFLAKE_LOGIN_WITHOUT_MFA_{ALERT_QUERY_POSTFIX} COPY GRANTS
   COMMENT='Alerts on someone logging into Snowflake without MFA
+  @id {uuid}
   @tags snowflake, mfa requirements'
 AS
 SELECT 'Successful Snowflake login without MFA' AS title
-     , array_construct('successful_snowflake_logins') AS sources
+     , ARRAY_CONSTRUCT('successful_snowflake_logins') AS sources
      , user_name AS object
      , 'SnowAlert' AS environment
      , event_timestamp AS event_time
@@ -16,18 +17,18 @@ SELECT 'Successful Snowflake login without MFA' AS title
      , 'low' AS severity
      , 'snowflake_login_without_mfa' AS query_name
      , '{uuid}' AS query_id
-FROM {DATA_SCHEMA}.successful_snowflake_logins_v
+FROM data.successful_snowflake_logins_v
 WHERE 1=1
   AND second_authentication_factor IS NULL
   AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
 ;
 
-CREATE OR REPLACE VIEW {RULES_SCHEMA}.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} COPY GRANTS
+CREATE OR REPLACE VIEW rules.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} COPY GRANTS
   COMMENT='Exceptions to MFA Policies
   @tags snowflake, mfa requirements'
 AS
 SELECT alert
-FROM {ALERTS_TABLE}
+FROM results.alerts
 WHERE suppressed IS NULL
   AND alert:object = 'DESIGNATED_NOMFA_USER'
 ;

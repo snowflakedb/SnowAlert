@@ -45,7 +45,7 @@ function stripComment(body: string): {rest: string; comment: string; viewName: s
 
   return {
     rest: descrAfter,
-    comment: descrMatch[1],
+    comment: descrMatch[1].replace(/\\'/g, "'"),
     viewName: vnameMatch[1],
   };
 }
@@ -96,6 +96,10 @@ export abstract class SQLBackedRule {
     try {
       this.load(r.body, r.results);
       this.isParsed = this.body === r.body;
+      // if (!this.isParsed) {
+      //   console.log('r.body', r.body)
+      //   console.log('this.body', this.body)
+      // }
     } catch (e) {
       // console.log(`error parsing >${r.body}< ${new Error(e)}`, e);
       this.isParsed = false;
@@ -210,7 +214,7 @@ export class Policy extends SQLBackedRule {
 
   get body(): string {
     return (
-      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
@@ -323,7 +327,7 @@ export class Query extends SQLBackedRule {
     const queryLine = `\n  @id ${queryId}`;
 
     return (
-      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')
@@ -405,7 +409,7 @@ export class Suppression extends SQLBackedRule {
     const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
 
     return (
-      `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${this.viewName} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')

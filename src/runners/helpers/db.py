@@ -71,9 +71,9 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         if run_preflight_checks:
             preflight_checks(connection)
 
+        execute(connection, f'USE DATABASE {DATABASE}')
         if not oauth_access_token:
-            execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
-            execute(connection, f'USE DATABASE {DATABASE};')
+            execute(connection, f'USE WAREHOUSE {WAREHOUSE}')
 
         if not CACHED_CONNECTION and not oauth_access_token:
             CACHED_CONNECTION = connection
@@ -127,9 +127,8 @@ def connect_and_fetchall(query):
 ###
 
 def load_rules(ctx, postfix) -> List[str]:
-    from runners.config import RULES_SCHEMA
     try:
-        views = ctx.cursor().execute(f'SHOW VIEWS IN {RULES_SCHEMA}').fetchall()
+        views = ctx.cursor().execute(f'SHOW VIEWS IN rules').fetchall()
     except Exception as e:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
@@ -141,13 +140,12 @@ def load_rules(ctx, postfix) -> List[str]:
 
 
 def insert_alerts(alerts, ctx=None):
-    from runners.config import ALERTS_TABLE
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
     ctx.cursor().execute(
         (
-            f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+            f'INSERT INTO restuls.alerts (alert_time, event_time, alert) '
             f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
             f'FROM values {", ".join(["(%s)"] * len(alerts))};'
         ),
@@ -156,7 +154,6 @@ def insert_alerts(alerts, ctx=None):
 
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
-    from runners.config import ALERTS_TABLE, RULES_SCHEMA
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
@@ -165,10 +162,8 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
     try:
         pwd = path.dirname(path.realpath(__file__))
         sql = open(f'{pwd}/insert-alert-query.sql.fmt').read().format(
-            RULES_SCHEMA=RULES_SCHEMA,
-            ALERTS_TABLE=ALERTS_TABLE,
-            from_time_sql=from_time_sql,
             query_name=query_name,
+            from_time_sql=from_time_sql,
             to_time_sql=to_time_sql,
         )
         result = ctx.cursor().execute(sql).fetchall()
@@ -181,11 +176,11 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
         return 0, 0
 
 
-INSERT_VIOLATIONS_QUERY = """
+INSERT_VIOLATIONS_QUERY = f"""
 INSERT INTO results.violations (alert_time, result)
 SELECT alert_time, OBJECT_CONSTRUCT(*)
-FROM rules.{query_name}
-WHERE alert_time > {CUTOFF_TIME}
+FROM rules.{{query_name}}
+WHERE alert_time > {{CUTOFF_TIME}}
 """
 
 

@@ -18,7 +18,7 @@ interface RuleEditorProps {
 }
 
 const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFields}: RuleEditorProps) => {
-  const rule = [...queries, ...suppressions].find(q => q.viewName === currentRuleView);
+  const rule = [...queries, ...suppressions].find(r => r.viewName === currentRuleView);
   const formEditorEnabled = rule && rule.isParsed;
 
   return (

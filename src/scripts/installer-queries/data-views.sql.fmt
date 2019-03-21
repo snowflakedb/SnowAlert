@@ -14,7 +14,7 @@ FROM (
            SPLIT(REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\n]*)[\\s\\S]*', '\\1'), ', '),
            ARRAY_CONSTRUCT()
          ) AS tags
-  FROM {DATABASE}.information_schema.views
+  FROM information_schema.views
   WHERE table_schema='RULES'
 ) AS query_tag_list
 , LATERAL FLATTEN(input => query_tag_list.tags)

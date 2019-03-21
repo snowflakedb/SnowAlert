@@ -6,10 +6,8 @@ import datetime
 from typing import List
 
 from runners.config import (
-    ALERTS_TABLE,
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
-    RULES_SCHEMA,
     ALERT_SQUELCH_POSTFIX,
     CLOUDWATCH_METRICS,
     RUN_ID
@@ -17,15 +15,15 @@ from runners.config import (
 from runners.helpers import db, log
 
 SUPPRESSION_QUERY = f"""
-MERGE INTO {ALERTS_TABLE} t
-USING({RULES_SCHEMA}.{{suppression_name}}) s
+MERGE INTO results.alerts t
+USING(rules.{{suppression_name}}) s
 ON t.alert:ALERT_ID = s.alert:ALERT_ID
 WHEN MATCHED THEN UPDATE
 SET t.SUPPRESSED = 'true', t.SUPPRESSION_RULE = '{{suppression_name}}';
 """
 
 SET_SUPPRESSED_FALSE = f"""
-UPDATE {ALERTS_TABLE}
+UPDATE results.alerts
 SET suppressed=FALSE
 WHERE suppressed IS NULL;
 """
@@ -43,7 +41,7 @@ def log_alerts(ctx, alerts):
         try:
             ctx.cursor().execute(
                 f'''
-                INSERT INTO {ALERTS_TABLE} (alert_time, alert)
+                INSERT INTO results.alerts (alert_time, alert)
                 SELECT PARSE_JSON(column1):ALERT_TIME,
                        PARSE_JSON(column1)
                 FROM VALUES {format_string};
