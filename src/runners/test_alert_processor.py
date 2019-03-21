@@ -10,7 +10,7 @@ def setup():
 
 
 def processor_test_1():
-    query = "select * from snowalert.results.alerts where alert:ACTOR = 'ky_kiske' and alert:SUPPRESSED = false"
+    query = "select * from snowalert.results.alerts where alert:ACTOR = 'ky_kiske' and suppressed = false"
     rows = list(db.fetch(CTX, query))
 
     ret = True
