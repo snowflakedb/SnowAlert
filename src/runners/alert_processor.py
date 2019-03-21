@@ -17,10 +17,10 @@ WHERE alert:ALERT_ID='{{alert_id}}'
 """
 
 GET_CORRELATED_ALERT = f"""
-SELECT *
+select *
 FROM results.alerts
 WHERE alert:ACTOR = %s
-  AND (alert:OBJECT = %s OR alert:ACTION = %s)
+  AND (alert:OBJECT::string = %s OR alert:ACTION = %s)
   AND correlation_id IS NOT NULL
   AND NOT IS_NULL_VALUE(alert:ACTOR)
   AND suppressed = FALSE
@@ -40,15 +40,14 @@ WHERE correlation_id IS NULL
 
 def get_correlation_id(ctx, alert):
     try:
-        actor = str(alert['ACTOR'])
-        object = str(alert['OBJECT'])
-        action = str(alert['ACTION'])
+        actor = alert['ACTOR']
+        object = alert['OBJECT']
+        action = alert['ACTION']
         time = str(alert['EVENT_TIME'])
 
-        # todo make robust
         if type(object) is list:
-            o = "', '".join(object)
-            object = f"ARRAY_CONSTRUCT('{o}')"
+            o = '","'.join(object)
+            object = '["'+o+'"]'
 
     except Exception as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
