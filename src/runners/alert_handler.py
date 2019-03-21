@@ -84,7 +84,7 @@ def main():
         try:
             correlation_id = row[7]
         except Exception as e:
-            log.error("No CORRELATION_ID in alert", e)
+            log.info(f"Warning: no VARCHAR CORRELATION_ID column in alerts table")
             try:
                 ticket_id = create_jira.create_jira_ticket(alert)
             except Exception as e:

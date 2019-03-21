@@ -5,6 +5,8 @@ import uuid
 
 from .helpers import db, log
 
+import snowflake.connector
+
 CORRELATION_PERIOD = -60
 
 
@@ -70,8 +72,8 @@ def assess_correlation(ctx):
 
     try:
         alerts = ctx.cursor().execute(GET_ALERTS_WITHOUT_CORREALTION_ID).fetchall()
-    except Exception as e:
-        log.error("Unable to get correlation_id, skipping grouping", e)
+    except snowflake.connector.errors.ProgrammingError:
+        log.info("Unable to get correlation_id, skipping grouping.")
         return None
 
     for row in alerts:

@@ -42,19 +42,15 @@ Severity: {SEVERITY}
 """
 
 kms = boto3.client('kms', region_name=REGION)
-encrypted_auth = os.environ['JIRA_PASSWORD']
+password = os.environ.get('JIRA_PASSWORD')
+user = os.environ.get('JIRA_USER')
 
-if len(encrypted_auth) < 100:  # then we treat it an an unencrypted password
-    password = encrypted_auth
-else:
-    kms = boto3.client('kms', region_name=REGION)
-    binary_auth = b64decode(encrypted_auth)
-    decrypted_auth = kms.decrypt(CiphertextBlob=binary_auth)
-    password = decrypted_auth['Plaintext'].decode()
+if user and password:
+    if len(password) > 100:  # then it must be encrypted!
+        decrypted_auth = kms.decrypt(CiphertextBlob=b64decode(password))
+        password = decrypted_auth['Plaintext'].decode()
 
-user = os.environ['JIRA_USER']
-
-jira = JIRA(URL, basic_auth=(user, password))
+    jira = JIRA(URL, basic_auth=(user, password))
 
 
 def jira_ticket_body(alert):
@@ -77,6 +73,8 @@ def escape_jira_strings(v):
 
 
 def append_to_body(id, alert):
+    if not user:
+        return
     issue = jira.issue(id)
     description = get_ticket_description(issue)
     log.info(f"Appending data to ticket {id}")
@@ -102,6 +100,9 @@ def link_search_todos(description=None):
 
 
 def create_jira_ticket(alert):
+    if not user:
+        return
+
     try:
         alert['EVENT_DATA'] = yaml.dump(alert['EVENT_DATA'], indent=4, default_flow_style=False)
     except Exception as e:
@@ -125,4 +126,6 @@ def check_ticket_status(id):
 
 
 def get_ticket_description(id):
+    if not user:
+        return
     return jira.issue(id).fields.description

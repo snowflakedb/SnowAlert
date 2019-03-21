@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import sys
 
 from runners import alert_queries_runner
@@ -30,11 +29,7 @@ def main(command, rule_name=None):
             alert_queries_runner.main()
             alert_suppressions_runner.main()
             alert_processor.main()
-            if os.environ.get('JIRA_USER'):
-                print("starting the jira handler, condition was true")
-                alert_handler.main()
-            else:
-                print("No JIRA_USER in env, skipping handler.")
+            alert_handler.main()
 
         if command in ['violations', 'all']:
             violation_queries_runner.main()
