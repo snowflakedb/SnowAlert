@@ -3,20 +3,20 @@
 import json
 import uuid
 
-from .config import ALERTS_TABLE, DATABASE
 from .helpers import db, log
 
 CORRELATION_PERIOD = -60
 
 
-UPDATE_QUERY = f"""
-UPDATE {ALERTS_TABLE}
+UPDATE_ALERT_CORRELATION_ID = f"""
+UPDATE results.alerts
 SET correlation_id='{{correlation_id}}'
 WHERE alert:ALERT_ID='{{alert_id}}'
 """
 
 GET_CORRELATED_ALERT = f"""
-SELECT * FROM {ALERTS_TABLE}
+SELECT *
+FROM results.alerts
 WHERE alert:ACTOR = %s
   AND (alert:OBJECT = %s OR alert:ACTION = %s)
   AND correlation_id IS NOT NULL
@@ -25,6 +25,14 @@ WHERE alert:ACTOR = %s
   AND event_time > DATEADD(minutes, {CORRELATION_PERIOD}, '{{time}}')
 ORDER BY event_time DESC
 LIMIT 1
+"""
+
+GET_ALERTS_WITHOUT_CORREALTION_ID = f"""
+SELECT *
+FROM results.alerts
+WHERE correlation_id IS NULL
+  AND suppressed = FALSE
+  AND alert_time > DATEADD(hour, -2, CURRENT_TIMESTAMP())
 """
 
 
@@ -60,16 +68,8 @@ def get_correlation_id(ctx, alert):
 
 def assess_correlation(ctx):
 
-    get_alerts = f"""select * from {ALERTS_TABLE}
-    where correlation_id is null
-    and suppressed = false
-    and alert_time > dateadd(hour, -2, current_timestamp())
-    """
-
     try:
-        alerts = ctx.cursor().execute(get_alerts).fetchall()
-        # alerts = db.fetch(ctx, get_alerts)
-        # log.info(f"Found {len(alerts)} for correlation")
+        alerts = ctx.cursor().execute(GET_ALERTS_WITHOUT_CORREALTION_ID).fetchall()
     except Exception as e:
         log.error("Unable to get correlation_id, skipping grouping", e)
         return None
@@ -86,7 +86,7 @@ def assess_correlation(ctx):
         log.info(f"the correlation id for alert {alert_id} is {correlation_id}")
 
         try:
-            ctx.cursor().execute(UPDATE_QUERY)
+            ctx.cursor().execute(UPDATE_ALERT_CORRELATION_ID.format(**locals()))
             log.info("correlation id successfully updated")
         except Exception as e:
             log.error(f"Failed to update alert {alert_id} with new correlation id", e)
@@ -94,5 +94,5 @@ def assess_correlation(ctx):
 
 
 def main():
-    ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
+    ctx = db.connect()
     assess_correlation(ctx)
