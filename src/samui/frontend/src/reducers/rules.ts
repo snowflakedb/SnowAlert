@@ -14,7 +14,8 @@ export const initialState: SnowAlertRulesState = {
 };
 
 const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_QUERY COPY GRANTS
-  COMMENT=''
+  COMMENT='Alert Query Summary
+  @id ${qid}'
 AS
 SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
@@ -32,8 +33,9 @@ SELECT 'E' AS environment
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
-const violationQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_QUERY COPY GRANTS
-  COMMENT=''
+const violationQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Violation Rule Summary
+  @id ${qid}'
 AS
 SELECT 'E' AS environment
      , 'Predicate' AS object
@@ -45,7 +47,7 @@ SELECT 'E' AS environment
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM data.\nWHERE 1=1\n AND 2=2\n;`;
+FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
 const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
