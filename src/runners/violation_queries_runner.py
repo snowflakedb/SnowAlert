@@ -11,6 +11,8 @@ from runners.config import (
 )
 from runners.helpers import db, log
 
+METADATA_RECORDS = []
+
 
 def main():
     RUN_METADATA = {
@@ -34,7 +36,12 @@ def main():
             'UPDATED': update_count,
         }
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        METADATA_RECORDS.append(metadata)
 
+    RUN_METADATA['ROW_COUNT'] = {
+        'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS),
+        'UPDATED': sum(r['ROW_COUNT']['UPDATED'] for r in METADATA_RECORDS),
+    }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:

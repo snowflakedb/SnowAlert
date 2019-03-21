@@ -174,41 +174,38 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
         result = ctx.cursor().execute(sql).fetchall()
         created_count, updated_count = result[0]
         log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
+        return created_count, updated_count
 
     except Exception as e:
         log.info(f"{query_name} run threw an exception:", e)
         return 0, 0
 
-    return created_count, updated_count
+
+INSERT_VIOLATIONS_QUERY = """
+INSERT INTO results.violations (alert_time, result)
+SELECT alert_time, OBJECT_CONSTRUCT(*)
+FROM rules.{query_name}
+WHERE alert_time > {CUTOFF_TIME}
+"""
 
 
 def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
-    from runners.config import VIOLATIONS_TABLE, RULES_SCHEMA
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
-    output_column = environ.get('output_column', 'result')
-    time_column = environ.get('time_column', 'alert_time')
-    time_filter_unit = environ.get('time_filter_unit', 'day')
-    time_filter_amount = -1 * int(environ.get('time_filter_amount', 1))
+    time_filter_unit = environ.get('TIME_FILTER_UNIT', 'day')
+    time_filter_amount = -1 * int(environ.get('TIME_FILTER_AMOUNT', 1))
 
     CUTOFF_TIME = f'DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())'
 
     log.info(f"{query_name} processing...")
     try:
-        result = ctx.cursor().execute(
-            f"""
-            INSERT INTO {VIOLATIONS_TABLE} ({time_column}, {output_column})
-                SELECT alert_time, OBJECT_CONSTRUCT(*)
-                FROM {RULES_SCHEMA}.{query_name}
-                WHERE alert_time > {CUTOFF_TIME}
-            ;
-            """
-        ).fetchall()
-        log.info(f"{query_name} created {result[0][0]} rows.")
+        result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+        num_rows_inserted = result['number of rows inserted']
+        log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
+        log.info(f"{query_name} done.")
+        return num_rows_inserted, 0
 
     except Exception as e:
         log.info(f"{query_name} run threw an exception:", e)
         return 0, 0
-
-    return result[0][0], 0
