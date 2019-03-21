@@ -95,7 +95,11 @@ def create_rule():
         oauth = json.loads(request.headers.get('Authorization') or '{}')
         ctx = db.connect(oauth=oauth, run_preflight_checks=False)
         ctx.cursor().execute(rule_body).fetchall()
-        ctx.cursor().execute(f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}").fetchall()
+
+        try:  # errors expected, e.g. if permissions managed by future grants on schema
+            ctx.cursor().execute(f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}").fetchall()
+        except Exception as e:
+            pass
 
         if 'body' in data and 'savedBody' in data:
             data['savedBody'] = replace_config_vals(rule_body)
