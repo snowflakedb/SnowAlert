@@ -11,7 +11,6 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 
 import boto3
-import snowflake.connector
 
 from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX
@@ -20,6 +19,7 @@ from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, QUERY_METADATA_TABLE,
 
 from runners.helpers import log
 from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
+from runners.helpers.dbconnect import snowflake_connect
 
 
 def read_queries(file):
@@ -208,7 +208,7 @@ def login():
         print(" ✓")
         return retval
 
-    ctx = attempt("Authenticating to Snowflake", lambda: snowflake.connector.connect(**connect_kwargs))
+    ctx = attempt("Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs))
 
     return ctx, account, region or "us-west-2", attempt
 
