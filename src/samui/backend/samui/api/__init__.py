@@ -98,7 +98,7 @@ def create_rule():
 
         try:  # errors expected, e.g. if permissions managed by future grants on schema
             ctx.cursor().execute(f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}").fetchall()
-        except Exception as e:
+        except Exception:
             pass
 
         if 'body' in data and 'savedBody' in data:
