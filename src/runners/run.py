@@ -3,13 +3,15 @@
 import sys
 
 from runners import alert_queries_runner
+from runners import test_alert_queries_runner
 from runners import alert_suppressions_runner
+from runners import test_alert_suppressions_runner
 from runners import alert_handler
 from runners import violation_queries_runner
 from runners import violation_suppressions_runner
 from runners import alert_processor
+from runners import test_alert_processor
 from runners import ingest_runner
-from tests import runner_testing
 
 
 def main(command, rule_name=None):
@@ -40,7 +42,9 @@ def main(command, rule_name=None):
             ingest_runner.main()
 
         if command in ['tests']:
-            runner_testing.main()
+            test_alert_queries_runner.main()
+            test_alert_suppressions_runner.main()
+            test_alert_processor.main()
 
 
 if __name__ == '__main__':
