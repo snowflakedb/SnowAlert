@@ -28,8 +28,7 @@ def run_suppression(squelch_name):
         'ATTEMPTS': 1,
         'START_TIME': datetime.datetime.utcnow(),
         'ROW_COUNT': {
-            'INSERTED': 0,  # because of bug below. fix when bug fixed.
-            'UPDATED': 0,
+            'SUPPRESSED': 0,  # because of bug below. fix when bug fixed.
         }
     }
     ctx = db.connect()
@@ -57,8 +56,7 @@ def main():
         'START_TIME': datetime.datetime.utcnow(),
         'RUN_ID': RUN_ID,
         'ROW_COUNT': {
-            'INSERTED': 0,  # because of bug above. fix when bug fixed.
-            'UPDATED': 0,
+            'SUPPRESSED': 0,  # because of bug above. fix when bug fixed.
         }
     }
 
