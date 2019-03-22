@@ -308,7 +308,7 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
     )
 
 
-def setup_authentication(jira_password):
+def setup_authentication(jira_password, region):
     print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
     pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
     if pk_passwd == '.':
@@ -332,9 +332,8 @@ def setup_authentication(jira_password):
                 print(f"error {e!r}, trying.")
 
     rsa_public_key = re.sub(r'---.*---\n', '', public_key.decode('utf-8'))
-    do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}';")
 
-    return private_key, pk_passwd, jira_password
+    return private_key, pk_passwd, jira_password, rsa_public_key
 
 
 def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, private_key, pk_passwd,
@@ -401,7 +400,9 @@ def main(admin_role="accountadmin"):
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passwd, jira_password = setup_authentication(jira_password)
+    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region)
+    do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
+
     aws_key, aws_secret = load_aws_config()
 
     print(
