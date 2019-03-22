@@ -1,8 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+"""Script which installs the Snowflake database, warehouse, and everything
+else you need to get started with SnowAlert.
+
+Usage:
+
+  ./install.py [--admin-role ADMIN_ROLE]
+
+Note that if you run with ADMIN_ROLE other than ACCOUNTADMIN, the installer
+assumes that your account admin has already created a user, role, database,
+and warehouse for SnowAlert to use. The role will be the SnowAlert admin role,
+and will be used by those managing the rules, separate from the SNOWALERT role
+which will be used by the runners.
+"""
+
 from base64 import b64encode
 from configparser import ConfigParser
+import fire
 from getpass import getpass
 import os
 import re
@@ -39,31 +54,31 @@ def read_queries(file):
 
 
 GRANT_PRIVILEGES_QUERIES = [
-    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT USAGE ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
+    f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
 ]
 
 WAREHOUSE_QUERIES = [
     f"""
       CREATE WAREHOUSE IF NOT EXISTS {WAREHOUSE}
-        WAREHOUSE_SIZE=xsmall
-        WAREHOUSE_TYPE=standard
+        WAREHOUSE_SIZE=XSMALL
+        WAREHOUSE_TYPE=STANDARD
         AUTO_SUSPEND=60
         AUTO_RESUME=TRUE
         INITIALLY_SUSPENDED=TRUE
-    """
+    """,
+    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
 ]
-CREATE_DATABASE_QUERIES = [
-    f"CREATE DATABASE IF NOT EXISTS {DATABASE}",
-    f"USE DATABASE {DATABASE}",
+DATABASE_QUERIES = [
+    f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
+    f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
+    f'USE DATABASE {DATABASE}',
 ]
+
 CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS data",
     f"CREATE SCHEMA IF NOT EXISTS rules",
@@ -225,9 +240,12 @@ def load_aws_config() -> Tuple[str, str]:
     return aws_key, secret
 
 
-def setup_warehouse(do_attempt):
+def setup_warehouse_and_db(do_attempt):
     do_attempt("Creating and setting default warehouse", WAREHOUSE_QUERIES)
-    do_attempt("Creating and using database", CREATE_DATABASE_QUERIES)
+    do_attempt("Creating and using database", DATABASE_QUERIES)
+
+
+def setup_schemas_and_tables(do_attempt):
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
@@ -242,10 +260,9 @@ def setup_user(do_attempt):
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER};")
-    do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
 
 
-def setup_samples(ctx):
+def setup_samples(do_attempt):
     do_attempt("Creating data view", read_queries('sample-data-queries'))
     do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
     do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
@@ -367,13 +384,18 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-if __name__ == '__main__':
+def main(admin_role="accountadmin"):
     ctx, account, region, do_attempt = login()
 
-    do_attempt("Use role accountadmin", "USE ROLE accountadmin")
-    setup_warehouse(do_attempt)
+    do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+    if admin_role == "accountadmin":
+        setup_warehouse_and_db(do_attempt)
+        setup_user(do_attempt)
+
+    setup_schemas_and_tables(do_attempt)
     setup_samples(do_attempt)
-    setup_user(do_attempt)
+
+    do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
 
     jira_user, jira_password, jira_url, jira_project = jira_integration()
 
@@ -389,3 +411,7 @@ if __name__ == '__main__':
         f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run all\n"
         f"\n--- ...the end. ---\n"
     )
+
+
+if __name__ == '__main__':
+    fire.Fire(main)
