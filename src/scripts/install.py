@@ -399,7 +399,8 @@ def main(admin_role="accountadmin", samples=True):
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
     private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region)
-    do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
+    if admin_role == "accountadmin":
+        do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
 
     aws_key, aws_secret = load_aws_config()
 
