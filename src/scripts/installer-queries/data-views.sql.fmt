@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW {DATA_SCHEMA}.rule_tags COPY GRANTS AS
+CREATE OR REPLACE VIEW data.rule_tags COPY GRANTS AS
 SELECT type
      , target
      , table_name

@@ -1,9 +1,8 @@
 #!/bin/bash
 
 if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
-
   cd /var/task
-  ./snowalert/venv/bin/python3 ./snowalert/src/scripts/install.py
+  ./snowalert/venv/bin/python3 ./snowalert/src/scripts/install.py $@
 
 elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
 
@@ -13,7 +12,7 @@ elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
     -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
     --mount type=bind,source="$HOME/.aws",target=/root/.aws \
     --mount type=bind,source="$HOME/.snowsql",target=/root/.snowsql \
-      snowsec/snowalert ./install
+      snowsec/snowalert sh -c "./install $@"
 
 else
 

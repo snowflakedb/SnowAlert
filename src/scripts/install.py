@@ -76,7 +76,6 @@ WAREHOUSE_QUERIES = [
 DATABASE_QUERIES = [
     f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
     f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
-    f'USE DATABASE {DATABASE}',
 ]
 
 CREATE_SCHEMAS_QUERIES = [
@@ -106,7 +105,7 @@ CREATE_UDTF_FUNCTIONS = [
 
 CREATE_TABLES_QUERIES = [
     f"""
-      CREATE TABLE IF NOT EXISTS {ALERTS_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.alerts(
         alert VARIANT
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
@@ -117,7 +116,7 @@ CREATE_TABLES_QUERIES = [
       );
     """,
     f"""
-      CREATE TABLE IF NOT EXISTS {VIOLATIONS_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.violations(
         result VARIANT
         , alert_time TIMESTAMP_LTZ(9)
         , ticket STRING
@@ -126,20 +125,18 @@ CREATE_TABLES_QUERIES = [
       );
     """,
     f"""
-      CREATE TABLE IF NOT EXISTS {QUERY_METADATA_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.query_metadata(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
       """,
     f"""
-      CREATE TABLE IF NOT EXISTS {RUN_METADATA_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.run_metadata(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
       """
 ]
-
-CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queries ( suppression_spec VARIANT );"
 
 
 def parse_snowflake_url(url):
@@ -186,7 +183,7 @@ def login():
     else:
         print(f"Loaded from ~/.snowcli/config: account '{account}'")
 
-    print("Next, authenticate installer with user who has 'accountadmin' role in your Snowflake account")
+    print("Next, authenticate installer --")
     if not username:
         username = input("Snowflake username: ")
     else:
@@ -245,7 +242,8 @@ def setup_warehouse_and_db(do_attempt):
     do_attempt("Creating and using database", DATABASE_QUERIES)
 
 
-def setup_schemas_and_tables(do_attempt):
+def setup_schemas_and_tables(do_attempt, database):
+    do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
@@ -391,7 +389,7 @@ def main(admin_role="accountadmin"):
         setup_warehouse_and_db(do_attempt)
         setup_user(do_attempt)
 
-    setup_schemas_and_tables(do_attempt)
+    setup_schemas_and_tables(do_attempt, DATABASE)
     setup_samples(do_attempt)
 
     do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
