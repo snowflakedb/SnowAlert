@@ -30,7 +30,6 @@ import boto3
 from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
-from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE
 
 from runners.helpers import log
 from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
@@ -41,7 +40,6 @@ def read_queries(file):
     vars = {
         'uuid': uuid4().hex,
         'DATABASE': DATABASE,
-        'ALERTS_TABLE': ALERTS_TABLE,
         'DATA_SCHEMA': DATA_SCHEMA,
         'RULES_SCHEMA': RULES_SCHEMA,
         'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
