@@ -379,7 +379,7 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin"):
+def main(admin_role="accountadmin", samples=True):
     ctx, account, region, do_attempt = login()
 
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
@@ -388,7 +388,9 @@ def main(admin_role="accountadmin"):
         setup_user(do_attempt)
 
     setup_schemas_and_tables(do_attempt, DATABASE)
-    setup_samples(do_attempt)
+
+    if samples:
+        setup_samples(do_attempt)
 
     do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
 
