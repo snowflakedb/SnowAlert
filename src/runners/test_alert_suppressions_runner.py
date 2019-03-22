@@ -1,5 +1,6 @@
 from runners import alert_suppressions_runner
 from runners.helpers import db
+import pytest
 import os
 
 CTX = db.connect()
@@ -14,24 +15,16 @@ def suppression_test_1():
 
     query = f"select * from snowalert.results.alerts where alert:QUERY_ID = 'test_query_2'"
     rows = db.fetch(CTX, query)
-    ret = True
-    l = list(rows)
-    if len(l) > 1:
-        print("Suppression test error: too many results returned")
-        ret = False
+    alerts = list(rows)
+    assert len(alerts) == 1
 
-    columns = l[0]
-    if columns['SUPPRESSED'] is not True:
-        print('Suppression Test 1 Failure: Alert is not suppressed')
-        ret = False
-    if columns['SUPPRESSION_RULE'] != 'TEST_2_ALERT_SUPPRESSION':
-        print('Suppression Test 1 Failure: Alert was caught by incorrect suppression')
-        ret = False
-
-    return ret
+    columns = alerts[0]
+    assert columns['SUPPRESSED']
+    assert columns['SUPPRESSION_RULE'] == 'TEST_2_ALERT_SUPPRESSION'
 
 
-def main():
+@pytest.mark.run(order=2)
+def test():
     print("Running test")
     if os.environ['TEST_ENV'] != 'True':
         print("Not running in test env, exiting without testing")
@@ -39,11 +32,8 @@ def main():
 
     setup()
 
-    if suppression_test_1() is True:
-        print("Suppression Test 1 passed!")
-    else:
-        print("Suppression Test 1 failed; see logs for failures")
+    suppression_test_1()
 
 
 if __name__ == '__main__':
-    main()
+    test()

@@ -2,6 +2,7 @@ from runners import alert_queries_runner
 from runners.helpers import db
 import os
 import json
+import pytest
 
 CTX = db.connect()
 
@@ -41,28 +42,20 @@ def alert_test_1():
     row = next(rows)
     alert = json.loads(row['ALERT'])
 
-    ret = True
-
     for k in TEST_1_OUTPUT:
-        if alert[k] != TEST_1_OUTPUT[k]:
-            print(f"TEST 1 Failure: Value Mismatch on {k}: {alert[k]}")
-            ret = False
-
-    return ret
+        assert alert[k] == TEST_1_OUTPUT[k]
 
 
-def main():
+@pytest.mark.run(order=1)
+def test():
     print("Running test")
     if os.environ['TEST_ENV'] != 'True':
         print("Not running in test env, exiting without testing")
         return None
     setup()
 
-    if alert_test_1() is True:
-        print("Alert Test 1 passed!")
-    else:
-        print("Alert Test 1 failed; see logs for failures")
+    alert_test_1()
 
 
 if __name__ == '__main__':
-    main()
+    test()

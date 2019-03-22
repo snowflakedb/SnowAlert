@@ -42,9 +42,9 @@ def main(command, rule_name=None):
             ingest_runner.main()
 
         if command in ['tests']:
-            test_alert_queries_runner.main()
-            test_alert_suppressions_runner.main()
-            test_alert_processor.main()
+            test_alert_queries_runner.test()
+            test_alert_suppressions_runner.test()
+            test_alert_processor.test()
 
 
 if __name__ == '__main__':
