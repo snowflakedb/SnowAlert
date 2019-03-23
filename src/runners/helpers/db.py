@@ -183,6 +183,20 @@ FROM rules.{{query_name}}
 WHERE alert_time > {{CUTOFF_TIME}}
 """
 
+INSERT_VIOLATIONS_WITH_ID_QUERY = f"""
+INSERT INTO results.violations (alert_time, id, result)
+SELECT alert_time
+  , MD5(TO_JSON(
+      IFNULL(
+        OBJECT_CONSTRUCT(*):RESULT.IDENTITY,
+        TO_VARIANT(UUID_STRING(UUID_STRING(), '{ACCOUNT}.{DATABASE}'))
+      )
+    ))
+  , OBJECT_CONSTRUCT(*)
+FROM rules.{{query_name}}
+WHERE alert_time > {{CUTOFF_TIME}}
+"""
+
 
 def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     if ctx is None:
@@ -195,7 +209,12 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 
     log.info(f"{query_name} processing...")
     try:
-        result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+        try:
+            result = next(fetch(ctx, INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals())))
+        except Exception:
+            log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
+            result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+
         num_rows_inserted = result['number of rows inserted']
         log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
         log.info(f"{query_name} done.")

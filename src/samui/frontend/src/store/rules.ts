@@ -357,7 +357,7 @@ export class Suppression extends SQLBackedRule {
 
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
-      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\n/im;
+      const headRe = /^SELECT (?:\*|id)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\n/im;
       const m = sql.match(headRe);
       return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
     }
@@ -416,7 +416,7 @@ export class Suppression extends SQLBackedRule {
         .substr(2)}` +
       `${tagsLine}'\n` +
       `AS\n` +
-      `SELECT alert\n` +
+      `SELECT id\n` +
       `FROM ${this.from}\n` +
       `WHERE suppressed IS NULL\n` +
       `${this.conditions[0]}` +

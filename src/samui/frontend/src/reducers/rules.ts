@@ -61,8 +61,8 @@ WHERE suppressed IS NULL
 const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_SUPPRESSION COPY GRANTS
   COMMENT='New Violation Suppression'
 AS
-SELECT alert
-FROM violations.alerts
+SELECT id
+FROM results.violations
 WHERE suppressed IS NULL
   AND ...
 ;`;

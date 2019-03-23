@@ -12,6 +12,16 @@ from runners.config import (
 from runners.helpers import db, log
 
 
+VIOLATION_SUPPRESSION_QUERY = f"""
+MERGE INTO results.violations t
+USING(SELECT result:EVENT_HASH AS event_hash
+FROM rules.{{squelch_name}}) s
+ON t.result:EVENT_HASH=s.event_hash
+WHEN MATCHED THEN UPDATE
+SET t.suppressed='true', t.suppression_rule='{{squelch_name}}';
+"""
+
+
 def flag_remaining_alerts(ctx):
     try:
         ctx.cursor().execute(f"UPDATE results.violations SET suppressed=FALSE WHERE suppressed IS NULL;")
@@ -32,13 +42,7 @@ def run_suppression(squelch_name):
     ctx = db.connect()
     print(f"Received suppression {squelch_name}")
     try:
-        ctx.cursor().execute(f"""
-            MERGE INTO results.violations t
-            USING(SELECT result:EVENT_HASH AS event_hash FROM rules.{squelch_name}) s
-            ON t.result:EVENT_HASH=s.event_hash
-            WHEN MATCHED THEN UPDATE
-            SET t.suppressed='true', t.suppression_rule='{squelch_name}';
-        """)
+        ctx.cursor().execute(VIOLATION_SUPPRESSION_QUERY)
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
     except Exception as e:
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
