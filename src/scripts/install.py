@@ -69,11 +69,13 @@ WAREHOUSE_QUERIES = [
         AUTO_RESUME=TRUE
         INITIALLY_SUSPENDED=TRUE
     """,
-    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
 ]
 DATABASE_QUERIES = [
     f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
+]
+GRANT_PRIV_TO_ROLE = [
     f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
 ]
 
 CREATE_SCHEMAS_QUERIES = [
@@ -116,6 +118,7 @@ CREATE_TABLES_QUERIES = [
     f"""
       CREATE TABLE IF NOT EXISTS results.violations(
         result VARIANT
+        , id STRING
         , alert_time TIMESTAMP_LTZ(9)
         , ticket STRING
         , suppressed BOOLEAN
@@ -248,14 +251,15 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt("Creating standard data views", read_queries('data-views'))
 
 
-def setup_user(do_attempt):
+def setup_user_and_role(do_attempt):
     defaults = f"login_name='{USER}' password='' default_role={ROLE} default_warehouse='{WAREHOUSE}'"
     do_attempt("Creating role and user", [
         f"CREATE ROLE IF NOT EXISTS {ROLE}",
         f"CREATE USER IF NOT EXISTS {USER} {defaults}",
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
-    do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER};")
+    do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
+    do_attempt("Granting priveleges to role", GRANT_PRIV_TO_ROLE)
 
 
 def setup_samples(do_attempt):
@@ -385,7 +389,7 @@ def main(admin_role="accountadmin", samples=True):
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
     if admin_role == "accountadmin":
         setup_warehouse_and_db(do_attempt)
-        setup_user(do_attempt)
+        setup_user_and_role(do_attempt)
 
     setup_schemas_and_tables(do_attempt, DATABASE)
 
