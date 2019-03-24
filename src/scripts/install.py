@@ -110,6 +110,7 @@ CREATE_TABLES_QUERIES = [
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
         , ticket STRING
+        , correlation_id STRING
         , suppressed BOOLEAN
         , suppression_rule STRING DEFAULT NULL
         , counter INTEGER DEFAULT 1
