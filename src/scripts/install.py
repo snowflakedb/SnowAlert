@@ -269,9 +269,12 @@ def setup_samples(do_attempt):
     do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
 
 
-def jira_integration():
-    flag = input("Would you like to integrate Jira with SnowAlert (y/N)? ")
-    if (flag.lower() in {'y', 'yes'}):
+def jira_integration(setup_jira=None):
+    while setup_jira is None:
+        uinput = input("Would you like to integrate Jira with SnowAlert (y/N)? ").lower()
+        setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
+
+    if setup_jira:
         jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
         jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         jira_url = input("Please enter the URL for the Jira integration: ")
@@ -387,7 +390,7 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None):
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None):
     ctx, account, region, do_attempt = login()
 
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
@@ -402,11 +405,12 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None):
 
     do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
 
-    jira_user, jira_password, jira_url, jira_project = jira_integration()
+    jira_user, jira_password, jira_url, jira_project = jira_integration(jira)
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
     private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passwd)
+
     if admin_role == "accountadmin":
         do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
 
