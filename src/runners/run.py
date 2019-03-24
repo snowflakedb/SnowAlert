@@ -30,7 +30,7 @@ def main(command, rule_name=None):
             violation_suppressions_runner.main(rule_name[3:].upper())
         alert_processor.main()
     else:
-        log.info("RUN ID", RUN_ID)
+        log.info(f"RUN ID {RUN_ID}")
         if command in ['alerts', 'all']:
             alert_queries_runner.main()
             alert_suppressions_runner.main()
