@@ -1,14 +1,18 @@
 CREATE OR REPLACE VIEW data.rule_tags COPY GRANTS AS
 SELECT type
      , target
-     , table_name
+     , rule_name
      , query_id
-     , value AS tag
+     , TO_VARCHAR(value) AS tag
 FROM (
-  SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS type
-       , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS target
-       , table_name
-       , IFF(CONTAINS(comment, '@id'), REGEXP_REPLACE(comment, '[\\s\\S]*@id ([^\n]*)[\\s\\S]*', '\\1'), NULL) AS query_id
+  SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS target
+       , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS type
+       , table_name AS rule_name
+       , IFF(
+           CONTAINS(comment, '@id'),
+           REGEXP_REPLACE(comment, '[\\s\\S]*@id ([^\n]*)[\\s\\S]*', '\\1'),
+           NULL
+         ) AS query_id
        , IFF(
            CONTAINS(comment, '@tags'),
            SPLIT(REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\n]*)[\\s\\S]*', '\\1'), ', '),
@@ -18,4 +22,74 @@ FROM (
   WHERE table_schema='RULES'
 ) AS query_tag_list
 , LATERAL FLATTEN(input => query_tag_list.tags)
+;
+
+CREATE OR REPLACE VIEW data.violations COPY GRANTS
+  COMMENT='Reflects on existing Violations, e.g. for violation suppressions'
+AS
+SELECT id
+  , alert_time AS created_time
+  , ticket
+  , suppressed
+  , suppression_rule
+  , result:ENVIRONMENT::VARIANT  AS environment
+  , result:OBJECT::VARCHAR       AS object
+  , result:TITLE::VARCHAR        AS title
+  , result:ALERT_TIME::TIMESTAMP AS violation_time
+  , result:DESCRIPTION::VARCHAR  AS description
+  , result:EVENT_DATA::VARIANT   AS event_data
+  , result:DETECTOR::VARCHAR     AS detector
+  , result:SEVERITY::VARCHAR     AS severity
+  , result:QUERY_ID::VARCHAR     AS query_id
+  , result:QUERY_NAME::VARCHAR   AS query_name
+FROM results.violations
+;
+
+CREATE OR REPLACE VIEW data.violation_queries_runs COPY GRANTS
+  COMMENT='Stable interface to underlying metadata tables'
+AS
+SELECT V:RUN_ID::VARCHAR AS run_id
+  , V:START_TIME AS start_time
+  , V:END_TIME AS end_time
+  , V:ROW_COUNT.INSERTED::INTEGER AS num_violations_created
+  , V:ROW_COUNT.UPDATED::INTEGER AS num_violations_updated
+FROM results.run_metadata
+WHERE V:RUN_TYPE='VIOLATION QUERY'
+;
+
+CREATE OR REPLACE VIEW data.violation_suppressions_runs COPY GRANTS
+  COMMENT='Stable interface to underlying metadata tables'
+AS
+SELECT V:RUN_ID::VARCHAR AS run_id
+  , V:START_TIME AS start_time
+  , V:END_TIME AS end_time
+  , V:ROW_COUNT.PASSED::INTEGER AS num_violations_passed
+  , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
+FROM results.run_metadata
+WHERE V:RUN_TYPE='VIOLATION SUPPRESSION'
+;
+
+CREATE OR REPLACE VIEW data.violation_query_rule_runs COPY GRANTS
+  COMMENT='Stable interface to underlying metadata tables'
+AS
+SELECT V:RUN_ID::VARCHAR AS run_id
+  , V:QUERY_NAME AS query_name
+  , V:START_TIME AS start_time
+  , V:END_TIME AS end_time
+  , V:ROW_COUNT.INSERTED::INTEGER AS num_violations_created
+  , V:ROW_COUNT.UPDATED::INTEGER AS num_violations_updated
+FROM results.query_metadata
+WHERE V:QUERY_NAME ILIKE '%_VIOLATION_QUERY'
+;
+
+CREATE OR REPLACE VIEW data.violation_suppression_rule_runs COPY GRANTS
+  COMMENT='Stable interface to underlying metadata tables'
+AS
+SELECT V:RUN_ID::VARCHAR AS run_id
+  , V:QUERY_NAME AS query_name
+  , V:START_TIME AS start_time
+  , V:END_TIME AS end_time
+  , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
+FROM results.query_metadata
+WHERE V:QUERY_NAME ILIKE '%_VIOLATION_SUPPRESSION'
 ;

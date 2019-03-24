@@ -39,6 +39,7 @@ jobs:
             pyflakes ./scripts ./runners ./samui/backend/samui
             MYPYPATH="`pwd`/samui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./samui/backend/samui
+            pytest ./runners -vv
 
       # - run:
       #     name: do the build

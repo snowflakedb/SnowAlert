@@ -1,7 +1,7 @@
 """Helper specific to SnowAlert connecting to the database"""
 
 from typing import List, Tuple
-from os import environ, path
+from os import path
 
 import snowflake.connector
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
@@ -83,7 +83,10 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
-def fetch(ctx, query):
+def fetch(ctx, query=None):
+    if query is None:  # TODO(andrey): swap args and refactor
+        ctx, query = CACHED_CONNECTION, ctx
+
     res = execute(ctx, query)
     cols = [c[0] for c in res.description]
     while True:
@@ -93,7 +96,10 @@ def fetch(ctx, query):
         yield dict(zip(cols, row))
 
 
-def execute(ctx, query):
+def execute(ctx, query=None):
+    if query is None:  # TODO(andrey): swap args and refactor
+        ctx, query = CACHED_CONNECTION, ctx
+
     try:
         return ctx.cursor().execute(query)
     except snowflake.connector.errors.ProgrammingError as e:
@@ -185,16 +191,27 @@ WHERE alert_time > {{CUTOFF_TIME}}
 
 INSERT_VIOLATIONS_WITH_ID_QUERY = f"""
 INSERT INTO results.violations (alert_time, id, result)
-SELECT alert_time
+SELECT CURRENT_TIMESTAMP()
   , MD5(TO_JSON(
       IFNULL(
-        OBJECT_CONSTRUCT(*):RESULT.IDENTITY,
-        TO_VARIANT(UUID_STRING(UUID_STRING(), '{ACCOUNT}.{DATABASE}'))
+        OBJECT_CONSTRUCT(*):IDENTITY,
+        OBJECT_CONSTRUCT(
+            'ENVIRONMENT', IFNULL(environment, PARSE_JSON('null')),
+            'OBJECT', IFNULL(object, PARSE_JSON('null')),
+            'TITLE', IFNULL(title, PARSE_JSON('null')),
+            'ALERT_TIME', IFNULL(alert_time, PARSE_JSON('null')),
+            'DESCRIPTION', IFNULL(description, PARSE_JSON('null')),
+            'EVENT_DATA', IFNULL(event_data, PARSE_JSON('null')),
+            'DETECTOR', IFNULL(detector, PARSE_JSON('null')),
+            'SEVERITY', IFNULL(severity, PARSE_JSON('null')),
+            'QUERY_ID', IFNULL(query_id, PARSE_JSON('null')),
+            'QUERY_NAME', IFNULL(query_name, PARSE_JSON('null'))
+        )
       )
     ))
   , OBJECT_CONSTRUCT(*)
 FROM rules.{{query_name}}
-WHERE alert_time > {{CUTOFF_TIME}}
+WHERE IFF(alert_time IS NOT NULL, alert_time > {{CUTOFF_TIME}}, TRUE)
 """
 
 
@@ -202,10 +219,7 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
-    time_filter_unit = environ.get('TIME_FILTER_UNIT', 'day')
-    time_filter_amount = -1 * int(environ.get('TIME_FILTER_AMOUNT', 1))
-
-    CUTOFF_TIME = f'DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())'
+    CUTOFF_TIME = f'DATEADD(day, -1, CURRENT_TIMESTAMP())'
 
     log.info(f"{query_name} processing...")
     try:

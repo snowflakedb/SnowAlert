@@ -308,9 +308,12 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
     )
 
 
-def setup_authentication(jira_password, region):
+def setup_authentication(jira_password, region, pk_passwd=None):
     print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
-    pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+
+    if pk_passwd is None:
+        pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+
     if pk_passwd == '.':
         pk_passwd = b64encode(os.urandom(18)).decode('utf-8')
         print("Generated random passphrase.")
@@ -383,7 +386,7 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True):
+def main(admin_role="accountadmin", samples=True, pk_passwd=None):
     ctx, account, region, do_attempt = login()
 
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
@@ -402,7 +405,7 @@ def main(admin_role="accountadmin", samples=True):
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region)
+    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passwd)
     if admin_role == "accountadmin":
         do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
 

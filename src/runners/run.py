@@ -2,13 +2,18 @@
 
 import sys
 
+from runners import ingest_runner
+
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner
+from runners import alert_processor
 from runners import alert_handler
+
 from runners import violation_queries_runner
 from runners import violation_suppressions_runner
-from runners import alert_processor
-from runners import ingest_runner
+
+from runners.config import RUN_ID
+from runners.helpers import log
 
 
 def main(command, rule_name=None):
@@ -25,6 +30,7 @@ def main(command, rule_name=None):
             violation_suppressions_runner.main(rule_name[3:].upper())
         alert_processor.main()
     else:
+        log.info("RUN ID", RUN_ID)
         if command in ['alerts', 'all']:
             alert_queries_runner.main()
             alert_suppressions_runner.main()
