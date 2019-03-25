@@ -13,7 +13,7 @@ def preprocess():
 def suppression_test_1():
     # Tests that a row in the alerts table is created when you run a query
 
-    query = f"select * from snowalert.results.alerts where alert:QUERY_ID = 'test_query_2'"
+    query = f"select * from results.alerts where alert:QUERY_ID = 'test_query_2'"
     rows = db.fetch(CTX, query)
     alerts = list(rows)
     assert len(alerts) == 1

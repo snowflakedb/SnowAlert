@@ -11,7 +11,7 @@ def preprocess():
 
 
 def processor_test_1():
-    query = "select * from snowalert.results.alerts where alert:ACTOR = 'ky_kiske' and suppressed = false"
+    query = "select * from results.alerts where alert:ACTOR = 'test_actor' and suppressed = false"
     rows = list(db.fetch(CTX, query))
 
     assert len(rows) == 2
