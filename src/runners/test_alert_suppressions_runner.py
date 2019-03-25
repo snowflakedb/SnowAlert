@@ -13,14 +13,14 @@ def preprocess():
 def suppression_test_1():
     # Tests that a row in the alerts table is created when you run a query
 
-    query = f"select * from results.alerts where alert:QUERY_ID = 'test_query_2'"
+    query = f"select * from results.alerts where alert:QUERY_ID = 'test_2_query'"
     rows = db.fetch(CTX, query)
     alerts = list(rows)
     assert len(alerts) == 1
 
     columns = alerts[0]
     assert columns['SUPPRESSED']
-    assert columns['SUPPRESSION_RULE'] == 'TEST_2_ALERT_SUPPRESSION'
+    assert columns['SUPPRESSION_RULE'] == 'TEST2_ALERT_SUPPRESSION'
 
 
 @pytest.mark.run(order=2)

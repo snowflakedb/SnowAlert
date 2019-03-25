@@ -89,3 +89,8 @@ WHERE 1=1
 """
 
 TEST_3_ALERT_GRANT = 'GRANT SELECT on rules.test3_alert_query to role snowalert_testing'
+
+TEST_4_TICKET_QUERY = """
+SELECT TICKET FROM results.alerts
+WHERE ALERT:QUERY_ID = 'test_1_query'
+"""
