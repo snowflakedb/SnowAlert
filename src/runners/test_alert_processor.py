@@ -1,11 +1,12 @@
 from runners import alert_processor
 from runners.helpers import db
 import pytest
+import os
 
 CTX = db.connect()
 
 
-def setup():
+def preprocess():
     alert_processor.main()
 
 
@@ -25,8 +26,12 @@ def processor_test_1():
 
 @pytest.mark.run(order=3)
 def test():
-    setup()
-    processor_test_1()
+    try:
+        if os.environ['TEST_ENV'] == 'True':
+            preprocess()
+            processor_test_1()
+    except Exception:
+        assert 1 == 0
 
 
 if __name__ == '__main__':

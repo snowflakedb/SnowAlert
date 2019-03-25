@@ -24,7 +24,7 @@ TEST_1_OUTPUT = {"ACTION": "Standing K",
                  "TITLE": "test_alert_query"}
 
 
-def setup():
+def preprocess():
     db.execute(CTX, 'truncate table snowalert.results.alerts')
     alert_queries_runner.main()
     return None
@@ -48,13 +48,12 @@ def alert_test_1():
 
 @pytest.mark.run(order=1)
 def test():
-    print("Running test")
-    if os.environ['TEST_ENV'] != 'True':
-        print("Not running in test env, exiting without testing")
-        return None
-    setup()
-
-    alert_test_1()
+    try:
+        if os.environ['TEST_ENV'] == 'True':
+            preprocess()
+            alert_test_1()
+    except Exception:
+        assert 0
 
 
 if __name__ == '__main__':

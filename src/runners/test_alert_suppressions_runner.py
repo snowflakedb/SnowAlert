@@ -6,7 +6,7 @@ import os
 CTX = db.connect()
 
 
-def setup():
+def preprocess():
     alert_suppressions_runner.main()
 
 
@@ -25,14 +25,12 @@ def suppression_test_1():
 
 @pytest.mark.run(order=2)
 def test():
-    print("Running test")
-    if os.environ['TEST_ENV'] != 'True':
-        print("Not running in test env, exiting without testing")
-        return None
-
-    setup()
-
-    suppression_test_1()
+    try:
+        if os.environ['TEST_ENV'] == 'True':
+            preprocess()
+            suppression_test_1()
+    except Exception:
+        assert 1 == 0
 
 
 if __name__ == '__main__':
