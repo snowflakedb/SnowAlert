@@ -52,7 +52,7 @@ FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
 AS
-SELECT alert
+SELECT id
 FROM results.alerts
 WHERE suppressed IS NULL
   AND ...
