@@ -21,7 +21,7 @@ SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
      , 'rule title' AS title
-     , CURRENT_TIMESTAMP() AS event_time
+     , NULL AS event_time
      , CURRENT_TIMESTAMP() AS alert_time
      , 'S: Subject Verb Predicate at ' || alert_time AS description
      , 'Subject' AS actor
