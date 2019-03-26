@@ -16,10 +16,8 @@ import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 import {logoutAndRedirect} from '../../actions/auth';
-import {clearNotificationsIfNeeded, loadNotificationsIfNeeded} from '../../actions/notifications';
 // import * as routes from '../../constants/routes';
 import {getAuthDetails} from '../../reducers/auth';
-import {getNotifications} from '../../reducers/notifications';
 import {State} from '../../reducers/types';
 import * as stateTypes from '../../reducers/types';
 // import {HeaderSearch} from '../HeaderSearch';
@@ -37,14 +35,11 @@ interface OwnProps {
 }
 
 interface DispatchProps {
-  loadNotificationsIfNeeded: typeof loadNotificationsIfNeeded;
-  clearNotificationsIfNeeded: typeof clearNotificationsIfNeeded;
   logoutAndRedirect: typeof logoutAndRedirect;
 }
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
-  notifications: stateTypes.NotificationsState;
 }
 
 type GlobalHeaderProps = OwnProps & DispatchProps & StateProps;
@@ -102,15 +97,9 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     window.dispatchEvent(event);
   }
 
-  handleNoticeClear = () => {
-    this.props.clearNotificationsIfNeeded(this.props.auth.token);
-  };
+  handleNoticeClear = () => {};
 
-  handleNoticeVisibleChange = (visible: boolean) => {
-    if (visible) {
-      this.props.loadNotificationsIfNeeded(this.props.auth.token);
-    }
-  };
+  handleNoticeVisibleChange = (visible: boolean) => {};
 
   handleMenuClick = ({key}: {key: string}) => {
     if (key === 'logout') {
@@ -131,7 +120,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     );
 
     return (
-      <Header className={'header'}>
+      <Header className={'header'} tagName={'header'}>
         <div className={'right'}>
           {auth && auth.username ? (
             <Dropdown overlay={menu} trigger={['click']}>
@@ -189,15 +178,12 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 const mapStateToProps = (state: State) => {
   return {
     auth: getAuthDetails(state),
-    notifications: getNotifications(state),
   };
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
-      loadNotificationsIfNeeded,
-      clearNotificationsIfNeeded,
       logoutAndRedirect,
     },
     dispatch,

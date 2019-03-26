@@ -3,11 +3,9 @@ import {RouterState} from 'react-router-redux';
 import {Policy, Query, Suppression} from '../store/rules';
 
 export interface AuthDetails {
-  readonly isAuthenticated: boolean;
   readonly token: string | null;
   readonly email: string | null;
   readonly role: string | null;
-  readonly organizationId: number | null;
   readonly avatar: string | undefined;
 }
 
@@ -32,7 +30,6 @@ export interface Notification {
 export interface NotificationsState {
   readonly errorMessage: string | null;
   readonly isFetching: boolean;
-  readonly notifications: ReadonlyArray<Notification>;
 }
 
 export interface Organization {
@@ -54,13 +51,16 @@ export interface SnowAlertRule {
   readonly type: 'QUERY' | 'SUPPRESSION' | 'DEFINITION';
   readonly passing?: boolean;
   readonly isEditing?: boolean;
-  readonly results?: {TITLE: string; PASSING?: boolean}[];
+  readonly results?: Array<{TITLE: string; PASSING?: boolean}>;
   readonly title: string;
   readonly body: string;
   readonly savedBody: string;
   readonly isSaving: boolean;
   readonly newTitle: string | null;
 }
+
+export type RuleTarget = SnowAlertRule['target'];
+export type RuleType = SnowAlertRule['type'];
 
 export interface SnowAlertRulesState {
   readonly errorMessage: null;
@@ -74,8 +74,6 @@ export interface SnowAlertRulesState {
 
 export interface State {
   readonly auth: AuthState;
-  readonly notifications: NotificationsState;
-  readonly organization: OrganizationState;
   readonly router: RouterState;
   readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;

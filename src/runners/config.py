@@ -1,6 +1,10 @@
 import os
+import uuid
 
 from runners.helpers.dbconfig import DATABASE
+
+# generated once per runtime
+RUN_ID = uuid.uuid4().hex
 
 # schema names
 DATA_SCHEMA_NAME = os.environ.get('SA_DATA_SCHEMA_NAME', "data")
@@ -32,3 +36,14 @@ VIOLATION_SQUELCH_POSTFIX = "VIOLATION_SUPPRESSION"
 
 # enabling sends metrics to cloudwatch
 CLOUDWATCH_METRICS = os.environ.get('CLOUDWATCH_METRICS', False)
+
+CONFIG_VARS = [
+    ('ALERTS_TABLE', ALERTS_TABLE),
+    ('VIOLATIONS_TABLE', VIOLATIONS_TABLE),
+    ('QUERY_METADATA_TABLE', QUERY_METADATA_TABLE),
+    ('RUN_METADATA_TABLE', RUN_METADATA_TABLE),
+
+    ('DATA_SCHEMA', DATA_SCHEMA),
+    ('RULES_SCHEMA', RULES_SCHEMA),
+    ('RESULTS_SCHEMA', RESULTS_SCHEMA),
+]

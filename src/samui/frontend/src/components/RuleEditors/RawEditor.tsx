@@ -28,7 +28,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
   render() {
     const {currentRuleView, queries, suppressions} = this.props.rules;
     const rules = [...queries, ...suppressions];
-    const rule = rules.find(r => r.view_name === currentRuleView);
+    const rule = rules.find(r => r.viewName === currentRuleView);
 
     return (
       <div>

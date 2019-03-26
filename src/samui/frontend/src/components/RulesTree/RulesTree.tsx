@@ -1,8 +1,4 @@
-import {
-  // Icon,
-  Tree,
-  Input,
-} from 'antd';
+import {Button, Icon, Tree, Input} from 'antd';
 import * as React from 'react';
 import * as _ from 'lodash';
 import {connect} from 'react-redux';
@@ -13,15 +9,24 @@ import {getRules} from '../../reducers/rules';
 
 import {State, SnowAlertRule, SnowAlertRulesState} from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
-import {QueryEditor} from '../RuleEditors';
 
 import './RulesTree.css';
 
 const TreeNode = Tree.TreeNode;
 const Search = Input.Search;
 
+function download(filename: string, text: string) {
+  const element = document.createElement('a');
+  element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`);
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
+
 function allMatchedCaptures(regexp: RegExp, s: string): string[][] {
-  var matches: string[][] = [];
+  const matches: string[][] = [];
   s.replace(regexp, (m, ...args) => {
     matches.push(args.slice(0, args.length - 2));
     return '';
@@ -51,8 +56,6 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     this.props.changeRule('');
   }
 
-  qe = QueryEditor;
-
   generateTree = (
     queries: ReadonlyArray<Query>,
     suppressions: ReadonlyArray<Suppression>,
@@ -60,10 +63,10 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     filter: string,
   ) => {
     function ruleFilter(rule: Query | Suppression) {
-      let filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
+      const filterTags = _.flatten(allMatchedCaptures(/tag\[([^\]]+)\]/g, filter));
       return (
         filter === '' ||
-        rule.view_name.includes(filter.toUpperCase()) ||
+        rule.viewName.includes(filter.toUpperCase()) ||
         rule.raw.body.toUpperCase().includes(filter.toUpperCase()) ||
         (filterTags.length > 0 && _.intersection(rule.tags, filterTags).length === filterTags.length)
       );
@@ -79,8 +82,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             .filter(ruleFilter)
             .map(r => (
               <TreeNode
-                selectable
-                key={`${r.view_name}`}
+                selectable={true}
+                key={`${r.viewName}`}
                 title={(r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title}
               />
             ))
@@ -95,8 +98,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             .filter(ruleFilter)
             .map(s => (
               <TreeNode
-                selectable
-                key={s.view_name}
+                selectable={true}
+                key={s.viewName}
                 title={(s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title}
               />
             ))
@@ -106,7 +109,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
   };
 
   render() {
-    var {
+    const {
       target,
       rules: {queries, suppressions, filter},
     } = this.props;
@@ -121,6 +124,21 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
           {this.generateTree(queries, suppressions, target, filter)}
         </Tree>
+        <Button
+          type="dashed"
+          disabled={queries.length === 0}
+          onClick={() => {
+            download(
+              `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
+              [...queries, ...suppressions].map(q => q.raw.body).join('\n\n'),
+            );
+          }}
+        >
+          <Icon type="cloud-download" theme="outlined" /> Download SQL
+        </Button>
+        <Button type="dashed" disabled={true}>
+          <Icon type="cloud-upload" theme="outlined" /> Upload SQL
+        </Button>
       </div>
     );
   }

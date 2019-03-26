@@ -19,8 +19,8 @@ export class Subpolicy {
   }
 }
 
-const BLANK_POLICY = (view_name: string) =>
-  `CREATE OR REPLACE VIEW x.y.${view_name}_POLICY_DEFINITION COPY GRANTS` +
+const BLANK_POLICY = (viewName: string) =>
+  `CREATE OR REPLACE VIEW x.y.${viewName}_POLICY_DEFINITION COPY GRANTS` +
   `  COMMENT='Policy Title` +
   `description goes here'` +
   `AS` +
@@ -28,26 +28,46 @@ const BLANK_POLICY = (view_name: string) =>
   `       , true AS passing` +
   `;`;
 
-function stripComment(sql: string): {sql: string; comment: string; view_name: string} {
-  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
-    descrRe = /^  COMMENT='((?:\\'|[^'])*)'\nAS\n/gm;
+function stripComment(body: string): {rest: string; comment: string; viewName: string} {
+  const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/im;
+  const descrRe = /^\s*COMMENT='((?:\\'|[^'])*)'\s*\nAS\s*\n/gim;
 
-  const vnameMatch = vnameRe.exec(sql);
+  const vnameMatch = vnameRe.exec(body);
 
   if (!vnameMatch) {
-    return {sql, comment: '', view_name: ''};
+    return {rest: body, comment: '', viewName: ''};
   }
 
-  const vnameAfter = sql.substr(vnameMatch[0].length);
+  const vnameAfter = body.substr(vnameMatch[0].length);
 
-  const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match'),
-    descrAfter = vnameAfter.substr(descrMatch[0].length);
+  const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match');
+  const descrAfter = vnameAfter.substr(descrMatch[0].length);
 
   return {
-    sql: descrAfter,
-    comment: descrMatch[1],
-    view_name: vnameMatch[1],
+    rest: descrAfter,
+    comment: descrMatch[1].replace(/\\'/g, "'"),
+    viewName: vnameMatch[1],
   };
+}
+
+function parseComment(comment: string): {summary: string; decorations: {[name: string]: string}} {
+  const decorations: {[name: string]: string} = {};
+
+  const summary = comment
+    .split('\n')
+    .map(line => {
+      const match = line.match(/^\s*@([a-z-]+) (.*)$/i);
+      if (match) {
+        decorations[match[1]] = match[2];
+        return undefined;
+      } else {
+        return line;
+      }
+    })
+    .filter(x => x !== undefined)
+    .join('\n');
+
+  return {summary, decorations};
 }
 
 export abstract class SQLBackedRule {
@@ -67,18 +87,30 @@ export abstract class SQLBackedRule {
     return _.mergeWith(_.cloneDeep(this), toMerge, (a, b) => (_.isArray(a) ? b : undefined));
   }
 
+  get raw() {
+    return Object.assign({}, this._raw, this.isParsed ? {body: this.body} : undefined);
+  }
+
   set raw(r: stateTypes.SnowAlertRule) {
     this._raw = r;
     try {
       this.load(r.body, r.results);
       this.isParsed = this.body === r.body;
+      // if (!this.isParsed) {
+      //   console.log('r.body', r.body)
+      //   console.log('this.body', this.body)
+      // }
     } catch (e) {
-      // console.log(`error parsing >${r.body}< ${e}`);
+      // console.log(`error parsing >${r.body}< ${new Error(e)}`, e);
       this.isParsed = false;
     }
   }
 
-  get view_name(): string {
+  get type() {
+    return this.raw.type;
+  }
+
+  get viewName(): string {
     return `${this._raw.title}_${this._raw.target}_${this._raw.type}`;
   }
 
@@ -99,10 +131,6 @@ export abstract class SQLBackedRule {
 
   get isEdited() {
     return this.raw.body !== this._raw.savedBody;
-  }
-
-  get raw() {
-    return Object.assign({}, this._raw, this.isParsed ? {body: this.body} : undefined);
   }
 
   abstract load(body: string, results?: stateTypes.SnowAlertRule['results']): void;
@@ -142,11 +170,11 @@ export class Policy extends SQLBackedRule {
     return this.comment.replace(/\n.*$/g, '');
   }
 
-  set title(newTitle) {
+  set title(newTitle: string) {
     this.comment = this.comment.replace(/^.*?\n/, `${newTitle}\n`);
   }
 
-  set summary(newDescription) {
+  set summary(newDescription: string) {
     this.comment = this.comment.replace(/\n.*$/, `\n${newDescription}`);
   }
 
@@ -155,25 +183,25 @@ export class Policy extends SQLBackedRule {
   }
 
   load(sql: string, results: stateTypes.SnowAlertRule['results']) {
-    const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m,
-      descrRe = /^  COMMENT='([^']+)'\nAS\n/gm,
-      subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
+    const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m;
+    const descrRe = /^  COMMENT='([^']+)'\nAS\n/gm;
+    const subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
 
-    const vnameMatch = vnameRe.exec(sql) || raise('no vname match'),
-      vnameAfter = sql.substr(vnameMatch[0].length);
+    const vnameMatch = vnameRe.exec(sql) || raise('no vname match');
+    const vnameAfter = sql.substr(vnameMatch[0].length);
 
-    const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match'),
-      descrAfter = vnameAfter.substr(descrMatch[0].length);
+    const descrMatch = descrRe.exec(vnameAfter) || raise('no descr match');
+    const descrAfter = vnameAfter.substr(descrMatch[0].length);
 
     this.comment = descrMatch[1];
     this.subpolicies = [];
 
-    var rest = descrAfter;
-    var i = 0;
+    let rest = descrAfter;
+    let i = 0;
 
     do {
-      var matchSubpl = subplRe.exec(rest) || raise(`no title match >${sql}|${rest}<`),
-        rest = rest.substr(matchSubpl[0].length);
+      const matchSubpl = subplRe.exec(rest) || raise(`no title match >${sql}|${rest}<`);
+      rest = rest.substr(matchSubpl[0].length);
 
       this.subpolicies.push({
         i,
@@ -186,7 +214,7 @@ export class Policy extends SQLBackedRule {
 
   get body(): string {
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
@@ -211,23 +239,12 @@ export class Query extends SQLBackedRule {
   summary: string;
   tags: string[];
 
-  load(sql: string) {
-    function parseComment(comment: string): {summary: string; tags: string[]} {
-      const summaryRe = /^([\s\S]*?)(?:\n  @tags (.*))?$/m;
-      const summaryMatch = summaryRe.exec(comment);
+  get target() {
+    return this.raw.target;
+  }
 
-      var summary = summaryMatch ? summaryMatch[1] : '';
-
-      return {
-        summary: summary
-          .replace(/^  /gm, '')
-          .replace(/\n$/, '')
-          .replace(/\\'/g, "'"),
-        tags: summaryMatch && summaryMatch[2] ? summaryMatch[2].split(', ') : [],
-      };
-    }
-
-    function stripField(sql: string): {sql: string; field: string; value: string} | null {
+  load(body: string) {
+    function stripField(sql: string): {rest: string; field: string; value: string} | null {
       const match = sql.match(/^\s*(?:SELECT|,)\s*([\s\S]*?) AS (\w*)$/im);
       if (!match || sql.match(/^\s*FROM/i)) {
         // in case of sub-queries, FROM match needs to be explicit
@@ -235,23 +252,23 @@ export class Query extends SQLBackedRule {
       } else {
         const [m, value, field] = match;
         return {
-          sql: sql.substr(m.length),
+          rest: sql.substr(m.length),
           field,
           value,
         };
       }
     }
 
-    function stripFrom(sql: string): {sql: string; from: string} {
+    function stripFrom(sql: string): {rest: string; from: string} {
       const [match, from] = sql.match(/^\s*FROM ([\S\s]*?)\s+^WHERE\s/im) || raise('no from');
       return {
-        sql: sql.substr(match.length - 6),
+        rest: sql.substr(match.length - 6),
         from,
       };
     }
 
     function stripWhere(sql: string): {enabled: boolean; where: string; more: boolean} {
-      const [match, enabled, where] = sql.match(/^\s*WHERE (1=[01]|)\s*(?:AND )?([\s\S]*?)\s*;$/im) || raise('err2');
+      const [match, enabled, where] = sql.match(/^WHERE (1=[01]|)\s*(?:AND )?([\s\S]*?)\s*;$/im) || raise('err2');
       return {
         enabled: !(enabled === '1=0'),
         where,
@@ -259,29 +276,38 @@ export class Query extends SQLBackedRule {
       };
     }
 
-    var fields = {
+    const fields = {
       select: {},
       from: '',
       enabled: false,
       where: '',
     };
 
-    var {comment, sql} = stripComment(sql);
-    var {summary, tags} = parseComment(comment);
+    const query = stripComment(body);
+    let {rest} = query;
+    const {comment} = query;
+    const {
+      summary,
+      decorations: {tags},
+    } = parseComment(comment);
+    this.tags = tags ? tags.split(', ') : [];
     this.summary = summary;
-    this.tags = tags;
 
-    var nextField = stripField(sql);
-    if (!nextField) throw 'err0';
+    let nextField = stripField(rest);
+    if (!nextField) {
+      throw new Error('err0');
+    }
     do {
-      var {sql, field, value} = nextField;
+      const {field, value} = nextField;
       fields.select[field] = value.replace(/\n       /g, '\n');
-    } while ((nextField = stripField(sql)));
+      nextField = stripField(nextField.rest);
+    } while (nextField);
 
-    var {sql, from} = stripFrom(sql);
-    fields.from = from;
+    const afterFrom = stripFrom(rest);
+    rest = afterFrom.rest;
+    fields.from = afterFrom.from;
 
-    var {enabled, where} = stripWhere(sql);
+    const {enabled, where} = stripWhere(rest);
     fields.enabled = enabled;
     fields.where = where;
     this.fields = fields;
@@ -296,14 +322,17 @@ export class Query extends SQLBackedRule {
   }
 
   get body() {
-    var tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
+    const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
+    const queryId = this.fields.select.query_id.replace(/'/g, '');
+    const queryLine = `\n  @id ${queryId}`;
 
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
       `  COMMENT='${this.summary
         .replace(/'/g, "\\'")
         .replace(/^/gm, '  ')
         .substr(2)}` +
+      `${queryLine}` +
       `${tagsLine}'\n` +
       `AS\n` +
       `SELECT ${Object.entries(this.fields.select)
@@ -316,56 +345,82 @@ export class Query extends SQLBackedRule {
   }
 }
 
-interface SuppressionFields {
-  from: string;
-  rulesString: string;
-  rules: Array<string>;
-}
-
 export class Suppression extends SQLBackedRule {
-  fields: SuppressionFields;
+  conditions: string[];
+  summary: string;
+  from: string;
   tags: string[];
-  rules: string[];
+
+  get target() {
+    return this.raw.target;
+  }
 
   load(sql: string) {
     function stripStart(sql: string): {rest: string; from: string} | null {
-      const headRe = /^SELECT (?:\*|alert)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\s+/im;
+      const headRe = /^SELECT (?:\*|id)\s+FROM ([\s\S]+)\s+WHERE suppressed IS NULL\n/im;
       const m = sql.match(headRe);
       return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
     }
 
-    function stripRule(sql: string): {rule: string; rest: string} | null {
-      const ruleRe = /^(\s*(AND[\s\S]*?)\s*)(?:AND[\s\S]*|;$)/im;
-      const m = sql.match(ruleRe);
-      return m ? {rule: m[2], rest: sql.substr(m[1].length)} : null;
-    }
+    // function stripRule(sql: string): {rule: string; rest: string} | null {
+    //   const ruleRe = /^(\s*(AND[\s\S]*)\s*)$/im;
+    //   const m = sql.match(ruleRe);
+    //   return m ? {rule: m[2], rest: sql.substr(m[1].length)} : null;
+    // }
 
-    var {sql} = stripComment(sql);
-    var {rest, from} = stripStart(sql) || raise('err0');
-    const rulesString = rest.replace(/;\s*$/gm, ''); // hack until array UI ready
-    var {rule, rest} = stripRule(rest) || raise('err1');
-    var rules = [];
-    while (rest.length > 1) {
-      rules.push(rule);
-      var {rule, rest} = stripRule(rest) || raise(`err2.${rules.length} >${rest}<`);
-    }
+    const parsedComment = stripComment(sql);
+    const {
+      summary,
+      decorations: {tags},
+    } = parseComment(parsedComment.comment);
+    const parsedStart = stripStart(parsedComment.rest) || raise('err0');
+    var {rest} = parsedStart;
+    const {from} = parsedStart;
 
-    this.tags = [];
-    this.rules = rules;
+    // hack until string array UI is ready
+    const rulesString = rest.replace(/;\s*$/gm, '');
+    this.conditions = [rulesString];
 
-    rules.push(rule);
-    this.fields = {rules, from, rulesString};
+    // const r = stripRule(rulesString) || raise(`err1 >${rulesString}<`);
+    // rest = r.rest;
+    // let {rule} = r;
+    // const conditions = [];
+    // while (rest.length > 1) {
+    //   conditions.push(rule);
+    //   const afterRule = stripRule(rest) || raise(`err2.${conditions.length} >${rest}<`);
+    //   rest = afterRule.rest;
+    //   rule = afterRule.rule;
+    // }
+
+    this.tags = tags ? tags.split(', ') : [];
+    this.summary = summary;
+    this.from = from;
+  }
+
+  get title() {
+    return this.isParsed ? this.summary.replace(/\n.*$/g, '') : this.raw.title;
+  }
+
+  set title(newTitle: string) {
+    this.summary = this.summary.replace(/^[^\n]*/, newTitle);
   }
 
   get body() {
-    // const whereClauseLines = ['WHERE 1=1', 'AND suppressed IS NULL'].concat(fields.rules)
+    const tagsLine = this.tags.length ? `\n  @tags ${this.tags.join(', ')}` : '';
+
     return (
-      `CREATE OR REPLACE VIEW snowalert.rules.${this.view_name} COPY GRANTS AS\n` +
-      `SELECT *\n` +
-      `FROM ${this.fields.from}\n` +
+      `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
+      `  COMMENT='${this.summary
+        .replace(/'/g, "\\'")
+        .replace(/^/gm, '  ')
+        .substr(2)}` +
+      `${tagsLine}'\n` +
+      `AS\n` +
+      `SELECT id\n` +
+      `FROM ${this.from}\n` +
       `WHERE suppressed IS NULL\n` +
-      `${this.fields.rulesString};`
-      // `${whereClauseLines.join('\n  ')}\n;`
+      `${this.conditions[0]}` +
+      `;`
     );
   }
 }

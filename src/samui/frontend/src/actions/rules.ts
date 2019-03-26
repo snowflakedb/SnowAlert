@@ -1,8 +1,8 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {Policy, Query} from '../store/rules';
-import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
+import {Policy, Query, Suppression} from '../store/rules';
+import {Action, ActionWithPayload, createAction, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
 // load rules
@@ -22,7 +22,8 @@ export type LoadRulesActions = ActionsUnion<typeof LoadRulesActions>;
 
 const shouldLoadSnowAlertRules = (state: State) => {
   const rules = state.rules;
-  return !rules.isFetching;
+  const numRulesLoaded = rules.suppressions.length + rules.queries.length + rules.policies.length;
+  return !rules.isFetching && numRulesLoaded === 0;
 };
 
 export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: GetState) => {
@@ -34,7 +35,6 @@ export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: Get
       const response = await api.loadSnowAlertRules();
       dispatch(LoadRulesActions.loadSnowAlertRulesSuccess(response.rules));
     } catch (error) {
-      location.href = '/login';
       dispatch(LoadRulesActions.loadSnowAlertRulesFailure(error.message));
     }
   }
@@ -79,8 +79,8 @@ export const editRule = (ruleTitle?: string) => async (dispatch: Dispatch) => {
 
 // update rule
 export const UPDATE_RULE = 'UPDATE_RULE';
-export type UpdateRuleAction = ActionWithPayload<typeof UPDATE_RULE, {ruleViewName: string; rule: Query}>;
-export const updateRule = (ruleViewName: string, rule: Query) => async (dispatch: Dispatch) => {
+export type UpdateRuleAction = ActionWithPayload<typeof UPDATE_RULE, {ruleViewName: string; rule: Query | Suppression}>;
+export const updateRule = (ruleViewName: string, rule: Query | Suppression) => async (dispatch: Dispatch) => {
   dispatch(createAction(UPDATE_RULE, {ruleViewName, rule}));
 };
 

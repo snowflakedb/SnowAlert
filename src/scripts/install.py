@@ -1,8 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+"""Script which installs the Snowflake database, warehouse, and everything
+else you need to get started with SnowAlert.
+
+Usage:
+
+  ./install.py [--admin-role ADMIN_ROLE]
+
+Note that if you run with ADMIN_ROLE other than ACCOUNTADMIN, the installer
+assumes that your account admin has already created a user, role, database,
+and warehouse for SnowAlert to use. The role will be the SnowAlert admin role,
+and will be used by those managing the rules, separate from the SNOWALERT role
+which will be used by the runners.
+"""
+
 from base64 import b64encode
 from configparser import ConfigParser
+import fire
 from getpass import getpass
 import os
 import re
@@ -11,57 +26,66 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 
 import boto3
-import snowflake.connector
-
-from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
-from runners.config import ALERTS_TABLE, VIOLATIONS_TABLE, QUERY_METADATA_TABLE, RUN_METADATA_TABLE
 
 from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX
+from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
+
 from runners.helpers import log
 from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
+from runners.helpers.dbconnect import snowflake_connect
+
+
+def read_queries(file):
+    vars = {
+        'uuid': uuid4().hex,
+        'DATABASE': DATABASE,
+        'DATA_SCHEMA': DATA_SCHEMA,
+        'RULES_SCHEMA': RULES_SCHEMA,
+        'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
+        'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
+        'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
+    }
+    pwd = os.path.dirname(os.path.realpath(__file__))
+    tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
+    return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
+
 
 GRANT_PRIVILEGES_QUERIES = [
-    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE};',
-    f'GRANT USAGE ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE};',
+    f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
 ]
 
 WAREHOUSE_QUERIES = [
     f"""
       CREATE WAREHOUSE IF NOT EXISTS {WAREHOUSE}
-        WAREHOUSE_SIZE=xsmall WAREHOUSE_TYPE=standard
-        AUTO_SUSPEND=60 AUTO_RESUME=TRUE INITIALLY_SUSPENDED=TRUE;
-    """
+        WAREHOUSE_SIZE=XSMALL
+        WAREHOUSE_TYPE=STANDARD
+        AUTO_SUSPEND=60
+        AUTO_RESUME=TRUE
+        INITIALLY_SUSPENDED=TRUE
+    """,
 ]
-CREATE_DATABASE_QUERY = f"CREATE DATABASE IF NOT EXISTS {DATABASE};"
-CREATE_SCHEMAS_QUERIES = [
-    f"CREATE SCHEMA IF NOT EXISTS {DATA_SCHEMA};",
-    f"CREATE SCHEMA IF NOT EXISTS {RULES_SCHEMA};",
-    f"CREATE SCHEMA IF NOT EXISTS {RESULTS_SCHEMA};",
+DATABASE_QUERIES = [
+    f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
+]
+GRANT_PRIV_TO_ROLE = [
+    f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
 ]
 
-# SELECT REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\2') AS target
-#      , REGEXP_REPLACE(table_name, '.*_([^_]+)_([^_]+)', '\\1') AS type
-#      , table_name
-#      , REGEXP_REPLACE(view_definition, '[\\s\\S]*\'([^\']*)\' AS query_id[\\s\\S]*', '\\1', 1, 0, 'i') AS qid
-#      , REGEXP_REPLACE(comment, '[\\s\\S]*@tags ([^\']*)[\\s\\S]*', '\\1') AS tags
-# FROM snowalert.information_schema.views
-# WHERE table_schema='RULES'
-#   AND table_name LIKE '%_QUERY'
-#   AND tags IS NOT NULL
-#   AND tags NOT LIKE '%\'%'
-# ;
+CREATE_SCHEMAS_QUERIES = [
+    f"CREATE SCHEMA IF NOT EXISTS data",
+    f"CREATE SCHEMA IF NOT EXISTS rules",
+    f"CREATE SCHEMA IF NOT EXISTS results",
+]
 
 CREATE_UDTF_FUNCTIONS = [
-    f"USE DATABASE {DATABASE};",
-    f"USE SCHEMA {DATA_SCHEMA};",
+    f"USE SCHEMA data",
     f"""CREATE OR REPLACE FUNCTION time_slices (n NUMBER, s TIMESTAMP, e TIMESTAMP)
           RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
           AS '
@@ -81,19 +105,21 @@ CREATE_UDTF_FUNCTIONS = [
 
 CREATE_TABLES_QUERIES = [
     f"""
-      CREATE TABLE IF NOT EXISTS {ALERTS_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.alerts(
         alert VARIANT
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
         , ticket STRING
+        , correlation_id STRING
         , suppressed BOOLEAN
         , suppression_rule STRING DEFAULT NULL
         , counter INTEGER DEFAULT 1
       );
     """,
     f"""
-      CREATE TABLE IF NOT EXISTS {VIOLATIONS_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.violations(
         result VARIANT
+        , id STRING
         , alert_time TIMESTAMP_LTZ(9)
         , ticket STRING
         , suppressed BOOLEAN
@@ -101,95 +127,23 @@ CREATE_TABLES_QUERIES = [
       );
     """,
     f"""
-      CREATE TABLE IF NOT EXISTS {QUERY_METADATA_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.query_metadata(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
       """,
     f"""
-      CREATE TABLE IF NOT EXISTS {RUN_METADATA_TABLE}(
+      CREATE TABLE IF NOT EXISTS results.run_metadata(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
       """
 ]
 
-CREATE_TABLE_SUPPRESSIONS_QUERY = f"CREATE TABLE IF NOT EXISTS suppression_queries ( suppression_spec VARIANT );"
-
-CREATE_SAMPLE_DATA_QUERIES = [
-    f"""
-      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.successful_snowflake_logins_v AS
-        SELECT *
-        FROM TABLE(snowflake_sample_data.information_schema.login_history())
-        WHERE is_success='YES'
-      ;
-    """,
-    f"""
-      CREATE VIEW IF NOT EXISTS {DATA_SCHEMA}.violations_in_days_past_v AS
-        SELECT COUNT(*) AS count
-             , 3 AS days_past
-        FROM snowalert.results.violations
-        WHERE alert_time > DATEADD('day', -3, CURRENT_DATE())
-        ;
-    """,
-]
-
-CREATE_SAMPLE_ALERT_QUERIES = [
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.SNOWFLAKE_LOGIN_WITHOUT_MFA_{ALERT_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='Alerts on someone logging into Snowflake without MFA
-  @tags snowflake, mfa requirements'
-AS
-SELECT 'Successful Snowflake login without MFA' AS title
-     , array_construct('successful_snowflake_logins') AS sources
-     , user_name AS object
-     , 'SnowAlert' AS environment
-     , event_timestamp AS event_time
-     , CURRENT_TIMESTAMP() AS alert_time
-     , reported_client_type || ' logging in as ' || user_name || ' from ' || client_ip AS description
-     , user_name AS actor
-     , 'login' AS action
-     , 'SnowAlert' AS detector
-     , OBJECT_CONSTRUCT(*) AS event_data
-     , 'low' AS severity
-     , 'snowflake_login_without_mfa' AS query_name
-     , '{uuid4().hex}' AS query_id
-FROM {DATA_SCHEMA}.successful_snowflake_logins_v
-WHERE 1=1
-  AND second_authentication_factor IS NULL
-  AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
-;""",
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} COPY GRANTS AS
-SELECT *
-FROM {ALERTS_TABLE}
-WHERE suppressed IS NULL
-  AND alert:AffectedObject = 'DESIGNATED_NOMFA_USER'
-;""",
-]
-
-CREATE_SAMPLE_VIOLATION_QUERIES = [
-f"""CREATE OR REPLACE VIEW {RULES_SCHEMA}.NO_VIOLATION_QUERIES_IN_TOO_LONG_{VIOLATION_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='We don\\'t have violations defined or everything is just a little too quiet.'
-AS
-SELECT 'SnowAlert' AS environment
-     , 'Violations' AS object
-     , 'No Violations Too Long' AS title
-     , CURRENT_TIMESTAMP() AS alert_time
-     , 'There have been no violations in the past 3 days.' AS description
-     , NULL AS event_data
-     , 'snowalert' AS detector
-     , 'low' AS severity
-     , 'f686158d-0259-4b10-bb37-616832d14f96' AS query_id
-     , 'no_violation_queries_in_too_long' AS query_name
-FROM {DATA_SCHEMA}.violations_in_days_past_v
-WHERE 1=1
-  AND count=0
-;"""
-]
-
 
 def parse_snowflake_url(url):
-    region = None
     account = None
+    region = None
     res = urlsplit(url)
     path = res.netloc or res.path
 
@@ -199,14 +153,10 @@ def parse_snowflake_url(url):
         account = c[0]
     else:
         if path.endswith("snowflakecomputing.com"):
-            if len(c) == 3:
-                account = c[0]
-                region = 'us-west-2'
-            if len(c) == 4:
-                region = c[0]
-                account = c[1]
+            account = c[0]
+            region = c[1] if len(c) == 4 else 'us-west-2'
 
-    return region, account
+    return account, region
 
 
 def login():
@@ -227,7 +177,7 @@ def login():
     if not account:
         while 1:
             url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
-            region, account = parse_snowflake_url(url)
+            account, region = parse_snowflake_url(url)
             if not account:
                 print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
             else:
@@ -235,7 +185,7 @@ def login():
     else:
         print(f"Loaded from ~/.snowcli/config: account '{account}'")
 
-    print("Next, authenticate installer with user who has 'accountadmin' role in your Snowflake account")
+    print("Next, authenticate installer --")
     if not username:
         username = input("Snowflake username: ")
     else:
@@ -257,9 +207,6 @@ def login():
     if region != '':
         connect_kwargs['region'] = region
 
-    if 'region' in connect_kwargs and connect_kwargs['region'] == 'us-west-2':
-        del connect_kwargs['region']
-
     def attempt(message="doing", todo=None):
         print(f"{message}", end="..", flush=True)
         try:
@@ -275,7 +222,7 @@ def login():
         print(" ✓")
         return retval
 
-    ctx = attempt("Authenticating to Snowflake", lambda: snowflake.connector.connect(**connect_kwargs))
+    ctx = attempt("Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs))
 
     return ctx, account, region or "us-west-2", attempt
 
@@ -292,34 +239,42 @@ def load_aws_config() -> Tuple[str, str]:
     return aws_key, secret
 
 
-def setup_warehouse(do_attempt):
+def setup_warehouse_and_db(do_attempt):
     do_attempt("Creating and setting default warehouse", WAREHOUSE_QUERIES)
-    do_attempt("Creating database", CREATE_DATABASE_QUERY)
+    do_attempt("Creating and using database", DATABASE_QUERIES)
+
+
+def setup_schemas_and_tables(do_attempt, database):
+    do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
+    do_attempt("Creating standard data views", read_queries('data-views'))
 
 
-def setup_user(do_attempt):
+def setup_user_and_role(do_attempt):
     defaults = f"login_name='{USER}' password='' default_role={ROLE} default_warehouse='{WAREHOUSE}'"
     do_attempt("Creating role and user", [
         f"CREATE ROLE IF NOT EXISTS {ROLE}",
         f"CREATE USER IF NOT EXISTS {USER} {defaults}",
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
-    do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER};")
-    do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
+    do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
+    do_attempt("Granting priveleges to role", GRANT_PRIV_TO_ROLE)
 
 
-def setup_samples(ctx):
-    do_attempt("Creating data view", CREATE_SAMPLE_DATA_QUERIES)
-    do_attempt("Creating sample alert", CREATE_SAMPLE_ALERT_QUERIES)
-    do_attempt("Creating sample violation", CREATE_SAMPLE_VIOLATION_QUERIES)
+def setup_samples(do_attempt):
+    do_attempt("Creating data view", read_queries('sample-data-queries'))
+    do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
+    do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
 
 
-def jira_integration():
-    flag = input("Would you like to integrate Jira with SnowAlert (y/N)? ")
-    if (flag.lower() in {'y', 'yes'}):
+def jira_integration(setup_jira=None):
+    while setup_jira is None:
+        uinput = input("Would you like to integrate Jira with SnowAlert (y/N)? ").lower()
+        setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
+
+    if setup_jira:
         jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
         jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         jira_url = input("Please enter the URL for the Jira integration: ")
@@ -357,9 +312,12 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
     )
 
 
-def setup_authentication(jira_password):
+def setup_authentication(jira_password, region, pk_passwd=None):
     print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
-    pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+
+    if pk_passwd is None:
+        pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+
     if pk_passwd == '.':
         pk_passwd = b64encode(os.urandom(18)).decode('utf-8')
         print("Generated random passphrase.")
@@ -381,9 +339,8 @@ def setup_authentication(jira_password):
                 print(f"error {e!r}, trying.")
 
     rsa_public_key = re.sub(r'---.*---\n', '', public_key.decode('utf-8'))
-    do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}';")
 
-    return private_key, pk_passwd, jira_password
+    return private_key, pk_passwd, jira_password, rsa_public_key
 
 
 def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, private_key, pk_passwd,
@@ -391,6 +348,8 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
     vars = [
         f'SNOWFLAKE_ACCOUNT={account}',
         f'SA_USER={USER}',
+        f'SA_ROLE={ROLE}',
+        f'SA_DATABASE={DATABASE}',
         f'SA_WAREHOUSE={WAREHOUSE}',
         f'REGION={region or "us-west-2"}',
 
@@ -431,19 +390,30 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-if __name__ == '__main__':
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None):
     ctx, account, region, do_attempt = login()
 
-    do_attempt("Use role accountadmin", "USE ROLE accountadmin")
-    setup_warehouse(do_attempt)
-    setup_samples(do_attempt)
-    setup_user(do_attempt)
+    do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+    if admin_role == "accountadmin":
+        setup_warehouse_and_db(do_attempt)
+        setup_user_and_role(do_attempt)
 
-    jira_user, jira_password, jira_url, jira_project = jira_integration()
+    setup_schemas_and_tables(do_attempt, DATABASE)
+
+    if samples:
+        setup_samples(do_attempt)
+
+    do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
+
+    jira_user, jira_password, jira_url, jira_project = jira_integration(jira)
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passwd, jira_password = setup_authentication(jira_password)
+    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passwd)
+
+    if admin_role == "accountadmin":
+        do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
+
     aws_key, aws_secret = load_aws_config()
 
     print(
@@ -453,3 +423,7 @@ if __name__ == '__main__':
         f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run all\n"
         f"\n--- ...the end. ---\n"
     )
+
+
+if __name__ == '__main__':
+    fire.Fire(main)

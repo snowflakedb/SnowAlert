@@ -33,9 +33,9 @@ export const LoginActions = {
 
 export type LoginActions = ActionsUnion<typeof LoginActions>;
 
-export const oauthRedirect = (account: string, return_href: string) => async (dispatch: Dispatch) => {
+export const oauthRedirect = (account: string, returnHref: string) => async (dispatch: Dispatch) => {
   try {
-    const response = await api.oauthRedirect({account, return_href});
+    const response = await api.oauthRedirect({account, returnHref});
     if (response.url) {
       location.href = response.url;
     }
@@ -44,10 +44,10 @@ export const oauthRedirect = (account: string, return_href: string) => async (di
   }
 };
 
-export const oauthLogin = (account: string, code: string, redirect_uri: string) => async (dispatch: Dispatch) => {
+export const oauthLogin = (account: string, code: string, redirectUri: string) => async (dispatch: Dispatch) => {
   try {
     localStorage.setItem('account', account);
-    const response = await api.oauthLogin({account, code, redirect_uri});
+    const response = await api.oauthLogin({account, code, redirectUri});
     const toks = response.tokens;
     if (toks && toks.error) {
       throw {message: `${toks.error}: ${toks.message}`};
@@ -104,41 +104,4 @@ export const logoutAndRedirect = () => (dispatch: Dispatch) => {
   localStorage.removeItem('auth');
   dispatch(LogoutAction.logout());
   dispatch(push(routes.LOGIN));
-};
-
-export const REGISTER_REQUEST = 'REGISTER_REQUEST';
-export const REGISTER_SUCCESS = 'REGISTER_SUCCESS';
-export const REGISTER_FAILURE = 'REGISTER_FAILURE';
-
-export const RegisterActions = {
-  registerRequest: () => createAction(REGISTER_REQUEST),
-  registerSuccess: (token: string) => createAction(REGISTER_SUCCESS, token),
-  registerFailure: (errorMessage: string) => createAction(REGISTER_FAILURE, errorMessage),
-};
-
-export type RegisterActions = ActionsUnion<typeof RegisterActions>;
-
-const shouldRegister = (state: State) => {
-  const auth = state.auth;
-  return !auth.isFetching;
-};
-
-export const registerIfNeeded = (name: string, email: string, organizationId: number, password: string) => async (
-  dispatch: Dispatch,
-  getState: GetState,
-) => {
-  const state = getState();
-  if (shouldRegister(state)) {
-    dispatch(RegisterActions.registerRequest());
-
-    try {
-      const response = await api.register(name, email, organizationId, password);
-      // Handle local storage here and not in the reducer, to keep reducer clean of side-effects.
-      localStorage.setItem('token', response.token);
-      dispatch(RegisterActions.registerSuccess(response.token));
-      dispatch(push(routes.REGISTER_RESULT));
-    } catch (error) {
-      dispatch(RegisterActions.registerFailure(error.message));
-    }
-  }
 };

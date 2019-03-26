@@ -24,7 +24,7 @@ elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
     exit 1
   fi
 
-  docker run -it --env-file "$1" snowsec/snowalert ./run
+  docker run -it --env-file "$1" snowsec/snowalert ./run $2
 
 else
 

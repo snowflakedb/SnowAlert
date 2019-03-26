@@ -1,65 +1,78 @@
 #!/usr/bin/env python
 
 import datetime
-import uuid
 
 from runners.config import (
     CLOUDWATCH_METRICS,
     QUERY_METADATA_TABLE,
-    RULES_SCHEMA,
     RUN_METADATA_TABLE,
     VIOLATION_SQUELCH_POSTFIX,
-    VIOLATIONS_TABLE,
+    RUN_ID,
 )
 from runners.helpers import db, log
 
-RUN_METADATA = {'QUERY_HISTORY': [], 'RUN_TYPE': 'VIOLATION SUPPRESSIONS'}  # Contains metadata about this run
-RUN_ID = uuid.uuid4().hex
 
+VIOLATION_SUPPRESSION_QUERY = f"""
+MERGE INTO results.violations AS target
+USING rules.{{squelch_name}} AS squelch
+ON squelch.id=target.id
+WHEN MATCHED THEN UPDATE
+  SET target.suppressed='true'
+    , target.suppression_rule='{{squelch_name}}'
+"""
 
-def flag_remaining_alerts(ctx):
-    try:
-        ctx.cursor().execute(f"UPDATE {VIOLATIONS_TABLE} SET suppressed=FALSE WHERE suppressed IS NULL;")
-    except Exception as e:
-        log.error("Failed to flag remaining alerts as unsuppressed", e)
+SET_SUPPRESSED_FALSE = f"""
+UPDATE results.violations
+SET suppressed=FALSE
+WHERE suppressed IS NULL
+"""
+
+RULE_METADATA_RECORDS = []
 
 
 def run_suppression(squelch_name):
-    metadata = {}
-    metadata['QUERY_NAME'] = squelch_name
-    metadata['RUN_ID'] = RUN_ID
-    metadata['ATTEMPTS'] = 1
-    metadata['START_TIME'] = datetime.datetime.utcnow()
+    metadata = {
+        'QUERY_NAME': squelch_name,
+        'RUN_ID': RUN_ID,
+        'ATTEMPTS': 1,
+        'START_TIME': datetime.datetime.utcnow(),
+        'ROW_COUNT': {
+            'SUPPRESSED': 0
+        }
+    }
     ctx = db.connect()
-    print(f"Received suppression {squelch_name}")
+    log.info(f"{squelch_name} processing...")
     try:
-        ctx.cursor().execute(f"""
-            MERGE INTO {VIOLATIONS_TABLE} t
-            USING(SELECT result:EVENT_HASH AS event_hash FROM {RULES_SCHEMA}.{squelch_name}) s
-            ON t.result:EVENT_HASH=s.event_hash
-            WHEN MATCHED THEN UPDATE
-            SET t.suppressed='true', t.suppression_rule='{squelch_name}';
-        """)
+        query = VIOLATION_SUPPRESSION_QUERY.format(squelch_name=squelch_name)
+        num_violations_suppressed = next(db.fetch(query))['number of rows updated']
+        log.info(f"{squelch_name} updated {num_violations_suppressed} rows.")
+        metadata['ROW_COUNT']['SUPPRESSED'] = num_violations_suppressed
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        RULE_METADATA_RECORDS.append(metadata)
+
     except Exception as e:
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
         log.error("Suppression query {squelch_name} execution failed.", e)
-        pass
 
     print(f"Suppression query {squelch_name} executed")
 
 
 def main():
-    RUN_METADATA = {}
-    RUN_METADATA['RUN_TYPE'] = 'VIOLATION SUPPRESSION'
-    RUN_METADATA['START_TIME'] = datetime.datetime.utcnow()
-    RUN_METADATA['RUN_ID'] = RUN_ID
+    RUN_METADATA = {
+        'RUN_TYPE': 'VIOLATION SUPPRESSION',
+        'START_TIME': datetime.datetime.utcnow(),
+        'RUN_ID': RUN_ID,
+    }
 
     ctx = db.connect()
     for squelch_name in db.load_rules(ctx, VIOLATION_SQUELCH_POSTFIX):
         run_suppression(squelch_name)
-    flag_remaining_alerts(ctx)
 
+    num_violations_passed = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
+    RUN_METADATA['ROW_COUNT'] = {
+        'SUPPRESSED': sum(rmr['ROW_COUNT']['SUPPRESSED'] for rmr in RULE_METADATA_RECORDS),
+        'PASSED': num_violations_passed,
+    }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:

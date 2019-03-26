@@ -1,0 +1,34 @@
+CREATE OR REPLACE VIEW rules.SNOWFLAKE_LOGIN_WITHOUT_MFA_{ALERT_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='Alerts on someone logging into Snowflake without MFA
+  @id {uuid}
+  @tags snowflake, mfa requirements'
+AS
+SELECT 'Successful Snowflake login without MFA' AS title
+     , ARRAY_CONSTRUCT('successful_snowflake_logins') AS sources
+     , user_name AS object
+     , 'SnowAlert' AS environment
+     , event_timestamp AS event_time
+     , CURRENT_TIMESTAMP() AS alert_time
+     , reported_client_type || ' logging in as ' || user_name || ' from ' || client_ip AS description
+     , user_name AS actor
+     , 'login' AS action
+     , 'SnowAlert' AS detector
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'low' AS severity
+     , 'snowflake_login_without_mfa' AS query_name
+     , '{uuid}' AS query_id
+FROM data.successful_snowflake_logins_v
+WHERE 1=1
+  AND second_authentication_factor IS NULL
+  AND DATEDIFF(MINUTE, event_timestamp, CURRENT_TIMESTAMP()) < 60
+;
+
+CREATE OR REPLACE VIEW rules.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} COPY GRANTS
+  COMMENT='Exceptions to MFA Policies
+  @tags snowflake, mfa requirements'
+AS
+SELECT id
+FROM data.alerts
+WHERE suppressed IS NULL
+  AND object = 'DESIGNATED_NOMFA_USER'
+;

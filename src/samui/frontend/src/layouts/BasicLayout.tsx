@@ -11,7 +11,6 @@ import {GlobalFooter} from '../components/GlobalFooter';
 import {GlobalHeader} from '../components/GlobalHeader';
 import {DrawerSiderMenu} from '../components/SiderMenu';
 import * as routes from '../constants/routes';
-import {getAuthStatus} from '../reducers/auth';
 import * as stateTypes from '../reducers/types';
 import {getViewport} from '../reducers/viewport';
 import {enquireScreen, unenquireScreen} from '../utils/media';
@@ -28,7 +27,6 @@ interface OwnProps {
 }
 
 interface StateProps {
-  auth: stateTypes.AuthStatus;
   viewport: stateTypes.ViewportState;
 }
 
@@ -101,7 +99,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     }
 
     const layout = (
-      <Layout>
+      <Layout tagName="header">
         <DrawerSiderMenu
           logo={logo}
           menuData={getMenuData()}
@@ -109,13 +107,13 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
           isMobile={this.state.isMobile}
           onCollapse={this.handleMenuCollapse}
         />
-        <Layout>
+        <Layout tagName="main">
           <GlobalHeader
             menuCollapsed={this.state.menuCollapsed}
             isMobile={this.state.isMobile}
             onMenuCollapse={this.handleMenuCollapse}
           />
-          <Content style={{margin: '24px 24px 0', height: '100%'}}>
+          <Content style={{margin: '24px 24px 0', height: '100%'}} tagName="section">
             <AuthorizedRoute component={content.component} roles={content.roles} />
           </Content>
           <GlobalFooter copyright={<div />} />
@@ -129,7 +127,6 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
 
 const mapStateToProps = (state: stateTypes.State) => {
   return {
-    auth: getAuthStatus(state),
     viewport: getViewport(state),
   };
 };

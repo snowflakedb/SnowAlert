@@ -8,7 +8,7 @@ The SnowAlert Docker container exposes two commands —
 
 .. code::
 
-    docker run -it -v$HOME/.aws:/root/.aws -v$HOME/.snowsql:/root/.snowsql snowsec/snowalert ./install
+    docker run -it snowsec/snowalert ./install
 
 which configures your database, and
 
@@ -18,14 +18,18 @@ which configures your database, and
 
 which runs the SnowAlert functions.
 
-Finally, we have a (work in progress!) SnowAlert Management UI, which you can use to edit your rules —
+Finally, we have a SnowAlert Management WebUI, which you can use to edit your rules —
 
 .. code::
 
-    docker run -it -d -p 8000:8000 --env-file snowalert-{account}.envs snowsec/samui
+    docker run -it -p 8000:8000 --env-file snowalert-{account}.envs snowsec/samui
 
-This is a work in progress, which supports some features not yet in General Availability like OAuth, so don't hesitate
+This is a work in progress which supports some features still in Private Beta, like OAuth, so don't hesitate
 to ask your account manager or reach out to us with questions at snowalert@snowflake.com.
+
+.. note::
+
+The WebUI can use OAuth with Snowflake serving as an "OAuth provider", which is the same protocol, but a different authenticity delegation than the SSO OAuth in the Snowflake product. There, a provider like Okta can provide authentication services to Snowflake instead of a username and password. The two OAuth implementations can be used together to chain authentication from Okta, through Snowflake, and into SnowAlert.
 
 Requirements
 ------------

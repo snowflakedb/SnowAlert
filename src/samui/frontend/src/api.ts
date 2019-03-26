@@ -76,18 +76,6 @@ export const register = (name: string, email: string, organizationId: number, pa
     .then(handleResponse)
     .catch(handleError);
 
-export const loadOrganizations = () =>
-  axios
-    .get(`${BACKEND_URL}/organization`)
-    .then(handleResponse)
-    .catch(handleError);
-
-export const getOrganization = (organizationId: number, token: string | null) =>
-  axios
-    .get(`${BACKEND_URL}/organization/${organizationId}`, tokenConfig(token))
-    .then(handleResponse)
-    .catch(handleError);
-
 export const loadNotifications = (token: string | null) =>
   axios
     .get(`${BACKEND_URL}/notification`, tokenConfig(token))
