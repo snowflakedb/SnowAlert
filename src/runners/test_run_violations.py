@@ -45,7 +45,7 @@ TEARDOWN_QUERIES = [
 
 
 def json_like_snowflake(o) -> str:
-    return json.dumps(o, indent=0, separators=(',', ':'), sort_keys=True).replace('\n', '')
+    return json.dumps(o, separators=(',', ':'), sort_keys=True)
 
 
 def json_like_connector(o) -> str:
