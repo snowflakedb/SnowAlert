@@ -94,7 +94,7 @@ def load_accounts_list(sf_client, accounts_list):
 def main():
     sf_client = get_snowflake_client()
     current_time = datetime.datetime.now(datetime.timezone.utc)
-    last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {AWS_ACCOUNTS_TABLE}').fetchall[0][0]
+    last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {AWS_ACCOUNTS_TABLE}').fetchall()[0][0]
     if (current_time - last_time).seconds > 86400:
         client = get_aws_client()
         accounts_list = get_accounts_list(client)
