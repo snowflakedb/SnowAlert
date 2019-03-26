@@ -70,6 +70,15 @@ SELECT id
 FROM results.violations
 ;
 
+CREATE OR REPLACE VIEW data.tagged_violations COPY GRANTS
+  COMMENT='this view exposes all violations that have tags along with their tags'
+AS
+SELECT tag, violation.*
+FROM data.violations AS violation
+JOIN data.rule_tags AS rule_tag
+ON rule_tag.query_id=violation.query_id
+;
+
 CREATE OR REPLACE VIEW data.violation_queries_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
