@@ -83,11 +83,11 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
-def fetch(ctx, query=None):
+def fetch(ctx, query=None, fix_errors=True):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
-    res = execute(ctx, query)
+    res = execute(ctx, query, fix_errors)
     cols = [c[0] for c in res.description]
     while True:
         row = res.fetchone()
