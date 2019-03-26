@@ -7,7 +7,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'pytest==4.3.1',
-        'pytest-ordering=0.6',
+        'pytest-ordering==0.6',
         'jira==2.0.0',
         'PyYAML==4.2b1',
         'snowflake-connector-python==1.7.7',
