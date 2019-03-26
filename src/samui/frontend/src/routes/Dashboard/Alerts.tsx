@@ -83,12 +83,6 @@ class AlertsDashboard extends React.PureComponent<Props> {
                         span: 12,
                         fields: [
                           {
-                            title: 'Query Name',
-                            type: 'string',
-                            getValue: (q: Query) => q.fields.select.query_name,
-                            setValue: (q: Query, v: string) => q.copy({fields: {select: {query_name: v}}}),
-                          },
-                          {
                             title: 'Environment',
                             type: 'string',
                             getValue: (q: Query) => q.fields.select.environment,
