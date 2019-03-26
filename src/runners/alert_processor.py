@@ -49,7 +49,6 @@ def get_correlation_id(ctx, alert):
             o = '","'.join(object)
             object = '["'+o+'"]'
 
-
     except Exception as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
         return uuid.uuid4().hex
