@@ -14,9 +14,13 @@ def preprocess():
 
 def handler_test_1():
     rows = db.fetch(CTX, test_queries.TEST_4_TICKET_QUERY)
-    row = rows.next()
-    print(row)
-    assert 1
+    ticket_id = next(rows)['TICKET']
+    assert ticket_id != 'None'
+    ticket_body = create_jira.get_ticket_description(ticket_id)
+    lines = ticket_body.split('\n')
+    assert lines[2] == 'Query ID: test_1_query'
+    assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    assert lines[23] == 'Query ID: test_3_query'
 
 
 @pytest.mark.run(order=4)

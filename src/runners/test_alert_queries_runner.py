@@ -28,7 +28,6 @@ def preprocess():
     db.execute(CTX, test_queries.TEST_2_SUPPRESSION)
     db.execute(CTX, test_queries.TEST_3_ALERT)
     alert_queries_runner.main()
-    return None
 
 
 def alert_test_1():
