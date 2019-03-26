@@ -83,7 +83,7 @@ def main():
         alert = json.loads(row[0])
         try:
             correlation_id = row[7]
-        except Exception as e:
+        except Exception:
             log.info(f"Warning: no VARCHAR CORRELATION_ID column in alerts table")
             try:
                 ticket_id = create_jira.create_jira_ticket(alert)
