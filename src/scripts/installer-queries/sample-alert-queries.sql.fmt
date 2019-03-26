@@ -27,8 +27,8 @@ CREATE OR REPLACE VIEW rules.SINGLE_FACTOR_EXCEPTIONS_{ALERT_SQUELCH_POSTFIX} CO
   COMMENT='Exceptions to MFA Policies
   @tags snowflake, mfa requirements'
 AS
-SELECT alert
-FROM results.alerts
+SELECT id
+FROM data.alerts
 WHERE suppressed IS NULL
-  AND alert:object = 'DESIGNATED_NOMFA_USER'
+  AND object = 'DESIGNATED_NOMFA_USER'
 ;

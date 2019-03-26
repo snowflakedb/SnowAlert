@@ -14,12 +14,22 @@ from runners.config import (
 )
 from runners.helpers import db, log
 
-SUPPRESSION_QUERY = f"""
-MERGE INTO results.alerts t
-USING(rules.{{suppression_name}}) s
-ON t.alert:ALERT_ID = s.alert:ALERT_ID
+OLD_SUPPRESSION_QUERY = f"""
+MERGE INTO results.alerts AS target
+USING(rules.{{suppression_name}}) AS s
+ON target.alert:ALERT_ID = s.alert:ALERT_ID
 WHEN MATCHED THEN UPDATE
-SET t.SUPPRESSED = 'true', t.SUPPRESSION_RULE = '{{suppression_name}}';
+SET target.SUPPRESSED = 'true'
+  , target.SUPPRESSION_RULE = '{{suppression_name}}'
+"""
+
+SUPPRESSION_QUERY = f"""
+MERGE INTO results.alerts AS target
+USING(rules.{{suppression_name}}) AS s
+ON target.alert:ALERT_ID = s.id
+WHEN MATCHED THEN UPDATE
+SET target.SUPPRESSED = 'true'
+  , target.SUPPRESSION_RULE = '{{suppression_name}}'
 """
 
 SET_SUPPRESSED_FALSE = f"""
@@ -87,6 +97,16 @@ def log_failure(ctx, suppression_name, e, event_data=None, description=None):
         log.error("Failed to log suppression failure", e)
 
 
+def run_suppression_query(squelch_name):
+    try:
+        query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
+        return next(db.fetch(query, fix_errors=False))['number of rows updated']
+    except Exception:
+        log.info(f"{squelch_name} warning: query broken, might need 'id' column, trying 'alert:ALERT_ID'.")
+        query = OLD_SUPPRESSION_QUERY.format(suppression_name=squelch_name)
+        return next(db.fetch(query))['number of rows updated']
+
+
 def run_suppressions(squelch_name):
     log.info(f"{squelch_name} processing...")
     metadata = {
@@ -99,8 +119,7 @@ def run_suppressions(squelch_name):
     ctx = db.connect()
 
     try:
-        query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
-        suppression_count = next(db.fetch(ctx, query))['number of rows updated']
+        suppression_count = run_suppression_query(squelch_name)
         log.info(f"{squelch_name} updated {suppression_count} rows.")
         metadata['ROW_COUNT'] = {'SUPPRESSED': suppression_count}
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)

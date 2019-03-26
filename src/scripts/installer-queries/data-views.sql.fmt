@@ -24,6 +24,31 @@ FROM (
 , LATERAL FLATTEN(input => query_tag_list.tags)
 ;
 
+CREATE OR REPLACE VIEW data.alerts COPY GRANTS
+  COMMENT='Reflects on existing Alerts, e.g. for writing alert suppressions'
+AS
+SELECT alert:ALERT_ID AS id
+  , correlation_id
+  , alert_time
+  , event_time
+  , ticket
+  , suppressed
+  , suppression_rule
+  , alert:QUERY_NAME::VARCHAR   AS query_name
+  , alert:QUERY_ID::VARCHAR     AS query_id
+  , alert:ENVIRONMENT::VARIANT  AS environment
+  , alert:SOURCES::VARIANT      AS sources
+  , alert:ACTOR::VARCHAR        AS actor
+  , alert:OBJECT::VARCHAR       AS object
+  , alert:ACTION::VARCHAR       AS action
+  , alert:TITLE::VARCHAR        AS title
+  , alert:DESCRIPTION::VARCHAR  AS description
+  , alert:DETECTOR::VARCHAR     AS detector
+  , alert:EVENT_DATA::VARIANT   AS event_data
+  , alert:SEVERITY::VARCHAR     AS severity
+FROM results.alerts
+;
+
 CREATE OR REPLACE VIEW data.violations COPY GRANTS
   COMMENT='Reflects on existing Violations, e.g. for violation suppressions'
 AS

@@ -96,17 +96,23 @@ def fetch(ctx, query=None):
         yield dict(zip(cols, row))
 
 
-def execute(ctx, query=None):
+def execute(ctx, query=None, fix_errors=True):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
     try:
         return ctx.cursor().execute(query)
+
     except snowflake.connector.errors.ProgrammingError as e:
+        if not fix_errors:
+            raise
+
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
-            return execute(ctx, query)
-        log.error(e, f"Programming Error in query: {query}")
+            return execute(query)
+
+        log.error(e, f"Ignoring programming Error in query: {query}")
+
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
 
