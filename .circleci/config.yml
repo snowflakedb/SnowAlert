@@ -25,6 +25,8 @@ jobs:
             pip install --upgrade pip
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
             pip install mypy
+            pip install pytest
+            pip install pytest-ordering
 
       - save_cache:
           paths:
@@ -39,6 +41,7 @@ jobs:
             pyflakes ./scripts ./runners ./samui/backend/samui
             MYPYPATH="`pwd`/samui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./samui/backend/samui
+            pytest ./runners -vv
 
       # - run:
       #     name: do the build

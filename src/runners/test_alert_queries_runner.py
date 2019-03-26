@@ -5,8 +5,6 @@ import os
 import json
 import pytest
 
-CTX = db.connect()
-
 TEST_1_OUTPUT = {"ACTION": "test action 1",
                  "ACTOR": "test_actor",
                  "DESCRIPTION": "This is a test alert query; this should be grouped with Test 3",
@@ -22,15 +20,18 @@ TEST_1_OUTPUT = {"ACTION": "test action 1",
 
 
 def preprocess():
-    db.execute(CTX, 'truncate table results.alerts')
-    db.execute(CTX, test_queries.TEST_1_ALERT)
-    db.execute(CTX, test_queries.TEST_2_ALERT)
-    db.execute(CTX, test_queries.TEST_2_SUPPRESSION)
-    db.execute(CTX, test_queries.TEST_3_ALERT)
+    ctx = db.connect()
+    assert ctx is not None
+    db.execute(ctx, 'truncate table results.alerts')
+    db.execute(ctx, test_queries.TEST_1_ALERT)
+    db.execute(ctx, test_queries.TEST_2_ALERT)
+    db.execute(ctx, test_queries.TEST_2_SUPPRESSION)
+    db.execute(ctx, test_queries.TEST_3_ALERT)
     alert_queries_runner.main()
+    return ctx
 
 
-def alert_test_1():
+def alert_test_1(ctx):
     # Tests that a row in the alerts table is created when you run a query
     query = """
             select * from results.alerts
@@ -38,7 +39,7 @@ def alert_test_1():
             order by alert_time desc
             limit 1
             """
-    rows = db.fetch(CTX, query)
+    rows = db.fetch(ctx, query)
     row = next(rows)
     alert = json.loads(row['ALERT'])
 
@@ -50,8 +51,8 @@ def alert_test_1():
 def test():
     try:
         if os.environ['TEST_ENV'] == 'True':
-            preprocess()
-            alert_test_1()
+            ctx = preprocess()
+            alert_test_1(ctx)
     except Exception:
         assert 0
 
