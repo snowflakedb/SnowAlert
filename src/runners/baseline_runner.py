@@ -81,6 +81,10 @@ def run_baseline(ctx, row):
     try:
         metadata = yaml.load(row['comment'])
     except Exception:
+        log.error("Failed to load metadata from comment")
+        return None
+
+    if metadata is None:
         log.error(f"No comment for table {row['name']}")
         return None
 
