@@ -121,8 +121,11 @@ def main(rule_name=None):
     }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
-    if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
+    try:
+        if CLOUDWATCH_METRICS:
+            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
+    except Exception as e:
+        log.error("Cloudwatch metric logging failed: ", e)
 
 
 if __name__ == '__main__':
