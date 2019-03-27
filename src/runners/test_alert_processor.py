@@ -1,7 +1,7 @@
 from runners import alert_processor
 from runners.helpers import db
-import pytest
 import os
+import pytest
 
 CTX = db.connect()
 
