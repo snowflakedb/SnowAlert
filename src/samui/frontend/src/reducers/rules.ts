@@ -162,9 +162,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName, newDescription} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
-          viewName !== p.viewName ? p : Object.assign(p, {description: newDescription}),
-        ),
+        policies: state.policies.map(p => (viewName !== p.viewName ? p : Object.assign(p, {summary: newDescription}))),
       };
     }
 
