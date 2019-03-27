@@ -14,5 +14,8 @@ setup(
         'snowflake-sqlalchemy==1.1.2',
         'mypy==0.670',
         'mypy-extensions==0.4.1',
+        'pandas==0.24.1',
+        'rpy2==3.0.1',
+        'pytz==2018.9',
     ],
 )
