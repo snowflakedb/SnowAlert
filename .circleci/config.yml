@@ -24,6 +24,7 @@ jobs:
             source .venv/bin/activate
             pip install --upgrade pip
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
+            pip install rpy2 pandas
             pip install mypy
 
       - save_cache:
