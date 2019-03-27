@@ -3,6 +3,7 @@
 import fire
 
 from runners import ingest_runner
+from runners import baseline_runner
 
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner
@@ -43,6 +44,9 @@ def main(target="all", rule_name=None):
 
         if target in ['ingest']:
             ingest_runner.main()
+
+        if target in ['baseline']:
+            baseline_runner.main()
 
 
 if __name__ == '__main__':
