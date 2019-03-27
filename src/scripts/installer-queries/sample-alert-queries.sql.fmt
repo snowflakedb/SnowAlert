@@ -32,3 +32,20 @@ FROM data.alerts
 WHERE suppressed IS NULL
   AND object = 'DESIGNATED_NOMFA_USER'
 ;
+
+
+CREATE OR REPLACE VIEW rules.ACTIVITY_BY_ADMIN_{ALERT_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='Alerts on administrative activity in Snowflake; requires MONITOR privileges on a warehouse to monitor that warehouse
+  @id {uuid}
+  @tags admin activity'
+AS
+SELECT 'Activity by ACCOUNTADMIN Role' AS title
+      , ARRAY_CONSTRUCT('information_schema') AS sources
+      , warehouse_name as object
+      , start_time as event_time
+      , current_timestamp() as alert_time
+      , user_name as actor
+      , actor || ' performed ' || query_text as action
+      , query_text as event_data
+      , 'low' as severity
+      ,
