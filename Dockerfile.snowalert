@@ -2,11 +2,17 @@ FROM python:3.7-slim-stretch
 
 WORKDIR /var/task
 
+RUN apt-get update
+RUN apt-get install -y r-base
+RUN R -e "install.packages('dplyr', repos = 'https://cloud.r-project.org')"
+
 RUN pip install --upgrade pip virtualenv pyflakes
 
 RUN mkdir -p ./snowalert
 RUN virtualenv ./snowalert/venv
 ENV PATH="/var/task/snowalert/venv/bin:${PATH}"
+
+RUN pip install rpy2 pandas tzlocal
 
 COPY ./src ./snowalert/src
 COPY ./run ./run
