@@ -122,7 +122,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                               type="primary"
                               disabled={policy.isSaving || !policy.isEdited}
                               style={{marginRight: 10}}
-                              onClick={() => this.props.saveRule(policy.raw)}
+                              onClick={() => this.props.saveRule(Object.assign(policy.raw, {body: policy.body}))}
                             >
                               {policy.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
                             </Button>

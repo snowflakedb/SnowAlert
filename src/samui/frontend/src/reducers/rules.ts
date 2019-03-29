@@ -13,14 +13,15 @@ export const initialState: SnowAlertRulesState = {
   suppressions: [],
 };
 
-const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
-  COMMENT=''
+const alertQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_QUERY COPY GRANTS
+  COMMENT='Alert Query Summary
+  @id ${qid}'
 AS
 SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
      , 'rule title' AS title
-     , CURRENT_TIMESTAMP() AS event_time
+     , NULL AS event_time
      , CURRENT_TIMESTAMP() AS alert_time
      , 'S: Subject Verb Predicate at ' || alert_time AS description
      , 'Subject' AS actor
@@ -30,42 +31,38 @@ SELECT 'E' AS environment
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM {DATA_SCHEMA}.\nWHERE 1=1\n  AND 2=2\n;`;
+FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
-const violationQueryBody = (
-  s: string,
-  qid: string,
-) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_QUERY COPY GRANTS
-  COMMENT=''
+const violationQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Violation Rule Summary
+  @id ${qid}'
 AS
 SELECT 'E' AS environment
      , 'Predicate' AS object
      , 'rule title' AS title
      , 'S: Subject state' AS description
-     , current_timestamp() AS alert_time
+     , CURRENT_TIMESTAMP() AS alert_time
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'SnowAlert' AS detector
      , 'low' AS severity
      , '${s}' AS query_name
      , '${qid}' AS query_id
-FROM {DATA_SCHEMA}.\nWHERE 1=1\n AND 2=2\n;`;
+FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
-const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_ALERT_SUPPRESSION COPY GRANTS
+const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
 AS
-SELECT alert
-FROM {ALERTS_TABLE}
+SELECT id
+FROM results.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;
 
-const violationSuppressionBody = (
-  s: string,
-) => `CREATE OR REPLACE VIEW {RULES_SCHEMA}.${s}_VIOLATION_SUPPRESSION COPY GRANTS
+const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_SUPPRESSION COPY GRANTS
   COMMENT='New Violation Suppression'
 AS
-SELECT alert
-FROM {VIOLATIONS_TABLE}
+SELECT id
+FROM results.violations
 WHERE suppressed IS NULL
   AND ...
 ;`;
@@ -148,6 +145,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
         ...state,
         queries: state.queries.map(q => (q.viewName === viewName ? q.copy({isSaving: false}) : q)),
         suppressions: state.suppressions.map(s => (s.viewName === viewName ? s.copy({isSaving: false}) : s)),
+        policies: state.policies.map(p =>
+          p.viewName === state.currentRuleView ? Object.assign(p, {isSaving: false}) : p,
+        ),
       };
     }
 
@@ -165,9 +165,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName, newDescription} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
-          viewName !== p.viewName ? p : Object.assign(p, {description: newDescription}),
-        ),
+        policies: state.policies.map(p => (viewName !== p.viewName ? p : Object.assign(p, {summary: newDescription}))),
       };
     }
 

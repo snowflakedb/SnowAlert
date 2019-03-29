@@ -4,7 +4,7 @@ import json
 import datetime
 import uuid
 
-from .config import ALERTS_TABLE, DATABASE, CLOUDWATCH_METRICS
+from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
 from .plugins import create_jira
 
@@ -18,7 +18,7 @@ def log_alerts(ctx, alerts):
         try:
             ctx.cursor().execute(
                 f'''
-                INSERT INTO {ALERTS_TABLE}(alert_time, alert)
+                INSERT INTO results.alerts (alert_time, alert)
                 SELECT PARSE_JSON(column1):ALERT_TIME,
                        PARSE_JSON(column1)
                 FROM VALUES {", ".join(["(%s)"] * len(alerts))};
@@ -52,7 +52,7 @@ def log_failure(ctx, alert, e):
     })]
     try:
         log_alerts(ctx, alerts)
-        ctx.cursor().execute(f"DELETE FROM {ALERTS_TABLE} where ALERT:ALERT_ID = '{alert['ALERT_ID']}';")
+        ctx.cursor().execute(f"DELETE FROM results.alerts where ALERT:ALERT_ID = '{alert['ALERT_ID']}';")
     except Exception as e:
         log.error("Failed to log alert creation failure", e)
 
@@ -65,7 +65,7 @@ def get_new_alerts(ctx):
 
 
 def record_ticket_id(ctx, ticket_id, alert_id):
-    query = f"UPDATE {ALERTS_TABLE} SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
+    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
     print('Updating alert table:', query)
     ctx.cursor().execute(query)
 
@@ -75,7 +75,7 @@ def record_ticket_id(ctx, ticket_id, alert_id):
 
 
 def main():
-    ctx = db.connect_and_execute(f'USE DATABASE {DATABASE};')
+    ctx = db.connect()
     alerts = get_new_alerts(ctx)
     log.info(f'Found {len(alerts)} new alerts to handle.')
 
@@ -97,7 +97,7 @@ def main():
 
         CORRELATION_QUERY = f"""
             SELECT *
-            FROM {ALERTS_TABLE}
+            FROM results.alerts
             WHERE correlation_id = '{correlation_id}'
               AND ticket IS NOT NULL
             ORDER BY EVENT_TIME DESC
@@ -148,8 +148,11 @@ def main():
         # Record the new ticket id in the alert table
         record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])
 
-    if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
+    try:
+        if CLOUDWATCH_METRICS:
+            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
+    except Exception as e:
+        log.error("Cloudwatch metric logging failed", e)
 
 
 if __name__ == "__main__":

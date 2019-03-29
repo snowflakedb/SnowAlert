@@ -3,6 +3,7 @@
 from typing import List, Tuple
 from os import environ, path
 
+
 import snowflake.connector
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
 
@@ -71,9 +72,9 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         if run_preflight_checks:
             preflight_checks(connection)
 
+        execute(connection, f'USE DATABASE {DATABASE}')
         if not oauth_access_token:
-            execute(connection, f'USE WAREHOUSE {WAREHOUSE};')
-            execute(connection, f'USE DATABASE {DATABASE};')
+            execute(connection, f'USE WAREHOUSE {WAREHOUSE}')
 
         if not CACHED_CONNECTION and not oauth_access_token:
             CACHED_CONNECTION = connection
@@ -83,8 +84,11 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
-def fetch(ctx, query):
-    res = execute(ctx, query)
+def fetch(ctx, query=None, fix_errors=True):
+    if query is None:  # TODO(andrey): swap args and refactor
+        ctx, query = CACHED_CONNECTION, ctx
+
+    res = execute(ctx, query, fix_errors)
     cols = [c[0] for c in res.description]
     while True:
         row = res.fetchone()
@@ -93,14 +97,23 @@ def fetch(ctx, query):
         yield dict(zip(cols, row))
 
 
-def execute(ctx, query):
+def execute(ctx, query=None, fix_errors=True):
+    if query is None:  # TODO(andrey): swap args and refactor
+        ctx, query = CACHED_CONNECTION, ctx
+
     try:
         return ctx.cursor().execute(query)
+
     except snowflake.connector.errors.ProgrammingError as e:
+        if not fix_errors:
+            raise
+
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
-            return execute(ctx, query)
-        log.error(e, f"Programming Error in query: {query}")
+            return execute(query)
+
+        log.error(e, f"Ignoring programming Error in query: {query}")
+
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
 
@@ -127,9 +140,8 @@ def connect_and_fetchall(query):
 ###
 
 def load_rules(ctx, postfix) -> List[str]:
-    from runners.config import RULES_SCHEMA
     try:
-        views = ctx.cursor().execute(f'SHOW VIEWS IN {RULES_SCHEMA}').fetchall()
+        views = ctx.cursor().execute(f'SHOW VIEWS IN rules').fetchall()
     except Exception as e:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
@@ -141,13 +153,12 @@ def load_rules(ctx, postfix) -> List[str]:
 
 
 def insert_alerts(alerts, ctx=None):
-    from runners.config import ALERTS_TABLE
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
     ctx.cursor().execute(
         (
-            f'INSERT INTO {ALERTS_TABLE}(alert_time, event_time, alert) '
+            f'INSERT INTO restuls.alerts (alert_time, event_time, alert) '
             f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
             f'FROM values {", ".join(["(%s)"] * len(alerts))};'
         ),
@@ -156,7 +167,6 @@ def insert_alerts(alerts, ctx=None):
 
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
-    from runners.config import ALERTS_TABLE, RULES_SCHEMA
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
@@ -165,10 +175,8 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
     try:
         pwd = path.dirname(path.realpath(__file__))
         sql = open(f'{pwd}/insert-alert-query.sql.fmt').read().format(
-            RULES_SCHEMA=RULES_SCHEMA,
-            ALERTS_TABLE=ALERTS_TABLE,
-            from_time_sql=from_time_sql,
             query_name=query_name,
+            from_time_sql=from_time_sql,
             to_time_sql=to_time_sql,
         )
         result = ctx.cursor().execute(sql).fetchall()
@@ -181,11 +189,36 @@ def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIME
         return 0, 0
 
 
-INSERT_VIOLATIONS_QUERY = """
+INSERT_VIOLATIONS_QUERY = f"""
 INSERT INTO results.violations (alert_time, result)
 SELECT alert_time, OBJECT_CONSTRUCT(*)
-FROM rules.{query_name}
-WHERE alert_time > {CUTOFF_TIME}
+FROM rules.{{query_name}}
+WHERE alert_time > {{CUTOFF_TIME}}
+"""
+
+INSERT_VIOLATIONS_WITH_ID_QUERY = f"""
+INSERT INTO results.violations (alert_time, id, result)
+SELECT CURRENT_TIMESTAMP()
+  , MD5(TO_JSON(
+      IFNULL(
+        OBJECT_CONSTRUCT(*):IDENTITY,
+        OBJECT_CONSTRUCT(
+            'ENVIRONMENT', IFNULL(environment, PARSE_JSON('null')),
+            'OBJECT', IFNULL(object, PARSE_JSON('null')),
+            'TITLE', IFNULL(title, PARSE_JSON('null')),
+            'ALERT_TIME', IFNULL(alert_time, PARSE_JSON('null')),
+            'DESCRIPTION', IFNULL(description, PARSE_JSON('null')),
+            'EVENT_DATA', IFNULL(event_data, PARSE_JSON('null')),
+            'DETECTOR', IFNULL(detector, PARSE_JSON('null')),
+            'SEVERITY', IFNULL(severity, PARSE_JSON('null')),
+            'QUERY_ID', IFNULL(query_id, PARSE_JSON('null')),
+            'QUERY_NAME', IFNULL(query_name, PARSE_JSON('null'))
+        )
+      )
+    ))
+  , OBJECT_CONSTRUCT(*)
+FROM rules.{{query_name}}
+WHERE IFF(alert_time IS NOT NULL, alert_time > {{CUTOFF_TIME}}, TRUE)
 """
 
 
@@ -193,14 +226,15 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
-    time_filter_unit = environ.get('TIME_FILTER_UNIT', 'day')
-    time_filter_amount = -1 * int(environ.get('TIME_FILTER_AMOUNT', 1))
-
-    CUTOFF_TIME = f'DATEADD({time_filter_unit}, {time_filter_amount}, CURRENT_TIMESTAMP())'
+    CUTOFF_TIME = f'DATEADD(day, -1, CURRENT_TIMESTAMP())'
 
     log.info(f"{query_name} processing...")
     try:
-        result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+        try:
+            result = next(fetch(ctx, INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals())))
+        except Exception:
+            log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
+            result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
         num_rows_inserted = result['number of rows inserted']
         log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
         log.info(f"{query_name} done.")

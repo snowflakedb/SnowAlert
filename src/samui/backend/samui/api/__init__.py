@@ -5,7 +5,7 @@ import os
 
 import snowflake.connector
 
-from runners.config import RULES_SCHEMA, CONFIG_VARS
+from runners.config import CONFIG_VARS
 from runners.helpers import db, dbconfig
 
 from flask import Blueprint, request, jsonify
@@ -46,7 +46,7 @@ def get_rules():
         return jsonify(success=False, message='please log in')
 
     ctx = db.connect(oauth=oauth, run_preflight_checks=False)
-    rules = db.fetch(ctx, f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN {RULES_SCHEMA};")
+    rules = db.fetch(ctx, f"SHOW VIEWS LIKE '%_{rule_target}\_{rule_type}' IN rules")
 
     return jsonify(
         rules=[
@@ -56,7 +56,7 @@ def get_rules():
                 "type": rule['name'].split('_')[-1].upper(),
                 "body": replace_config_vals(rule['text']),
                 "results": (
-                    list(db.fetch(ctx, f"SELECT * FROM {RULES_SCHEMA}.{rule['name']};"))
+                    list(db.fetch(ctx, f"SELECT * FROM rules.{rule['name']};"))
                     if rule['name'].endswith("_POLICY_DEFINITION")
                     else None
                 ),
@@ -88,7 +88,7 @@ def create_rule():
     comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
     comment_clause = f"\n  COMMENT='{comment}'\n"
 
-    view_name = f"{RULES_SCHEMA}.{rule_title}_{rule_target}_{rule_type}"
+    view_name = f"rules.{rule_title}_{rule_target}_{rule_type}"
     rule_body = f"CREATE OR REPLACE VIEW {view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
 
     try:
@@ -131,7 +131,7 @@ def delete_rule():
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         new_view_name = f"{rule_title}_{rule_target}_{rule_type}_DELETED"
         ctx.cursor().execute(
-            f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
+            f"""ALTER VIEW rules.{view_name} RENAME TO rules.{new_view_name}"""
         ).fetchall()
         if 'body' in data and 'savedBody' in data:
             data['savedBody'] = rule_body
@@ -156,7 +156,7 @@ def rename_rule():
         view_name = f"{rule_title}_{rule_target}_{rule_type}"
         new_view_name = f"{new_title}_{rule_target}_{rule_type}"
         ctx.cursor().execute(
-            f"""ALTER VIEW {RULES_SCHEMA}.{view_name} RENAME TO {RULES_SCHEMA}.{new_view_name}"""
+            f"""ALTER VIEW rules.{view_name} RENAME TO rules.{new_view_name}"""
         ).fetchall()
     except snowflake.connector.errors.ProgrammingError as e:
         return jsonify(success=False, message=e.msg, rule=data)
