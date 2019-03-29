@@ -24,7 +24,7 @@ def handler_test_1():
     assert lines[23] == 'Query ID: test_3_query'
 
 
-@pytest.mark.run(order=4)
+@pytest.mark.last
 def test():
     if os.environ['TEST_ENV'] == 'True':
         preprocess()

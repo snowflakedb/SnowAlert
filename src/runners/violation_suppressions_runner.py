@@ -11,6 +11,15 @@ from runners.config import (
 )
 from runners.helpers import db, log
 
+VIOLATION_SUPPRESSION_QUERY = f"""
+MERGE INTO results.violations AS target
+USING rules.{{squelch_name}} AS squelch
+ON squelch.id=target.id
+WHEN MATCHED THEN UPDATE
+  SET target.suppressed='true'
+    , target.suppression_rule='{{squelch_name}}'
+"""
+
 SET_SUPPRESSED_FALSE = f"""
 UPDATE results.violations
 SET suppressed=FALSE
