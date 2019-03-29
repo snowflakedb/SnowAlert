@@ -28,7 +28,7 @@ def handler_test_1():
 def test():
     if os.environ['TEST_ENV'] == 'True':
         preprocess()
-        # handler_test_1()
+        handler_test_1()
     else:
         assert 0
 
