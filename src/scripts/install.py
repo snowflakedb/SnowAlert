@@ -51,23 +51,6 @@ def read_queries(file):
     return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
 
 
-
-def read_queries(file):
-    vars = {
-        'uuid': uuid4().hex,
-        'DATABASE': DATABASE,
-        'ALERTS_TABLE': ALERTS_TABLE,
-        'DATA_SCHEMA': DATA_SCHEMA,
-        'RULES_SCHEMA': RULES_SCHEMA,
-        'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
-        'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
-        'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
-    }
-    pwd = os.path.dirname(os.path.realpath(__file__))
-    tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
-    return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
-
-
 GRANT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
@@ -156,6 +139,7 @@ CREATE_TABLES_QUERIES = [
           );
       """
 ]
+
 
 def parse_snowflake_url(url):
     account = None
@@ -283,6 +267,7 @@ def setup_samples(do_attempt):
     do_attempt("Creating data view", read_queries('sample-data-queries'))
     do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
     do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
+
 
 def jira_integration(setup_jira=None):
     while setup_jira is None:

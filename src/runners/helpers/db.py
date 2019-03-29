@@ -1,7 +1,7 @@
 """Helper specific to SnowAlert connecting to the database"""
 
 from typing import List, Tuple
-from os import environ, path
+from os import path
 
 
 import snowflake.connector

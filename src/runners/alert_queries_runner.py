@@ -20,11 +20,6 @@ GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 QUERY_HISTORY: List = []
 
 
-def alert_group(alert) -> str:
-    return hashlib.md5(
-        f"{alert['OBJECT']}{alert['DESCRIPTION']}".encode('utf-8')
-    ).hexdigest()
-
 def log_alerts(ctx, alerts):
     if len(alerts):
         print("Recording alerts.")

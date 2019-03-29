@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 
-import sys
 import fire
 
 from runners import ingest_runner
 
 from runners import alert_queries_runner
-from runners import test_alert_queries_runner
 from runners import alert_suppressions_runner
-from runners import test_alert_suppressions_runner
 from runners import alert_processor
 from runners import alert_handler
 
 from runners import violation_queries_runner
 from runners import violation_suppressions_runner
-from runners import alert_processor
-from runners import test_alert_processor
-from runners import ingest_runner
 
 from runners.config import RUN_ID
 from runners.helpers import log
