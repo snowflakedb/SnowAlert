@@ -151,18 +151,25 @@ def load_rules(ctx, postfix) -> List[str]:
     return rules
 
 
+INSERT_ALERTS_QUERY = f"""
+INSERT INTO results.alerts (alert_time, event_time, alert)
+SELECT PARSE_JSON(column1):ALERT_TIME
+     , PARSE_JSON(column1):EVENT_TIME
+     , PARSE_JSON(column1)
+FROM VALUES {{values}}
+"""
+
+
+def sql_value_placeholders(n):
+    return ", ".join(["(%s)"] * n)
+
+
 def insert_alerts(alerts, ctx=None):
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
-    ctx.cursor().execute(
-        (
-            f'INSERT INTO restuls.alerts (alert_time, event_time, alert) '
-            f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
-            f'FROM values {", ".join(["(%s)"] * len(alerts))};'
-        ),
-        alerts
-    )
+    query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
+    return ctx.cursor().execute(query, alerts)
 
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
