@@ -1,4 +1,7 @@
 from runners import alert_queries_runner
+from runners import alert_suppressions_runner
+from runners import alert_processor
+from runners import alert_handler
 from runners import test_queries
 from runners.helpers import db
 import os
@@ -19,19 +22,28 @@ TEST_1_OUTPUT = {"ACTION": "test action 1",
                  "TITLE": "test1_alert_query"}
 
 
-def preprocess():
+@pytest.mark.first
+def test_setup():
     ctx = db.connect()
     assert ctx is not None
-    db.execute(ctx, 'truncate table results.alerts')
     db.execute(ctx, test_queries.TEST_1_ALERT)
     db.execute(ctx, test_queries.TEST_2_ALERT)
     db.execute(ctx, test_queries.TEST_2_SUPPRESSION)
     db.execute(ctx, test_queries.TEST_3_ALERT)
     alert_queries_runner.main()
-    return ctx
+    alert_suppressions_runner.main()
+    alert_processor.main()
+    alert_handler.main()
 
 
-def alert_test_1(ctx):
+@pytest.mark.last
+def test_teardown():
+    if os.environ['TEST_ENV'] == 'True':
+        ctx = db.connect()
+        db.execute(ctx, 'truncate table results.alerts')
+
+
+def test_1_query_run():
     # Tests that a row in the alerts table is created when you run a query
     query = """
             select * from results.alerts
@@ -39,23 +51,9 @@ def alert_test_1(ctx):
             order by alert_time desc
             limit 1
             """
-    rows = db.fetch(ctx, query)
+    rows = db.fetch(db.connect(), query)
     row = next(rows)
     alert = json.loads(row['ALERT'])
 
     for k in TEST_1_OUTPUT:
         assert alert[k] == TEST_1_OUTPUT[k]
-
-
-@pytest.mark.run(order=1)
-def test():
-    try:
-        if os.environ['TEST_ENV'] == 'True':
-            ctx = preprocess()
-            alert_test_1(ctx)
-    except Exception:
-        assert 0
-
-
-if __name__ == '__main__':
-    test()

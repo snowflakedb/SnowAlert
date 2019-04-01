@@ -3,7 +3,6 @@
 from typing import List, Tuple
 from os import path
 
-
 import snowflake.connector
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
 
@@ -235,6 +234,7 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
         except Exception:
             log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
             result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+
         num_rows_inserted = result['number of rows inserted']
         log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
         log.info(f"{query_name} done.")

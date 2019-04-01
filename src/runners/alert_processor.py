@@ -17,7 +17,7 @@ WHERE alert:ALERT_ID='{{alert_id}}'
 """
 
 GET_CORRELATED_ALERT = f"""
-select *
+SELECT *
 FROM results.alerts
 WHERE alert:ACTOR = %s
   AND (alert:OBJECT::string = %s OR alert:ACTION = %s)

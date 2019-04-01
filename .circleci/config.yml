@@ -25,8 +25,6 @@ jobs:
             pip install --upgrade pip
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
             pip install mypy
-            pip install pytest
-            pip install pytest-ordering
 
       - save_cache:
           paths:

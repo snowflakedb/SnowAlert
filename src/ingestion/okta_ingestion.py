@@ -25,7 +25,6 @@ def get_timestamp():
 
     # Once pipelines are more strongly integrated with the installer, this table should be a variable
     timestamp_query = """
-
         SELECT EVENT_TIME from SECURITY.ALOOMA.SNOWBIZ_OKTA
         order by EVENT_TIME desc
         limit 1

@@ -97,7 +97,6 @@ def log_failure(ctx, suppression_name, e, event_data=None, description=None):
         log.error("Failed to log suppression failure", e)
 
 
-
 def run_suppression_query(squelch_name):
     try:
         query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)

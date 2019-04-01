@@ -58,7 +58,12 @@ def log_failure(ctx, alert, e):
 
 
 def get_new_alerts(ctx):
-    get_alerts_query = f'SELECT * FROM results.alerts WHERE ticket IS NULL AND suppressed=FALSE ORDER BY EVENT_TIME ASC LIMIT 100'
+    get_alerts_query = f"""
+        SELECT * FROM results.alerts
+        WHERE ticket IS NULL
+        AND suppressed=FALSE
+        ORDER BY EVENT_TIME ASC LIMIT 100
+        """
     results = ctx.cursor().execute(get_alerts_query).fetchall()
     print(f'Found {len(results)} new alerts.')
     return results
