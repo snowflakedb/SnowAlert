@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import json
-import hashlib
 import uuid
 import datetime
 from typing import Any, Dict, List, Tuple
@@ -19,12 +18,6 @@ from runners.utils import groups_of
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 QUERY_HISTORY: List = []
-
-
-def alert_group(alert) -> str:
-    return hashlib.md5(
-        f"{alert['OBJECT']}{alert['DESCRIPTION']}".encode('utf-8')
-    ).hexdigest()
 
 
 def log_alerts(ctx, alerts):
