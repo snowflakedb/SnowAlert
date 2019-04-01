@@ -49,21 +49,28 @@ def bookkeeping():
 
 def test_alerts(bookkeeping):
 
-    # run runners
+    # Alert Queries Runner Tests
+
     alert_queries_runner.main()
 
     # Tests that a row in the alerts table is created when you run a query
 
     alert = json.loads(next(db.fetch(ALERT_QUERY_RUNNER_DATA))['ALERT'])
 
+    # Tests that the row created in the alerts table matches what we expect to see.
     for k in TEST_1_OUTPUT:
         assert alert[k] == TEST_1_OUTPUT[k]
+
+    # Alert Supression Runner Tests
 
     alert_suppressions_runner.main()
 
     alerts = list(db.fetch(ALERT_SUPPRESSION_RUNNER_DATA))
+
+    # Tests that only one alert was suppressed
     assert len(alerts) == 1
 
+    # Tests that the alert is properly marked as suppressed, and labled by the rule
     columns = alerts[0]
     assert columns['SUPPRESSED'] is True
     assert columns['SUPPRESSION_RULE'] == 'TEST2_ALERT_SUPPRESSION'
@@ -79,19 +86,25 @@ def test_alerts(bookkeeping):
     a1 = rows[0]
     a2 = rows[1]
 
+    # Tests that the alerts selected have correlation IDs
     assert len(a1['CORRELATION_ID']) > 5
     assert len(a2['CORRELATION_ID']) > 5
+
+    # Tests that the alerts are properly correlated with the same ID
     assert a1['CORRELATION_ID'] == a2['CORRELATION_ID']
 
     # Jira Creation Tests
 
     alert_handler.main()
 
-    rows = db.fetch(db.connect(), test_queries.TEST_4_TICKET_QUERY)
-    ticket_id = next(rows)['TICKET']
+    ticket_id = next(db.fetch(db.connect(), test_queries.TEST_4_TICKET_QUERY))['TICKET']
+
+    # Tests that a ticket id is properly set
     assert ticket_id != 'None'
     ticket_body = create_jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
+
+    # Tests that the ticket format is what we expect, with events appended in the proper order.
     assert lines[2] == 'Query ID: test_1_query'
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert lines[23] == 'Query ID: test_3_query'
