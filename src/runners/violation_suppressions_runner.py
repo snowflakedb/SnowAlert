@@ -11,6 +11,7 @@ from runners.config import (
 )
 from runners.helpers import db, log
 
+
 VIOLATION_SUPPRESSION_QUERY = f"""
 MERGE INTO results.violations AS target
 USING rules.{{squelch_name}} AS squelch

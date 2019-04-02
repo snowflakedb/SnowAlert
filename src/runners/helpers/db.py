@@ -243,3 +243,14 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     except Exception as e:
         log.info(f"{query_name} run threw an exception:", e)
         return 0, 0
+
+
+GET_ALERTS_QUERY = f"""
+SELECT *
+FROM data.alerts
+WHERE QUERY_ID='{{}}'
+"""
+
+
+def get_alerts(query_id):
+    return fetch(GET_ALERTS_QUERY.format(query_id))

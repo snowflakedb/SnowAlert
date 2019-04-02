@@ -99,7 +99,7 @@ def test_alerts(bookkeeping):
 
     alert_handler.main()
 
-    ticket_id = next(db.fetch(db.connect(), test_queries.TEST_4_TICKET_QUERY))['TICKET']
+    ticket_id = next(db.get_alerts('test_1_query'))['TICKET']
 
     # Tests that a ticket id is properly set
     assert ticket_id != 'None'
