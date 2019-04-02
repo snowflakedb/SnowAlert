@@ -34,7 +34,7 @@ def get_timestamp():
     try:
         _, ts = db.connect_and_fetchall(timestamp_query)
         log.info(ts)
-        ts = ts[0][0]
+        ts = ts[0][0]['since']
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         log.info(ts)
         if len(ts) < 1:
