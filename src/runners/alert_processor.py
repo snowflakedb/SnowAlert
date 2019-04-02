@@ -45,6 +45,7 @@ def get_correlation_id(ctx, alert):
         action = alert['ACTION']
         time = str(alert['EVENT_TIME'])
 
+        # TODO: make robust
         if type(object) is list:
             o = '","'.join(object)
             object = '["'+o+'"]'

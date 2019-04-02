@@ -5,7 +5,6 @@ from runners import alert_handler
 from runners import test_queries
 from runners.plugins import create_jira
 from runners.helpers import db
-import os
 import json
 import pytest
 
@@ -41,10 +40,11 @@ def bookkeeping():
     db.execute(ctx, test_queries.TEST_2_ALERT)
     db.execute(ctx, test_queries.TEST_2_SUPPRESSION)
     db.execute(ctx, test_queries.TEST_3_ALERT)
+
     yield
-    if os.environ['TEST_ENV'] == 'True':
-        ctx = db.connect()
-        db.execute(ctx, 'truncate table results.alerts')
+
+    ctx = db.connect()
+    db.execute(ctx, 'truncate table results.alerts')
 
 
 def test_alerts(bookkeeping):
@@ -87,8 +87,10 @@ def test_alerts(bookkeeping):
     a2 = rows[1]
 
     # Tests that the alerts selected have correlation IDs
-    assert len(a1['CORRELATION_ID']) > 5
-    assert len(a2['CORRELATION_ID']) > 5
+    assert a1['CORRELATION_ID'] is not None
+    assert a1['CORRELATION_ID'] != ""
+    assert a2['CORRELATION_ID'] is not None
+    assert a2['CORRELATION_ID'] != ""
 
     # Tests that the alerts are properly correlated with the same ID
     assert a1['CORRELATION_ID'] == a2['CORRELATION_ID']
