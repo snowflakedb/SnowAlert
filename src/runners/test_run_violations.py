@@ -135,13 +135,10 @@ def test_run_violations():
     queries_run_records = list(db.fetch('SELECT * FROM data.violation_queries_runs ORDER BY start_time DESC'))
     assert len(queries_run_records) == 1
     assert queries_run_records[0]['NUM_VIOLATIONS_CREATED'] == 1
-    assert queries_run_records[0]['NUM_VIOLATIONS_UPDATED'] == 0
 
     query_rule_run_record = list(db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time DESC'))
     assert query_rule_run_record[0]['NUM_VIOLATIONS_CREATED'] == 1
-    assert query_rule_run_record[0]['NUM_VIOLATIONS_UPDATED'] == 0
     assert query_rule_run_record[1]['NUM_VIOLATIONS_CREATED'] == 0
-    assert query_rule_run_record[1]['NUM_VIOLATIONS_UPDATED'] == 0
 
     assert type(query_rule_run_record[1].get('ERROR')) is str
     error = json.loads(query_rule_run_record[1]['ERROR'])
