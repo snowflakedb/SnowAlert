@@ -97,6 +97,7 @@ def fetch(ctx, query=None, fix_errors=True):
 
 
 def execute(ctx, query=None, fix_errors=True):
+    # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
@@ -104,14 +105,15 @@ def execute(ctx, query=None, fix_errors=True):
         return ctx.cursor().execute(query)
 
     except snowflake.connector.errors.ProgrammingError as e:
-        if not fix_errors:
-            raise
-
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
             return execute(query)
 
-        log.error(e, f"Ignoring programming Error in query: {query}")
+        if not fix_errors:
+            log.debug(f"re-raising error '{e}' in query >{query}<")
+            raise
+
+        log.info(e, f"ignoring error '{e}' in query >{query}<")
 
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
@@ -236,17 +238,11 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 
     log.info(f"{query_name} processing...")
     try:
-        try:
-            result = next(fetch(ctx, INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals())))
-        except Exception:
-            log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
-            result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+        result = next(fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False))
+    except Exception:
+        log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
+        result = next(fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False))
 
-        num_rows_inserted = result['number of rows inserted']
-        log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
-        log.info(f"{query_name} done.")
-        return num_rows_inserted, 0
-
-    except Exception as e:
-        log.info(f"{query_name} run threw an exception:", e)
-        return 0, 0
+    num_rows_inserted = result['number of rows inserted']
+    log.info(f"{query_name} created {num_rows_inserted} rows.")
+    return num_rows_inserted
