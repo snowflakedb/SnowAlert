@@ -1,17 +1,30 @@
-import traceback
-import sys
-import boto3
 import datetime
 import json
+import os
+import sys
+import traceback
+
+import boto3
+
+
+def format_exception(e):
+    return ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+
+
+def format_exception_only(e):
+    return ''.join(traceback.format_exception_only(type(e), e)).strip()
 
 
 def write(*args, stream=sys.stdout):
     for a in args:
         if isinstance(a, Exception):
-            traceback.print_exception(type(a), a, a.__traceback__, file=stream)
-            stream.flush()
-        else:
-            print(a, file=stream, flush=True)
+            a = format_exception(a)
+        print(a, file=stream, flush=True)
+
+
+def debug(*args):
+    if os.environ.get("env") in ('dev', 'test'):
+        write(*args, stream=sys.stdout)
 
 
 def info(*args):
@@ -41,7 +54,19 @@ def metric(metric, namespace, dimensions, value):
 
 
 def metadata_record(ctx, metadata, table, e=None):
-    metadata['EXCEPTION'] = ''.join(traceback.format_exception(type(e), e, e.__traceback__)) if e else None
+    if e is None and 'EXCEPTION' in metadata:
+        e = metadata['EXCEPTION']
+        del metadata['EXCEPTION']
+
+    if e is not None:
+        exception_only = format_exception_only(e)
+        metadata['ERROR'] = {
+            'EXCEPTION': format_exception(e),
+            'EXCEPTION_ONLY': exception_only,
+        }
+        if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
+            metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
+
     metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
 
     metadata['END_TIME'] = datetime.datetime.utcnow()
@@ -51,10 +76,13 @@ def metadata_record(ctx, metadata, table, e=None):
 
     record_type = metadata.get('QUERY_NAME', 'RUN')
 
+    metadata_json_sql = "'" + json.dumps(metadata).replace('\\', '\\\\').replace("'", "\\'") + "'"
+
     sql = f'''
-    INSERT INTO {table}
-        (event_time, v) select '{metadata['START_TIME']}',
-        PARSE_JSON(column1) from values('{json.dumps(metadata)}')
+    INSERT INTO {table}(event_time, v)
+    SELECT '{metadata['START_TIME']}'
+         , PARSE_JSON(column1)
+    FROM VALUES({metadata_json_sql})
     '''
 
     try:

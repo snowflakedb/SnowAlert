@@ -30,12 +30,19 @@ def main():
             'ATTEMPTS': 1,
             'START_TIME': datetime.datetime.utcnow(),
         }
-        insert_count, update_count = db.insert_violations_query_run(query_name)
+        try:
+            insert_count, update_count = db.insert_violations_query_run(query_name)
+        except Exception as e:
+            log.info(f"{query_name} threw an exception.")
+            insert_count, update_count = 0, 0
+            metadata['EXCEPTION'] = e
+
         metadata['ROW_COUNT'] = {
             'INSERTED': insert_count,
             'UPDATED': update_count,
         }
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        log.info(f"{query_name} done.")
         METADATA_RECORDS.append(metadata)
 
     RUN_METADATA['ROW_COUNT'] = {
