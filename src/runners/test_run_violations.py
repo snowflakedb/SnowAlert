@@ -59,7 +59,7 @@ WHERE suppressed IS NULL
 TEARDOWN_QUERIES = [
     f"DROP VIEW IF EXISTS rules.test_violation_query",
     f"DROP VIEW IF EXISTS rules.test_violation_suppression",
-    f"DROP VIEW IF EXISTS rules.test_invalid_violation_suppression",
+    f"DROP VIEW IF EXISTS rules.test_invalid_violation_query",
     f"DELETE FROM results.violations",
     f"DELETE FROM results.run_metadata",
     f"DELETE FROM results.query_metadata",
