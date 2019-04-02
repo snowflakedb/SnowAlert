@@ -1,10 +1,11 @@
 import datetime
 import json
-import os
 import sys
 import traceback
 
 import boto3
+
+from ..config import ENV
 
 
 def format_exception(e):
@@ -23,7 +24,7 @@ def write(*args, stream=sys.stdout):
 
 
 def debug(*args):
-    if os.environ.get("env") in ('dev', 'test'):
+    if ENV in ('dev', 'test'):
         write(*args, stream=sys.stdout)
 
 

@@ -244,5 +244,5 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
         result = next(fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False))
 
     num_rows_inserted = result['number of rows inserted']
-    log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
-    return num_rows_inserted, 0
+    log.info(f"{query_name} created {num_rows_inserted} rows.")
+    return num_rows_inserted
