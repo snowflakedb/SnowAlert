@@ -82,25 +82,7 @@ CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS data",
     f"CREATE SCHEMA IF NOT EXISTS rules",
     f"CREATE SCHEMA IF NOT EXISTS results",
-]
-
-CREATE_UDTF_FUNCTIONS = [
-    f"USE SCHEMA data",
-    f"""CREATE OR REPLACE FUNCTION time_slices (n NUMBER, s TIMESTAMP, e TIMESTAMP)
-          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
-          AS '
-            SELECT
-              DATEADD(sec, DATEDIFF(sec, s, e) * SEQ4() / n, s) AS slice_start,
-              DATEADD(sec, DATEDIFF(sec, s, e) * 1 / n, slice_start) AS slice_end
-            FROM TABLE(GENERATOR(ROWCOUNT => n))
-          '
-        ;
-    """,
-    f"""CREATE OR REPLACE FUNCTION time_slices_before_t (num_slices NUMBER, seconds_in_slice NUMBER, t TIMESTAMP_NTZ)
-          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
-          AS 'SELECT slice_start, slice_end FROM TABLE(time_slices( num_slices, DATEADD(sec, -seconds_in_slice * num_slices, t), t ))'
-        ;
-    """,
+    f"DROP SCHEMA IF EXISTS public",
 ]
 
 CREATE_TABLES_QUERIES = [
@@ -248,7 +230,7 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
-    do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
+    do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
     do_attempt("Creating standard data views", read_queries('data-views'))
 
 
