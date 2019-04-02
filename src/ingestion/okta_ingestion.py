@@ -28,13 +28,14 @@ def get_timestamp():
     # Once pipelines are more strongly integrated with the installer, this table should be a variable
     timestamp_query = """
         SELECT EVENT_TIME from {OKTA_TABLE}
+        WHERE EVENT_TIEM is not null
         order by EVENT_TIME desc
         limit 1
         """
     try:
         _, ts = db.connect_and_fetchall(timestamp_query)
         log.info(ts)
-        ts = ts[0][0]['since']
+        ts = ts[0][0]
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         log.info(ts)
         if len(ts) < 1:
