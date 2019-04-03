@@ -26,7 +26,7 @@ def process_logs(logs):
 def get_timestamp():
 
     # Once pipelines are more strongly integrated with the installer, this table should be a variable
-    timestamp_query = """
+    timestamp_query = f"""
         SELECT EVENT_TIME from {OKTA_TABLE}
         WHERE EVENT_TIME IS NOT NULL
         order by EVENT_TIME desc
