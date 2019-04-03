@@ -17,7 +17,7 @@ SELECT 'SnowAlert Test Runner' AS environment
      , OBJECT_CONSTRUCT('b', 1, 'a', 2) AS event_data
      , 'snowalert-test-detector' AS detector
      , 'low' AS severity
-     , 'test-owner' AS owner
+     -- , 'test-missing-owner' AS owner
      , 'test-violation-query-id' AS query_id
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
@@ -38,7 +38,7 @@ SELECT NULL AS environment
      , 1/0 AS event_data
      , NULL AS detector
      , NULL AS severity
-     , 'test-owner' AS owner
+     , NULL AS owner
      , 'test-violation-query-id' AS query_id
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
@@ -121,7 +121,7 @@ def test_run_violations():
         "SEVERITY": "low",
         "QUERY_ID": "test-violation-query-id",
         "QUERY_NAME": "TEST_VIOLATION_QUERY",
-        "OWNER": "test-owner",
+        "OWNER": None,
     }
 
     # basics
