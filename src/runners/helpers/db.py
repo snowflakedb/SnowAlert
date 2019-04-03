@@ -213,6 +213,7 @@ SELECT CURRENT_TIMESTAMP()
         OBJECT_CONSTRUCT(
             'ENVIRONMENT', IFNULL(environment, PARSE_JSON('null')),
             'OBJECT', IFNULL(object, PARSE_JSON('null')),
+            'OWNER', IFNULL(owner, PARSE_JSON('null')),
             'TITLE', IFNULL(title, PARSE_JSON('null')),
             'ALERT_TIME', IFNULL(alert_time, PARSE_JSON('null')),
             'DESCRIPTION', IFNULL(description, PARSE_JSON('null')),

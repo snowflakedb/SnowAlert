@@ -46,6 +46,7 @@ SELECT alert:ALERT_ID::VARCHAR AS id
   , alert:DETECTOR::VARCHAR     AS detector
   , alert:EVENT_DATA::VARIANT   AS event_data
   , alert:SEVERITY::VARCHAR     AS severity
+  , alert:OWNER::VARCHAR        AS owner
 FROM results.alerts
 ;
 
