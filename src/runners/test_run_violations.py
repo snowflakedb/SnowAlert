@@ -18,7 +18,6 @@ SELECT 'SnowAlert Test Runner' AS environment
      , 'snowalert-test-detector' AS detector
      , 'low' AS severity
      , 'test-violation-query-id' AS query_id
-     , 'TEST_VIOLATION_QUERY' AS query_name
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
@@ -39,7 +38,6 @@ SELECT NULL AS environment
      , NULL AS detector
      , NULL AS severity
      , 'test-violation-query-id' AS query_id
-     , 'TEST_INVALID_VIOLATION_QUERY' AS query_name
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1

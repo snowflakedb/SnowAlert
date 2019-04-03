@@ -29,7 +29,6 @@ SELECT 'E' AS environment
      , 'SnowAlert' AS detector
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity
-     , '${s}' AS query_name
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
@@ -45,7 +44,6 @@ SELECT 'E' AS environment
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'SnowAlert' AS detector
      , 'low' AS severity
-     , '${s}' AS query_name
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 

@@ -220,7 +220,7 @@ SELECT CURRENT_TIMESTAMP()
             'DETECTOR', IFNULL(detector, PARSE_JSON('null')),
             'SEVERITY', IFNULL(severity, PARSE_JSON('null')),
             'QUERY_ID', IFNULL(query_id, PARSE_JSON('null')),
-            'QUERY_NAME', IFNULL(query_name, PARSE_JSON('null'))
+            'QUERY_NAME', '{{query_name}}'
         )
       )
     ))
