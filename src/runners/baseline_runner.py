@@ -68,7 +68,6 @@ def query_log_source(ctx, source, time_filter, history):
 
 
 def log_results_query(target, results):
-
     query = f"""insert into snowalert.{DATA_SCHEMA_NAME}.{target} values """
     for i in results:
         query += str(i) + ", "
@@ -108,6 +107,7 @@ def run_baseline(ctx, row):
 
     results = unpack(output)
     try:
+        db.execute(ctx, f'truncate table {output_table};')
         db.execute(ctx, log_results_query(output_table, results))
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
