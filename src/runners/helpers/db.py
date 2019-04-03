@@ -211,16 +211,16 @@ SELECT CURRENT_TIMESTAMP()
       IFNULL(
         OBJECT_CONSTRUCT(*):IDENTITY,
         OBJECT_CONSTRUCT(
-            'ENVIRONMENT', IFNULL(environment, PARSE_JSON('null')),
-            'OBJECT', IFNULL(object, PARSE_JSON('null')),
-            'OWNER', IFNULL(owner, PARSE_JSON('null')),
-            'TITLE', IFNULL(title, PARSE_JSON('null')),
-            'ALERT_TIME', IFNULL(alert_time, PARSE_JSON('null')),
-            'DESCRIPTION', IFNULL(description, PARSE_JSON('null')),
-            'EVENT_DATA', IFNULL(event_data, PARSE_JSON('null')),
-            'DETECTOR', IFNULL(detector, PARSE_JSON('null')),
-            'SEVERITY', IFNULL(severity, PARSE_JSON('null')),
-            'QUERY_ID', IFNULL(query_id, PARSE_JSON('null')),
+            'ENVIRONMENT', IFNULL(OBJECT_CONSTRUCT(*):ENVIRONMENT, PARSE_JSON('null')),
+            'OBJECT', IFNULL(OBJECT_CONSTRUCT(*):OBJECT, PARSE_JSON('null')),
+            'OWNER', IFNULL(OBJECT_CONSTRUCT(*):OWNER, PARSE_JSON('null')),
+            'TITLE', IFNULL(OBJECT_CONSTRUCT(*):TITLE, PARSE_JSON('null')),
+            'ALERT_TIME', IFNULL(OBJECT_CONSTRUCT(*):ALERT_TIME, PARSE_JSON('null')),
+            'DESCRIPTION', IFNULL(OBJECT_CONSTRUCT(*):DESCRIPTION, PARSE_JSON('null')),
+            'EVENT_DATA', IFNULL(OBJECT_CONSTRUCT(*):EVENT_DATA, PARSE_JSON('null')),
+            'DETECTOR', IFNULL(OBJECT_CONSTRUCT(*):DETECTOR, PARSE_JSON('null')),
+            'SEVERITY', IFNULL(OBJECT_CONSTRUCT(*):SEVERITY, PARSE_JSON('null')),
+            'QUERY_ID', IFNULL(OBJECT_CONSTRUCT(*):QUERY_ID, PARSE_JSON('null')),
             'QUERY_NAME', '{{query_name}}'
         )
       )
