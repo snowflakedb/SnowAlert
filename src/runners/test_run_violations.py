@@ -17,8 +17,29 @@ SELECT 'SnowAlert Test Runner' AS environment
      , OBJECT_CONSTRUCT('b', 1, 'a', 2) AS event_data
      , 'snowalert-test-detector' AS detector
      , 'low' AS severity
+     -- , 'test-missing-owner' AS owner
      , 'test-violation-query-id' AS query_id
-     , 'TEST_VIOLATION_QUERY' AS query_name
+FROM (SELECT 1 AS test_data)
+WHERE 1=1
+  AND test_data=1
+"""
+
+TEST_INVALID_QUERY = f"""
+CREATE OR REPLACE VIEW rules.test_invalid_violation_query COPY GRANTS
+  COMMENT='Test Invalid Violation Summary
+  @id test-invalid-violation-query-id
+  @tags test-invalid-violation-tag'
+AS
+SELECT NULL AS environment
+     , NULL AS object
+     , NULL AS title
+     , CURRENT_TIMESTAMP() AS alert_time
+     , NULL AS description
+     , 1/0 AS event_data
+     , NULL AS detector
+     , NULL AS severity
+     , NULL AS owner
+     , 'test-violation-query-id' AS query_id
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
@@ -36,8 +57,9 @@ WHERE suppressed IS NULL
 """
 
 TEARDOWN_QUERIES = [
-    f"DROP VIEW rules.test_violation_query",
-    f"DROP VIEW rules.test_violation_suppression",
+    f"DROP VIEW IF EXISTS rules.test_violation_query",
+    f"DROP VIEW IF EXISTS rules.test_violation_suppression",
+    f"DROP VIEW IF EXISTS rules.test_invalid_violation_query",
     f"DELETE FROM results.violations",
     f"DELETE FROM results.run_metadata",
     f"DELETE FROM results.query_metadata",
@@ -56,6 +78,7 @@ def setup():
     db.connect()
     db.execute(TEST_QUERY)
     db.execute(TEST_SUPPRESSION)
+    db.execute(TEST_INVALID_QUERY)
 
 
 def teardown():
@@ -82,7 +105,10 @@ def test_run_violations():
     #
 
     violation_queries_runner.main()
-    v = next(db.fetch('SELECT * FROM data.violations'))
+    violations = list(db.fetch('SELECT * FROM data.violations'))
+
+    assert len(violations) == 1
+    v = violations[0]
 
     default_identity = {
         "ENVIRONMENT": "SnowAlert Test Runner",
@@ -95,6 +121,7 @@ def test_run_violations():
         "SEVERITY": "low",
         "QUERY_ID": "test-violation-query-id",
         "QUERY_NAME": "TEST_VIOLATION_QUERY",
+        "OWNER": None,
     }
 
     # basics
@@ -106,13 +133,19 @@ def test_run_violations():
     assert v['CREATED_TIME'] is not None
 
     # metadata
-    queries_run_record = next(db.fetch('SELECT * FROM data.violation_queries_runs'))
-    assert queries_run_record['NUM_VIOLATIONS_CREATED'] == 1
-    assert queries_run_record['NUM_VIOLATIONS_UPDATED'] == 0
+    queries_run_records = list(db.fetch('SELECT * FROM data.violation_queries_runs ORDER BY start_time DESC'))
+    assert len(queries_run_records) == 1
+    assert queries_run_records[0]['NUM_VIOLATIONS_CREATED'] == 1
 
-    query_rule_run_record = next(db.fetch('SELECT * FROM data.violation_query_rule_runs'))
-    assert query_rule_run_record['NUM_VIOLATIONS_CREATED'] == 1
-    assert query_rule_run_record['NUM_VIOLATIONS_UPDATED'] == 0
+    query_rule_run_record = list(db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time DESC'))
+    assert query_rule_run_record[0]['NUM_VIOLATIONS_CREATED'] == 1
+    assert query_rule_run_record[1]['NUM_VIOLATIONS_CREATED'] == 0
+
+    assert type(query_rule_run_record[1].get('ERROR')) is str
+    error = json.loads(query_rule_run_record[1]['ERROR'])
+    assert error['PROGRAMMING_ERROR'] == '100051 (22012): Division by zero'
+    assert 'snowflake.connector.errors.ProgrammingError' in error['EXCEPTION_ONLY']
+    assert 'Traceback (most recent call last)' in error['EXCEPTION']
 
     #
     # run supperessions

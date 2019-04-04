@@ -20,12 +20,12 @@ export class Subpolicy {
 }
 
 const BLANK_POLICY = (viewName: string) =>
-  `CREATE OR REPLACE VIEW x.y.${viewName}_POLICY_DEFINITION COPY GRANTS` +
-  `  COMMENT='Policy Title` +
-  `description goes here'` +
-  `AS` +
-  `  SELECT 'subpolicy title' AS title` +
-  `       , true AS passing` +
+  `CREATE OR REPLACE VIEW rules.${viewName}_POLICY_DEFINITION COPY GRANTS\n` +
+  `  COMMENT='Policy Title\n` +
+  `description goes here'\n` +
+  `AS\n` +
+  `  SELECT 'subpolicy title' AS title\n` +
+  `       , true AS passing\n` +
   `;`;
 
 function stripComment(body: string): {rest: string; comment: string; viewName: string} {
@@ -210,6 +210,10 @@ export class Policy extends SQLBackedRule {
         condition: matchSubpl[2],
       });
     } while (rest.replace(/\s/g, ''));
+  }
+
+  get isEdited() {
+    return this.body !== this._raw.savedBody;
   }
 
   get body(): string {

@@ -9,6 +9,8 @@ INPUT_TOKEN = environ.get('ALOOMA_OKTA_TOKEN')
 ALOOMA_SDK = alooma_pysdk.PythonSDK(INPUT_TOKEN)
 OKTA_API_KEY = environ.get('OKTA_API_KEY')
 AUTH = "SSWS "+OKTA_API_KEY
+OKTA_URL = environ.get('OKTA_URL')
+OKTA_TABLE = environ.get('OKTA_TABLE')
 
 HEADERS = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': AUTH}
 
@@ -24,17 +26,18 @@ def process_logs(logs):
 def get_timestamp():
 
     # Once pipelines are more strongly integrated with the installer, this table should be a variable
-    timestamp_query = """
-        SELECT PUBLISHED from SECURITY.ALOOMA.SNOWBIZ_OKTA
-        order by PUBLISHED desc
+    timestamp_query = f"""
+        SELECT EVENT_TIME from {OKTA_TABLE}
+        WHERE EVENT_TIME IS NOT NULL
+        order by EVENT_TIME desc
         limit 1
         """
     try:
         _, ts = db.connect_and_fetchall(timestamp_query)
-        print(ts)
+        log.info(ts)
         ts = ts[0][0]
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        print(ts)
+        log.info(ts)
         if len(ts) < 1:
             log.error("The okta timestamp is too short or doesn't exist; defaulting to one hour ago")
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
@@ -46,13 +49,13 @@ def get_timestamp():
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     ret = {'since': ts}
-    print(ret)
+    log.info(ret)
 
     return ret
 
 
 def main():
-    url = 'https://snowbiz.okta.com/api/v1/logs'
+    url = OKTA_URL
     log.info("starting loop")
     timestamp = get_timestamp()
     while 1:

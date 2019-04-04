@@ -74,7 +74,7 @@ def log_failure(ctx, suppression_name, e, event_data=None, description=None):
     alerts = [json.dumps({
         'ALERT_ID': uuid.uuid4().hex,
         'QUERY_ID': 'b1d02051dd2c4d62bb75274f2ee5996a',
-        'QUERY_NAME': 'Suppression Runner Failure',
+        'QUERY_NAME': ['Suppression Runner Failure'],
         'ENVIRONMENT': 'Suppressions',
         'SOURCES': 'Suppression Runner',
         'ACTOR': 'Suppression Runner',
@@ -154,8 +154,11 @@ def main():
 
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
-    if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}], 1)
+    try:
+        if CLOUDWATCH_METRICS:
+            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}], 1)
+    except Exception as e:
+        log.error("Cloudwatch metric logging failed: ", e)
 
 
 if __name__ == '__main__':

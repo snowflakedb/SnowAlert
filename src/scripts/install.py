@@ -82,25 +82,7 @@ CREATE_SCHEMAS_QUERIES = [
     f"CREATE SCHEMA IF NOT EXISTS data",
     f"CREATE SCHEMA IF NOT EXISTS rules",
     f"CREATE SCHEMA IF NOT EXISTS results",
-]
-
-CREATE_UDTF_FUNCTIONS = [
-    f"USE SCHEMA data",
-    f"""CREATE OR REPLACE FUNCTION time_slices (n NUMBER, s TIMESTAMP, e TIMESTAMP)
-          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
-          AS '
-            SELECT
-              DATEADD(sec, DATEDIFF(sec, s, e) * SEQ4() / n, s) AS slice_start,
-              DATEADD(sec, DATEDIFF(sec, s, e) * 1 / n, slice_start) AS slice_end
-            FROM TABLE(GENERATOR(ROWCOUNT => n))
-          '
-        ;
-    """,
-    f"""CREATE OR REPLACE FUNCTION time_slices_before_t (num_slices NUMBER, seconds_in_slice NUMBER, t TIMESTAMP_NTZ)
-          RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
-          AS 'SELECT slice_start, slice_end FROM TABLE(time_slices( num_slices, DATEADD(sec, -seconds_in_slice * num_slices, t), t ))'
-        ;
-    """,
+    f"DROP SCHEMA IF EXISTS public",
 ]
 
 CREATE_TABLES_QUERIES = [
@@ -159,13 +141,14 @@ def parse_snowflake_url(url):
     return account, region
 
 
-def login():
+def login(config_account):
     config = ConfigParser()
-    if config.read(os.path.expanduser('~/.snowsql/config')) and 'connections' in config:
-        account = config['connections'].get('accountname')
-        username = config['connections'].get('username')
-        password = config['connections'].get('password')
-        region = config['connections'].get('region')
+    config_section = f'connections.{config_account}' if config_account else 'connections'
+    if config.read(os.path.expanduser('~/.snowsql/config')) and config_section in config:
+        account = config[config_section].get('accountname')
+        username = config[config_section].get('username')
+        password = config[config_section].get('password')
+        region = config[config_section].get('region')
     else:
         account = None
         username = None
@@ -248,7 +231,7 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
-    do_attempt("Creating standard UDTFs", CREATE_UDTF_FUNCTIONS)
+    do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
     do_attempt("Creating standard data views", read_queries('data-views'))
 
 
@@ -275,11 +258,11 @@ def jira_integration(setup_jira=None):
         setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
 
     if setup_jira:
-        jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
-        jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         jira_url = input("Please enter the URL for the Jira integration: ")
         if jira_url[:8] != "https://":
             jira_url = "https://" + jira_url
+        jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
+        jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         print("Please enter the project tag for the alerts...")
         print("Note that this should be the text that will prepend the ticket id; if the project is SnowAlert")
         print("and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.")
@@ -390,8 +373,8 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None):
-    ctx, account, region, do_attempt = login()
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None):
+    ctx, account, region, do_attempt = login(config_account)
 
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
     if admin_role == "accountadmin":

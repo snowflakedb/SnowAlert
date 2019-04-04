@@ -100,6 +100,12 @@ class Violations extends React.PureComponent<ViolationsProps> {
                             getValue: (q: Query) => q.fields.select.alert_time,
                             setValue: (q: Query, v: string) => q.copy({fields: {select: {alert_time: v}}}),
                           },
+                          {
+                            title: 'Owner',
+                            type: 'string',
+                            getValue: (q: Query) => q.fields.select.owner,
+                            setValue: (q: Query, v: string) => q.copy({fields: {select: {owner: v}}}),
+                          },
                         ],
                       },
                       {

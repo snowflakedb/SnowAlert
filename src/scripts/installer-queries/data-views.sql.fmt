@@ -27,7 +27,7 @@ FROM (
 CREATE OR REPLACE VIEW data.alerts COPY GRANTS
   COMMENT='Reflects on existing Alerts, e.g. for writing alert suppressions'
 AS
-SELECT alert:ALERT_ID AS id
+SELECT alert:ALERT_ID::VARCHAR AS id
   , correlation_id
   , alert_time
   , event_time
@@ -46,6 +46,7 @@ SELECT alert:ALERT_ID AS id
   , alert:DETECTOR::VARCHAR     AS detector
   , alert:EVENT_DATA::VARIANT   AS event_data
   , alert:SEVERITY::VARCHAR     AS severity
+  , alert:OWNER::VARCHAR        AS owner
 FROM results.alerts
 ;
 
@@ -70,14 +71,31 @@ SELECT id
 FROM results.violations
 ;
 
+CREATE OR REPLACE VIEW data.tags_foj_alerts COPY GRANTS
+  COMMENT='this view selects all tags, FOJed on alerts generated from queries having those tags'
+AS
+SELECT tag, alert.*
+FROM data.rule_tags AS rule_tag
+FULL OUTER JOIN data.alerts AS alert
+ON rule_tag.query_id=alert.query_id
+;
+
+CREATE OR REPLACE VIEW data.tags_foj_violations COPY GRANTS
+  COMMENT='this view selects all tags, FOJed on violations generated from queries having those tags'
+AS
+SELECT tag, violation.*
+FROM data.rule_tags AS rule_tag
+FULL OUTER JOIN data.violations AS violation
+ON rule_tag.query_id=violation.query_id
+;
+
 CREATE OR REPLACE VIEW data.violation_queries_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
-  , V:START_TIME AS start_time
-  , V:END_TIME AS end_time
+  , V:START_TIME::TIMESTAMP AS start_time
+  , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.INSERTED::INTEGER AS num_violations_created
-  , V:ROW_COUNT.UPDATED::INTEGER AS num_violations_updated
 FROM results.run_metadata
 WHERE V:RUN_TYPE='VIOLATION QUERY'
 ;
@@ -86,8 +104,8 @@ CREATE OR REPLACE VIEW data.violation_suppressions_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
-  , V:START_TIME AS start_time
-  , V:END_TIME AS end_time
+  , V:START_TIME::TIMESTAMP AS start_time
+  , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.PASSED::INTEGER AS num_violations_passed
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
 FROM results.run_metadata
@@ -98,9 +116,10 @@ CREATE OR REPLACE VIEW data.violation_query_rule_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
-  , V:QUERY_NAME AS query_name
-  , V:START_TIME AS start_time
-  , V:END_TIME AS end_time
+  , V:QUERY_NAME::VARCHAR AS query_name
+  , V:START_TIME::TIMESTAMP AS start_time
+  , V:END_TIME::TIMESTAMP AS end_time
+  , V:ERROR AS error
   , V:ROW_COUNT.INSERTED::INTEGER AS num_violations_created
   , V:ROW_COUNT.UPDATED::INTEGER AS num_violations_updated
 FROM results.query_metadata
@@ -111,9 +130,9 @@ CREATE OR REPLACE VIEW data.violation_suppression_rule_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
-  , V:QUERY_NAME AS query_name
-  , V:START_TIME AS start_time
-  , V:END_TIME AS end_time
+  , V:QUERY_NAME::VARCHAR AS query_name
+  , V:START_TIME::TIMESTAMP AS start_time
+  , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
 FROM results.query_metadata
 WHERE V:QUERY_NAME ILIKE '%_VIOLATION_SUPPRESSION'

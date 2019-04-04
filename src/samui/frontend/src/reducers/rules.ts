@@ -21,7 +21,7 @@ SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
      , 'rule title' AS title
-     , CURRENT_TIMESTAMP() AS event_time
+     , NULL AS event_time
      , CURRENT_TIMESTAMP() AS alert_time
      , 'S: Subject Verb Predicate at ' || alert_time AS description
      , 'Subject' AS actor
@@ -29,7 +29,6 @@ SELECT 'E' AS environment
      , 'SnowAlert' AS detector
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity
-     , '${s}' AS query_name
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
@@ -45,15 +44,15 @@ SELECT 'E' AS environment
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'SnowAlert' AS detector
      , 'low' AS severity
-     , '${s}' AS query_name
+     , NULL AS owner
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
 const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_ALERT_SUPPRESSION COPY GRANTS
   COMMENT='New Alert Suppression'
 AS
-SELECT alert
-FROM results.alerts
+SELECT id
+FROM data.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;
@@ -62,7 +61,7 @@ const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${
   COMMENT='New Violation Suppression'
 AS
 SELECT id
-FROM results.violations
+FROM data.violations
 WHERE suppressed IS NULL
   AND ...
 ;`;
@@ -145,6 +144,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
         ...state,
         queries: state.queries.map(q => (q.viewName === viewName ? q.copy({isSaving: false}) : q)),
         suppressions: state.suppressions.map(s => (s.viewName === viewName ? s.copy({isSaving: false}) : s)),
+        policies: state.policies.map(p =>
+          p.viewName === state.currentRuleView ? Object.assign(p, {isSaving: false}) : p,
+        ),
       };
     }
 
@@ -162,9 +164,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName, newDescription} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
-          viewName !== p.viewName ? p : Object.assign(p, {description: newDescription}),
-        ),
+        policies: state.policies.map(p => (viewName !== p.viewName ? p : Object.assign(p, {summary: newDescription}))),
       };
     }
 

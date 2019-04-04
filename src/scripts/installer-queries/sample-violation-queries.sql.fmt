@@ -11,6 +11,7 @@ SELECT 'SnowAlert' AS environment
      , NULL AS event_data
      , 'snowalert' AS detector
      , 'low' AS severity
+     , NULL AS owner
      , 'tcl3emm98h' AS query_id
      , 'no_violation_queries_in_too_long' AS query_name
 FROM data.violations_in_days_past_v
