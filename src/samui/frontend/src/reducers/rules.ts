@@ -52,7 +52,7 @@ const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_A
   COMMENT='New Alert Suppression'
 AS
 SELECT id
-FROM results.alerts
+FROM data.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;
@@ -61,7 +61,7 @@ const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${
   COMMENT='New Violation Suppression'
 AS
 SELECT id
-FROM results.violations
+FROM data.violations
 WHERE suppressed IS NULL
   AND ...
 ;`;
