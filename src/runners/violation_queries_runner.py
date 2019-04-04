@@ -2,14 +2,14 @@
 
 import datetime
 
-from runners.config import (
+from .config import (
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
     VIOLATION_QUERY_POSTFIX,
     CLOUDWATCH_METRICS,
     RUN_ID,
 )
-from runners.helpers import db, log
+from .helpers import db, log
 
 METADATA_RECORDS = []
 
@@ -30,17 +30,22 @@ def main():
             'ATTEMPTS': 1,
             'START_TIME': datetime.datetime.utcnow(),
         }
-        insert_count, update_count = db.insert_violations_query_run(query_name)
+        try:
+            insert_count = db.insert_violations_query_run(query_name)
+        except Exception as e:
+            log.info(f"{query_name} threw an exception.")
+            insert_count = 0
+            metadata['EXCEPTION'] = e
+
         metadata['ROW_COUNT'] = {
             'INSERTED': insert_count,
-            'UPDATED': update_count,
         }
         log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        log.info(f"{query_name} done.")
         METADATA_RECORDS.append(metadata)
 
     RUN_METADATA['ROW_COUNT'] = {
         'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS),
-        'UPDATED': sum(r['ROW_COUNT']['UPDATED'] for r in METADATA_RECORDS),
     }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 

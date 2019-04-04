@@ -97,6 +97,7 @@ def fetch(ctx, query=None, fix_errors=True):
 
 
 def execute(ctx, query=None, fix_errors=True):
+    # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
@@ -104,14 +105,15 @@ def execute(ctx, query=None, fix_errors=True):
         return ctx.cursor().execute(query)
 
     except snowflake.connector.errors.ProgrammingError as e:
-        if not fix_errors:
-            raise
-
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
             return execute(query)
 
-        log.error(e, f"Ignoring programming Error in query: {query}")
+        if not fix_errors:
+            log.debug(f"re-raising error '{e}' in query >{query}<")
+            raise
+
+        log.info(e, f"ignoring error '{e}' in query >{query}<")
 
         return ctx.cursor().execute("SELECT 1 WHERE FALSE;")
 
@@ -151,18 +153,25 @@ def load_rules(ctx, postfix) -> List[str]:
     return rules
 
 
+INSERT_ALERTS_QUERY = f"""
+INSERT INTO results.alerts (alert_time, event_time, alert)
+SELECT PARSE_JSON(column1):ALERT_TIME
+     , PARSE_JSON(column1):EVENT_TIME
+     , PARSE_JSON(column1)
+FROM VALUES {{values}}
+"""
+
+
+def sql_value_placeholders(n):
+    return ", ".join(["(%s)"] * n)
+
+
 def insert_alerts(alerts, ctx=None):
     if ctx is None:
         ctx = CACHED_CONNECTION or connect()
 
-    ctx.cursor().execute(
-        (
-            f'INSERT INTO restuls.alerts (alert_time, event_time, alert) '
-            f'SELECT PARSE_JSON(column1):ALERT_TIME, PARSE_JSON(column1):EVENT_TIME, PARSE_JSON(column1) '
-            f'FROM values {", ".join(["(%s)"] * len(alerts))};'
-        ),
-        alerts
-    )
+    query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
+    return ctx.cursor().execute(query, alerts)
 
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
@@ -202,16 +211,17 @@ SELECT CURRENT_TIMESTAMP()
       IFNULL(
         OBJECT_CONSTRUCT(*):IDENTITY,
         OBJECT_CONSTRUCT(
-            'ENVIRONMENT', IFNULL(environment, PARSE_JSON('null')),
-            'OBJECT', IFNULL(object, PARSE_JSON('null')),
-            'TITLE', IFNULL(title, PARSE_JSON('null')),
-            'ALERT_TIME', IFNULL(alert_time, PARSE_JSON('null')),
-            'DESCRIPTION', IFNULL(description, PARSE_JSON('null')),
-            'EVENT_DATA', IFNULL(event_data, PARSE_JSON('null')),
-            'DETECTOR', IFNULL(detector, PARSE_JSON('null')),
-            'SEVERITY', IFNULL(severity, PARSE_JSON('null')),
-            'QUERY_ID', IFNULL(query_id, PARSE_JSON('null')),
-            'QUERY_NAME', IFNULL(query_name, PARSE_JSON('null'))
+            'ENVIRONMENT', IFNULL(OBJECT_CONSTRUCT(*):ENVIRONMENT, PARSE_JSON('null')),
+            'OBJECT', IFNULL(OBJECT_CONSTRUCT(*):OBJECT, PARSE_JSON('null')),
+            'OWNER', IFNULL(OBJECT_CONSTRUCT(*):OWNER, PARSE_JSON('null')),
+            'TITLE', IFNULL(OBJECT_CONSTRUCT(*):TITLE, PARSE_JSON('null')),
+            'ALERT_TIME', IFNULL(OBJECT_CONSTRUCT(*):ALERT_TIME, PARSE_JSON('null')),
+            'DESCRIPTION', IFNULL(OBJECT_CONSTRUCT(*):DESCRIPTION, PARSE_JSON('null')),
+            'EVENT_DATA', IFNULL(OBJECT_CONSTRUCT(*):EVENT_DATA, PARSE_JSON('null')),
+            'DETECTOR', IFNULL(OBJECT_CONSTRUCT(*):DETECTOR, PARSE_JSON('null')),
+            'SEVERITY', IFNULL(OBJECT_CONSTRUCT(*):SEVERITY, PARSE_JSON('null')),
+            'QUERY_ID', IFNULL(OBJECT_CONSTRUCT(*):QUERY_ID, PARSE_JSON('null')),
+            'QUERY_NAME', '{{query_name}}'
         )
       )
     ))
@@ -229,17 +239,11 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 
     log.info(f"{query_name} processing...")
     try:
-        try:
-            result = next(fetch(ctx, INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals())))
-        except Exception:
-            log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
-            result = next(fetch(ctx, INSERT_VIOLATIONS_QUERY.format(**locals())))
+        result = next(fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False))
+    except Exception:
+        log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
+        result = next(fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False))
 
-        num_rows_inserted = result['number of rows inserted']
-        log.info(f"{query_name} created {num_rows_inserted} rows, updated 0 rows.")
-        log.info(f"{query_name} done.")
-        return num_rows_inserted, 0
-
-    except Exception as e:
-        log.info(f"{query_name} run threw an exception:", e)
-        return 0, 0
+    num_rows_inserted = result['number of rows inserted']
+    log.info(f"{query_name} created {num_rows_inserted} rows.")
+    return num_rows_inserted

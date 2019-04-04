@@ -29,7 +29,6 @@ SELECT 'E' AS environment
      , 'SnowAlert' AS detector
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity
-     , '${s}' AS query_name
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
@@ -45,7 +44,7 @@ SELECT 'E' AS environment
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'SnowAlert' AS detector
      , 'low' AS severity
-     , '${s}' AS query_name
+     , NULL AS owner
      , '${qid}' AS query_id
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
@@ -53,7 +52,7 @@ const alertSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${s}_A
   COMMENT='New Alert Suppression'
 AS
 SELECT id
-FROM results.alerts
+FROM data.alerts
 WHERE suppressed IS NULL
   AND ...
 ;`;
@@ -62,7 +61,7 @@ const violationSuppressionBody = (s: string) => `CREATE OR REPLACE VIEW rules.${
   COMMENT='New Violation Suppression'
 AS
 SELECT id
-FROM results.violations
+FROM data.violations
 WHERE suppressed IS NULL
   AND ...
 ;`;

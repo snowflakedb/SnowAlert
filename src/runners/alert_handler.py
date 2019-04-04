@@ -148,8 +148,11 @@ def main():
         # Record the new ticket id in the alert table
         record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])
 
-    if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
+    try:
+        if CLOUDWATCH_METRICS:
+            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
+    except Exception as e:
+        log.error("Cloudwatch metric logging failed", e)
 
 
 if __name__ == "__main__":

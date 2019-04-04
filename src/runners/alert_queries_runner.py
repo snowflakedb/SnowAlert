@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import json
-import hashlib
 import uuid
 import datetime
 from typing import Any, Dict, List, Tuple
@@ -19,12 +18,6 @@ from runners.utils import groups_of
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
 QUERY_HISTORY: List = []
-
-
-def alert_group(alert) -> str:
-    return hashlib.md5(
-        f"{alert['OBJECT']}{alert['DESCRIPTION']}".encode('utf-8')
-    ).hexdigest()
 
 
 def log_alerts(ctx, alerts):
@@ -121,8 +114,11 @@ def main(rule_name=None):
     }
     log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
 
-    if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
+    try:
+        if CLOUDWATCH_METRICS:
+            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
+    except Exception as e:
+        log.error("Cloudwatch metric logging failed: ", e)
 
 
 if __name__ == '__main__':
