@@ -141,13 +141,14 @@ def parse_snowflake_url(url):
     return account, region
 
 
-def login():
+def login(config_account):
     config = ConfigParser()
-    if config.read(os.path.expanduser('~/.snowsql/config')) and 'connections' in config:
-        account = config['connections'].get('accountname')
-        username = config['connections'].get('username')
-        password = config['connections'].get('password')
-        region = config['connections'].get('region')
+    config_section = f'connections.{config_account}' if config_account else 'connections'
+    if config.read(os.path.expanduser('~/.snowsql/config')) and config_section in config:
+        account = config[config_section].get('accountname')
+        username = config[config_section].get('username')
+        password = config[config_section].get('password')
+        region = config[config_section].get('region')
     else:
         account = None
         username = None
@@ -257,11 +258,11 @@ def jira_integration(setup_jira=None):
         setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
 
     if setup_jira:
-        jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
-        jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         jira_url = input("Please enter the URL for the Jira integration: ")
         if jira_url[:8] != "https://":
             jira_url = "https://" + jira_url
+        jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
+        jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
         print("Please enter the project tag for the alerts...")
         print("Note that this should be the text that will prepend the ticket id; if the project is SnowAlert")
         print("and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.")
@@ -372,8 +373,8 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None):
-    ctx, account, region, do_attempt = login()
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None):
+    ctx, account, region, do_attempt = login(config_account)
 
     do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
     if admin_role == "accountadmin":
