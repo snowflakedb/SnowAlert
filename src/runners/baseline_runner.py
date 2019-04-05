@@ -107,7 +107,7 @@ def run_baseline(ctx, row):
 
     results = unpack(output)
     try:
-        db.execute(ctx, f'truncate table {output_table};')
+        db.execute(ctx, f'truncate table snowalert.{DATA_SCHEMA_NAME}.{output_table};')
         db.execute(ctx, log_results_query(output_table, results))
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
