@@ -1,16 +1,13 @@
-from base64 import b64decode
-import boto3
-import os
+from os import environ
 from urllib.parse import quote
 import yaml
 
 from jira import JIRA
 
-from runners.helpers.dbconfig import REGION
-from runners.helpers import log
+from runners.helpers import log, kms
 
-PROJECT = os.environ.get('JIRA_PROJECT', '')
-URL = os.environ.get('JIRA_URL', '')
+PROJECT = environ.get('JIRA_PROJECT', '')
+URL = environ.get('JIRA_URL', '')
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -41,15 +38,10 @@ Event Data: {{code}}{EVENT_DATA}{{code}}
 Severity: {SEVERITY}
 """
 
-kms = boto3.client('kms', region_name=REGION)
-password = os.environ.get('JIRA_PASSWORD')
-user = os.environ.get('JIRA_USER')
+password = kms.decrypt_if_encrypted(environ.get('JIRA_PASSWORD'))
+user = environ.get('JIRA_USER')
 
 if user and password:
-    if len(password) > 100:  # then it must be encrypted!
-        decrypted_auth = kms.decrypt(CiphertextBlob=b64decode(password))
-        password = decrypted_auth['Plaintext'].decode()
-
     jira = JIRA(URL, basic_auth=(user, password))
 
 
