@@ -57,9 +57,18 @@ def log_failure(ctx, alert, e):
         log.error("Failed to log alert creation failure", e)
 
 
+GET_ALERTS_QUERY = f"""
+SELECT *
+FROM results.alerts
+WHERE ticket IS NULL
+  AND suppressed=FALSE
+ORDER BY event_time ASC
+LIMIT 100
+"""
+
+
 def get_new_alerts(ctx):
-    get_alerts_query = f'SELECT * FROM results.alerts WHERE ticket IS NULL AND suppressed=FALSE LIMIT 100'
-    results = ctx.cursor().execute(get_alerts_query).fetchall()
+    results = ctx.cursor().execute(GET_ALERTS_QUERY).fetchall()
     print(f'Found {len(results)} new alerts.')
     return results
 

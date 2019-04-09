@@ -8,13 +8,18 @@ kms = boto3.client('kms', region_name=REGION)
 
 
 def decrypt_if_encrypted(ct, handleErrors=True):
-    try:
-        ctb = b64decode(ct)
-    except Exception:
-        ctb = ct
+    if len(ct) < 32:
+        # guess at smallest ciphertext
+        return ct
 
     try:
-        return kms.decrypt(CiphertextBlob=ctb)['Plaintext'].decode()
+        ctBlob = b64decode(ct)
+    except Exception:
+        ctBlob = ct
+
+    try:
+        # depending on local AWS config, this might ask for 2FA
+        return kms.decrypt(CiphertextBlob=ctBlob)['Plaintext'].decode()
     except Exception:
         if handleErrors:
             return ct

@@ -20,7 +20,7 @@ GET_CORRELATED_ALERT = f"""
 SELECT *
 FROM results.alerts
 WHERE alert:ACTOR = %s
-  AND (alert:OBJECT = %s OR alert:ACTION = %s)
+  AND (alert:OBJECT::string = %s OR alert:ACTION = %s)
   AND correlation_id IS NOT NULL
   AND NOT IS_NULL_VALUE(alert:ACTOR)
   AND suppressed = FALSE
@@ -40,21 +40,21 @@ WHERE correlation_id IS NULL
 
 def get_correlation_id(ctx, alert):
     try:
-        actor = str(alert['ACTOR'])
-        object = str(alert['OBJECT'])
-        action = str(alert['ACTION'])
+        actor = alert['ACTOR']
+        object = alert['OBJECT']
+        action = alert['ACTION']
         time = str(alert['EVENT_TIME'])
 
-        # todo make robust
+        # TODO: make robust by using data.alerts view
         if type(object) is list:
-            o = "', '".join(object)
-            object = f"ARRAY_CONSTRUCT('{o}')"
+            o = '","'.join(object)
+            object = f'["{o}"]'
 
     except Exception as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
         return uuid.uuid4().hex
 
-    # select the most recent alert which matches the correlation logicå
+    # select the most recent alert which matches the correlation logic
     query = GET_CORRELATED_ALERT.format(time=time)
 
     try:
@@ -69,7 +69,6 @@ def get_correlation_id(ctx, alert):
 
 
 def assess_correlation(ctx):
-
     try:
         alerts = ctx.cursor().execute(GET_ALERTS_WITHOUT_CORREALTION_ID).fetchall()
     except snowflake.connector.errors.ProgrammingError:

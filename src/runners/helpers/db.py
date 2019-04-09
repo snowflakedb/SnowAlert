@@ -1,9 +1,11 @@
 """Helper specific to SnowAlert connecting to the database"""
 
+import json
 from typing import List, Tuple
 from os import path
 
 import snowflake.connector
+from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
 
 from . import log
@@ -89,11 +91,18 @@ def fetch(ctx, query=None, fix_errors=True):
 
     res = execute(ctx, query, fix_errors)
     cols = [c[0] for c in res.description]
+    types = [FIELD_TYPES[c[1]] for c in res.description]
     while True:
         row = res.fetchone()
         if row is None:
             break
-        yield dict(zip(cols, row))
+
+        def parse_field(value, field_type):
+            if value is not None and field_type['name'] in {'OBJECT', 'ARRAY', 'VARIANT'}:
+                return json.loads(value)
+            return value
+
+        yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}
 
 
 def execute(ctx, query=None, fix_errors=True):
@@ -247,3 +256,22 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     num_rows_inserted = result['number of rows inserted']
     log.info(f"{query_name} created {num_rows_inserted} rows.")
     return num_rows_inserted
+
+
+GET_ALERTS_QUERY = f"""
+SELECT *
+FROM data.alerts
+{{where_clause}}
+"""
+
+
+def value_to_sql(v):
+    if type(v) is str:
+        return f"'{v}'"
+    return str(v)
+
+
+def get_alerts(**kwargs):
+    predicates = '\n  AND'.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
+    where_clause = f'WHERE {predicates}' if predicates else ''
+    return fetch(GET_ALERTS_QUERY.format(where_clause=where_clause))
