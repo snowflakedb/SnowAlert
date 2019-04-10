@@ -19,7 +19,7 @@ from base64 import b64encode
 from configparser import ConfigParser
 import fire
 from getpass import getpass
-import os
+from os import environ, path, urandom
 import re
 from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
@@ -46,7 +46,7 @@ def read_queries(file):
         'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
         'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
     }
-    pwd = os.path.dirname(os.path.realpath(__file__))
+    pwd = path.dirname(path.realpath(__file__))
     tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
     return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
 
@@ -141,14 +141,23 @@ def parse_snowflake_url(url):
     return account, region
 
 
-def login(config_account):
-    config = ConfigParser()
-    config_section = f'connections.{config_account}' if config_account else 'connections'
-    if config.read(os.path.expanduser('~/.snowsql/config')) and config_section in config:
-        account = config[config_section].get('accountname')
-        username = config[config_section].get('username')
-        password = config[config_section].get('password')
-        region = config[config_section].get('region')
+def login(configuration=None):
+    config_file = '~/.snowsql/config'
+
+    config = None
+    if type(configuration) is dict:
+        config = configuration
+    if type(configuration) is str:
+        parser = ConfigParser()
+        config_section = f'connections.{configuration}' if configuration else 'connections'
+        if parser.read(path.expanduser(config_file)) and config_section in parser:
+            config = parser[config_section]
+
+    if config is not None:
+        account = config.get('accountname')
+        username = config.get('username')
+        password = config.get('password')
+        region = config.get('region')
     else:
         account = None
         username = None
@@ -166,18 +175,18 @@ def login(config_account):
             else:
                 break
     else:
-        print(f"Loaded from ~/.snowcli/config: account '{account}'")
+        print(f"Loaded account: '{account}'")
 
-    print("Next, authenticate installer --")
     if not username:
+        print("Next, authenticate installer --")
         username = input("Snowflake username: ")
     else:
-        print(f"Loaded from ~/.snowcli/config: username '{username}'")
+        print(f"Loaded username: '{username}'")
 
     if not password:
         password = getpass("Password [leave blank for SSO for authentication]: ")
     else:
-        print(f"Loaded from ~/.snowcli/config: password {'*' * len(password)}")
+        print(f"Loaded password: {'*' * len(password)}")
 
     if not region:
         region = input("Region of your Snowflake account [blank for us-west-2]: ")
@@ -212,7 +221,7 @@ def login(config_account):
 
 def load_aws_config() -> Tuple[str, str]:
     parser = ConfigParser()
-    if parser.read(os.path.expanduser('~/.aws/config')) and 'default' in parser:
+    if parser.read(path.expanduser('~/.aws/config')) and 'default' in parser:
         c = parser['default']
         aws_key = c.get('aws_access_key_id')
         secret = c.get('aws_secret_access_key')
@@ -302,7 +311,7 @@ def setup_authentication(jira_password, region, pk_passwd=None):
         pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
 
     if pk_passwd == '.':
-        pk_passwd = b64encode(os.urandom(18)).decode('utf-8')
+        pk_passwd = b64encode(urandom(18)).decode('utf-8')
         print("Generated random passphrase.")
 
     private_key, public_key = genrsa(pk_passwd)
@@ -358,7 +367,7 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
-    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for random]: ")
+    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for new]: ")
 
     if not key:
         return list(args)
@@ -373,10 +382,29 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None):
-    ctx, account, region, do_attempt = login(config_account)
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None,
+         config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False):
 
-    do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+    configuration = connection_name if connection_name is not None else {
+        'region': config_region or environ.get('REGION'),
+        'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
+        'username': config_username or environ.get('SA_ADMIN_USER'),
+        'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
+    }
+
+    ctx, account, region, do_attempt = login(configuration)
+
+    if admin_role:
+        do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+
+    if uninstall:
+        do_attempt("Uninstalling", [
+            f'DROP SCHEMA {DATA_SCHEMA}',
+            f'DROP SCHEMA {RULES_SCHEMA}',
+            f'DROP SCHEMA {RESULTS_SCHEMA}'
+        ])
+        return
+
     if admin_role == "accountadmin":
         setup_warehouse_and_db(do_attempt)
         setup_user_and_role(do_attempt)

@@ -1,6 +1,7 @@
 import pytest
 
 from runners.helpers import db
+from scripts import install
 
 
 @pytest.fixture(scope="session")
@@ -9,13 +10,13 @@ def db_schemas(request):
 
     @request.addfinalizer
     def fin():
-        db.execute('DROP SCHEMA data')
-        db.execute('DROP SCHEMA rules')
-        db.execute('DROP SCHEMA results')
+        install.main(
+            admin_role=None,
+            uninstall=True,
+        )
 
-    from scripts import install
     install.main(
-        admin_role='snowalert_testing',
+        admin_role=None,  # uses user's default_role
         samples=False,
         pk_passwd='',
         jira=False,
