@@ -8,7 +8,6 @@ from samui.gunicorn_conf import host, port
 from samui.api import rules_api
 from samui.api.oauth import oauth_api
 from samui.views import app_views
-from samui.common import db, bcrypt
 
 logger = logbook.Logger(__name__)
 
@@ -16,15 +15,9 @@ app = Flask(__name__.split('.')[0], static_folder=None)  # type: ignore
 app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
 
-db.init_app(app)
-bcrypt.init_app(app)
-
 app.register_blueprint(app_views)
 app.register_blueprint(rules_api, url_prefix='/api/sa/rules')
 app.register_blueprint(oauth_api, url_prefix='/api/sa/oauth')
-
-with app.app_context():
-    db.create_all()
 
 
 @app.errorhandler(Exception)

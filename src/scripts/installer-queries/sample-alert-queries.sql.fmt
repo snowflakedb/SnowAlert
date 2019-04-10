@@ -35,7 +35,7 @@ WHERE suppressed IS NULL
 
 
 CREATE OR REPLACE VIEW rules.ACTIVITY_BY_ADMIN_{ALERT_QUERY_POSTFIX} COPY GRANTS
-  COMMENT='Alerts on administrative activity in Snowflake; requires MONITOR privileges on a warehouse to monitor that warehouse.
+  COMMENT='Alerts on administrative activity in Snowflake, requires MONITOR privileges on a warehouse to monitor that warehouse.
   @id {uuid}
   @tags admin activity'
 AS

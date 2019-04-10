@@ -1,4 +1,5 @@
 import json
+import pytest
 
 from runners import violation_queries_runner, violation_suppressions_runner
 from runners.helpers import db
@@ -74,30 +75,31 @@ def json_like_connector(o) -> str:
     return json.dumps(o, indent=2, sort_keys=True)
 
 
-def setup():
+@pytest.fixture
+def violation_queries(db_schemas):
     db.connect()
     db.execute(TEST_QUERY)
     db.execute(TEST_SUPPRESSION)
     db.execute(TEST_INVALID_QUERY)
 
+    yield
 
-def teardown():
     for q in TEARDOWN_QUERIES:
         db.execute(q)
 
 
-def test_violation_tags_in_rule_tags_view():
+def test_violation_tags_in_rule_tags_view(violation_queries):
     test_violation_tag_row = next(db.fetch("SELECT * FROM data.rule_tags WHERE tag='test-violation-tag'"))
     assert test_violation_tag_row == {
         'TYPE': 'QUERY',
         'TARGET': 'VIOLATION',
         'RULE_NAME': 'TEST_VIOLATION_QUERY',
-        'QUERY_ID': 'test-violation-query-id',
+        'RULE_ID': 'test-violation-query-id',
         'TAG': 'test-violation-tag',
     }
 
 
-def test_run_violations():
+def test_run_violations(violation_queries):
     from hashlib import md5
 
     #
@@ -127,7 +129,7 @@ def test_run_violations():
     # basics
     assert v['ID'] == md5(json_like_snowflake(default_identity).encode('utf-8')).hexdigest()
     assert v['OBJECT'] == "Test Violation Object"
-    assert v['EVENT_DATA'] == json_like_connector({"b": 1, "a": 2})
+    assert v['EVENT_DATA'] == {"b": 1, "a": 2}
     assert v['SUPPRESSED'] is None
     assert v['VIOLATION_TIME'] is None
     assert v['CREATED_TIME'] is not None
@@ -141,8 +143,8 @@ def test_run_violations():
     assert query_rule_run_record[0]['NUM_VIOLATIONS_CREATED'] == 1
     assert query_rule_run_record[1]['NUM_VIOLATIONS_CREATED'] == 0
 
-    assert type(query_rule_run_record[1].get('ERROR')) is str
-    error = json.loads(query_rule_run_record[1]['ERROR'])
+    error = query_rule_run_record[1].get('ERROR')
+    assert type(error) is dict
     assert error['PROGRAMMING_ERROR'] == '100051 (22012): Division by zero'
     assert 'snowflake.connector.errors.ProgrammingError' in error['EXCEPTION_ONLY']
     assert 'Traceback (most recent call last)' in error['EXCEPTION']
