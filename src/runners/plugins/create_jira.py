@@ -121,3 +121,7 @@ def get_ticket_description(id):
     if not user:
         return
     return jira.issue(id).fields.description
+
+
+def set_issue_done(issueId):
+    return jira.transition_issue(issueId, 'done')

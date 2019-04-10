@@ -1,7 +1,7 @@
 import pytest
 
 from runners.helpers import db
-
+from runners.plugins import create_jira
 
 TEST_ALERT = """
 CREATE OR REPLACE VIEW rules.test1_alert_query COPY GRANTS
@@ -118,13 +118,28 @@ def sample_alert_rules(db_schemas):
     # schemas will drop all that
 
 
+@pytest.fixture
+def update_jira_issue_status_done(request):
+    issues_to_update = []
+
+    @request.addfinalizer
+    def fin():
+        for jira_id in issues_to_update:
+            create_jira.set_issue_done(jira_id)
+
+    def mark_done(jira_id):
+        issues_to_update.append(jira_id)
+
+    yield mark_done
+
+
 def assert_dict_subset(a, b):
     for x in a:
         assert x in b
         assert a[x] == b[x]
 
 
-def test_alert_runners_processor_and_jira_handler(sample_alert_rules):
+def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jira_issue_status_done):
 
     #
     # queries runner
@@ -210,7 +225,7 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules):
 
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
     assert ticket_id is not None
-    from runners.plugins import create_jira
+    update_jira_issue_status_done(ticket_id)
     ticket_body = create_jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
     assert lines[2] == 'Query ID: test_1_query_id'
