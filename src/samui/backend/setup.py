@@ -14,7 +14,6 @@ setup(
         'itsdangerous',
         'logbook',
         'pendulum',
-        'psycopg2',
         'requests',
         'ujson',
     ]
