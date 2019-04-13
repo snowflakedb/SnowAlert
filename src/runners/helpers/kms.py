@@ -8,7 +8,7 @@ kms = boto3.client('kms', region_name=REGION)
 
 
 def decrypt_if_encrypted(ct, handleErrors=True):
-    if len(ct) < 32:
+    if ct and len(ct) < 32:
         # guess at smallest ciphertext
         return ct
 
