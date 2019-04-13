@@ -1,13 +1,13 @@
 require('dplyr')
 
-#inputTable <- dataframe, input
+#input_table <- dataframe, input
 #DAY <- columname with date, should be string type
 #PIVOT <- pivot column name
 #INSTANCE_ID <- column name with instance id
 #IMPORTANT <- column name with flag whether an instance is important
 #Important_Flag <- value inside IMPORTANT column that whether an instance is important
 
-INPUT_TABLE <- inputTable
+INPUT_TABLE <- input_table
 INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
 INPUT_TABLE$PIVOT <- gsub('"','',INPUT_TABLE$PIVOT)
 earliest_time <- min(INPUT_TABLE$DAY, na.rm=TRUE)
