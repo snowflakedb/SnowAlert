@@ -6,6 +6,7 @@ require('dplyr')
 #INSTANCE_ID <- column name with instance id
 #IMPORTANT <- column name with flag whether an instance is important
 #Important_Flag <- value inside IMPORTANT column that whether an instance is important
+#random comment
 
 INPUT_TABLE <- input_table
 INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
