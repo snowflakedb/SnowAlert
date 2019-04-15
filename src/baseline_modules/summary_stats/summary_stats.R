@@ -48,6 +48,6 @@ full_length$percentage_of_important_hits = full_length$hits/matrix_size
 full_length$matrix_size = matrix_size
 full_length$overall_matrix_size = all_matrix_size
 
-returnTable <- full_length
+return_value <- full_length
 
 
