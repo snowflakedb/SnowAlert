@@ -97,7 +97,7 @@ def run_baseline(ctx, row):
 
     log.info("Reading R code")
 
-    with open(f"../baseline_modules/{code_location}/{code_location}.r", "r") as f:
+    with open(f"../baseline_modules/{code_location}/{code_location}.R", "r") as f:
         r_code = f.read()
 
     r_code = format_code(r_code, required_values)
