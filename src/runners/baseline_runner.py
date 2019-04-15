@@ -49,6 +49,7 @@ def unpack(data):
 
 
 def query_log_source(ctx, source, time_filter, history):
+    log.info("Querying log source and packing data into frame")
     query = f"""SELECT * from {source} where {history} > dateadd(day, -{time_filter}, current_timestamp());"""
     if ctx is not None:
         try:
@@ -94,6 +95,8 @@ def run_baseline(ctx, row):
     time_filter = metadata['filter']
     history = metadata['history']
 
+    log.info("Reading R code")
+
     with open(f"../baseline_modules/{code_location}/{code_location}.r", "r") as f:
         r_code = f.read()
 
@@ -101,6 +104,7 @@ def run_baseline(ctx, row):
     frame = query_log_source(ctx, log_source, time_filter, history)
     ro.globalenv['input_table'] = frame
 
+    log.info("Running R code")
     output = ro.r(r_code)
     print(type(output))
     output = output.to_dict()
@@ -119,4 +123,5 @@ def main():
     tables = read_metadata(ctx)
 
     for row in tables:
+        log.info(f"Starting baseline: {row['name']}")
         run_baseline(ctx, row)
