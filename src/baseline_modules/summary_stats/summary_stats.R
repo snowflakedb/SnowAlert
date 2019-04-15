@@ -10,10 +10,15 @@ require('dplyr')
 
 INPUT_TABLE <- input_table
 INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
-INPUT_TABLE$PIVOT <- gsub('"','',INPUT_TABLE$PIVOT)
+
+pivot_cols <- strsplit(gsub(', ', ',','PIVOT'), ',')[[1]]
+INPUT_TABLE[,pivot_cols] <- lapply(INPUT_TABLE[,pivot_cols], function(y) gsub('"', '', y))
+
+
 earliest_time <- min(INPUT_TABLE$DAY, na.rm=TRUE)
 latest_time <- max(INPUT_TABLE$DAY, na.rm=TRUE)
 instances <- length(unique(INPUT_TABLE$INSTANCE_ID))
+                    
 important_subset <- INPUT_TABLE %>% filter(IMPORTANT=='Important_Flag')
 valuable_instances <- length(unique(important_subset$INSTANCE_ID))
 matrix_size <- as.numeric(latest_time - earliest_time)*(valuable_instances)
@@ -37,7 +42,7 @@ important_length <- important_subset %>%
     num_instances = length(unique(INSTANCE_ID))
   )
 
-full_length = merge(important_length, overall_length, by='PIVOT', all.x=TRUE, all.y=TRUE)
+full_length = merge(important_length, overall_length, by=c(pivot_cols), all.x=TRUE, all.y=TRUE)
 full_length$hits = coalesce(full_length$hits, as.numeric(0))
 full_length$hits_overall = coalesce(full_length$hits_overall, as.numeric(0))
 full_length$num_days = coalesce(full_length$num_days, as.numeric(0))
