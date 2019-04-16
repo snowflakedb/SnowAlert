@@ -9,9 +9,17 @@ from samui.api import rules_api
 from samui.api.oauth import oauth_api
 from samui.views import app_views
 
+
+class SAFlask(Flask):
+    def get_send_file_max_age(self, name):
+        if not name.lower().endswith('.js'):
+            return 0
+        return Flask.get_send_file_max_age(self, name)
+
+
 logger = logbook.Logger(__name__)
 
-app = Flask(__name__.split('.')[0], static_folder=None)  # type: ignore
+app = SAFlask(__name__.split('.')[0], static_folder=None)  # type: ignore
 app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
 
@@ -23,7 +31,11 @@ app.register_blueprint(oauth_api, url_prefix='/api/sa/oauth')
 @app.errorhandler(Exception)
 def error_handler(ex):
     logger.exception('An error has occurred! ({} {} {} {})'.format(
-        request.remote_addr, request.method, request.scheme, request.full_path))
+        request.remote_addr,
+        request.method,
+        request.scheme,
+        request.full_path
+    ))
     return 'Internal Server Error', 500
 
 
