@@ -113,17 +113,17 @@ def test_run_violations(violation_queries):
     v = violations[0]
 
     default_identity = {
-        "ENVIRONMENT": "SnowAlert Test Runner",
-        "OBJECT": "Test Violation Object",
-        "TITLE": "Test Violation Title",
-        "ALERT_TIME": None,
-        "DESCRIPTION": "This is a testing violation.",
-        "EVENT_DATA": {'b': 1, 'a': 2},
-        "DETECTOR": "snowalert-test-detector",
-        "SEVERITY": "low",
-        "QUERY_ID": "test-violation-query-id",
-        "QUERY_NAME": "TEST_VIOLATION_QUERY",
-        "OWNER": None,
+        'ENVIRONMENT': "SnowAlert Test Runner",
+        'OBJECT': v['OBJECT'],
+        'TITLE': "Test Violation Title",
+        'ALERT_TIME': None,
+        'DESCRIPTION': "This is a testing violation.",
+        'EVENT_DATA': {'b': 1, 'a': 2},
+        'DETECTOR': "snowalert-test-detector",
+        'SEVERITY': "low",
+        'QUERY_ID': "test-violation-query-id",
+        'QUERY_NAME': "TEST_VIOLATION_QUERY",
+        'OWNER': None,
     }
 
     # basics
@@ -140,6 +140,7 @@ def test_run_violations(violation_queries):
     assert queries_run_records[0]['NUM_VIOLATIONS_CREATED'] == 1
 
     query_rule_run_record = list(db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time DESC'))
+    assert len(query_rule_run_record) == 2
     assert query_rule_run_record[0]['NUM_VIOLATIONS_CREATED'] == 1
     assert query_rule_run_record[1]['NUM_VIOLATIONS_CREATED'] == 0
 

@@ -3,7 +3,7 @@ import pytest
 from runners.helpers import db
 from runners.plugins import create_jira
 
-TEST_ALERT = """
+TEST_ALERT = f"""
 CREATE OR REPLACE VIEW rules.test1_alert_query COPY GRANTS
   COMMENT='Test 1 Alert Query; should group with Test 3
   @tags test-tag'
@@ -26,7 +26,7 @@ WHERE 1=1
   AND test_data=1
 """
 
-TEST_SUPPRESSED_ALERT = """
+TEST_SUPPRESSED_ALERT = f"""
 CREATE OR REPLACE VIEW rules.test2_alert_query COPY GRANTS
   COMMENT='Suppressed Alert Query
   @tags test-tag'
@@ -53,7 +53,7 @@ WHERE 1=1
   AND test_data=1
 """
 
-TEST_SUPPRESSION = """
+TEST_SUPPRESSION = f"""
 CREATE OR REPLACE VIEW rules.test2_alert_suppression COPY GRANTS
   COMMENT='test suppression; should suppress test 2'
 AS
@@ -64,7 +64,7 @@ WHERE suppressed IS NULL
   AND action='Suppressed Alert Query Action'
 """
 
-TEST_CORRELATED_ALERT = """
+TEST_CORRELATED_ALERT = f"""
 CREATE OR REPLACE VIEW rules.test3_alert_query COPY GRANTS
   COMMENT='Test 3 Alert Query; should group with Test 1
   @id test_3_query
@@ -231,5 +231,3 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert lines[2] == 'Query ID: test_1_query_id'
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert lines[23] == 'Query ID: test_3_query'
-
-    # TODO: cleanup Jira
