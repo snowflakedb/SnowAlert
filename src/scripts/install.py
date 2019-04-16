@@ -141,6 +141,7 @@ def parse_snowflake_url(url):
     return account, region
 
 
+<<<<<<< HEAD
 def login(configuration=None):
     config_file = '~/.snowsql/config'
 
@@ -158,6 +159,16 @@ def login(configuration=None):
         username = config.get('username')
         password = config.get('password')
         region = config.get('region')
+=======
+def login(config_account):
+    config = ConfigParser()
+    config_section = f'connections.{config_account}' if config_account else 'connections'
+    if config.read(os.path.expanduser('~/.snowsql/config')) and config_section in config:
+        account = config[config_section].get('accountname')
+        username = config[config_section].get('username')
+        password = config[config_section].get('password')
+        region = config[config_section].get('region')
+>>>>>>> master
     else:
         account = None
         username = None
@@ -382,6 +393,7 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
+<<<<<<< HEAD
 def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None,
          config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False):
 
@@ -404,6 +416,10 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, con
             f'DROP SCHEMA {RESULTS_SCHEMA}'
         ])
         return
+=======
+def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None):
+    ctx, account, region, do_attempt = login(config_account)
+>>>>>>> master
 
     if admin_role == "accountadmin":
         setup_warehouse_and_db(do_attempt)

@@ -77,7 +77,11 @@ AS
 SELECT tag, alert.*
 FROM data.rule_tags AS rule_tag
 FULL OUTER JOIN data.alerts AS alert
+<<<<<<< HEAD
 ON rule_tag.rule_id=alert.query_id
+=======
+ON rule_tag.query_id=alert.query_id
+>>>>>>> master
 ;
 
 CREATE OR REPLACE VIEW data.tags_foj_violations COPY GRANTS
@@ -86,18 +90,29 @@ AS
 SELECT tag, violation.*
 FROM data.rule_tags AS rule_tag
 FULL OUTER JOIN data.violations AS violation
+<<<<<<< HEAD
 ON rule_tag.rule_id=violation.query_id
 ;
 
 
 CREATE OR REPLACE VIEW data.alert_queries_runs COPY GRANTS
+=======
+ON rule_tag.query_id=violation.query_id
+;
+
+CREATE OR REPLACE VIEW data.violation_queries_runs COPY GRANTS
+>>>>>>> master
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
   , V:START_TIME::TIMESTAMP AS start_time
   , V:END_TIME::TIMESTAMP AS end_time
+<<<<<<< HEAD
   , V:ROW_COUNT.INSERTED::INTEGER AS num_alerts_created
   , V:ROW_COUNT.UPDATED::INTEGER AS num_alerts_updated
+=======
+  , V:ROW_COUNT.INSERTED::INTEGER AS num_violations_created
+>>>>>>> master
 FROM results.run_metadata
 WHERE V:RUN_TYPE='ALERT QUERY'
 ;
@@ -106,6 +121,7 @@ CREATE OR REPLACE VIEW data.alert_query_rule_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
+<<<<<<< HEAD
   , V:QUERY_NAME::VARCHAR AS query_name
   , V:START_TIME::TIMESTAMP AS start_time
   , V:END_TIME::TIMESTAMP AS end_time
@@ -125,6 +141,12 @@ SELECT V:RUN_ID::VARCHAR AS run_id
   , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.PASSED::INTEGER AS num_alerts_passed
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_alerts_suppressed
+=======
+  , V:START_TIME::TIMESTAMP AS start_time
+  , V:END_TIME::TIMESTAMP AS end_time
+  , V:ROW_COUNT.PASSED::INTEGER AS num_violations_passed
+  , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
+>>>>>>> master
 FROM results.run_metadata
 WHERE V:RUN_TYPE='ALERT SUPPRESSION'
 ;
@@ -184,7 +206,11 @@ CREATE OR REPLACE VIEW data.violation_suppression_rule_runs COPY GRANTS
   COMMENT='Stable interface to underlying metadata tables'
 AS
 SELECT V:RUN_ID::VARCHAR AS run_id
+<<<<<<< HEAD
   , V:QUERY_NAME::VARCHAR AS rule_name
+=======
+  , V:QUERY_NAME::VARCHAR AS query_name
+>>>>>>> master
   , V:START_TIME::TIMESTAMP AS start_time
   , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed

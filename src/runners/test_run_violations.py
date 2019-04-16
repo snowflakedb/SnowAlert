@@ -143,8 +143,13 @@ def test_run_violations(violation_queries):
     assert query_rule_run_record[0]['NUM_VIOLATIONS_CREATED'] == 1
     assert query_rule_run_record[1]['NUM_VIOLATIONS_CREATED'] == 0
 
+<<<<<<< HEAD
     error = query_rule_run_record[1].get('ERROR')
     assert type(error) is dict
+=======
+    assert type(query_rule_run_record[1].get('ERROR')) is str
+    error = json.loads(query_rule_run_record[1]['ERROR'])
+>>>>>>> master
     assert error['PROGRAMMING_ERROR'] == '100051 (22012): Division by zero'
     assert 'snowflake.connector.errors.ProgrammingError' in error['EXCEPTION_ONLY']
     assert 'Traceback (most recent call last)' in error['EXCEPTION']
