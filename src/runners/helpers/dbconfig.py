@@ -14,4 +14,4 @@ WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert")
 DATABASE = environ.get('SA_DATABASE', "snowalert")
 
 # connection properties
-TIMEOUT = 500
+TIMEOUT = environ.get('SA_TIMEOUT', 500)
