@@ -111,7 +111,7 @@ def execute(ctx, query=None, fix_errors=True, params=None):
         ctx, query = CACHED_CONNECTION, ctx
 
     try:
-        return ctx.cursor().execute(query, params=params)
+        return ctx.cursor().execute(ctx, query, params=params)
 
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
