@@ -85,11 +85,11 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
-def fetch(ctx, query=None, fix_errors=True):
+def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
-    res = execute(ctx, query, fix_errors)
+    res = execute(ctx, query, fix_errors, params)
     cols = [c[0] for c in res.description]
     types = [FIELD_TYPES[c[1]] for c in res.description]
     while True:
@@ -105,18 +105,18 @@ def fetch(ctx, query=None, fix_errors=True):
         yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}
 
 
-def execute(ctx, query=None, fix_errors=True):
+def execute(ctx, query=None, fix_errors=True, params=None):
     # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
     try:
-        return ctx.cursor().execute(query)
+        return ctx.cursor().execute(query, params=params)
 
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
-            return execute(query)
+            return execute(query, fix_errors, params)
 
         if not fix_errors:
             log.debug(f"re-raising error '{e}' in query >{query}<")
@@ -142,7 +142,7 @@ def connect_and_execute(queries=None):
 
 def connect_and_fetchall(query):
     ctx = connect()
-    return ctx, execute(ctx, query).fetchall()
+    return ctx, execute(query).fetchall()
 
 
 ###
@@ -173,6 +173,17 @@ FROM VALUES {{values}}
 
 def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
+
+
+def insert(table, values, ovewrite=False):
+    sql = (
+        f"INSERT{' OVEWRITE' if ovewrite else ''}\n"
+        f"  INTO {table}\n"
+        f"  VALUES {sql_value_placeholders(len(values))}\n",
+        f";"
+    )
+
+    return execute(sql, values)
 
 
 def insert_alerts(alerts, ctx=None):
