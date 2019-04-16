@@ -30,7 +30,7 @@ def unpack(data):
 
 
 def query_log_source(source, time_filter, time_column):
-    cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP()"
+    cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP())"
     query = f"SELECT * FROM {source} WHERE {time_column} > {cutoff};"
     try:
         data = db.fetch(query)
