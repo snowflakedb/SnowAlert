@@ -264,7 +264,9 @@ def setup_samples(do_attempt):
 def jira_integration(setup_jira=None):
     while setup_jira is None:
         uinput = input("Would you like to integrate Jira with SnowAlert (y/N)? ").lower()
-        setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
+        answered_yes = uinput.startswith('y')
+        answered_no = uinput == '' or uinput.startswith('n')
+        setup_jira = True if answered_yes else False if answered_no else None
 
     if setup_jira:
         jira_url = input("Please enter the URL for the Jira integration: ")
