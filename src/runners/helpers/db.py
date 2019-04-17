@@ -180,7 +180,7 @@ def sql_value_placeholders(n):
 
 def insert(table, values, ovewrite=False):
     sql = (
-        f"INSERT{' OVEWRITE' if ovewrite else ''}\n"
+        f"INSERT{' OVERWRITE' if ovewrite else ''}\n"
         f"  INTO {table}\n"
         f"  VALUES {sql_value_placeholders(len(values))}\n"
         f";"
