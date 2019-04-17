@@ -119,7 +119,7 @@ def execute(ctx, query=None, fix_errors=True, params=None):
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
             connect(run_preflight_checks=False, flush_cache=True)
-            return execute(query, fix_errors, params)
+            return execute(ctx, query, fix_errors, params)
 
         if not fix_errors:
             log.debug(f"re-raising error '{e}' in query >{query}<")
