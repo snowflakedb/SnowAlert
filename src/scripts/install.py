@@ -335,35 +335,35 @@ def setup_authentication(jira_password, region, pk_passwd=None):
     return private_key, pk_passwd, jira_password, rsa_public_key
 
 
-def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, private_key, pk_passwd,
-             aws_key, aws_secret, **x):
+def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
+             private_key, pk_passwd, aws_key, aws_secret, **x):
     vars = [
-        f'SNOWFLAKE_ACCOUNT={account}',
-        f'SA_USER={USER}',
-        f'SA_ROLE={ROLE}',
-        f'SA_DATABASE={DATABASE}',
-        f'SA_WAREHOUSE={WAREHOUSE}',
-        f'REGION={region or "us-west-2"}',
+        ('SNOWFLAKE_ACCOUNT', account),
+        ('SA_USER', USER),
+        ('SA_ROLE', ROLE),
+        ('SA_DATABASE', DATABASE),
+        ('SA_WAREHOUSE', WAREHOUSE),
+        ('REGION', region or 'us-west-2'),
 
-        f'PRIVATE_KEY={b64encode(private_key).decode("utf-8")}',
-        f'PRIVATE_KEY_PASSWORD={pk_passwd}',
+        ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
+        ('PRIVATE_KEY_PASSWORD', pk_passwd),
     ]
 
     if jira_url:
         vars += [
-            f'JIRA_URL={jira_url}',
-            f'JIRA_PROJECT={jira_project}',
-            f'JIRA_USER={jira_user}',
-            f'JIRA_PASSWORD={jira_password}',
+            ('JIRA_URL', jira_url),
+            ('JIRA_PROJECT', jira_project),
+            ('JIRA_USER', jira_user),
+            ('JIRA_PASSWORD', jira_password),
         ]
 
     if aws_key:
         vars += [
-            f'AWS_ACCESS_KEY_ID={aws_key}' if aws_key else '',
-            f'AWS_SECRET_ACCESS_KEY={aws_secret}' if aws_secret else '',
+            ('AWS_ACCESS_KEY_ID', aws_key if aws_key else ''),
+            ('AWS_SECRET_ACCESS_KEY', aws_secret if aws_secret else ''),
         ]
 
-    return '\n'.join(vars)
+    return vars
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
@@ -383,7 +383,8 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
 
 
 def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None,
-         config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False):
+         config_region=None, config_username=None, config_password=None, connection_name=None,
+         uninstall=False, set_env_vars=False):
 
     configuration = connection_name if connection_name is not None else {
         'region': config_region or environ.get('REGION'),
@@ -399,6 +400,11 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, con
 
     if uninstall:
         do_attempt("Uninstalling", [
+            f'DROP USER {USER}',
+            f'DROP ROLE {ROLE}',
+            f'DROP WAREHOUSE {WAREHOUSE}',
+            f'DROP DATABASE {DATABASE}',
+        ] if admin_role == 'accountadmin' else [
             f'DROP SCHEMA {DATA_SCHEMA}',
             f'DROP SCHEMA {RULES_SCHEMA}',
             f'DROP SCHEMA {RESULTS_SCHEMA}'
@@ -427,9 +433,14 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, con
 
     aws_key, aws_secret = load_aws_config()
 
+    env_vars = gen_envs(**locals())
+    if set_env_vars:
+        for name, value in env_vars:
+            environ[name] = value
+    env_vars_str = '\n'.join([f'{n}={v}' for n, v in env_vars])
     print(
         f"\n--- ...all done! Next, run... ---\n"
-        f"\ncat <<END_OF_FILE > snowalert-{account}.envs\n{gen_envs(**locals())}\nEND_OF_FILE\n"
+        f"\ncat <<END_OF_FILE > snowalert-{account}.envs\n{env_vars_str}\nEND_OF_FILE\n"
         f"\n### ...and then... ###\n"
         f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run all\n"
         f"\n--- ...the end. ---\n"

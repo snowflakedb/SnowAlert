@@ -110,8 +110,11 @@ def execute(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = CACHED_CONNECTION, ctx
 
+    if ctx is None:
+        ctx = connect()
+
     try:
-        return ctx.cursor().execute(ctx, query, params=params)
+        return ctx.cursor().execute(query, params=params)
 
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
@@ -131,11 +134,11 @@ def connect_and_execute(queries=None):
     connection = connect()
 
     if type(queries) is str:
-        execute(connection, queries)
+        execute(queries)
 
     if type(queries) is list:
         for q in queries:
-            execute(connection, q)
+            execute(q)
 
     return connection
 

@@ -1,7 +1,7 @@
 from os import environ
 import uuid
 
-from runners.helpers.dbconfig import DATABASE
+from .helpers.dbconfig import DATABASE
 
 ENV = environ.get('SA_ENV', 'unset')
 

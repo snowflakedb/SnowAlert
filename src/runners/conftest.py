@@ -1,25 +1,28 @@
 import pytest
 
-from runners.helpers import db
+from runners.helpers import db, dbconfig
 from scripts import install
 
 
 @pytest.fixture(scope="session")
 def db_schemas(request):
-    db.connect()
-
     @request.addfinalizer
     def fin():
         install.main(
-            admin_role=None,
             uninstall=True,
         )
 
     install.main(
-        admin_role=None,  # uses user's default_role
         samples=False,
         pk_passwd='',
         jira=False,
+        set_env_vars=True,
     )
+
+    # reload to pick up env vars set by installer
+    import importlib
+    importlib.reload(dbconfig)
+    importlib.reload(db)
+    importlib.reload(install)
 
     yield

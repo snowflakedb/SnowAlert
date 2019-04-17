@@ -77,7 +77,6 @@ def json_like_connector(o) -> str:
 
 @pytest.fixture
 def violation_queries(db_schemas):
-    db.connect()
     db.execute(TEST_QUERY)
     db.execute(TEST_SUPPRESSION)
     db.execute(TEST_INVALID_QUERY)
@@ -170,5 +169,6 @@ def test_run_violations(violation_queries):
     assert suppression_rule_run_record['NUM_VIOLATIONS_SUPPRESSED'] == 1
 
 
-def test_connection():
+def test_schemas(db_schemas):
     assert next(db.fetch('SELECT 1 AS "a"')) == {'a': 1}
+    assert list(db.fetch('SELECT * FROM results.violations')) == []
