@@ -71,8 +71,8 @@ def run_baseline(table):
 
     log.info("Running R code")
     output = ro.r(r_code)
-    print(type(output))
     output = output.to_dict()
+    log.info(output)
 
     results = unpack(output)
     try:
@@ -86,4 +86,3 @@ def main():
     for table in db.fetch(f"show tables like '%_BASELINE' in {DATA_SCHEMA}"):
         log.info(f'{table} started...')
         run_baseline(table)
-        log.info(f'{table} done.')
