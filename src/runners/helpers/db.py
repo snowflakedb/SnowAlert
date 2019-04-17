@@ -179,6 +179,9 @@ def sql_value_placeholders(n):
 
 
 def insert(table, values, ovewrite=False):
+    if len(values) == 0:
+        return
+
     sql = (
         f"INSERT{' OVERWRITE' if ovewrite else ''}\n"
         f"  INTO {table}\n"
