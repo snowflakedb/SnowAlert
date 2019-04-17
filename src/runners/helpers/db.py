@@ -182,11 +182,11 @@ def insert(table, values, ovewrite=False):
     sql = (
         f"INSERT{' OVEWRITE' if ovewrite else ''}\n"
         f"  INTO {table}\n"
-        f"  VALUES {sql_value_placeholders(len(values))}\n",
+        f"  VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
 
-    return execute(sql, values)
+    return execute(sql, params=values)
 
 
 def insert_alerts(alerts, ctx=None):
