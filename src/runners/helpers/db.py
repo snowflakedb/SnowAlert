@@ -62,7 +62,8 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
             private_key=pk,
             authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
-            network_timeout=TIMEOUT
+            network_timeout=TIMEOUT,
+            insecure_mode=True  # TEMPORARY BUGFIX FOR RELIABILITY ISSUE, REMOVE WHEN RESOLVED
         )
 
     try:
