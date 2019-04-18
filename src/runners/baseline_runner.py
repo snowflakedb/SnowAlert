@@ -30,7 +30,6 @@ def unpack(data):
 
 
 def query_log_source(source, time_filter, time_column):
-    log.debug("Retrieving data")
     cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP())"
     query = f"SELECT * FROM {source} WHERE {time_column} > {cutoff};"
     try:
@@ -38,20 +37,16 @@ def query_log_source(source, time_filter, time_column):
     except Exception as e:
         log.error("Failed to query log source: ", e)
 
-    log.debug(data)
-
     f = pack(data)
-    log.debug(str(f))
     frame = pandas.DataFrame(f)
     pandas2ri.activate()
     r_dataframe = pandas2ri.py2rpy(frame)
     return r_dataframe
 
 
-def run_baseline(table):
-    table_name = table['name']
+def run_baseline(name, comment):
     try:
-        metadata = yaml.load(table['comment'])
+        metadata = yaml.load(comment)
         assert type(metadata) is dict
 
         source = metadata['log source']
@@ -61,28 +56,22 @@ def run_baseline(table):
         time_column = metadata['history']
 
     except Exception as e:
-        log.error(e, "{table_name} has invalid metadata, skipping")
+        log.error(e, "{name} has invalid metadata, skipping")
         return
-
-    log.info("Reading R code")
 
     with open(f"../baseline_modules/{code_location}/{code_location}.R") as f:
         r_code = f.read()
 
     r_code = format_code(r_code, required_values)
     frame = query_log_source(source, time_filter, time_column)
-    log.info("data packed")
-    log.debug(str(frame))
     ro.globalenv['input_table'] = frame
 
-    log.info("Running R code")
     output = ro.r(r_code)
     output = output.to_dict()
-    log.info(output)
 
     results = unpack(output)
     try:
-        db.insert(f"{DATA_SCHEMA}.{table_name}", results, ovewrite=True)
+        db.insert(f"{DATA_SCHEMA}.{name}", results, ovewrite=True)
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
 
@@ -90,5 +79,8 @@ def run_baseline(table):
 def main():
     db.connect()
     for table in db.fetch(f"show tables like '%_BASELINE' in {DATA_SCHEMA}"):
-        log.info(f'{table} started...')
-        run_baseline(table)
+        name = table['name']
+        comment = table['comment']
+        log.info(f'{name} started...')
+        run_baseline(name, comment)
+        log.info(f'{name} done.')

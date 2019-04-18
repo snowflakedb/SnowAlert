@@ -32,21 +32,21 @@ def main(target="all", rule_name=None):
         alert_processor.main()
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
-        log.info(f"with command {target}")
-        if target in ['alerts', 'all']:
+        log.info(f"got command {target}")
+        if target in ['alert', 'alerts', 'all']:
             alert_queries_runner.main()
             alert_suppressions_runner.main()
             alert_processor.main()
             alert_handler.main()
 
-        if target in ['violations', 'all']:
+        if target in ['violation', 'violations', 'all']:
             violation_queries_runner.main()
             violation_suppressions_runner.main()
 
         if target in ['ingest']:
             ingest_runner.main()
 
-        if target in ['baseline']:
+        if target in ['baseline', 'baseline']:
             baseline_runner.main()
 
 
