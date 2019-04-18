@@ -30,6 +30,7 @@ def unpack(data):
 
 
 def query_log_source(source, time_filter, time_column):
+    log.debug("Retrieving data")
     cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP())"
     query = f"SELECT * FROM {source} WHERE {time_column} > {cutoff};"
     try:
@@ -37,7 +38,10 @@ def query_log_source(source, time_filter, time_column):
     except Exception as e:
         log.error("Failed to query log source: ", e)
 
+    log.debug(data)
+
     f = pack(data)
+    log.debug(str(f))
     frame = pandas.DataFrame(f)
     pandas2ri.activate()
     r_dataframe = pandas2ri.py2rpy(frame)
@@ -67,6 +71,8 @@ def run_baseline(table):
 
     r_code = format_code(r_code, required_values)
     frame = query_log_source(source, time_filter, time_column)
+    log.info("data packed")
+    log.debug(str(frame))
     ro.globalenv['input_table'] = frame
 
     log.info("Running R code")
