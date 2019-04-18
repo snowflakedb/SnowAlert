@@ -33,7 +33,7 @@ def query_log_source(source, time_filter, time_column):
     cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP())"
     query = f"SELECT * FROM {source} WHERE {time_column} > {cutoff};"
     try:
-        data = db.fetch(query)
+        data = list(db.fetch(query))
     except Exception as e:
         log.error("Failed to query log source: ", e)
 
@@ -56,7 +56,7 @@ def run_baseline(name, comment):
         time_column = metadata['history']
 
     except Exception as e:
-        log.error(e, "{name} has invalid metadata, skipping")
+        log.error(e, f"{name} has invalid metadata: >{metadata}<, skipping")
         return
 
     with open(f"../baseline_modules/{code_location}/{code_location}.R") as f:
