@@ -71,6 +71,7 @@ def run_baseline(name, comment):
 
     results = unpack(output)
     try:
+        log.info(f"{name} generated {len(results)} rows")
         db.insert(f"{DATA_SCHEMA}.{name}", results, ovewrite=True)
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
