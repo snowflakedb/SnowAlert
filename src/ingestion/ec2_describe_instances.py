@@ -10,8 +10,6 @@ from multiprocessing import Pool
 
 import snowflake.connector
 
-#boto3.set_stream_logger(name='botocore')
-
 INSTANCES_TABLE = os.environ['EC2_INSTANCE_LIST_SNOWFLAKE_TABLE_IDENTIFIER']
 AWS_ACCOUNTS_TABLE = os.environ['LIST_ACCOUNTS_SNOWFLAKE_TABLE_IDENTIFIER']
 AWS_AUDIT_ROLE_NAME = os.environ['AWS_AUDIT_DESTINATION_ROLE_NAME']
@@ -19,6 +17,7 @@ SA_ACCOUNT = os.environ['INGEST_SNOWFLAKE_ACCOUNT']
 SA_USER = os.environ['INGEST_SNOWFLAKE_USER']
 SA_USER_PK = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY']
 SA_USER_PK_PASSWORD = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY_PASSWORD']
+CACHED_AWS_CLIENT = None
 
 def get_snowflake_client():
     kms = boto3.client('kms')
@@ -41,7 +40,7 @@ def get_snowflake_client():
     )
     return ctx
 
-def get_global_aws_client():
+def get_cached_aws_client():
     sts_client_source = boto3.client('sts')
     sts_client_source_response = sts_client_source.assume_role(
         RoleArn=os.environ['AWS_AUDIT_SOURCE_ROLE_ARN'],
@@ -56,9 +55,12 @@ def get_global_aws_client():
     return sts_client
 
 def get_aws_client(account):
+    global CACHED_AWS_CLIENT
+    if CACHED_AWS_CLIENT is None:
+        CACHED_AWS_CLIENT = get_cached_aws_client()
     target_role = f'arn:aws:iam::{account}:role/{AWS_AUDIT_ROLE_NAME}'
     try:
-        dest_role = global_aws_client.assume_role(
+        dest_role = CACHED_AWS_CLIENT.assume_role(
             RoleArn=target_role,
             RoleSessionName=os.environ['EC2_INSTANCE_LIST_AWS_AUDIT_DESTINATION_ROLE_SESSION_NAME'],
             ExternalId=os.environ['AWS_AUDIT_DESTINATION_ROLE_ARN_EXTERNALID']
@@ -124,5 +126,5 @@ def main():
     else:
         print("It's not time yet!")
 
-global_aws_client=get_global_aws_client()
-main()
+if __name__ == "__main__":
+    main()
