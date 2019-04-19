@@ -102,17 +102,23 @@ def get_data_worker(account):
                 for instance_array in page['Reservations']:
                     instances.extend(instance_array['Instances'])
         instance_list = [json.dumps({**instance,"AccountId":account}, default=str) for instance in instances]
-        if len(instances):
-            sf_client = get_snowflake_client()
-            query = LOAD_INSTANCE_LIST_QUERY.format(
-                snapshotclock=datetime.datetime.utcnow().isoformat(),
-                format_string=", ".join(["(%s)"] * len(instance_list)))
-            sf_client.cursor().execute(query, instance_list)
+        return instance_list
+
 
 def get_data(accounts_list):
     start = datetime.datetime.now()
-    with Pool(processes=4) as pool:
-        pool.map(get_data_worker, accounts_list)
+    instance_list_list = list(filter(None,Pool(4).map(get_data_worker, accounts_list)))
+    instance_list = []
+    for sub_list in instance_list_list:
+        instance_list.extend(sub_list)
+    if len(instance_list):
+        sf_client = get_snowflake_client()
+        instance_groups = [instance_list[i:i+15000] for i in range(0, len(instance_list), 15000)]
+        for group in instance_groups:
+            query = LOAD_INSTANCE_LIST_QUERY.format(
+                snapshotclock=datetime.datetime.utcnow().isoformat(),
+                format_string=", ".join(["(%s)"] * len(group)))
+            sf_client.cursor().execute(query, group)
     end = datetime.datetime.now()
     print(f"start: {start} end: {end} total: {(end - start).total_seconds()}")
 
