@@ -74,6 +74,5 @@ full_length$matrix_size = matrix_size
 full_length$overall_matrix_size = all_matrix_size
 
 print(paste('assign return value, length of return: ', nrow(full_length) ))
-return_value <- full_length
-
+return_value <- full_length[c(pivot_cols, 'hits', 'hits_overall', 'num_days', 'num_days_overall', 'num_instances', 'num_instances_overall', 'percentage_of_hits','percentage_of_important_hits', 'matrix_size', 'overall_matrix_size')]
 
