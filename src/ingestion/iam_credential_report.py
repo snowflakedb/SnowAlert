@@ -110,30 +110,37 @@ def get_data_worker(account):
                 break
             except Exception as e:
                 time.sleep(2)
-        policy = iam_client.get_account_password_policy()['PasswordPolicy']
+        try:
+            policy = iam_client.get_account_password_policy()['PasswordPolicy']
+        except Exception as e:
+            policy = {}
         report = r['Content'].decode('utf-8').split('\n')
         data = [i.split(',') for i in report]
         reports = [dict(zip(data[0], i)) for i in data[1:]]
         policy['AccountId'] = account
         reports_json = [json.dumps({**report, "account_id": account}) for report in reports]
-        sf_client = get_snowflake_client()
+        return {'report': reports_json, 'policy': json.dumps(policy)}
 
+def get_data(accounts_list):
+    start = datetime.datetime.now()
+    results_list=list(filter(None,Pool(4).map(get_data_worker, accounts_list)))
+    if results_list:
+        policies_list = [result['policy'] for result in results_list]
+        reports_list = [result['report'] for result in results_list]
+        reports = []
+        for report in reports_list:
+            reports.extend(report)
+        sf_client = get_snowflake_client()
         if len(reports):
             query = LOAD_REPORT_LIST_QUERY.format(
                 snapshotclock=datetime.datetime.utcnow().isoformat(),
                 format_string=", ".join(["(%s)"] * len(reports)))
-            sf_client.cursor().execute(query, reports_json)
-
-        if len(policy):
+            sf_client.cursor().execute(query, reports)
+        if len(policies_list):
             query = LOAD_POLICY_LIST_QUERY.format(
                 snapshotclock=datetime.datetime.utcnow().isoformat(),
-                format_string="(%s)")
-            sf_client.cursor().execute(query, json.dumps(policy))
-
-def get_data(accounts_list):
-    start = datetime.datetime.now()
-    with Pool(processes=4) as pool:
-        pool.map(get_data_worker, accounts_list)
+                format_string=", ".join(["(%s)"] * len(policies_list)))
+            sf_client.cursor().execute(query, policies_list)
     end = datetime.datetime.now()
     print(f"start: {start} end: {end} total: {(end - start).total_seconds()}")
 
