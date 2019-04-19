@@ -9,7 +9,10 @@ require('dplyr')
 #random comment
 
 INPUT_TABLE <- input_table
-#INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
+print(paste('Length of input: ',length(input_table)))
+print(paste('Type of input_table: ', typeof(input_table)))
+
+INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
 
 pivot_cols <- strsplit(gsub(', ', ',','PIVOT'), ',')[[1]]
 INPUT_TABLE[,pivot_cols] <- lapply(INPUT_TABLE[,pivot_cols], function(y) gsub('"', '', y))
