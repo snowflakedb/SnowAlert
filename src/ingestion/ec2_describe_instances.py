@@ -19,6 +19,7 @@ SA_USER_PK = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY']
 SA_USER_PK_PASSWORD = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY_PASSWORD']
 CACHED_AWS_CLIENT = None
 
+
 def get_snowflake_client():
     kms = boto3.client('kms')
     password = kms.decrypt(CiphertextBlob=base64.b64decode(SA_USER_PK_PASSWORD))['Plaintext'].decode()
@@ -40,6 +41,7 @@ def get_snowflake_client():
     )
     return ctx
 
+
 def get_cached_aws_client():
     sts_client_source = boto3.client('sts')
     sts_client_source_response = sts_client_source.assume_role(
@@ -53,6 +55,7 @@ def get_cached_aws_client():
     )
     sts_client = sts_client_destination.client('sts')
     return sts_client
+
 
 def get_aws_client(account):
     global CACHED_AWS_CLIENT
@@ -74,10 +77,20 @@ def get_aws_client(account):
     )
     return ec2_session
 
+
+GET_ACCOUNTS_QUERY = f"""
+SELECT account:Id::number
+FROM {AWS_ACCOUNTS_TABLE}
+WHERE timestamp = (
+  SELECT MAX(timestamp) FROM {AWS_ACCOUNTS_TABLE}
+);
+"""
+
+
 def get_accounts_list(sf_client):
     accounts_list = []
-    query = f"select account:Id::number from {AWS_ACCOUNTS_TABLE} where timestamp = (select max(timestamp) from {AWS_ACCOUNTS_TABLE});"
-    res = sf_client.cursor().execute(query).fetchall()
+
+    res = sf_client.cursor().execute(GET_ACCOUNTS_QUERY).fetchall()
     for account in res:
         accounts_list.append(account[0])
     return accounts_list
@@ -88,6 +101,7 @@ INSERT INTO {INSTANCES_TABLE} (timestamp, instance)
 SELECT '{{snapshotclock}}'::timestamp_ltz, PARSE_JSON(column1)
 FROM VALUES {{format_string}}
 """
+
 
 def get_data_worker(account):
     ec2_session = get_aws_client(account)
@@ -103,7 +117,6 @@ def get_data_worker(account):
                     instances.extend(instance_array['Instances'])
         instance_list = [json.dumps({**instance,"AccountId":account}, default=str) for instance in instances]
         return instance_list
-
 
 def get_data(accounts_list):
     start = datetime.datetime.now()
@@ -131,6 +144,7 @@ def main():
         get_data(accounts_list)
     else:
         print("It's not time yet!")
+
 
 if __name__ == "__main__":
     main()
