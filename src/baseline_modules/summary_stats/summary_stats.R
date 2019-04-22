@@ -15,7 +15,7 @@ print(paste('Type of input_table: ', typeof(input_table)))
 INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
 
 pivot_cols <- strsplit(gsub(', ', ',','PIVOT'), ',')[[1]]
-INPUT_TABLE[,pivot_cols] <- lapply(INPUT_TABLE[,pivot_cols], function(y) gsub('"', '', y))
+INPUT_TABLE[,pivot_cols] <- as.data.frame(sapply(INPUT_TABLE[,pivot_cols], function(y) gsub('"', '', y)))
 
 
 earliest_time <- min(INPUT_TABLE$DAY, na.rm=TRUE)
@@ -41,6 +41,7 @@ overall_length <- INPUT_TABLE %>%
     num_days_overall = length(unique(DAY)),
     num_instances_overall=length(unique(INSTANCE_ID))
   )
+print(paste('overall_length:', nrow(overall_length)))
 print('important length calculation and summary starting')
 important_length <- important_subset %>%
   group_by(PIVOT)%>%
@@ -53,17 +54,17 @@ important_length <- important_subset %>%
 print('full length merge with important starting')
 full_length = merge(important_length, overall_length, by=c(pivot_cols), all.x=TRUE, all.y=TRUE)
 print('coalescing starting')
-full_length$hits = coalesce(full_length$hits, as.numeric(0))
+full_length$hits = coalesce(as.numeric(full_length$hits), as.numeric(0))
 
-full_length$hits_overall = coalesce(full_length$hits_overall, as.numeric(0))
+full_length$hits_overall = coalesce(as.numeric(full_length$hits_overall), as.numeric(0))
 
-full_length$num_days = coalesce(full_length$num_days, as.integer(0))
+full_length$num_days = coalesce(as.integer(full_length$num_days), as.integer(0))
 
-full_length$num_days_overall = coalesce(full_length$num_days_overall,as.integer(0))
+full_length$num_days_overall = coalesce(as.integer(full_length$num_days_overall),as.integer(0))
 
-full_length$num_instances = coalesce(full_length$num_instances, as.integer(0))
+full_length$num_instances = coalesce(as.integer(full_length$num_instances), as.integer(0))
 
-full_length$num_instances_overall = coalesce(full_length$num_instances_overall, as.integer(0))
+full_length$num_instances_overall = coalesce(as.integer(full_length$num_instances_overall), as.integer(0))
 
 full_length$percentage_of_hits = full_length$hits_overall/all_matrix_size
 
