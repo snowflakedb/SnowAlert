@@ -26,7 +26,7 @@ def log_alerts(ctx, alerts):
         try:
             VALUES_INSERT_LIMIT = 16384
             for alert_group in groups_of(VALUES_INSERT_LIMIT, alerts):
-                db.insert_alerts(list(filter(None, alert_group)))
+                db.insert_alerts(list(alert_group))
 
         except Exception as e:
             log.error("Failed to log alert", e)
