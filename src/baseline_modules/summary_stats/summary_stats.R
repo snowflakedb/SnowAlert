@@ -9,7 +9,7 @@ require('dplyr')
 #random comment
 
 INPUT_TABLE <- input_table
-print(paste('Length of input: ',length(input_table)))
+print(paste('Length of input: ',nrow(input_table)))
 print(paste('Type of input_table: ', typeof(input_table)))
 
 INPUT_TABLE$DAY <- as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
