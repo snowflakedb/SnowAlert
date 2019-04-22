@@ -1,7 +1,7 @@
 import pytest
+import os
 
 from runners.helpers import db
-from runners.plugins import create_jira
 
 TEST_ALERT = f"""
 CREATE OR REPLACE VIEW rules.test1_alert_query COPY GRANTS
@@ -124,6 +124,7 @@ def update_jira_issue_status_done(request):
 
     @request.addfinalizer
     def fin():
+        from runners.plugins import create_jira
         for jira_id in issues_to_update:
             create_jira.set_issue_done(jira_id)
 
@@ -221,6 +222,7 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     #
 
     from runners import alert_handler
+    from runners.plugins import create_jira
     alert_handler.main()
 
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
@@ -231,3 +233,11 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert lines[2] == 'Query ID: test_1_query_id'
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert lines[23] == 'Query ID: test_3_query'
+
+    #
+    # regression tests
+    #
+
+    # SP-1099_
+    _environ = os.environ.copy()
+
