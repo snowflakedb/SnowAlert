@@ -107,7 +107,7 @@ def get_data_worker(account):
     ec2_session = get_aws_client(account)
     if ec2_session:
         instances = []
-        ec2_regions = [region['RegionName'] for region in boto3.client('ec2').describe_regions()['Regions']]
+        ec2_regions = [region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']]
         for region in ec2_regions:
             ec2_client = ec2_session.client('ec2', region_name=region)
             paginator = ec2_client.get_paginator('describe_instances')
