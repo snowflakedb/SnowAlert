@@ -44,4 +44,19 @@ expand_days_date <- expand_days %>%group_by(PIVOT)%>%summarise(earliest=min(DAY)
 numerics <- merge(when_present_numeric, expand_days_numeric, by='PIVOT', all.x=TRUE, all.y=TRUE)
 dates <- merge(when_present_date, expand_days_date, by='PIVOT', all.x=TRUE, all.y=TRUE)
 full <- cbind(numerics, dates)
-return_value <- full
+return_value <- full[c('PIVOT', 'num_ids_10when_present',
+                       'num_events_10when_present', 'num_ids_25when_present', 
+                       'num_events_25when_present', 'num_ids_75when_present', 
+                       'num_events_75when_present','num_ids_95when_present', 
+                       'num_events_95when_present','num_ids_50when_present', 
+                       'num_events_50when_present', 'num_ids_avg_when_present', 
+                       'num_events_avg_when_present',
+                       'num_ids__when_present', 'num_events__when_present',
+                       'num_ids_max_when_present', 'num_events_max_when_present',
+                       'num_ids_min_when_present', 'num_events_min_when_present',
+                       'num_ids_50overall', 'num_events_50overall',
+                       'num_ids_avg_overall', 'num_events_avg_overall',
+                       'earliest_when_present', 'latest_when_present',
+                       'num_days', 'num_days_overall'
+                       )
+                     ]
