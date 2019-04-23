@@ -233,11 +233,3 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert lines[2] == 'Query ID: test_1_query_id'
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert lines[23] == 'Query ID: test_3_query'
-
-    #
-    # regression tests
-    #
-
-    # SP-1099_
-    _environ = os.environ.copy()
-
