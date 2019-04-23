@@ -122,12 +122,12 @@ def run_suppressions(squelch_name):
         suppression_count = run_suppression_query(squelch_name)
         log.info(f"{squelch_name} updated {suppression_count} rows.")
         metadata['ROW_COUNT'] = {'SUPPRESSED': suppression_count}
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
 
     except Exception as e:
         log_failure(ctx, squelch_name, e)
         metadata['ROW_COUNT'] = {'SUPPRESSED': 0}
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
 
     METADATA_HISTORY.append(metadata)
     log.info(f"{squelch_name} done.")
@@ -152,7 +152,7 @@ def main():
         'SUPPRESSED': sum(m['ROW_COUNT']['SUPPRESSED'] for m in METADATA_HISTORY),
     }
 
-    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
+    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     try:
         if CLOUDWATCH_METRICS:

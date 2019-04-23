@@ -40,18 +40,17 @@ def run_suppression(squelch_name):
             'SUPPRESSED': 0
         }
     }
-    ctx = db.connect()
     log.info(f"{squelch_name} processing...")
     try:
         query = VIOLATION_SUPPRESSION_QUERY.format(squelch_name=squelch_name)
         num_violations_suppressed = next(db.fetch(query))['number of rows updated']
         log.info(f"{squelch_name} updated {num_violations_suppressed} rows.")
         metadata['ROW_COUNT']['SUPPRESSED'] = num_violations_suppressed
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
         RULE_METADATA_RECORDS.append(metadata)
 
     except Exception as e:
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
         log.error("Suppression query {squelch_name} execution failed.", e)
 
     print(f"Suppression query {squelch_name} executed")
@@ -73,7 +72,7 @@ def main():
         'SUPPRESSED': sum(rmr['ROW_COUNT']['SUPPRESSED'] for rmr in RULE_METADATA_RECORDS),
         'PASSED': num_violations_passed,
     }
-    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
+    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Suppression Runner'}], 1)

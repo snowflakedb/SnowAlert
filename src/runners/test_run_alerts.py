@@ -157,7 +157,7 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert queries_run_records[0]['NUM_ALERTS_CREATED'] == 3
     assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
-    query_rule_run_record = list(db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY start_time'))
+    query_rule_run_record = list(db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY query_name'))
     assert query_rule_run_record[0]['QUERY_NAME'] == 'TEST1_ALERT_QUERY'
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == 1
 

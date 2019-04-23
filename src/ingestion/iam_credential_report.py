@@ -134,9 +134,10 @@ def get_data_worker(account):
         reports_json = [json.dumps({**report, "account_id": account}) for report in reports]
         return {'report': reports_json, 'policy': json.dumps(policy)}
 
+
 def get_data(accounts_list):
     start = datetime.datetime.now()
-    results_list=list(filter(None,Pool(4).map(get_data_worker, accounts_list)))
+    results_list = list(filter(None, Pool(4).map(get_data_worker, accounts_list)))
     if results_list:
         policies_list = [result['policy'] for result in results_list]
         reports_list = [result['report'] for result in results_list]

@@ -40,14 +40,14 @@ def main():
         metadata['ROW_COUNT'] = {
             'INSERTED': insert_count,
         }
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
         log.info(f"{query_name} done.")
         METADATA_RECORDS.append(metadata)
 
     RUN_METADATA['ROW_COUNT'] = {
         'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS),
     }
-    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
+    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
         log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Query Runner'}], 1)

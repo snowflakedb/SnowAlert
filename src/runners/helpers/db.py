@@ -1,6 +1,8 @@
 """Helper specific to SnowAlert connecting to the database"""
 
+from datetime import datetime
 import json
+from threading import local
 from typing import List, Tuple
 from os import path
 
@@ -13,7 +15,7 @@ from .auth import load_pkb, oauth_refresh
 from .dbconfig import ACCOUNT, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
-CACHED_CONNECTION = None
+CACHE = local()
 
 
 def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
@@ -47,9 +49,9 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
-    global CACHED_CONNECTION
-    if CACHED_CONNECTION and not flush_cache and not oauth_access_token:
-        return CACHED_CONNECTION
+    cached_connection = getattr(CACHE, 'connection', None)
+    if cached_connection and not flush_cache and not oauth_access_token:
+        return cached_connection
 
     connect_db, authenticator, pk = \
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None) if oauth_access_token else \
@@ -77,8 +79,8 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         if not oauth_access_token:
             execute(connection, f'USE WAREHOUSE {WAREHOUSE}')
 
-        if not CACHED_CONNECTION and not oauth_access_token:
-            CACHED_CONNECTION = connection
+        if not cached_connection and not oauth_access_token:
+            cached_connection = connection
         return connection
 
     except Exception as e:
@@ -87,7 +89,7 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
 
 def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
-        ctx, query = CACHED_CONNECTION, ctx
+        ctx, query = getattr(CACHE, 'connection', None), ctx
 
     res = execute(ctx, query, fix_errors, params)
     cols = [c[0] for c in res.description]
@@ -108,7 +110,7 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
 def execute(ctx, query=None, fix_errors=True, params=None):
     # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
-        ctx, query = CACHED_CONNECTION, ctx
+        ctx, query = connect(), ctx
 
     if ctx is None:
         ctx = connect()
@@ -194,7 +196,7 @@ def insert(table, values, ovewrite=False):
 
 def insert_alerts(alerts, ctx=None):
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
     return ctx.cursor().execute(query, alerts)
@@ -202,7 +204,7 @@ def insert_alerts(alerts, ctx=None):
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     log.info(f"{query_name} processing...")
 
@@ -259,7 +261,7 @@ WHERE IFF(alert_time IS NOT NULL, alert_time > {{CUTOFF_TIME}}, TRUE)
 
 def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     CUTOFF_TIME = f'DATEADD(day, -1, CURRENT_TIMESTAMP())'
 
@@ -292,3 +294,45 @@ def get_alerts(**kwargs):
     predicates = '\n  AND'.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
     where_clause = f'WHERE {predicates}' if predicates else ''
     return fetch(GET_ALERTS_QUERY.format(where_clause=where_clause))
+
+
+def record_metadata(metadata, table, e=None):
+    ctx = connect()
+
+    if e is None and 'EXCEPTION' in metadata:
+        e = metadata['EXCEPTION']
+        del metadata['EXCEPTION']
+
+    if e is not None:
+        exception_only = log.format_exception_only(e)
+        metadata['ERROR'] = {
+            'EXCEPTION': log.format_exception(e),
+            'EXCEPTION_ONLY': exception_only,
+        }
+        if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
+            metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
+
+    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
+
+    metadata['END_TIME'] = datetime.utcnow()
+    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
+    metadata['START_TIME'] = str(metadata['START_TIME'])
+    metadata['END_TIME'] = str(metadata['END_TIME'])
+
+    record_type = metadata.get('QUERY_NAME', 'RUN')
+
+    metadata_json_sql = "'" + json.dumps(metadata).replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+    sql = f'''
+    INSERT INTO {table}(event_time, v)
+    SELECT '{metadata['START_TIME']}'
+         , PARSE_JSON(column1)
+    FROM VALUES({metadata_json_sql})
+    '''
+
+    try:
+        ctx.cursor().execute(sql)
+        log.info(f"{record_type} metadata recorded.")
+
+    except Exception as e:
+        log.error(f"{record_type} metadata failed to log.", e)
