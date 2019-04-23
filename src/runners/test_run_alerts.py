@@ -1,5 +1,4 @@
 import pytest
-import os
 
 from runners.helpers import db
 
