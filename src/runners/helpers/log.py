@@ -1,7 +1,8 @@
 import datetime
-import json
 import sys
 import traceback
+from os.path import relpath
+from os import getpid
 
 import boto3
 
@@ -19,18 +20,35 @@ def format_exception_only(e):
 def write(*args, stream=sys.stdout):
     for a in args:
         if isinstance(a, Exception):
-            template = '{fs.filename}:{fs.lineno} in {fs.name}\n  {fs.line}\n'
+            def fmt(fs):
+                return (
+                    './' + relpath(fs.filename) + f':{fs.lineno}'
+                    + f' in {fs.name}\n'
+                    + f'    {fs.line}\n'
+                )
+
             trace = traceback.extract_tb(a.__traceback__)
-            fmt_trace = ''.join(template.format(fs=f) for f in trace)
+            fmt_trace = ''.join(fmt(f) for f in trace)
             stack = traceback.extract_stack()
             for i, f in enumerate(reversed(stack)):
                 if (f.filename, f.name) == (trace[0].filename, trace[0].name):
                     stack = stack[:-i]
-                    break
-            fmt_stack = ''.join(template.format(fs=f) for f in stack)
+                    break  # skip the log.py part of stack
+            for i, f in enumerate(reversed(stack)):
+                if 'site-packages' in f.filename:
+                    stack = stack[-i:]
+                    break  # skip the flask part of stack
+            fmt_stack = ''.join(fmt(f) for f in stack)
 
-            a = fmt_stack + '--- got trace ---\n' + fmt_trace
-        print(a, file=stream, flush=True)
+            a = (
+                fmt_stack
+                + '--- printed exception w/ trace ---\n'
+                + fmt_trace
+                + format_exception_only(a)
+            )
+
+        pid = getpid()
+        print(f'[{pid}] {a}', file=stream, flush=True)
 
 
 def debug(*args):
