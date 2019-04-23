@@ -3,9 +3,11 @@
 import json
 import uuid
 import datetime
-from typing import Any, Dict, List, Tuple
+from multiprocessing import Pool
+from typing import Any, Dict
 
 from runners.config import (
+    POOLSIZE,
     RUN_ID,
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
@@ -17,7 +19,6 @@ from runners.utils import groups_of
 
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
-QUERY_HISTORY: List = []
 
 
 def log_alerts(ctx, alerts):
@@ -67,12 +68,18 @@ def log_failure(ctx, query_name, e, event_data=None, description=None):
         log.error("Failed to log query failure", e)
 
 
-def create_alerts(ctx, rule_name: str) -> Tuple[int, int]:
+def create_alerts(rule_name: str) -> Dict[str, Any]:
+    ctx = db.connect()
+
     metadata: Dict[str, Any] = {
         'QUERY_NAME': rule_name,
         'RUN_ID': RUN_ID,
         'ATTEMPTS': 1,
         'START_TIME': datetime.datetime.utcnow(),
+        'ROW_COUNT': {
+            'INSERTED': 0,
+            'UPDATED': 0,
+        }
     }
 
     try:
@@ -84,15 +91,14 @@ def create_alerts(ctx, rule_name: str) -> Tuple[int, int]:
 
     except Exception as e:
         log_failure(ctx, rule_name, e)
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
-        return 0, 0
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
+        return metadata
 
-    log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
-    QUERY_HISTORY.append(metadata)
+    db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
 
     log.info(f"{rule_name} done.")
 
-    return insert_count, update_count
+    return metadata
 
 
 def main(rule_name=None):
@@ -105,14 +111,14 @@ def main(rule_name=None):
     if rule_name:
         create_alerts(ctx, rule_name)
     else:
-        for rule_name in db.load_rules(ctx, ALERT_QUERY_POSTFIX):
-            create_alerts(ctx, rule_name)
+        rules = list(db.load_rules(ctx, ALERT_QUERY_POSTFIX))
+        metadata = Pool(POOLSIZE).map(create_alerts, rules)
 
     RUN_METADATA['ROW_COUNT'] = {
-        'INSERTED': sum(q['ROW_COUNT']['INSERTED'] for q in QUERY_HISTORY),
-        'UPDATED': sum(q['ROW_COUNT']['UPDATED'] for q in QUERY_HISTORY),
+        'INSERTED': sum(q['ROW_COUNT']['INSERTED'] for q in metadata),
+        'UPDATED': sum(q['ROW_COUNT']['UPDATED'] for q in metadata),
     }
-    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
+    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     try:
         if CLOUDWATCH_METRICS:
