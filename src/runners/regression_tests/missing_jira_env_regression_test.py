@@ -76,4 +76,4 @@ def test_missing_jira_env_regression(sample_alert_rules, update_jira_issue_statu
     alert_processor.main()
     alert_handler.main()
     rows = list(db.get_alerts(suppressed='false'))
-    assert rows[0]['TICKET'] == "None"
+    assert rows[-1]['TICKET'] == "None"
