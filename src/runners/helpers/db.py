@@ -277,13 +277,6 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     return num_rows_inserted
 
 
-GET_ALERTS_QUERY = f"""
-SELECT *
-FROM data.alerts
-{{where_clause}}
-"""
-
-
 def value_to_sql(v):
     if type(v) is str:
         return f"'{v}'"
@@ -293,7 +286,7 @@ def value_to_sql(v):
 def get_alerts(**kwargs):
     predicates = '\n  AND'.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
     where_clause = f'WHERE {predicates}' if predicates else ''
-    return fetch(GET_ALERTS_QUERY.format(where_clause=where_clause))
+    return fetch(f"SELECT * FROM data.alerts {where_clause}")
 
 
 def record_metadata(metadata, table, e=None):
