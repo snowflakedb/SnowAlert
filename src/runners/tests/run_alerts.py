@@ -1,7 +1,6 @@
 import pytest
 
 from runners.helpers import db
-from runners.plugins import create_jira
 
 TEST_ALERT = f"""
 CREATE OR REPLACE VIEW rules.test1_alert_query COPY GRANTS
@@ -115,7 +114,10 @@ def sample_alert_rules(db_schemas):
 
     yield
 
-    # schemas will drop all that
+    db.execute(f"DROP VIEW rules.test1_alert_query")
+    db.execute(f"DROP VIEW rules.test2_alert_query")
+    db.execute(f"DROP VIEW rules.test2_alert_suppression")
+    db.execute(f"DROP VIEW rules.test3_alert_query")
 
 
 @pytest.fixture
@@ -124,6 +126,7 @@ def update_jira_issue_status_done(request):
 
     @request.addfinalizer
     def fin():
+        from runners.plugins import create_jira
         for jira_id in issues_to_update:
             create_jira.set_issue_done(jira_id)
 
@@ -139,7 +142,7 @@ def assert_dict_subset(a, b):
         assert a[x] == b[x]
 
 
-def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jira_issue_status_done):
+def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jira_issue_status_done, delete_results):
 
     #
     # queries runner
@@ -152,12 +155,8 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     alert = next(db.get_alerts(query_id='test_1_query_id'))
     assert_dict_subset(EXPECTED_TEST_1_OUTPUT, alert)
 
-    queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
-    assert len(queries_run_records) == 1
-    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == 3
-    assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
-
     query_rule_run_record = list(db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY query_name'))
+    assert len(query_rule_run_record) == 3
     assert query_rule_run_record[0]['QUERY_NAME'] == 'TEST1_ALERT_QUERY'
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == 1
 
@@ -166,6 +165,11 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
 
     assert query_rule_run_record[2]['QUERY_NAME'] == 'TEST3_ALERT_QUERY'
     assert query_rule_run_record[2]['NUM_ALERTS_CREATED'] == 1
+
+    queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
+    assert len(queries_run_records) == 1
+    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == 3
+    assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
     # TODO: errors
     # error = query_rule_run_record[3].get('ERROR')
@@ -221,6 +225,7 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     #
 
     from runners import alert_handler
+    from runners.plugins import create_jira
     alert_handler.main()
 
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
@@ -228,6 +233,5 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     update_jira_issue_status_done(ticket_id)
     ticket_body = create_jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
-    assert lines[2] == 'Query ID: test_1_query_id'
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    assert lines[23] == 'Query ID: test_3_query'
+    assert {lines[2], lines[23]} == {'Query ID: test_1_query_id', 'Query ID: test_3_query'}

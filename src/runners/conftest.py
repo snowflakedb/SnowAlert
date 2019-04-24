@@ -26,3 +26,12 @@ def db_schemas(request):
     importlib.reload(install)
 
     yield
+
+
+@pytest.fixture
+def delete_results():
+    yield
+    db.execute(f"DELETE FROM results.alerts")
+    db.execute(f"DELETE FROM results.violations")
+    db.execute(f"DELETE FROM results.run_metadata")
+    db.execute(f"DELETE FROM results.query_metadata")

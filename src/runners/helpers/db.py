@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 from threading import local
 from typing import List, Tuple
-from os import path
+from os import path, getpid
 
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
@@ -16,6 +16,7 @@ from .dbconfig import ACCOUNT, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_K
 from .dbconnect import snowflake_connect
 
 CACHE = local()
+CONNECTION = f'connection-{getpid()}'
 
 
 def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
@@ -49,7 +50,7 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
-    cached_connection = getattr(CACHE, 'connection', None)
+    cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
 
@@ -79,8 +80,10 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
         if not oauth_access_token:
             execute(connection, f'USE WAREHOUSE {WAREHOUSE}')
 
-        if not cached_connection and not oauth_access_token:
-            cached_connection = connection
+        # see SP-1116
+        # if not cached_connection and not oauth_access_token:
+        #     setattr(CACHE, CONNECTION, connection)
+
         return connection
 
     except Exception as e:
@@ -89,7 +92,7 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
 
 def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
-        ctx, query = getattr(CACHE, 'connection', None), ctx
+        ctx, query = connect(), ctx
 
     res = execute(ctx, query, fix_errors, params)
     cols = [c[0] for c in res.description]
@@ -277,13 +280,6 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     return num_rows_inserted
 
 
-GET_ALERTS_QUERY = f"""
-SELECT *
-FROM data.alerts
-{{where_clause}}
-"""
-
-
 def value_to_sql(v):
     if type(v) is str:
         return f"'{v}'"
@@ -293,7 +289,7 @@ def value_to_sql(v):
 def get_alerts(**kwargs):
     predicates = '\n  AND'.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
     where_clause = f'WHERE {predicates}' if predicates else ''
-    return fetch(GET_ALERTS_QUERY.format(where_clause=where_clause))
+    return fetch(f"SELECT * FROM data.alerts {where_clause}")
 
 
 def record_metadata(metadata, table, e=None):
