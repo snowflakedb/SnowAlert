@@ -7,6 +7,7 @@ import os
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from multiprocessing import Pool
+from runners.utils import groups_of
 
 import snowflake.connector
 
@@ -79,7 +80,7 @@ def get_aws_client(account):
 
 
 GET_ACCOUNTS_QUERY = f"""
-SELECT account:Id::number
+SELECT account:Id::string
 FROM {AWS_ACCOUNTS_TABLE}
 WHERE timestamp = (
   SELECT MAX(timestamp) FROM {AWS_ACCOUNTS_TABLE}
@@ -106,27 +107,28 @@ FROM VALUES {{format_string}}
 def get_data_worker(account):
     ec2_session = get_aws_client(account)
     if ec2_session:
-        instances = []
-        ec2_regions = [region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']]
+        try:
+            ec2_regions = [region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']]
+        except Exception as e:
+            return None
         for region in ec2_regions:
-            ec2_client = ec2_session.client('ec2', region_name=region)
-            paginator = ec2_client.get_paginator('describe_instances')
-            page_iterator = paginator.paginate()
-            for page in page_iterator:
-                for instance_array in page['Reservations']:
-                    instances.extend(instance_array['Instances'])
+            try:
+                client = ec2_session.client('ec2', region_name=region)
+                paginator = client.get_paginator('describe_instances')
+                page_iterator = paginator.paginate()
+                instances = [instance for page in page_iterator for instance_array in page['Reservations'] for instance in instance_array['Instances']]
+            except Exception as e:
+                return None
         instance_list = [json.dumps({**instance,"AccountId":account}, default=str) for instance in instances]
         return instance_list
 
 def get_data(accounts_list):
     start = datetime.datetime.now()
-    instance_list_list = list(filter(None,Pool(4).map(get_data_worker, accounts_list)))
-    instance_list = []
-    for sub_list in instance_list_list:
-        instance_list.extend(sub_list)
-    if len(instance_list):
+    instance_list_list = Pool(4).map(get_data_worker, accounts_list)
+    instance_list = [x for l in instance_list_list if l for x in l]
+    if instance_list:
         sf_client = get_snowflake_client()
-        instance_groups = [instance_list[i:i+15000] for i in range(0, len(instance_list), 15000)]
+        instance_groups = groups_of(15000,instance_list)
         for group in instance_groups:
             query = LOAD_INSTANCE_LIST_QUERY.format(
                 snapshotclock=datetime.datetime.utcnow().isoformat(),
