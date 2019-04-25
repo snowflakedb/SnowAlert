@@ -79,10 +79,7 @@ def main():
 
     for alert in alerts:
         alert_body = alert['ALERT']
-        try:
-            handlers = alert_body['HANDLERS']
-        except KeyError:
-            handlers = ['jira']
+        handlers = alert_body.get('HANDLERS', ['jira'])
         for handler in handlers:
             if handler == 'jira':
                 r = create_jira.handle_alert(handler, alert)
