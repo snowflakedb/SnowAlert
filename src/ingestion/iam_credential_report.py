@@ -8,6 +8,7 @@ import time
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from multiprocessing import Pool
+from runners.utils import groups_of
 
 import snowflake.connector
 
@@ -81,7 +82,7 @@ def get_aws_client(account):
 
 
 GET_ACCOUNTS_QUERY = f"""
-SELECT account:Id::number
+SELECT account:Id::string
 FROM {AWS_ACCOUNTS_TABLE}
 WHERE timestamp = (
   SELECT MAX(timestamp) FROM {AWS_ACCOUNTS_TABLE}
@@ -134,27 +135,27 @@ def get_data_worker(account):
         reports_json = [json.dumps({**report, "account_id": account}) for report in reports]
         return {'report': reports_json, 'policy': json.dumps(policy)}
 
-
 def get_data(accounts_list):
     start = datetime.datetime.now()
-    results_list = list(filter(None, Pool(4).map(get_data_worker, accounts_list)))
+    results_list = Pool(4).map(get_data_worker, accounts_list)
     if results_list:
-        policies_list = [result['policy'] for result in results_list]
-        reports_list = [result['report'] for result in results_list]
-        reports = []
-        for report in reports_list:
-            reports.extend(report)
+        policies_list = [result['policy'] for result in results_list if result]
+        reports_list = [report for result in results_list if result for report in result['report']]
         sf_client = get_snowflake_client()
-        if len(reports):
-            query = LOAD_REPORT_LIST_QUERY.format(
-                snapshotclock=datetime.datetime.utcnow().isoformat(),
-                format_string=", ".join(["(%s)"] * len(reports)))
-            sf_client.cursor().execute(query, reports)
-        if len(policies_list):
-            query = LOAD_POLICY_LIST_QUERY.format(
-                snapshotclock=datetime.datetime.utcnow().isoformat(),
-                format_string=", ".join(["(%s)"] * len(policies_list)))
-            sf_client.cursor().execute(query, policies_list)
+        if reports_list:
+            report_groups = groups_of(15000,reports_list)
+            for group in report_groups:
+                query = LOAD_REPORT_LIST_QUERY.format(
+                    snapshotclock=datetime.datetime.utcnow().isoformat(),
+                    format_string=", ".join(["(%s)"] * len(group)))
+                sf_client.cursor().execute(query, group)
+        if policies_list:
+            policy_groups = groups_of(15000,policies_list)
+            for group in policy_groups:
+                query = LOAD_POLICY_LIST_QUERY.format(
+                    snapshotclock=datetime.datetime.utcnow().isoformat(),
+                    format_string=", ".join(["(%s)"] * len(group)))
+                sf_client.cursor().execute(query, group)
     end = datetime.datetime.now()
     print(f"start: {start} end: {end} total: {(end - start).total_seconds()}")
 
