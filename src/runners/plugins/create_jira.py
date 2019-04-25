@@ -6,8 +6,6 @@ from jira import JIRA
 
 from runners.helpers import log, kms, db
 
-import pdb
-
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
 
