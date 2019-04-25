@@ -45,7 +45,7 @@ def log_failure(ctx, alert, e):
         'TITLE': 'Alert Handler Failure',
         'EVENT_TIME': str(datetime.datetime.utcnow()),
         'ALERT_TIME': str(datetime.datetime.utcnow()),
-        'DESCRIPTION': f"The alert with ID '{alert['ALERT_ID']}' failed to create with error: {e!r}",
+        'DESCRIPTION': f"The alert with ID '{alert['ALERT_ID']}' failed to create with error: {e}",
         'DETECTOR': 'Alert Handler',
         'EVENT_DATA': str(alert),
         'SEVERITY': 'High'
@@ -68,94 +68,26 @@ LIMIT 100
 
 
 def get_new_alerts(ctx):
-    results = ctx.cursor().execute(GET_ALERTS_QUERY).fetchall()
-    print(f'Found {len(results)} new alerts.')
+    results = db.fetch(GET_ALERTS_QUERY)
     return results
-
-
-def record_ticket_id(ctx, ticket_id, alert_id):
-    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
-    print('Updating alert table:', query)
-    ctx.cursor().execute(query)
-
-# We get a list of alerts that don't have tickets. For each alert, check the correlation_id of the alert; if there is no
-# alert that has that correlation_id and a ticket_id, create a ticket for that alert. if there is an alert with a matching
-# correlation_id and a ticket_id, update the body of the ticket with the new alert instead.
 
 
 def main():
     ctx = db.connect()
-    alerts = get_new_alerts(ctx)
+    alerts = list(get_new_alerts(ctx))
     log.info(f'Found {len(alerts)} new alerts to handle.')
 
-    for row in alerts:
-        alert = json.loads(row[0])
+    for alert in alerts:
+        alert_body = alert['ALERT']
         try:
-            correlation_id = row[7]
-        except Exception:
-            log.info(f"Warning: no VARCHAR CORRELATION_ID column in alerts table")
-            try:
-                ticket_id = create_jira.create_jira_ticket(alert)
-            except Exception as e:
-                log.error(e, f"Failed to create ticket for alert {alert}")
-                log_failure(ctx, alert, e)
-                continue
-            continue
-
-        log.info('Creating ticket for alert', alert)
-
-        CORRELATION_QUERY = f"""
-            SELECT *
-            FROM results.alerts
-            WHERE correlation_id = '{correlation_id}'
-              AND ticket IS NOT NULL
-            ORDER BY EVENT_TIME DESC
-            LIMIT 1
-        """
-
-        # We check against the correlation ID for alerts in that correlation with the same ticket
-        correlated_results = ctx.cursor().execute(CORRELATION_QUERY).fetchall() if correlation_id else []
-
-        log.info(f"Discovered {len(correlated_results)} correlated results")
-
-        if len(correlated_results) > 0:
-
-            # There is a correlation with a ticket that exists, so we should append to that ticket
-            ticket_id = correlated_results[0][3]
-            ticket_status = create_jira.check_ticket_status(ticket_id)
-
-            if ticket_status == 'To Do':
-                try:
-                    create_jira.append_to_body(ticket_id, alert)
-                except Exception as e:
-                    log.error(f"Failed to append alert {alert['ALERT_ID']} to ticket {ticket_id}.", e)
-                    try:
-                        ticket_id = create_jira.create_jira_ticket(alert)
-                    except Exception as e:
-                        log.error(e, f"Failed to create ticket for alert {alert}")
-                        log_failure(ctx, alert, e)
-                    continue
-            else:
-                # The ticket is already in progress, we shouldn't change it
-                # Create a new ticket in JIRA for the alert
-                try:
-                    ticket_id = create_jira.create_jira_ticket(alert)
-                except Exception as e:
-                    log.error(e, f"Failed to create ticket for alert {alert}")
-                    log_failure(ctx, alert, e)
-                    continue
-        else:
-            # There is no correlation with a ticket that exists
-            # Create a new ticket in JIRA for the alert
-            try:
-                ticket_id = create_jira.create_jira_ticket(alert)
-            except Exception as e:
-                log.error(e, f"Failed to create ticket for alert {alert}")
-                log_failure(ctx, alert, e)
-                continue
-
-        # Record the new ticket id in the alert table
-        record_ticket_id(ctx, ticket_id, alert['ALERT_ID'])
+            handlers = alert_body['HANDLERS']
+        except KeyError:
+            handlers = ['jira']
+        for handler in handlers:
+            if handler == 'jira':
+                r = create_jira.handle_alert(handler, alert)
+                if r is not None:
+                    log_failure(ctx, alert_body, r)
 
     try:
         if CLOUDWATCH_METRICS:
