@@ -135,20 +135,20 @@ def record_ticket_id(ticket_id, alert_id):
         log.error(e, f"Failed to update alert {alert_id} with ticket id {ticket_id}")
 
 
-def handle(**kwargs):
-    alert = kwargs['ALERT']
+def handle(alert_text):
+    alert_body = alert_text['ALERT']
     CORRELATION_QUERY = f"""
     SELECT *
     FROM results.alerts
-    WHERE correlation_id = '{kwargs['CORRELATION_ID']}'
+    WHERE correlation_id = '{alert_text['CORRELATION_ID']}'
       AND ticket IS NOT NULL
     ORDER BY EVENT_TIME DESC
     LIMIT 1
     """
-    alert_id = alert['ALERT_ID']
+    alert_id = alert_body['ALERT_ID']
 
     # We check against the correlation ID for alerts in that correlation with the same ticket
-    correlated_results = list(db.fetch(CORRELATION_QUERY)) if kwargs['CORRELATION_ID'] else []
+    correlated_results = list(db.fetch(CORRELATION_QUERY)) if alert_text['CORRELATION_ID'] else []
     log.info(f"Discovered {len(correlated_results)} correlated results")
 
     if len(correlated_results) > 0:
@@ -161,11 +161,11 @@ def handle(**kwargs):
 
         if ticket_status == 'To Do':
             try:
-                append_to_body(ticket_id, alert)
+                append_to_body(ticket_id, alert_body)
             except Exception as e:
                 log.error(f"Failed to append alert {alert_id} to ticket {ticket_id}.", e)
                 try:
-                    ticket_id = create_jira_ticket(alert)
+                    ticket_id = create_jira_ticket(alert_body)
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     return e
@@ -173,7 +173,7 @@ def handle(**kwargs):
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert)
+            ticket_id = create_jira_ticket(alert_body)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             return e

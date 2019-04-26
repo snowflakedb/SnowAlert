@@ -81,10 +81,16 @@ def main():
         alert_body = alert['ALERT']
         handlers = alert_body.get('HANDLERS', ['jira'])
         for handler in handlers:
-            if handler == 'jira':
-                r = create_jira.handle(**alert)
-                if r is not None:
-                    log_failure(ctx, alert_body, r)
+            if type(handler) is str:
+                handler = {'type': handler}
+            handler_type = handler.pop('type')
+            handler_args = handler
+            if handler_type == 'jira':
+                r = create_jira.handle(alert, **handler_args)
+            else:
+                r = None
+            if r is not None:
+                log_failure(ctx, alert_body, r)
 
     try:
         if CLOUDWATCH_METRICS:
