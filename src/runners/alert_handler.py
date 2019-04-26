@@ -82,7 +82,7 @@ def main():
         handlers = alert_body.get('HANDLERS', ['jira'])
         for handler in handlers:
             if handler == 'jira':
-                r = create_jira.handle_alert(handler, alert)
+                r = create_jira.handle(**alert)
                 if r is not None:
                     log_failure(ctx, alert_body, r)
 

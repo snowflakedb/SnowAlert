@@ -135,19 +135,20 @@ def record_ticket_id(ticket_id, alert_id):
         log.error(e, f"Failed to update alert {alert_id} with ticket id {ticket_id}")
 
 
-def handle_alert(handler, alert):
+def handle(**kwargs):
+    alert = kwargs['ALERT']
     CORRELATION_QUERY = f"""
     SELECT *
     FROM results.alerts
-    WHERE correlation_id = '{alert['CORRELATION_ID']}'
+    WHERE correlation_id = '{kwargs['CORRELATION_ID']}'
       AND ticket IS NOT NULL
     ORDER BY EVENT_TIME DESC
     LIMIT 1
     """
-    alert_id = alert['ALERT']['ALERT_ID']
+    alert_id = alert['ALERT_ID']
 
     # We check against the correlation ID for alerts in that correlation with the same ticket
-    correlated_results = list(db.fetch(CORRELATION_QUERY)) if alert['CORRELATION_ID'] else []
+    correlated_results = list(db.fetch(CORRELATION_QUERY)) if kwargs['CORRELATION_ID'] else []
     log.info(f"Discovered {len(correlated_results)} correlated results")
 
     if len(correlated_results) > 0:
@@ -160,7 +161,7 @@ def handle_alert(handler, alert):
 
         if ticket_status == 'To Do':
             try:
-                append_to_body(ticket_id, alert['ALERT'])
+                append_to_body(ticket_id, alert)
             except Exception as e:
                 log.error(f"Failed to append alert {alert_id} to ticket {ticket_id}.", e)
                 try:
@@ -172,7 +173,7 @@ def handle_alert(handler, alert):
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert['ALERT'])
+            ticket_id = create_jira_ticket(alert)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             return e
