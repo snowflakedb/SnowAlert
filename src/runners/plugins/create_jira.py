@@ -136,6 +136,13 @@ def record_ticket_id(ticket_id, alert_id):
 
 
 def handle(alert_text):
+    if PROJECT == '':
+        log.error("No Jira project defined.")
+        return None
+    if URL == '':
+        log.error("No Jira URL defined.")
+        return None
+
     alert_body = alert_text['ALERT']
     CORRELATION_QUERY = f"""
     SELECT *
