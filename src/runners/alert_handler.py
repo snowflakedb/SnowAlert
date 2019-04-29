@@ -61,7 +61,7 @@ def log_failure(ctx, alert, e):
 GET_ALERTS_QUERY = f"""
 SELECT *
 FROM results.alerts
-WHERE handled IS NULL
+WHERE iff(alert:HANDLERS is null, ticket is null, handled is null)
   AND suppressed=FALSE
 ORDER BY event_time ASC
 LIMIT 100
