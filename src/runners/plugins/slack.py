@@ -41,7 +41,7 @@ def record_status(response, alert_id):
     print('Updating alert table:', query)
     try:
 
-        db.connect().cursor().execute(query, [str(response)])  # TODO: add safe UPDATE to db
+        db.execute(query, params=str(response))
     except Exception as e:
         log.error(e, f"Failed to update alert {alert_id} with status {response}")
 
