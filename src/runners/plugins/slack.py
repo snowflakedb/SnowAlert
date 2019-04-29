@@ -84,7 +84,7 @@ def handle(alert_shell, type='slack', recipient_email=None, channel=None, templa
     if channel is not None:
         log.info(f'Creating new SLACK message for {title} in channel', channel)
     else:
-        if 'recipient_email' is not None:
+        if recipient_email is not None:
             channel = userid
             log.info(f'Creating new SLACK message for {title} for user {recipient_email}')
         else:
@@ -117,7 +117,7 @@ def handle(alert_shell, type='slack', recipient_email=None, channel=None, templa
             raise Exception('Payload is empty for template ' + {template})
     else:
         # does not have template, will send just simple message
-        if 'message' is not None:
+        if message is not None:
             text = message
 
     response = sc.api_call(
