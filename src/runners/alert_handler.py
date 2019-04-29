@@ -61,7 +61,7 @@ def log_failure(ctx, alert, e):
 GET_ALERTS_QUERY = f"""
 SELECT *
 FROM results.alerts
-WHERE ticket IS NULL
+WHERE handled IS NULL
   AND suppressed=FALSE
 ORDER BY event_time ASC
 LIMIT 100
@@ -80,10 +80,10 @@ def main():
 
     for alert in alerts:
         alert_body = alert['ALERT']
-        handlers = alert_body.get('HANDLERS', ['jira'])
+        handlers = alert_body.get('HANDLERS')
+        if handlers is None:
+            handlers = ['jira']  # backwards compatibility
         for handler in handlers:
-            if handler is None:
-                continue
             if type(handler) is str:
                 handler = {'type': handler}
             handler_type = handler.pop('type')

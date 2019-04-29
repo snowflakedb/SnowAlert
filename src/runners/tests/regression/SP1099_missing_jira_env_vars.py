@@ -68,4 +68,4 @@ def test_missing_jira_env_regression(sample_alert_rule, without_jira_vars, delet
 
     rows = list(db.get_alerts(suppressed='false'))
     assert len(rows) == 1
-    assert rows[0]['TICKET'] == "None"
+    assert rows[0]['TICKET'] is None

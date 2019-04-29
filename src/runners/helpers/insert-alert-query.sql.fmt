@@ -30,7 +30,7 @@ MERGE INTO results.alerts USING (
              'DETECTOR', IFNULL(DETECTOR, PARSE_JSON('null')),
              'EVENT_DATA', IFNULL(EVENT_DATA, PARSE_JSON('null')),
              'SEVERITY', IFNULL(SEVERITY, PARSE_JSON('null')),
-             'HANDLERS', IFNULL(HANDLERS, PARSE_JSON('null'))
+             'HANDLERS', IFNULL(OBJECT_CONSTRUCT(*):HANDLERS, PARSE_JSON('null'))
            ) AS alert
          , alert_time
          , event_time
