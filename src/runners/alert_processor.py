@@ -58,13 +58,12 @@ def get_correlation_id(ctx, alert):
     query = GET_CORRELATED_ALERT.format(time=time)
 
     try:
-        #  match = ctx.cursor().execute(query, [actor, object, action]).fetchall()
         match = list(db.fetch(query, params=[actor, object, action]))
     except Exception as e:
         log.error("Failed unexpectedly while getting correlation matches", e)
         match = []
 
-    correlation_id = match[0]['CORRELATION_ID'] if len(match) > 0 and len(match[0]['CORRELATION_ID']) > 7 else uuid.uuid4().hex
+    correlation_id = match[0]['CORRELATION_ID'] if len(match) > 0 and 'CORRELATION_ID' in match[0] else uuid.uuid4().hex
 
     return correlation_id
 

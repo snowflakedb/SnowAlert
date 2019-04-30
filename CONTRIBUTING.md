@@ -44,3 +44,19 @@ yarn build
 ~~~
 ./build samui
 ~~~
+
+# Extensions
+
+## Developing a new Alert Handler
+
+An alert handler needs to expose only one part of its interface: a `handle()` function, which should take an alert and
+optionally additional metadata from the handler to describe how this alert in particular should be handled.
+
+The `handle()` function should ultimately perform whatever is required for an alert to be considered handled; in the
+case of a jira handler, this would involve creating a jira ticket in the specified project. Additionally, the `handle()`
+functionmust handle bookkeeping on the Snowflake side by setting the HANDLED column of the alerts table for the specified
+alert to reflect the fact that the alert has been processed; you can record whatever data is significant, but this column
+must not be left unset, or the alert will be handled again on the next run.
+
+A new handler should be placed in the plugins directory; you should ensure that the name of the handler file file is
+"<service>.py"; i.e. a handler which sends messages to Slack would be called slack.py.

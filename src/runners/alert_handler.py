@@ -7,7 +7,8 @@ import uuid
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
 from .plugins import create_jira
-from .plugins import slack
+# from .plugins import slack
+import importlib
 
 
 def log_alerts(ctx, alerts):
@@ -90,10 +91,10 @@ def main():
             handler_args = handler
             if handler_type == 'jira':
                 r = create_jira.handle(alert, **handler_args)
-            elif handler_type == 'slack':
-                r = slack.handle(alert, **handler_args)
+            # elif handler_type == 'slack':
+            #     r = slack.handle(alert, **handler_args)
             else:
-                r = None
+                r = importlib.import_module(handler_type, 'plugins')
             if type(r) == Exception:
                 log_failure(ctx, alert_body, r)
 
