@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import importlib
 import json
 import datetime
 import uuid
@@ -90,6 +91,8 @@ def main():
     for alert in alerts:
         alert_body = alert['ALERT']
         handlers = alert_body.get('HANDLERS')
+        results = []
+
         if handlers is None:
             handlers = ['jira']  # backwards compatibility
         for handler in handlers:
@@ -97,12 +100,21 @@ def main():
                 handler = {'type': handler}
             handler_type = handler.pop('type')
             handler_args = handler
-            if handler_type == 'jira':
-                r = jira.handle(alert, **handler_args)
-            elif handler_type == 'slack':
-                r = slack.handle(alert, **handler_args)
+            handler_package = importlib.import_module('plugins', handler_type)
+            try:
+                result = {
+                    "success": True,
+                    "details": handler_package.handle(alert, **handler_args),
+                }
+            except Exception as e:
+                result = {
+                    "success": False,
+                    "details": e,
+                }
 
-            record_status(r, alert_body['ALERT_ID'])
+            results.push(result)
+
+        record_status(results, alert_body['ALERT_ID'])
 
     try:
         if CLOUDWATCH_METRICS:
