@@ -7,8 +7,8 @@ import uuid
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
-from .plugins import jira
-from .plugins import slack
+#from .plugins import jira
+#from .plugins import slack
 
 
 def log_alerts(ctx, alerts):
@@ -100,7 +100,7 @@ def main():
                 handler = {'type': handler}
             handler_type = handler.pop('type')
             handler_args = handler
-            handler_package = importlib.import_module('plugins', handler_type)
+            handler_package = importlib.import_module(f'plugins.{handler_type}')
             try:
                 result = {
                     "success": True,
@@ -112,7 +112,7 @@ def main():
                     "details": e,
                 }
 
-            results.push(result)
+            results.append(result)
 
         record_status(results, alert_body['ALERT_ID'])
 
