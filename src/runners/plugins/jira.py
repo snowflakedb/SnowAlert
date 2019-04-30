@@ -107,12 +107,6 @@ def create_jira_ticket(alert):
                                   issuetype={'name': 'Story'},
                                   summary=alert['TITLE'],
                                   description=body)
-
-    query = f"UPDATE results.alerts SET handled='{new_issue}' where alert:ALERT_ID='{alert['ALERT_ID']}'"
-    try:
-        db.execute(query)
-    except Exception as e:
-        log.error(e, f"Failed to update alert {alert['ALERT_ID']} with handled status")
     return new_issue
 
 
@@ -152,13 +146,11 @@ def bail_out(alert_id):
 
 def handle(alert_text):
     if PROJECT == '':
-        log.error("No Jira project defined.")
-        bail_out(alert_text['ALERT']['ALERT_ID'])
-        return None
+        log.error("No Jira project defined")
+        return "No Jira Project defined"
     if URL == '':
         log.error("No Jira URL defined.")
-        bail_out(alert_text['ALERT']['ALERT_ID'])
-        return None
+        return "No Jira URL defined."
 
     alert_body = alert_text['ALERT']
     CORRELATION_QUERY = f"""
@@ -203,4 +195,4 @@ def handle(alert_text):
             return e
 
     record_ticket_id(ticket_id, alert_id)
-    return None
+    return ticket_id

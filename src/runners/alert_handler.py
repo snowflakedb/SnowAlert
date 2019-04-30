@@ -73,6 +73,15 @@ def get_new_alerts(ctx):
     return results
 
 
+def record_status(response, alert_id):
+    query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
+    print('Updating alert table:', query)
+    try:
+        db.execute(query, params=str(response))
+    except Exception as e:
+        log.error(e, f"Failed to update alert {alert_id} with status {response}")
+
+
 def main():
     ctx = db.connect()
     alerts = list(get_new_alerts(ctx))
@@ -92,10 +101,8 @@ def main():
                 r = jira.handle(alert, **handler_args)
             elif handler_type == 'slack':
                 r = slack.handle(alert, **handler_args)
-            else:
-                r = None
-            if type(r) == Exception:
-                log_failure(ctx, alert_body, r)
+
+            record_status(r, alert_body['ALERT_ID'])
 
     try:
         if CLOUDWATCH_METRICS:
