@@ -243,7 +243,7 @@ def setup_user_and_role(do_attempt):
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
-    do_attempt("Granting priveleges to role", GRANT_PRIV_TO_ROLE)
+    do_attempt("Granting privileges to role", GRANT_PRIV_TO_ROLE)
 
 
 def setup_samples(do_attempt):
