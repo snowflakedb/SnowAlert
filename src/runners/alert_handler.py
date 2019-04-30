@@ -4,11 +4,10 @@ import importlib
 import json
 import datetime
 import uuid
+from runners import utils
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
-#from .plugins import jira
-#from .plugins import slack
 
 
 def log_alerts(ctx, alerts):
@@ -109,7 +108,7 @@ def main():
             except Exception as e:
                 result = {
                     "success": False,
-                    "details": e,
+                    "details": utils.json_dumps(e),
                 }
 
             results.append(result)

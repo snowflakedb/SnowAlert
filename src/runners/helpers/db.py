@@ -15,6 +15,8 @@ from .auth import load_pkb, oauth_refresh
 from .dbconfig import ACCOUNT, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
+from runners import utils
+
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 
@@ -300,9 +302,9 @@ def record_metadata(metadata, table, e=None):
         del metadata['EXCEPTION']
 
     if e is not None:
-        exception_only = log.format_exception_only(e)
+        exception_only = utils.format_exception_only(e)
         metadata['ERROR'] = {
-            'EXCEPTION': log.format_exception(e),
+            'EXCEPTION': utils.format_exception(e),
             'EXCEPTION_ONLY': exception_only,
         }
         if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
