@@ -6,7 +6,7 @@ import uuid
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
-from .plugins import create_jira
+from .plugins import jira
 from .plugins import slack
 
 
@@ -89,7 +89,7 @@ def main():
             handler_type = handler.pop('type')
             handler_args = handler
             if handler_type == 'jira':
-                r = create_jira.handle(alert, **handler_args)
+                r = jira.handle(alert, **handler_args)
             elif handler_type == 'slack':
                 r = slack.handle(alert, **handler_args)
             else:

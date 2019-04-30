@@ -126,9 +126,9 @@ def update_jira_issue_status_done(request):
 
     @request.addfinalizer
     def fin():
-        from runners.plugins import create_jira
+        from runners.plugins import jira
         for jira_id in issues_to_update:
-            create_jira.set_issue_done(jira_id)
+            jira.set_issue_done(jira_id)
 
     def mark_done(jira_id):
         issues_to_update.append(jira_id)
@@ -225,13 +225,13 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     #
 
     from runners import alert_handler
-    from runners.plugins import create_jira
+    from runners.plugins import jira
     alert_handler.main()
 
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
     assert ticket_id is not None
     update_jira_issue_status_done(ticket_id)
-    ticket_body = create_jira.get_ticket_description(ticket_id)
+    ticket_body = jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert {lines[2], lines[23]} == {'Query ID: test_1_query_id', 'Query ID: test_3_query'}

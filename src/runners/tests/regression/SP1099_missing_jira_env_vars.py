@@ -8,7 +8,7 @@ import pytest
 from os import environ
 
 from runners.helpers import db
-from runners.plugins import create_jira
+from runners.plugins import jira
 
 
 TEST_ALERT = f"""
@@ -49,10 +49,10 @@ def without_jira_vars():
     del environ['JIRA_USER']
     del environ['JIRA_PASSWORD']
     del environ['JIRA_URL']
-    reload(create_jira)
+    reload(jira)
     yield
     environ.update(backup)
-    reload(create_jira)
+    reload(jira)
 
 
 def test_missing_jira_env_regression(sample_alert_rule, without_jira_vars, delete_results):
