@@ -144,7 +144,7 @@ def bail_out(alert_id):
         log.error(e, f"Failed to update alert {alert_id} with handler status")
 
 
-def handle(alert_text):
+def handle(alert, correlation_id):
     if PROJECT == '':
         log.error("No Jira project defined")
         return "No Jira Project defined"
@@ -152,19 +152,18 @@ def handle(alert_text):
         log.error("No Jira URL defined.")
         return "No Jira URL defined."
 
-    alert_body = alert_text['ALERT']
     CORRELATION_QUERY = f"""
     SELECT *
     FROM results.alerts
-    WHERE correlation_id = '{alert_text['CORRELATION_ID']}'
+    WHERE correlation_id = '{correlation_id}'
       AND iff(alert:HANDLERS is null, ticket is not null, handled is not null)
     ORDER BY EVENT_TIME DESC
     LIMIT 1
     """
-    alert_id = alert_body['ALERT_ID']
+    alert_id = alert['ALERT_ID']
 
     # We check against the correlation ID for alerts in that correlation with the same ticket
-    correlated_results = list(db.fetch(CORRELATION_QUERY)) if alert_text['CORRELATION_ID'] else []
+    correlated_results = list(db.fetch(CORRELATION_QUERY)) if correlation_id else []
     log.info(f"Discovered {len(correlated_results)} correlated results")
 
     if len(correlated_results) > 0:
@@ -177,11 +176,11 @@ def handle(alert_text):
 
         if ticket_status == 'To Do':
             try:
-                append_to_body(ticket_id, alert_body)
+                append_to_body(ticket_id, alert)
             except Exception as e:
                 log.error(f"Failed to append alert {alert_id} to ticket {ticket_id}.", e)
                 try:
-                    ticket_id = create_jira_ticket(alert_body)
+                    ticket_id = create_jira_ticket(alert)
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     return e
@@ -189,7 +188,7 @@ def handle(alert_text):
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert_body)
+            ticket_id = create_jira_ticket(alert)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             return e

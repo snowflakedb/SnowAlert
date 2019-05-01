@@ -46,8 +46,7 @@ def record_status(response, alert_id):
         log.error(e, f"Failed to update alert {alert_id} with status {response}")
 
 
-def handle(alert_shell, type='slack', recipient_email=None, channel=None, template=None, message=None):
-    alert = alert_shell['ALERT']
+def handle(alert, type='slack', recipient_email=None, channel=None, template=None, message=None):
     if not os.environ.get('SLACK_API_TOKEN'):
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None

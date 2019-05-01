@@ -21,16 +21,26 @@ def format_exception_only(e):
 def json_dumps(obj):
     import json
 
-    def default(x):
+    def default_json_dumps(x):
         if isinstance(x, Exception):
             return {
                 "traceback": format_exception(x),
                 "exception": format_exception_only(x),
-                "exceptionName": x.__class__.__title__,
+                "exceptionName": x.__class__.__name__,
                 "exceptionArgs": x.args,
             }
-        else:
-            type_name = x.__class__.__name__
-            raise TypeError(f"Object of type '{type_name}' is not JSON serializable")
 
-    json.dump(obj, default=default)
+        className = {x.__class__.__name__}
+        errMessage = f"Object of type '{className}' is not JSON serializable"
+        raise TypeError(errMessage)
+
+    json.dumps(obj, default=default_json_dumps)
+
+
+def apply_some(f, **kwargs):
+    import inspect
+    spec = inspect.getfullargspec(f)
+    defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
+    passed_in = {arg: kwargs[arg] for arg in spec.args if arg in kwargs}
+    defaults.update(passed_in)
+    return f(**defaults)

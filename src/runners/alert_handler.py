@@ -8,6 +8,7 @@ from runners import utils
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
+from .utils import apply_some
 
 
 def log_alerts(ctx, alerts):
@@ -84,36 +85,42 @@ def record_status(response, alert_id):
 
 def main():
     ctx = db.connect()
-    alerts = list(get_new_alerts(ctx))
-    log.info(f'Found {len(alerts)} new alerts to handle.')
+    alert_rows = list(get_new_alerts(ctx))
+    log.info(f'Found {len(alert_rows)} new alerts to handle.')
 
-    for alert in alerts:
-        alert_body = alert['ALERT']
-        handlers = alert_body.get('HANDLERS')
+    for alert_row in alert_rows:
+        alert = alert_row['ALERT']
+        handlers = alert.get('HANDLERS')
         results = []
 
         if handlers is None:
-            handlers = ['jira']  # backwards compatibility
+            handlers = ['jira']  # default is like v1.6 and below
         for handler in handlers:
             if type(handler) is str:
                 handler = {'type': handler}
             handler_type = handler.pop('type')
-            handler_args = handler
-            handler_package = importlib.import_module(f'plugins.{handler_type}')
+            handler_kwargs = handler
+            handler_module = importlib.import_module(f'runners.plugins.{handler_type}')
             try:
+                handler_kwargs.update({
+                    'alert': alert,
+                    'correlation_id': alert_row['CORRELATION_ID'],
+                    'alert_count': alert_row['COUNTER'],
+                })
+
                 result = {
-                    "success": True,
-                    "details": handler_package.handle(alert, **handler_args),
+                    'success': True,
+                    'details': apply_some(handler_module.handle, handler_kwargs)
                 }
             except Exception as e:
                 result = {
-                    "success": False,
-                    "details": utils.json_dumps(e),
+                    'success': False,
+                    'details': utils.json_dumps(e),
                 }
 
             results.append(result)
 
-        record_status(results, alert_body['ALERT_ID'])
+        record_status(results, alert['ALERT_ID'])
 
     try:
         if CLOUDWATCH_METRICS:
