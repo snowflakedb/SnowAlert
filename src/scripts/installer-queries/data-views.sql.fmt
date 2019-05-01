@@ -34,11 +34,11 @@ SELECT alert:ALERT_ID::VARCHAR AS id
   , ticket
   , suppressed
   , suppression_rule
+  , handled
   , alert:QUERY_NAME::VARCHAR   AS query_name
   , alert:QUERY_ID::VARCHAR     AS query_id
   , alert:ENVIRONMENT::VARIANT  AS environment
   , alert:SOURCES::VARIANT      AS sources
-  , alert:HANDLED::VARIANT      AS handled
   , alert:ACTOR::VARCHAR        AS actor
   , alert:OBJECT::VARCHAR       AS object
   , alert:ACTION::VARCHAR       AS action
@@ -48,6 +48,7 @@ SELECT alert:ALERT_ID::VARCHAR AS id
   , alert:EVENT_DATA::VARIANT   AS event_data
   , alert:SEVERITY::VARCHAR     AS severity
   , alert:OWNER::VARCHAR        AS owner
+  , alert:HANDLERS::VARCHAR     AS handlers
 FROM results.alerts
 ;
 

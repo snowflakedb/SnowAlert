@@ -137,11 +137,7 @@ EXPECTED_TEST_1_OUTPUT = {
 
 SLACK_MOCK_RETURN_VALUE = [
     {'success': True,
-     'details': {'ok': True,
-                 'channel': 'channel_id',
-                 'ts': 'timestamp',
-                 'headers': {'http_headers': 'go_here'}
-                 }}
+     'details': {'ok': True}}
 ]
 
 
@@ -269,7 +265,7 @@ def test_alert_runners_processor_and_alert_handler(sample_alert_rules, update_ji
     # alert handler
     #
     from runners.plugins import slack
-    slack.handle = MagicMock(return_value=SLACK_MOCK_RETURN_VALUE)
+    slack.handle = MagicMock(return_value={'ok': True})
     from runners import alert_handler
     from runners.plugins import jira
     alert_handler.main()
