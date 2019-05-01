@@ -58,7 +58,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
             slack_token = kms.decrypt_if_encrypted(slack_token, handleErrors=False)
         except Exception as e:
             log.error(f"Error decrypting Slack token", e)
-            raise
+            return None
 
     sc = SlackClient(slack_token)
 
@@ -77,7 +77,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
             userid = user['id']
         else:
             log.error(f'Cannot identify  Slack user for email {recipient_email}')
-            raise Exception('Cannot identify  Slack user for email ' + {recipient_email})
+            return None
 
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
@@ -88,7 +88,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
             log.info(f'Creating new SLACK message for {title} for user {recipient_email}')
         else:
             log.error(f'Cannot identify assignee email')
-            raise Exception('Cannot identify assignee email')
+            return None
 
     blocks = None
     attachments = None
@@ -101,7 +101,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
         try:
             payload = message_template(locals())
         except Exception as e:
-            raise e
+            return None
 
         if payload is not None:
             if 'blocks' in payload:
@@ -113,7 +113,8 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
             if 'text' in payload:
                 text = payload['text']
         else:
-            raise Exception('Payload is empty for template ' + {template})
+            log.error(f'Payload is empty for template {template}')
+            return None
     else:
         # does not have template, will send just simple message
         if message is not None:
@@ -131,7 +132,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
 
     if response['ok'] is False:
         log.error(f"Slack handler error", response['error'])
-        raise Exception('Slack handler error', response['error'])
+        return None
 
     if 'message' in response:
         del response['message']
