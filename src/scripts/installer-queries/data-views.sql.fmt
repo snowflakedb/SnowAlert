@@ -38,6 +38,7 @@ SELECT alert:ALERT_ID::VARCHAR AS id
   , alert:QUERY_ID::VARCHAR     AS query_id
   , alert:ENVIRONMENT::VARIANT  AS environment
   , alert:SOURCES::VARIANT      AS sources
+  , alert:HANDLED::VARIANT      AS handled
   , alert:ACTOR::VARCHAR        AS actor
   , alert:OBJECT::VARCHAR       AS object
   , alert:ACTION::VARCHAR       AS action

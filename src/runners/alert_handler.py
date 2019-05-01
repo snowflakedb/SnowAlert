@@ -90,16 +90,13 @@ def main():
 
     for alert_row in alert_rows:
         alert = alert_row['ALERT']
-        handlers = alert.get('HANDLERS')
         results = []
 
-        if handlers is None:
-            handlers = ['jira']  # default is like v1.6 and below
-        for handler in handlers:
+        for handler in alert.get('HANDLERS') or ['jira']:
             if type(handler) is str:
                 handler = {'type': handler}
             handler_type = handler.pop('type')
-            handler_kwargs = handler
+            handler_kwargs = handler.copy()
             handler_module = importlib.import_module(f'runners.plugins.{handler_type}')
             try:
                 handler_kwargs.update({

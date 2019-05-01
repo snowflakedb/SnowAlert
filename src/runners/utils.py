@@ -1,4 +1,6 @@
+import inspect
 from itertools import zip_longest
+import json
 import traceback
 
 NO_FILL = object()
@@ -19,8 +21,6 @@ def format_exception_only(e):
 
 
 def json_dumps(obj):
-    import json
-
     def default_json_dumps(x):
         if isinstance(x, Exception):
             return {
@@ -38,9 +38,8 @@ def json_dumps(obj):
 
 
 def apply_some(f, **kwargs):
-    import inspect
     spec = inspect.getfullargspec(f)
-    defaults = dict(zip(reversed(spec.args), reversed(spec.defaults)))
+    defaults = dict(zip(reversed(spec.args), reversed(spec.defaults or ())))
     passed_in = {arg: kwargs[arg] for arg in spec.args if arg in kwargs}
     defaults.update(passed_in)
     return f(**defaults)

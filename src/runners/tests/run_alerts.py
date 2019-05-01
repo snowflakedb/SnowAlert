@@ -107,12 +107,12 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , CURRENT_TIMESTAMP() AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
     , ARRAY_CONSTRUCT(
-    OBJECT_CONSTRUCT(
-       'type', 'slack',
-       'channel', 'seceng',
-       'message', 'This is a test alert; the actor is ' || actor || ' and the action is ' || action || '.'
-    )
-    ) AS handlers
+        OBJECT_CONSTRUCT(
+           'type', 'slack',
+           'channel', 'seceng',
+           'message', 'This is a test alert; the actor is ' || actor || ' and the action is ' || action || '.'
+        )
+      ) AS handlers
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
