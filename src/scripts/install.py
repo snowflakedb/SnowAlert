@@ -102,7 +102,7 @@ CREATE_TABLES_QUERIES = [
         , suppression_rule STRING DEFAULT NULL
         , counter INTEGER DEFAULT 1
         , correlation_id STRING
-        , handled STRING
+        , handled VARIANT
       );
     """,
     f"""

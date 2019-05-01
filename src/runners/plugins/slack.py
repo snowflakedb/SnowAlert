@@ -37,18 +37,11 @@ def message_template(vars):
 
 
 def handle(alert, type='slack', recipient_email=None, channel=None, template=None, message=None):
-    if not os.environ.get('SLACK_API_TOKEN'):
+    if 'SLACK_API_TOKEN' not in os.environ:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
 
-    slack_token = os.environ["SLACK_API_TOKEN"]
-
-    if len(slack_token) > 100:  # then it must be encrypted!
-        try:
-            slack_token = kms.decrypt_if_encrypted(slack_token, handleErrors=False)
-        except Exception as e:
-            log.error(f"Error decrypting Slack token", e)
-            return None
+    slack_token = kms.decrypt_if_encrypted(os.environ["SLACK_API_TOKEN"])
 
     sc = SlackClient(slack_token)
 

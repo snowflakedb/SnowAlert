@@ -135,10 +135,7 @@ EXPECTED_TEST_1_OUTPUT = {
     "TICKET": None,
 }
 
-SLACK_MOCK_RETURN_VALUE = [
-    {'success': True,
-     'details': {'ok': True}}
-]
+SLACK_MOCK_RETURN_VALUE = {'ok': True}
 
 
 @pytest.fixture
@@ -281,5 +278,5 @@ def test_alert_runners_processor_and_alert_handler(sample_alert_rules, update_ji
 
     # slack
     alert = next(db.get_alerts(query_id='test_4_query_id'))
-    assert alert['HANDLED'] == str(SLACK_MOCK_RETURN_VALUE)
+    assert alert['HANDLED'] == [{"success": True, "details": SLACK_MOCK_RETURN_VALUE}]
     slack.handle.assert_called_once()
