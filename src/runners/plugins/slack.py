@@ -36,16 +36,6 @@ def message_template(vars):
     return payload
 
 
-def record_status(response, alert_id):
-    query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
-    print('Updating alert table:', query)
-    try:
-
-        db.execute(query, params=str(response))
-    except Exception as e:
-        log.error(e, f"Failed to update alert {alert_id} with status {response}")
-
-
 def handle(alert, type='slack', recipient_email=None, channel=None, template=None, message=None):
     if not os.environ.get('SLACK_API_TOKEN'):
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
@@ -136,7 +126,5 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
 
     if 'message' in response:
         del response['message']
-
-    record_status(response, alert['ALERT_ID'])
 
     return response
