@@ -90,7 +90,7 @@ def handle(alert, type='slack', recipient_email=None, channel=None, template=Non
         # create Slack message structure in Snowflake javascript UDF
         try:
             payload = message_template(locals())
-        except Exception as e:
+        except Exception:
             return None
 
         if payload is not None:
