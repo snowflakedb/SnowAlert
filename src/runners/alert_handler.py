@@ -110,7 +110,7 @@ def main():
 
                 result = {
                     'success': True,
-                    'details': apply_some(handler_module.handle, handler_kwargs)
+                    'details': apply_some(handler_module.handle, **handler_kwargs)
                 }
             except Exception as e:
                 result = {
