@@ -19,17 +19,24 @@ from runners.helpers import log
 
 def main(target="all", rule_name=None):
     if rule_name:
-        if rule_name.startswith("AQ."):
-            alert_queries_runner.main(rule_name[3:].upper())
-        if rule_name.startswith("AS."):
-            alert_suppressions_runner.main(rule_name[3:].upper())
-        if rule_name.startswith("AH."):
-            alert_handler.main(rule_name[3:].upper())
-        if rule_name.startswith("VQ."):
-            violation_queries_runner.main(rule_name[3:].upper())
-        if rule_name.startswith("VS."):
-            violation_suppressions_runner.main(rule_name[3:].upper())
-        alert_processor.main()
+        if rule_name.endswith("_ALERT_QUERY"):
+            alert_queries_runner.main(rule_name.upper())
+
+        if rule_name.endswith("_ALERT_SUPPRESSION"):
+            alert_suppressions_runner.main(rule_name.upper())
+
+        if rule_name.endswith("_VIOLATION_QUERY"):
+            violation_queries_runner.main(rule_name.upper())
+
+        if rule_name.endswith("_VIOLATION_SUPPRESSION"):
+            violation_suppressions_runner.main(rule_name.upper())
+
+        if rule_name == "processor":
+            alert_processor.main()
+
+        if rule_name == "handlers":
+            alert_handler.main()
+
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
         log.info(f"got command {target}")
