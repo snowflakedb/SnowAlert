@@ -112,6 +112,12 @@ class AlertsDashboard extends React.PureComponent<Props> {
                             getValue: (q: Query) => q.fields.select.alert_time,
                             setValue: (q: Query, v: string) => q.copy({fields: {select: {alert_time: v}}}),
                           },
+                          {
+                            title: 'Handlers',
+                            type: 'string',
+                            getValue: (q: Query) => q.fields.select.handlers,
+                            setValue: (q: Query, v: string) => q.copy({fields: {select: {handlers: v}}}),
+                          },
                         ],
                       },
                       {

@@ -1,20 +1,13 @@
 import datetime
 import sys
 import traceback
+from runners import utils
 from os.path import relpath
 from os import getpid
 
 import boto3
 
 from ..config import ENV
-
-
-def format_exception(e):
-    return ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-
-
-def format_exception_only(e):
-    return ''.join(traceback.format_exception_only(type(e), e)).strip()
 
 
 def write(*args, stream=sys.stdout):
@@ -44,7 +37,7 @@ def write(*args, stream=sys.stdout):
                 fmt_stack
                 + '--- printed exception w/ trace ---\n'
                 + fmt_trace
-                + format_exception_only(a)
+                + utils.format_exception_only(a)
             )
 
         pid = getpid()

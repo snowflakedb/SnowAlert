@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import MagicMock
 
 from runners.helpers import db
 
@@ -87,6 +88,36 @@ WHERE 1=1
   AND test_data=1
 """
 
+TEST_ALERT_WITH_SLACK_HANDLER = f"""
+CREATE OR REPLACE VIEW rules.test4_alert_query COPY GRANTS
+  COMMENT='Test 4 Alert Query; should call slack handler
+  @tags test-tag'
+AS
+SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS environment
+    , ARRAY_CONSTRUCT('obj1', 'obj2') AS object
+    , 'test4_alert_query' AS title
+    , 'This is a test alert query; this should call the slack handler' AS description
+    , 'SnowAlert' AS detector
+    , 'Slack Test Actor' AS actor
+    , 'test action 4' AS action
+    , 'test_4_query_id' AS query_id
+    , 'low' AS severity
+    , ARRAY_CONSTRUCT('source') AS sources
+    , OBJECT_CONSTRUCT('data', 'test data') AS event_data
+    , CURRENT_TIMESTAMP() AS event_time
+    , CURRENT_TIMESTAMP() AS alert_time
+    , ARRAY_CONSTRUCT(
+        OBJECT_CONSTRUCT(
+           'type', 'slack',
+           'channel', 'seceng',
+           'message', 'This is a test alert; the actor is ' || actor || ' and the action is ' || action || '.'
+        )
+      ) AS handlers
+FROM (SELECT 1 AS test_data)
+WHERE 1=1
+  AND test_data=1
+"""
+
 
 EXPECTED_TEST_1_OUTPUT = {
     "ACTION": "test action 1",
@@ -104,6 +135,8 @@ EXPECTED_TEST_1_OUTPUT = {
     "TICKET": None,
 }
 
+SLACK_MOCK_RETURN_VALUE = {'ok': True}
+
 
 @pytest.fixture
 def sample_alert_rules(db_schemas):
@@ -111,6 +144,7 @@ def sample_alert_rules(db_schemas):
     db.execute(TEST_SUPPRESSED_ALERT)
     db.execute(TEST_SUPPRESSION)
     db.execute(TEST_CORRELATED_ALERT)
+    db.execute(TEST_ALERT_WITH_SLACK_HANDLER)
 
     yield
 
@@ -118,6 +152,7 @@ def sample_alert_rules(db_schemas):
     db.execute(f"DROP VIEW rules.test2_alert_query")
     db.execute(f"DROP VIEW rules.test2_alert_suppression")
     db.execute(f"DROP VIEW rules.test3_alert_query")
+    db.execute(f"DROP VIEW rules.test4_alert_query")
 
 
 @pytest.fixture
@@ -126,9 +161,9 @@ def update_jira_issue_status_done(request):
 
     @request.addfinalizer
     def fin():
-        from runners.plugins import create_jira
+        from runners.plugins import jira
         for jira_id in issues_to_update:
-            create_jira.set_issue_done(jira_id)
+            jira.set_issue_done(jira_id)
 
     def mark_done(jira_id):
         issues_to_update.append(jira_id)
@@ -142,7 +177,7 @@ def assert_dict_subset(a, b):
         assert a[x] == b[x]
 
 
-def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jira_issue_status_done, delete_results):
+def test_alert_runners_processor_and_alert_handler(sample_alert_rules, update_jira_issue_status_done, delete_results):
 
     #
     # queries runner
@@ -156,7 +191,7 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert_dict_subset(EXPECTED_TEST_1_OUTPUT, alert)
 
     query_rule_run_record = list(db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY query_name'))
-    assert len(query_rule_run_record) == 3
+    assert len(query_rule_run_record) == 4
     assert query_rule_run_record[0]['QUERY_NAME'] == 'TEST1_ALERT_QUERY'
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == 1
 
@@ -166,9 +201,12 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert query_rule_run_record[2]['QUERY_NAME'] == 'TEST3_ALERT_QUERY'
     assert query_rule_run_record[2]['NUM_ALERTS_CREATED'] == 1
 
+    assert query_rule_run_record[3]['QUERY_NAME'] == 'TEST4_ALERT_QUERY'
+    assert query_rule_run_record[3]['NUM_ALERTS_CREATED'] == 1
+
     queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
     assert len(queries_run_records) == 1
-    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == 3
+    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == 4
     assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
     # TODO: errors
@@ -221,17 +259,24 @@ def test_alert_runners_processor_and_jira_handler(sample_alert_rules, update_jir
     assert rows[0]['CORRELATION_ID'] == rows[1]['CORRELATION_ID']
 
     #
-    # jira handler
+    # alert handler
     #
-
+    from runners.plugins import slack
+    slack.handle = MagicMock(return_value={'ok': True})
     from runners import alert_handler
-    from runners.plugins import create_jira
+    from runners.plugins import jira
     alert_handler.main()
 
+    # jira
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
     assert ticket_id is not None
     update_jira_issue_status_done(ticket_id)
-    ticket_body = create_jira.get_ticket_description(ticket_id)
+    ticket_body = jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     assert {lines[2], lines[23]} == {'Query ID: test_1_query_id', 'Query ID: test_3_query'}
+
+    # slack
+    alert = next(db.get_alerts(query_id='test_4_query_id'))
+    assert alert['HANDLED'] == [{"success": True, "details": SLACK_MOCK_RETURN_VALUE}]
+    slack.handle.assert_called_once()

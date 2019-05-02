@@ -4,7 +4,7 @@ import yaml
 
 from jira import JIRA
 
-from runners.helpers import log, kms
+from runners.helpers import log, kms, db
 
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
@@ -107,7 +107,6 @@ def create_jira_ticket(alert):
                                   issuetype={'name': 'Story'},
                                   summary=alert['TITLE'],
                                   description=body)
-
     return new_issue
 
 
@@ -125,3 +124,74 @@ def get_ticket_description(id):
 
 def set_issue_done(issueId):
     return jira.transition_issue(issueId, 'done')
+
+
+def record_ticket_id(ticket_id, alert_id):
+    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
+    print('Updating alert table:', query)
+    try:
+        db.execute(query)
+    except Exception as e:
+        log.error(e, f"Failed to update alert {alert_id} with ticket id {ticket_id}")
+
+
+def bail_out(alert_id):
+    query = f"UPDATE results.alerts SET handled='no handler' WHERE alert:ALERT_ID='{alert_id}'"
+    print('Updating alert table:', query)
+    try:
+        db.execute(query)
+    except Exception as e:
+        log.error(e, f"Failed to update alert {alert_id} with handler status")
+
+
+def handle(alert, correlation_id):
+    if PROJECT == '':
+        log.error("No Jira project defined")
+        return "No Jira Project defined"
+    if URL == '':
+        log.error("No Jira URL defined.")
+        return "No Jira URL defined."
+
+    CORRELATION_QUERY = f"""
+    SELECT *
+    FROM results.alerts
+    WHERE correlation_id = '{correlation_id}'
+      AND iff(alert:HANDLERS is null, ticket is not null, handled is not null)
+    ORDER BY EVENT_TIME DESC
+    LIMIT 1
+    """
+    alert_id = alert['ALERT_ID']
+
+    # We check against the correlation ID for alerts in that correlation with the same ticket
+    correlated_results = list(db.fetch(CORRELATION_QUERY)) if correlation_id else []
+    log.info(f"Discovered {len(correlated_results)} correlated results")
+
+    if len(correlated_results) > 0:
+        # There is a correlation with a ticket that exists, so we should append to that ticket
+        ticket_id = correlated_results[0]['TICKET']
+        try:
+            ticket_status = check_ticket_status(ticket_id)
+        except Exception:
+            log.error(f"Failed to get ticket status for {ticket_id}")
+
+        if ticket_status == 'To Do':
+            try:
+                append_to_body(ticket_id, alert)
+            except Exception as e:
+                log.error(f"Failed to append alert {alert_id} to ticket {ticket_id}.", e)
+                try:
+                    ticket_id = create_jira_ticket(alert)
+                except Exception as e:
+                    log.error(e, f"Failed to create ticket for alert {alert_id}")
+                    return e
+    else:
+        # There is no correlation with a ticket that exists
+        # Create a new ticket in JIRA for the alert
+        try:
+            ticket_id = create_jira_ticket(alert)
+        except Exception as e:
+            log.error(e, f"Failed to create ticket for alert {alert_id}")
+            return e
+
+    record_ticket_id(ticket_id, alert_id)
+    return {'success': 'ok', 'ticket': ticket_id.key}

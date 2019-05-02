@@ -14,5 +14,6 @@ setup(
         'pandas==0.24.1',
         'rpy2==3.0.1',
         'pytz==2018.9',
+        'slackclient==1.3.1',
     ],
 )
