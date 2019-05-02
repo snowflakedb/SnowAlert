@@ -5,6 +5,7 @@ import json
 from threading import local
 from typing import List, Tuple
 from os import path, getpid
+from re import match
 
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
@@ -159,6 +160,21 @@ def connect_and_fetchall(query):
 # SnowAlert specific helpers, similar to ORM
 ###
 
+def is_valid_rule_name(rule_name):
+    valid_ending = (
+        rule_name.endswith("_ALERT_QUERY")
+        or rule_name.endswith("_ALERT_SUPPRESSION")
+        or rule_name.endswith("_VIOLATION_QUERY")
+        or rule_name.endswith("_VIOLATION_SUPPRESSION")
+        or rule_name.endswith("_POLICY_DEFINITION")
+    )
+
+    # \w is equivalent to [a-zA-Z0-9_]
+    no_injection = match(r'^\w+$', rule_name)
+
+    return no_injection and valid_ending
+
+
 def load_rules(ctx, postfix) -> List[str]:
     try:
         views = ctx.cursor().execute(f'SHOW VIEWS IN rules').fetchall()
@@ -166,7 +182,7 @@ def load_rules(ctx, postfix) -> List[str]:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
 
-    rules = [name[1] for name in views if name[1].endswith(postfix)]
+    rules = [name[1] for name in views if is_valid_rule_name(name[1]) and name[1].endswith(postfix)]
     log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
 
     return rules
