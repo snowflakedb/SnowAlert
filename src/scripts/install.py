@@ -239,8 +239,8 @@ def load_aws_config() -> Tuple[str, str]:
 
 
 def setup_warehouse_and_db(do_attempt):
-    do_attempt("Creating and setting default warehouse", WAREHOUSE_QUERIES)
-    do_attempt("Creating and using database", DATABASE_QUERIES)
+    do_attempt("Creating warehouse", WAREHOUSE_QUERIES)
+    do_attempt("Creating database", DATABASE_QUERIES)
 
 
 def setup_schemas_and_tables(do_attempt, database):
