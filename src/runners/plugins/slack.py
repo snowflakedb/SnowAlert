@@ -36,7 +36,7 @@ def message_template(vars):
     return payload
 
 
-def handle(alert, type='slack', recipient_email=None, channel=None, template=None, message=None):
+def handle(alert, recipient_email=None, channel=None, template=None, message=None):
     if 'SLACK_API_TOKEN' not in os.environ:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None

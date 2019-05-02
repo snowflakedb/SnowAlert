@@ -101,7 +101,7 @@ def main():
             try:
                 handler_kwargs.update({
                     'alert': alert,
-                    'correlation_id': alert_row['CORRELATION_ID'],
+                    'correlation_id': alert_row.get('CORRELATION_ID'),
                     'alert_count': alert_row['COUNTER'],
                 })
 
@@ -110,6 +110,7 @@ def main():
                     'details': apply_some(handler_module.handle, **handler_kwargs)
                 }
             except Exception as e:
+                log.error(e, 'handler failure')
                 result = {
                     'success': False,
                     'details': utils.json_dumps(e),
