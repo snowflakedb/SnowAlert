@@ -194,4 +194,4 @@ def handle(alert, correlation_id):
             return e
 
     record_ticket_id(ticket_id, alert_id)
-    return {'ticket': ticket_id.key}
+    return {'success': 'ok', 'ticket': ticket_id.key}

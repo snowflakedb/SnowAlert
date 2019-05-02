@@ -53,8 +53,7 @@ An alert handler needs to expose only one part of its interface: a `handle()` fu
 optionally additional metadata from the handler to describe how this alert should be handled.
 
 The `handle()` function should ultimately perform whatever is required for an alert to be considered handled; in the
-case of a jira handler, this would involve creating a jira ticket in the specified project. Additionally, the
-`handle()` function must handle bookkeeping on the Snowflake side by setting the HANDLED column of the alerts table for the specified alert to reflect the fact that the alert has been processed; you can record whatever data is significant, but this column must not be left unset, or the alert will be handled again on the next run.
+case of a jira handler, this would involve creating a jira ticket in the specified project. The `handle()` function should return a python dictionary that adheres to the form {'success': 'ok', ...}; additional keys and values can be added to the dictionary as required.
 
 A new handler should be placed in the plugins directory; you should ensure that the name of the handler file is
 "<service>.py"; i.e. a handler which sends messages to Slack would be called slack.py.
