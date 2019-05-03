@@ -91,10 +91,10 @@ snowalert@snowflake.com.
 
 A handler is a Python module that has a `handle` function, which takes an alert and extra data to describe how it should be handled. This function uses its argument names to declare what subest of the following data it requires —
 
-  `alert` - dict representation of the VARIANT in the field of the `results.alerts:ALERT` column
-  `correlation_id` - the VARCHAR value in the field of the `results.alerts:CORRELATION_ID` column
-  `alert_count` - the NUMBER value in the field of the `results.alerts:COUNTER` column
-  `...alert['HANDLERS'][n]` - the keys and values of the alert handler being called, passed in as keyword arguments
+- `alert` - dict representation of the VARIANT in the field of the `results.alerts:ALERT` column
+- `correlation_id` - the VARCHAR value in the field of the `results.alerts:CORRELATION_ID` column
+- `alert_count` - the NUMBER value in the field of the `results.alerts:COUNTER` column
+- `...alert['HANDLERS'][n]` - the keys and values of the alert handler being called, passed in as keyword arguments
 
 The `handle(...)` function performs whatever is necessary for the alert to be handled. It succeeds if it returns a value and does not succeed if calling it throws an exception. Regardless, the results will be recorded in an array in the `results.alerts:HANDLED` column that is parallel to the `results.alerts:ALERT.HANDLERS` array.
 
