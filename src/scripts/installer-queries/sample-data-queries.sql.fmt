@@ -1,6 +1,6 @@
 CREATE VIEW IF NOT EXISTS data.successful_snowflake_logins_v AS
   SELECT *
-  FROM TABLE(snowflake_sample_data.information_schema.login_history())
+  FROM TABLE({SNOWFLAKE_SAMPLE_DATA}.information_schema.login_history())
   WHERE is_success='YES'
 ;
 
