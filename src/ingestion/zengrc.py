@@ -52,7 +52,10 @@ def main():
                  '/api/v2/requests',
                  '/api/v2/risks']
 
-    last_time = list(db.fetch(f'SELECT raw FROM {ZENGRC_TABLE} where EVENT_TIME < DATEADD(MINUTE, 1435, CURRENT_TIMESTAMP())'))
+    # 1435 is five minutes short of one day, to prevent slow drift of ingest time.
+    last_time = list(db.fetch(f"""SELECT raw FROM {ZENGRC_TABLE}
+                where EVENT_TIME < DATEADD(MINUTE, 1435, CURRENT_TIMESTAMP())"""))
+
     if len(last_time) == 0:
         for e in endpoints:
             loop(e)
