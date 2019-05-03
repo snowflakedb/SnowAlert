@@ -161,7 +161,7 @@ def update_jira_issue_status_done(request):
 
     @request.addfinalizer
     def fin():
-        from runners.plugins import jira
+        from runners.handlers import jira
         for jira_id in issues_to_update:
             jira.set_issue_done(jira_id)
 
@@ -177,7 +177,7 @@ def assert_dict_subset(a, b):
         assert a[x] == b[x]
 
 
-def test_alert_runners_processor_and_alert_handler(sample_alert_rules, update_jira_issue_status_done, delete_results):
+def test_alert_runners_processor_and_alert_dispatcher(sample_alert_rules, update_jira_issue_status_done, delete_results):
 
     #
     # queries runner
@@ -261,11 +261,11 @@ def test_alert_runners_processor_and_alert_handler(sample_alert_rules, update_ji
     #
     # alert handler
     #
-    from runners.plugins import slack
+    from runners.handlers import slack
     slack.handle = MagicMock(return_value={'ok': True})
-    from runners import alert_handler
-    from runners.plugins import jira
-    alert_handler.main()
+    from runners import alert_dispatcher
+    from runners.handlers import jira
+    alert_dispatcher.main()
 
     # jira
     ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']

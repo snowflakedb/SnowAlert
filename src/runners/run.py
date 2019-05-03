@@ -8,7 +8,7 @@ from runners import baseline_runner
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner
 from runners import alert_processor
-from runners import alert_handler
+from runners import alert_dispatcher
 
 from runners import violation_queries_runner
 from runners import violation_suppressions_runner
@@ -35,7 +35,7 @@ def main(target="all", rule_name=None):
             alert_processor.main()
 
         if rule_name == "handlers":
-            alert_handler.main()
+            alert_dispatcher.main()
 
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
@@ -44,7 +44,7 @@ def main(target="all", rule_name=None):
             alert_queries_runner.main()
             alert_suppressions_runner.main()
             alert_processor.main()
-            alert_handler.main()
+            alert_dispatcher.main()
 
         if target in ['violation', 'violations', 'all']:
             violation_queries_runner.main()

@@ -8,7 +8,7 @@ import pytest
 from os import environ
 
 from runners.helpers import db
-from runners.plugins import jira
+from runners.handlers import jira
 
 
 TEST_ALERT = f"""
@@ -59,12 +59,12 @@ def test_missing_jira_env_regression(sample_alert_rule, without_jira_vars, delet
     from runners import alert_queries_runner
     from runners import alert_suppressions_runner
     from runners import alert_processor
-    from runners import alert_handler
+    from runners import alert_dispatcher
 
     alert_queries_runner.main()
     alert_suppressions_runner.main()
     alert_processor.main()
-    alert_handler.main()
+    alert_dispatcher.main()
 
     rows = list(db.get_alerts(suppressed='false'))
     assert len(rows) == 1

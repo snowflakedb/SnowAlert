@@ -96,7 +96,7 @@ def main():
                 handler = {'type': handler}
             handler_type = handler['type']
             handler_kwargs = handler.copy()
-            handler_module = importlib.import_module(f'runners.plugins.{handler_type}')
+            handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
             try:
                 handler_kwargs.update({
                     'alert': alert,
