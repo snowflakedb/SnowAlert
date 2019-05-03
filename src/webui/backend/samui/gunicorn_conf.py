@@ -3,7 +3,7 @@ import logging.handlers
 import sys
 
 import logbook
-from samui import config
+from webui import config
 
 logger = logbook.Logger(__name__)
 

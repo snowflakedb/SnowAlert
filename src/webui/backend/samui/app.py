@@ -3,11 +3,11 @@ import sys
 from flask import Flask, request
 import logbook
 
-from samui import config
-from samui.gunicorn_conf import host, port
-from samui.api import rules_api
-from samui.api.oauth import oauth_api
-from samui.views import app_views
+from webui import config
+from webui.gunicorn_conf import host, port
+from webui.api import rules_api
+from webui.api.oauth import oauth_api
+from webui.views import app_views
 
 
 class SAFlask(Flask):

@@ -3,10 +3,10 @@
 if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
   echo "running in docker container-like environment"
 
-  if [[ "$1" == "samui" ]]; then
+  if [[ "$1" == "webui" ]]; then
 
-    cd /var/task/snowalert/src/samui/backend
-    python samui/app.py
+    cd /var/task/snowalert/src/webui/backend
+    python webui/app.py
 
   else
 

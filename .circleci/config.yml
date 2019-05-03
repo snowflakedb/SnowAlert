@@ -35,9 +35,9 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            pyflakes ./scripts ./runners ./samui/backend/samui
-            MYPYPATH="`pwd`/samui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./samui/backend/samui
+            pyflakes ./scripts ./runners ./webui/backend/webui
+            MYPYPATH="`pwd`/webui/backend/" \
+              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui
             pytest -vv
 
       # - run:
