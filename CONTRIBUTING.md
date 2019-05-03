@@ -15,14 +15,6 @@ docker build -t snowsec/webui -f Dockerfile.webui .
 ## Developing
 
 
-### Building WebUI Frontend
-
-~~~
-cd src/webui/frontend
-yarn install
-yarn build
-~~~
-
 ### Build, Test, and Start Runners
 
 ~~~
@@ -42,6 +34,10 @@ python runners/run.py all
 ### Build and Start WebUI Backend
 
 ~~~
+# where runners left off
+cd src/
+source .venv/bin/activate
+
 # build backend
 cd webui/backend
 pip install -e .
@@ -50,7 +46,7 @@ pip install -e .
 python webui/app.py
 ~~~
 
-### Building WebUI
+### Building WebUI Frontend
 
 ~~~
 cd src/webui/frontend

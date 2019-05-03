@@ -60,7 +60,7 @@ def get_rules():
                     if rule['name'].endswith("_POLICY_DEFINITION")
                     else None
                 ),
-            } for rule in rules if db.is_valid_rule_name(rules['name'])
+            } for rule in rules if db.is_valid_rule_name(rule['name'])
         ]
     )
 
