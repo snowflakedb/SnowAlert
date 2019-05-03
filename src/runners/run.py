@@ -34,7 +34,7 @@ def main(target="all", rule_name=None):
         if rule_name == "processor":
             alert_processor.main()
 
-        if rule_name == "handlers":
+        if rule_name == "dispatcher":
             alert_dispatcher.main()
 
     else:
