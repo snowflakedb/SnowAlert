@@ -22,7 +22,7 @@ Finally, we have a SnowAlert Management WebUI, which you can use to edit your ru
 
 .. code::
 
-    docker run -it -p 8000:8000 --env-file snowalert-{account}.envs snowsec/webui
+    docker run -it -p 8000:8000 --env-file snowalert-{account}.envs snowsec/snowalert-webui
 
 This is a work in progress which supports some features still in Private Beta, like OAuth, so don't hesitate
 to ask your account manager or reach out to us with questions at snowalert@snowflake.com.

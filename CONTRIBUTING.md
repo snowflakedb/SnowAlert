@@ -9,7 +9,7 @@ security teams. Please reach out to us if you're interested in making SnowAlert 
 
 ~~~
 docker build -t snowsec/snowalert -f Dockerfile.snowalert .
-docker build -t snowsec/webui -f Dockerfile.webui .
+docker build -t snowsec/snowalert-webui -f Dockerfile.webui .
 ~~~
 
 ## Developing
