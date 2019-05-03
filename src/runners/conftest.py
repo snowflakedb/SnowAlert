@@ -14,7 +14,7 @@ def db_schemas(request):
 
     install.main(
         samples=False,
-        pk_passwd='',
+        pk_passphrase='',
         jira=False,
         set_env_vars=True,
     )

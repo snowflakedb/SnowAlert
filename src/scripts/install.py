@@ -313,24 +313,24 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
     )
 
 
-def setup_authentication(jira_password, region, pk_passwd=None):
+def setup_authentication(jira_password, region, pk_passphrase=None):
     print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
 
-    if pk_passwd is None:
-        pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+    if pk_passphrase is None:
+        pk_passphrase = getpass("RSA key passphrase [blank for none, '.' for random]: ")
 
-    if pk_passwd == '.':
-        pk_passwd = b64encode(urandom(18)).decode('utf-8')
+    if pk_passphrase == '.':
+        pk_passphrase = b64encode(urandom(18)).decode('utf-8')
         print("Generated random passphrase.")
 
-    private_key, public_key = genrsa(pk_passwd)
+    private_key, public_key = genrsa(pk_passphrase)
 
-    if pk_passwd:
+    if pk_passphrase:
         print("\nAdditionally, you may use Amazon Web Services for encryption and audit.")
         kms = boto3.client('kms', region_name=region)
         while True:
             try:
-                pk_passwd, jira_password = do_kms_encrypt(kms, pk_passwd, jira_password)
+                pk_passphrase, jira_password = do_kms_encrypt(kms, pk_passphrase, jira_password)
                 break
 
             except KeyboardInterrupt:
@@ -341,11 +341,11 @@ def setup_authentication(jira_password, region, pk_passwd=None):
 
     rsa_public_key = re.sub(r'---.*---\n', '', public_key.decode('utf-8'))
 
-    return private_key, pk_passwd, jira_password, rsa_public_key
+    return private_key, pk_passphrase, jira_password, rsa_public_key
 
 
 def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
-             private_key, pk_passwd, aws_key, aws_secret, **x):
+             private_key, pk_passphrase, aws_key, aws_secret, **x):
     vars = [
         ('SNOWFLAKE_ACCOUNT', account),
         ('SA_USER', USER),
@@ -355,7 +355,7 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
         ('REGION', region or 'us-west-2'),
 
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
-        ('PRIVATE_KEY_PASSWORD', pk_passwd),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase),
     ]
 
     if jira_url:
@@ -391,7 +391,7 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None,
+def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None, config_account=None,
          config_region=None, config_username=None, config_password=None, connection_name=None,
          uninstall=False, set_env_vars=False):
 
@@ -435,7 +435,7 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, con
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passwd)
+    private_key, pk_passphrase, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passphrase)
 
     if admin_role == "accountadmin":
         do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
