@@ -1,3 +1,4 @@
+from datetime import date, datetime
 import inspect
 from itertools import zip_longest
 import json
@@ -30,11 +31,18 @@ def json_dumps(obj):
                 "exceptionArgs": x.args,
             }
 
-        className = {x.__class__.__name__}
-        errMessage = f"Object of type '{className}' is not JSON serializable"
-        raise TypeError(errMessage)
+        if isinstance(x, (date, datetime)):
+            return x.isoformat()
 
-    json.dumps(obj, default=default_json_dumps)
+        if hasattr(x, 'raw'):
+            return default_json_dumps(x.raw)
+
+        if callable(getattr(x, 'to_json', None)):
+            return json.parse(x.to_json())
+
+        return repr(x)
+
+    return json.dumps(obj, default=default_json_dumps)
 
 
 def apply_some(f, **kwargs):

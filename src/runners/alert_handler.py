@@ -4,11 +4,10 @@ import importlib
 import json
 import datetime
 import uuid
-from runners import utils
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
-from .utils import apply_some
+from .utils import apply_some, json_dumps
 
 
 def log_alerts(ctx, alerts):
@@ -74,13 +73,13 @@ def get_new_alerts(ctx):
     return results
 
 
-def record_status(response, alert_id):
+def record_status(results, alert_id):
     query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
     print('Updating alert table:', query)
     try:
-        db.execute(query, params=str(response))
+        db.execute(query, params=json_dumps(results))
     except Exception as e:
-        log.error(e, f"Failed to update alert {alert_id} with status {response}")
+        log.error(e, f"Failed to update alert {alert_id} with status {results}")
 
 
 def main():
@@ -95,7 +94,7 @@ def main():
         for handler in alert.get('HANDLERS') or ['jira']:
             if type(handler) is str:
                 handler = {'type': handler}
-            handler_type = handler.pop('type')
+            handler_type = handler['type']
             handler_kwargs = handler.copy()
             handler_module = importlib.import_module(f'runners.plugins.{handler_type}')
             try:
@@ -109,11 +108,12 @@ def main():
                     'success': True,
                     'details': apply_some(handler_module.handle, **handler_kwargs)
                 }
+
             except Exception as e:
-                log.error(e, 'handler failure')
+                log.error(e, 'handler failed')
                 result = {
                     'success': False,
-                    'details': utils.json_dumps(e),
+                    'details': e,
                 }
 
             results.append(result)
