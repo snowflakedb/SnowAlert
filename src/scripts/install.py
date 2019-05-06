@@ -36,7 +36,7 @@ from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
 from runners.helpers.dbconnect import snowflake_connect
 
 
-def read_queries(file):
+def read_queries(file, dyn_vars={}):
     vars = {
         'uuid': uuid4().hex,
         'DATABASE': DATABASE,
@@ -46,6 +46,7 @@ def read_queries(file):
         'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
         'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
     }
+    vars.update(dyn_vars)  # Roll in any dynamic (runtime) vars
     pwd = os.path.dirname(os.path.realpath(__file__))
     tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
     return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
@@ -243,14 +244,25 @@ def setup_user_and_role(do_attempt):
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
-    do_attempt("Granting priveleges to role", GRANT_PRIV_TO_ROLE)
+    do_attempt("Granting privileges to role", GRANT_PRIV_TO_ROLE)
 
 
 def setup_samples(do_attempt):
-    do_attempt("Creating data view", read_queries('sample-data-queries'))
-    do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
-    do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
-
+    share_row_array = do_attempt("Retrieving sample data share(s)", "SHOW TERSE SHARES LIKE '%SAMPLE_DATA'")
+    if len(share_row_array) == 0:
+      print(f"Unable to locate sample data share. Sample data cannot be loaded!")
+      return
+    share_db_names = [ share_row[3] for share_row in share_row_array ]  # Database name is 4th attribute in row
+    for share_db_name in ('SNOWFLAKE_SAMPLE_DATA', 'SF_SAMPLE_DATA', 'SAMPLE_DATA'):  # Prioritize potential tie-breaks
+      if share_db_name in share_db_names:
+        break
+    if not share_db_name:
+      share_db_name = share_db_names[0]  # If not an expected sample data db name, just pick first one
+    print(f"Using SAMPLE DATA share with name {share_db_name}")
+    dyn_vars = {"SNOWFLAKE_SAMPLE_DATA":share_db_name}
+    do_attempt("Creating data view", read_queries('sample-data-queries', dyn_vars))
+    do_attempt("Creating sample alert", read_queries('sample-alert-queries', dyn_vars))
+    do_attempt("Creating sample violation", read_queries('sample-violation-queries', dyn_vars))
 
 def jira_integration(setup_jira=None):
     while setup_jira is None:
