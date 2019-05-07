@@ -195,14 +195,19 @@ def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
 
 
-def insert(table, values, overwrite=False):
+def insert(table, values, overwrite=False, select=""):
     if len(values) == 0:
         return
 
+    if select:
+        select = f'SELECT {select} FROM '
+
+    overwrite = ' OVERWRITE' if overwrite else ''
+
     sql = (
-        f"INSERT{' OVERWRITE' if overwrite else ''}\n"
+        f"INSERT{overwrite}\n"
         f"  INTO {table}\n"
-        f"  VALUES {sql_value_placeholders(len(values))}\n"
+        f"  {select} VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
 
