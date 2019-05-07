@@ -13,21 +13,26 @@ ZENGRC_TABLE = os.environ.get('ZENGRC_TABLE')
 TIMESTAMP = str(datetime.datetime.utcnow())
 
 
-def loop(endpoint):
+def get_next(json_body):
+    url_tail = json_body['links']['next']['href']
+    return requests.get(ZENGRC_URL+url_tail, auth=HTTPBasicAuth(ZENGRC_ID, ZENGRC_SECRET))
+
+
+def process_endpoint(endpoint):
     log.info(f"starting {endpoint}")
-    j = {'links': {'next': {'href': endpoint}}}
+    json_body = {'links': {'next': {'href': endpoint}}}
     page = 1
-    while j['links']['next'] is not None:
+    while json_body['links']['next'] is not None:
         log.info(f"Getting page {str(page)}")
-        r = requests.get(ZENGRC_URL+j['links']['next']['href'], auth=HTTPBasicAuth(ZENGRC_ID, ZENGRC_SECRET))
+        r = get_next(json_body)
 
         if r.status_code != 200:
             log.error(f"Ingest request for {endpoint} failed", r.text)
             db.record_failed_ingestion(ZENGRC_TABLE, r, TIMESTAMP)
             break
 
-        j = json.loads(r.text)
-        data = [[json.dumps(i), TIMESTAMP] for i in j['data']]
+        json_body = json.loads(r.text)
+        data = [[json.dumps(i), TIMESTAMP] for i in json_body['data']]
         try:
             db.insert(ZENGRC_TABLE, data, select='PARSE_JSON(column1), column2')
             page += 1 if len(data) > 0 else 0
@@ -49,7 +54,7 @@ def main():
 
     if len(last_time) == 0:
         for e in endpoints:
-            loop(e)
+            process_endpoint(e)
     else:
         log.info("Not time to ingest ZenGRC data")
 
