@@ -1,17 +1,25 @@
 """Helper specific to SnowAlert connecting to the database"""
 
+from datetime import datetime
+import json
+from threading import local
 from typing import List, Tuple
-from os import path
+from os import path, getpid
+from re import match
 
 import snowflake.connector
+from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
 
 from . import log
 from .auth import load_pkb, oauth_refresh
-from .dbconfig import ACCOUNT, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconfig import ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
-CACHED_CONNECTION = None
+from runners import utils
+
+CACHE = local()
+CONNECTION = f'connection-{getpid()}'
 
 
 def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
@@ -33,21 +41,16 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
 # Connecting
 ###
 
-def preflight_checks(ctx):
-    user_props = dict((x['property'], x['value']) for x in fetch(ctx, f'DESC USER {USER};'))
-    assert user_props.get('DEFAULT_ROLE') != 'null', f"default role on user {USER} must not be null"
-
-
-def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
+def connect(flush_cache=False, oauth={}):
     account = oauth.get('account')
     oauth_refresh_token = oauth.get('refresh_token')
     oauth_access_token = oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
-    global CACHED_CONNECTION
-    if CACHED_CONNECTION and not flush_cache and not oauth_access_token:
-        return CACHED_CONNECTION
+    cached_connection = getattr(CACHE, CONNECTION, None)
+    if cached_connection and not flush_cache and not oauth_access_token:
+        return cached_connection
 
     connect_db, authenticator, pk = \
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None) if oauth_access_token else \
@@ -56,8 +59,11 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
 
     def connect():
         return connect_db(
-            user=oauth_username or USER,
             account=oauth_account or ACCOUNT,
+            database=DATABASE,
+            user=oauth_username or USER,
+            warehouse=None if oauth_access_token else WAREHOUSE,
+            role=None if oauth_access_token else ROLE,
             token=oauth_access_token,
             private_key=pk,
             authenticator=authenticator,
@@ -68,46 +74,51 @@ def connect(run_preflight_checks=True, flush_cache=False, oauth={}):
     try:
         connection = retry(connect)
 
-        if run_preflight_checks:
-            preflight_checks(connection)
+        # see SP-1116
+        # if not cached_connection and not oauth_access_token:
+        #     setattr(CACHE, CONNECTION, connection)
 
-        execute(connection, f'USE DATABASE {DATABASE}')
-        if not oauth_access_token:
-            execute(connection, f'USE WAREHOUSE {WAREHOUSE}')
-
-        if not CACHED_CONNECTION and not oauth_access_token:
-            CACHED_CONNECTION = connection
         return connection
 
     except Exception as e:
         log.error(e, "Failed to connect.")
 
 
-def fetch(ctx, query=None, fix_errors=True):
+def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
-        ctx, query = CACHED_CONNECTION, ctx
+        ctx, query = connect(), ctx
 
-    res = execute(ctx, query, fix_errors)
+    res = execute(ctx, query, fix_errors, params)
     cols = [c[0] for c in res.description]
+    types = [FIELD_TYPES[c[1]] for c in res.description]
     while True:
         row = res.fetchone()
         if row is None:
             break
-        yield dict(zip(cols, row))
+
+        def parse_field(value, field_type):
+            if value is not None and field_type['name'] in {'OBJECT', 'ARRAY', 'VARIANT'}:
+                return json.loads(value)
+            return value
+
+        yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}
 
 
-def execute(ctx, query=None, fix_errors=True):
+def execute(ctx, query=None, fix_errors=True, params=None):
     # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
-        ctx, query = CACHED_CONNECTION, ctx
+        ctx, query = connect(), ctx
+
+    if ctx is None:
+        ctx = connect()
 
     try:
-        return ctx.cursor().execute(query)
+        return ctx.cursor().execute(query, params=params)
 
     except snowflake.connector.errors.ProgrammingError as e:
         if e.errno == int(MASTER_TOKEN_EXPIRED_GS_CODE):
-            connect(run_preflight_checks=False, flush_cache=True)
-            return execute(query)
+            connect(flush_cache=True)
+            return execute(ctx, query, fix_errors, params)
 
         if not fix_errors:
             log.debug(f"re-raising error '{e}' in query >{query}<")
@@ -122,32 +133,50 @@ def connect_and_execute(queries=None):
     connection = connect()
 
     if type(queries) is str:
-        execute(connection, queries)
+        execute(queries)
 
     if type(queries) is list:
         for q in queries:
-            execute(connection, q)
+            execute(q)
 
     return connection
 
 
 def connect_and_fetchall(query):
     ctx = connect()
-    return ctx, execute(ctx, query).fetchall()
+    return ctx, execute(query).fetchall()
 
 
 ###
 # SnowAlert specific helpers, similar to ORM
 ###
 
-def load_rules(ctx, postfix) -> List[str]:
+def is_valid_rule_name(rule_name):
+    valid_ending = (
+        rule_name.endswith("_ALERT_QUERY")
+        or rule_name.endswith("_ALERT_SUPPRESSION")
+        or rule_name.endswith("_VIOLATION_QUERY")
+        or rule_name.endswith("_VIOLATION_SUPPRESSION")
+        or rule_name.endswith("_POLICY_DEFINITION")
+    )
+
+    # \w is equivalent to [a-zA-Z0-9_]
+    no_injection = match(r'^\w+$', rule_name)
+
+    return no_injection and valid_ending
+
+
+def load_rules(postfix) -> List[str]:
     try:
-        views = ctx.cursor().execute(f'SHOW VIEWS IN rules').fetchall()
+        views = sorted(
+            (v['name'] for v in fetch(f'SHOW VIEWS IN rules')),
+            key=lambda vn: vn.replace('_', '{{')  # _ after letters, like in Snowflake
+        )
     except Exception as e:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
 
-    rules = [name[1] for name in views if name[1].endswith(postfix)]
+    rules = [vn for vn in views if is_valid_rule_name(vn) and vn.endswith(postfix)]
     log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
 
     return rules
@@ -166,9 +195,23 @@ def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
 
 
+def insert(table, values, overwrite=False):
+    if len(values) == 0:
+        return
+
+    sql = (
+        f"INSERT{' OVERWRITE' if overwrite else ''}\n"
+        f"  INTO {table}\n"
+        f"  VALUES {sql_value_placeholders(len(values))}\n"
+        f";"
+    )
+
+    return execute(sql, params=values)
+
+
 def insert_alerts(alerts, ctx=None):
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
     return ctx.cursor().execute(query, alerts)
@@ -176,7 +219,7 @@ def insert_alerts(alerts, ctx=None):
 
 def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     log.info(f"{query_name} processing...")
 
@@ -233,7 +276,7 @@ WHERE IFF(alert_time IS NOT NULL, alert_time > {{CUTOFF_TIME}}, TRUE)
 
 def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     if ctx is None:
-        ctx = CACHED_CONNECTION or connect()
+        ctx = connect()
 
     CUTOFF_TIME = f'DATEADD(day, -1, CURRENT_TIMESTAMP())'
 
@@ -247,3 +290,57 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
     num_rows_inserted = result['number of rows inserted']
     log.info(f"{query_name} created {num_rows_inserted} rows.")
     return num_rows_inserted
+
+
+def value_to_sql(v):
+    if type(v) is str:
+        return f"'{v}'"
+    return str(v)
+
+
+def get_alerts(**kwargs):
+    predicates = '\n  AND '.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
+    where_clause = f'WHERE {predicates}' if predicates else ''
+    return fetch(f"SELECT * FROM data.alerts {where_clause}")
+
+
+def record_metadata(metadata, table, e=None):
+    ctx = connect()
+
+    if e is None and 'EXCEPTION' in metadata:
+        e = metadata['EXCEPTION']
+        del metadata['EXCEPTION']
+
+    if e is not None:
+        exception_only = utils.format_exception_only(e)
+        metadata['ERROR'] = {
+            'EXCEPTION': utils.format_exception(e),
+            'EXCEPTION_ONLY': exception_only,
+        }
+        if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
+            metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
+
+    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
+
+    metadata['END_TIME'] = datetime.utcnow()
+    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
+    metadata['START_TIME'] = str(metadata['START_TIME'])
+    metadata['END_TIME'] = str(metadata['END_TIME'])
+
+    record_type = metadata.get('QUERY_NAME', 'RUN')
+
+    metadata_json_sql = "'" + json.dumps(metadata).replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+    sql = f'''
+    INSERT INTO {table}(event_time, v)
+    SELECT '{metadata['START_TIME']}'
+         , PARSE_JSON(column1)
+    FROM VALUES({metadata_json_sql})
+    '''
+
+    try:
+        ctx.cursor().execute(sql)
+        log.info(f"{record_type} metadata recorded.")
+
+    except Exception as e:
+        log.error(f"{record_type} metadata failed to log.", e)

@@ -3,8 +3,7 @@ Managing Alerts
 
 SnowAlert Rules are a set of views defined in your Snowflake account that manage the lifecycle of Alerts. Query Rules create alerts and Suppression Rules automatically handle alerts. The Docker containers published under `snowsec/snowalert` use run these rules to create alerts. Since these rules are Snowflake views, they can be managed using snowsql command line client or your Snowflake Web UI.
 
-There is also a "samui" branch in active development which will create a SnowAlert-specific UI for managing rules without having to dive into raw SQL. This is expected to merge into SnowAlert proper in December 2018.
-
+We are also actively working on a `snowsec/snowalert-webui` service container which will help you manage your rules in SnowAlert.
 
 Query Rules
 ===========

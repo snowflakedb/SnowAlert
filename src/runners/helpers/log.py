@@ -1,26 +1,47 @@
 import datetime
-import json
 import sys
 import traceback
+from runners import utils
+from os.path import relpath
+from os import getpid
 
 import boto3
 
 from ..config import ENV
 
 
-def format_exception(e):
-    return ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-
-
-def format_exception_only(e):
-    return ''.join(traceback.format_exception_only(type(e), e)).strip()
-
-
 def write(*args, stream=sys.stdout):
     for a in args:
         if isinstance(a, Exception):
-            a = format_exception(a)
-        print(a, file=stream, flush=True)
+            def fmt(fs):
+                return (
+                    './' + relpath(fs.filename) + f':{fs.lineno}'
+                    + f' in {fs.name}\n'
+                    + f'    {fs.line}\n'
+                )
+
+            trace = traceback.extract_tb(a.__traceback__)
+            fmt_trace = ''.join(fmt(f) for f in trace)
+            stack = traceback.extract_stack()
+            for i, f in enumerate(reversed(stack)):
+                if (f.filename, f.name) == (trace[0].filename, trace[0].name):
+                    stack = stack[:-i]
+                    break  # skip the log.py part of stack
+            for i, f in enumerate(reversed(stack)):
+                if 'site-packages' in f.filename:
+                    stack = stack[-i:]
+                    break  # skip the flask part of stack
+            fmt_stack = ''.join(fmt(f) for f in stack)
+
+            a = (
+                fmt_stack
+                + '--- printed exception w/ trace ---\n'
+                + fmt_trace
+                + utils.format_exception_only(a)
+            )
+
+        pid = getpid()
+        print(f'[{pid}] {a}', file=stream, flush=True)
 
 
 def debug(*args):
@@ -52,43 +73,3 @@ def metric(metric, namespace, dimensions, value):
             'Value': value
         }]
     )
-
-
-def metadata_record(ctx, metadata, table, e=None):
-    if e is None and 'EXCEPTION' in metadata:
-        e = metadata['EXCEPTION']
-        del metadata['EXCEPTION']
-
-    if e is not None:
-        exception_only = format_exception_only(e)
-        metadata['ERROR'] = {
-            'EXCEPTION': format_exception(e),
-            'EXCEPTION_ONLY': exception_only,
-        }
-        if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
-            metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
-
-    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
-
-    metadata['END_TIME'] = datetime.datetime.utcnow()
-    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
-    metadata['START_TIME'] = str(metadata['START_TIME'])
-    metadata['END_TIME'] = str(metadata['END_TIME'])
-
-    record_type = metadata.get('QUERY_NAME', 'RUN')
-
-    metadata_json_sql = "'" + json.dumps(metadata).replace('\\', '\\\\').replace("'", "\\'") + "'"
-
-    sql = f'''
-    INSERT INTO {table}(event_time, v)
-    SELECT '{metadata['START_TIME']}'
-         , PARSE_JSON(column1)
-    FROM VALUES({metadata_json_sql})
-    '''
-
-    try:
-        ctx.cursor().execute(sql)
-        info(f"{record_type} metadata recorded.")
-
-    except Exception as e:
-        error(f"{record_type} metadata failed to log.", e)

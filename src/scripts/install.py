@@ -19,7 +19,7 @@ from base64 import b64encode
 from configparser import ConfigParser
 import fire
 from getpass import getpass
-import os
+from os import environ, path, urandom
 import re
 from typing import List, Optional, Tuple
 from urllib.parse import urlsplit
@@ -36,8 +36,11 @@ from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
 from runners.helpers.dbconnect import snowflake_connect
 
 
-def read_queries(file, dyn_vars={}):
-    vars = {
+def read_queries(file, tmpl_vars=None):
+    if tmpl_vars is None:
+        tmpl_vars = {}
+
+    tmpl_vars.update({
         'uuid': uuid4().hex,
         'DATABASE': DATABASE,
         'DATA_SCHEMA': DATA_SCHEMA,
@@ -45,12 +48,14 @@ def read_queries(file, dyn_vars={}):
         'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
         'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
         'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
-    }
-    vars.update(dyn_vars)  # Roll in any dynamic (runtime) vars
-    pwd = os.path.dirname(os.path.realpath(__file__))
-    tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
-    return [t + ';' for t in tmpl.format(**vars).split(';') if t.strip()]
+    })
 
+    pwd = path.dirname(path.realpath(__file__))
+    tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
+    return [t + ';' for t in tmpl.format(**tmpl_vars).split(';') if t.strip()]
+
+
+VERBOSE = False
 
 GRANT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
@@ -93,10 +98,11 @@ CREATE_TABLES_QUERIES = [
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
         , ticket STRING
-        , correlation_id STRING
         , suppressed BOOLEAN
         , suppression_rule STRING DEFAULT NULL
         , counter INTEGER DEFAULT 1
+        , correlation_id STRING
+        , handled VARIANT
       );
     """,
     f"""
@@ -142,14 +148,23 @@ def parse_snowflake_url(url):
     return account, region
 
 
-def login(config_account):
-    config = ConfigParser()
-    config_section = f'connections.{config_account}' if config_account else 'connections'
-    if config.read(os.path.expanduser('~/.snowsql/config')) and config_section in config:
-        account = config[config_section].get('accountname')
-        username = config[config_section].get('username')
-        password = config[config_section].get('password')
-        region = config[config_section].get('region')
+def login(configuration=None):
+    config_file = '~/.snowsql/config'
+
+    config = None
+    if type(configuration) is dict:
+        config = configuration
+    if type(configuration) is str:
+        parser = ConfigParser()
+        config_section = f'connections.{configuration}' if configuration else 'connections'
+        if parser.read(path.expanduser(config_file)) and config_section in parser:
+            config = parser[config_section]
+
+    if config is not None:
+        account = config.get('accountname')
+        username = config.get('username')
+        password = config.get('password')
+        region = config.get('region')
     else:
         account = None
         username = None
@@ -167,18 +182,18 @@ def login(config_account):
             else:
                 break
     else:
-        print(f"Loaded from ~/.snowcli/config: account '{account}'")
+        print(f"Loaded account: '{account}'")
 
-    print("Next, authenticate installer --")
     if not username:
+        print("Next, authenticate installer --")
         username = input("Snowflake username: ")
     else:
-        print(f"Loaded from ~/.snowcli/config: username '{username}'")
+        print(f"Loaded username: '{username}'")
 
     if not password:
         password = getpass("Password [leave blank for SSO for authentication]: ")
     else:
-        print(f"Loaded from ~/.snowcli/config: password {'*' * len(password)}")
+        print(f"Loaded password: {'*' * len(password)}")
 
     if not region:
         region = input("Region of your Snowflake account [blank for us-west-2]: ")
@@ -213,7 +228,7 @@ def login(config_account):
 
 def load_aws_config() -> Tuple[str, str]:
     parser = ConfigParser()
-    if parser.read(os.path.expanduser('~/.aws/config')) and 'default' in parser:
+    if parser.read(path.expanduser('~/.aws/config')) and 'default' in parser:
         c = parser['default']
         aws_key = c.get('aws_access_key_id')
         secret = c.get('aws_secret_access_key')
@@ -224,16 +239,16 @@ def load_aws_config() -> Tuple[str, str]:
 
 
 def setup_warehouse_and_db(do_attempt):
-    do_attempt("Creating and setting default warehouse", WAREHOUSE_QUERIES)
-    do_attempt("Creating and using database", DATABASE_QUERIES)
+    do_attempt("Creating warehouse", WAREHOUSE_QUERIES)
+    do_attempt("Creating database", DATABASE_QUERIES)
 
 
 def setup_schemas_and_tables(do_attempt, database):
     do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
-    do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
     do_attempt("Creating standard data views", read_queries('data-views'))
+    do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
 
 
 def setup_user_and_role(do_attempt):
@@ -247,27 +262,39 @@ def setup_user_and_role(do_attempt):
     do_attempt("Granting privileges to role", GRANT_PRIV_TO_ROLE)
 
 
+def find_share_db_name(do_attempt):
+    sample_data_share_rows = do_attempt("Retrieving sample data share(s)", r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'")
+
+    # Database name is 4th attribute in row
+    share_db_names = [share_row[3] for share_row in sample_data_share_rows]
+    if len(share_db_names) == 0:
+        VERBOSE and print(f"Unable to locate sample data share. Sample data cannot be loaded!")
+        return
+
+    # Prioritize potential tie-breaks
+    for name in ('SNOWFLAKE_SAMPLE_DATA', 'SF_SAMPLE_DATA', 'SAMPLE_DATA'):
+        if name in share_db_names:
+            return name
+
+    return share_db_names[0]
+
+
 def setup_samples(do_attempt):
-    share_row_array = do_attempt("Retrieving sample data share(s)", "SHOW TERSE SHARES LIKE '%SAMPLE_DATA'")
-    if len(share_row_array) == 0:
-      print(f"Unable to locate sample data share. Sample data cannot be loaded!")
-      return
-    share_db_names = [ share_row[3] for share_row in share_row_array ]  # Database name is 4th attribute in row
-    for share_db_name in ('SNOWFLAKE_SAMPLE_DATA', 'SF_SAMPLE_DATA', 'SAMPLE_DATA'):  # Prioritize potential tie-breaks
-      if share_db_name in share_db_names:
-        break
-    if not share_db_name:
-      share_db_name = share_db_names[0]  # If not an expected sample data db name, just pick first one
-    print(f"Using SAMPLE DATA share with name {share_db_name}")
-    dyn_vars = {"SNOWFLAKE_SAMPLE_DATA":share_db_name}
-    do_attempt("Creating data view", read_queries('sample-data-queries', dyn_vars))
-    do_attempt("Creating sample alert", read_queries('sample-alert-queries', dyn_vars))
-    do_attempt("Creating sample violation", read_queries('sample-violation-queries', dyn_vars))
+    share_db_name = find_share_db_name(do_attempt)
+    tmpl_var = {"SNOWFLAKE_SAMPLE_DATA": share_db_name}
+    VERBOSE and print(f"Using SAMPLE DATA share with name {share_db_name}")
+
+    do_attempt("Creating data view", read_queries('sample-data-queries', tmpl_var))
+    do_attempt("Creating sample alert", read_queries('sample-alert-queries', tmpl_var))
+    do_attempt("Creating sample violation", read_queries('sample-violation-queries', tmpl_var))
+
 
 def jira_integration(setup_jira=None):
     while setup_jira is None:
         uinput = input("Would you like to integrate Jira with SnowAlert (y/N)? ").lower()
-        setup_jira = True if uinput.startswith('y') else False if uinput.startswith('n') else None
+        answered_yes = uinput.startswith('y')
+        answered_no = uinput == '' or uinput.startswith('n')
+        setup_jira = True if answered_yes else False if answered_no else None
 
     if setup_jira:
         jira_url = input("Please enter the URL for the Jira integration: ")
@@ -307,24 +334,24 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
     )
 
 
-def setup_authentication(jira_password, region, pk_passwd=None):
+def setup_authentication(jira_password, region, pk_passphrase=None):
     print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
 
-    if pk_passwd is None:
-        pk_passwd = getpass("RSA key passphrase [blank for none, '.' for random]: ")
+    if pk_passphrase is None:
+        pk_passphrase = getpass("RSA key passphrase [blank for none, '.' for random]: ")
 
-    if pk_passwd == '.':
-        pk_passwd = b64encode(os.urandom(18)).decode('utf-8')
+    if pk_passphrase == '.':
+        pk_passphrase = b64encode(urandom(18)).decode('utf-8')
         print("Generated random passphrase.")
 
-    private_key, public_key = genrsa(pk_passwd)
+    private_key, public_key = genrsa(pk_passphrase)
 
-    if pk_passwd:
+    if pk_passphrase:
         print("\nAdditionally, you may use Amazon Web Services for encryption and audit.")
         kms = boto3.client('kms', region_name=region)
         while True:
             try:
-                pk_passwd, jira_password = do_kms_encrypt(kms, pk_passwd, jira_password)
+                pk_passphrase, jira_password = do_kms_encrypt(kms, pk_passphrase, jira_password)
                 break
 
             except KeyboardInterrupt:
@@ -335,42 +362,42 @@ def setup_authentication(jira_password, region, pk_passwd=None):
 
     rsa_public_key = re.sub(r'---.*---\n', '', public_key.decode('utf-8'))
 
-    return private_key, pk_passwd, jira_password, rsa_public_key
+    return private_key, pk_passphrase, jira_password, rsa_public_key
 
 
-def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, private_key, pk_passwd,
-             aws_key, aws_secret, **x):
+def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
+             private_key, pk_passphrase, aws_key, aws_secret, **x):
     vars = [
-        f'SNOWFLAKE_ACCOUNT={account}',
-        f'SA_USER={USER}',
-        f'SA_ROLE={ROLE}',
-        f'SA_DATABASE={DATABASE}',
-        f'SA_WAREHOUSE={WAREHOUSE}',
-        f'REGION={region or "us-west-2"}',
+        ('SNOWFLAKE_ACCOUNT', account),
+        ('SA_USER', USER),
+        ('SA_ROLE', ROLE),
+        ('SA_DATABASE', DATABASE),
+        ('SA_WAREHOUSE', WAREHOUSE),
+        ('REGION', region or 'us-west-2'),
 
-        f'PRIVATE_KEY={b64encode(private_key).decode("utf-8")}',
-        f'PRIVATE_KEY_PASSWORD={pk_passwd}',
+        ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase),
     ]
 
     if jira_url:
         vars += [
-            f'JIRA_URL={jira_url}',
-            f'JIRA_PROJECT={jira_project}',
-            f'JIRA_USER={jira_user}',
-            f'JIRA_PASSWORD={jira_password}',
+            ('JIRA_URL', jira_url),
+            ('JIRA_PROJECT', jira_project),
+            ('JIRA_USER', jira_user),
+            ('JIRA_PASSWORD', jira_password),
         ]
 
     if aws_key:
         vars += [
-            f'AWS_ACCESS_KEY_ID={aws_key}' if aws_key else '',
-            f'AWS_SECRET_ACCESS_KEY={aws_secret}' if aws_secret else '',
+            ('AWS_ACCESS_KEY_ID', aws_key if aws_key else ''),
+            ('AWS_SECRET_ACCESS_KEY', aws_secret if aws_secret else ''),
         ]
 
-    return '\n'.join(vars)
+    return vars
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
-    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for random]: ")
+    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for new]: ")
 
     if not key:
         return list(args)
@@ -385,10 +412,38 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, config_account=None):
-    ctx, account, region, do_attempt = login(config_account)
+def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None, config_account=None,
+         config_region=None, config_username=None, config_password=None, connection_name=None,
+         uninstall=False, set_env_vars=False, verbose=False):
 
-    do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+    global VERBOSE
+    VERBOSE = verbose
+
+    configuration = connection_name if connection_name is not None else {
+        'region': config_region or environ.get('REGION'),
+        'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
+        'username': config_username or environ.get('SA_ADMIN_USER'),
+        'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
+    }
+
+    ctx, account, region, do_attempt = login(configuration)
+
+    if admin_role:
+        do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
+
+    if uninstall:
+        do_attempt("Uninstalling", [
+            f'DROP USER {USER}',
+            f'DROP ROLE {ROLE}',
+            f'DROP WAREHOUSE {WAREHOUSE}',
+            f'DROP DATABASE {DATABASE}',
+        ] if admin_role == 'accountadmin' else [
+            f'DROP SCHEMA {DATA_SCHEMA}',
+            f'DROP SCHEMA {RULES_SCHEMA}',
+            f'DROP SCHEMA {RESULTS_SCHEMA}'
+        ])
+        return
+
     if admin_role == "accountadmin":
         setup_warehouse_and_db(do_attempt)
         setup_user_and_role(do_attempt)
@@ -404,16 +459,22 @@ def main(admin_role="accountadmin", samples=True, pk_passwd=None, jira=None, con
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passwd, jira_password, rsa_public_key = setup_authentication(jira_password, region, pk_passwd)
+    private_key, pk_passphrase, jira_password, rsa_public_key = setup_authentication(jira_password,
+                                                                                     region, pk_passphrase)
 
     if admin_role == "accountadmin":
         do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
 
     aws_key, aws_secret = load_aws_config()
 
+    env_vars = gen_envs(**locals())
+    if set_env_vars:
+        for name, value in env_vars:
+            environ[name] = value
+    env_vars_str = '\n'.join([f'{n}={v}' for n, v in env_vars])
     print(
         f"\n--- ...all done! Next, run... ---\n"
-        f"\ncat <<END_OF_FILE > snowalert-{account}.envs\n{gen_envs(**locals())}\nEND_OF_FILE\n"
+        f"\ncat <<END_OF_FILE > snowalert-{account}.envs\n{env_vars_str}\nEND_OF_FILE\n"
         f"\n### ...and then... ###\n"
         f"\ndocker run --env-file snowalert-{account}.envs snowsec/snowalert ./run all\n"
         f"\n--- ...the end. ---\n"

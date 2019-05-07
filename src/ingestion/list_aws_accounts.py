@@ -10,16 +10,16 @@ from cryptography.hazmat.primitives import serialization
 import snowflake.connector
 
 AWS_ACCOUNTS_TABLE = os.environ['LIST_ACCOUNTS_SNOWFLAKE_TABLE_IDENTIFIER']
-SA_ACCOUNT = os.environ['LIST_ACCOUNTS_SNOWFLAKE_ACCOUNT']
-SA_USER = os.environ['LIST_ACCOUNTS_SNOWFLAKE_USER']
-SA_USER_PK = os.environ['LIST_ACCOUNTS_SNOWFLAKE_USER_PRIVATE_KEY']
-SA_USER_PK_PASSWORD = os.environ['LIST_ACCOUNTS_SNOWFLAKE_USER_PRIVATE_KEY_PASSWORD']
+SA_ACCOUNT = os.environ['INGEST_SNOWFLAKE_ACCOUNT']
+SA_USER = os.environ['INGEST_SNOWFLAKE_USER']
+SA_USER_PK = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY']
+SA_USER_PK_PASSWORD = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY_PASSWORD']
 
 
 def get_aws_client():
     sts_client_source = boto3.client('sts')
     sts_client_source_response = sts_client_source.assume_role(
-        RoleArn=os.environ['LIST_ACCOUNTS_AWS_AUDIT_SOURCE_ROLE_ARN'],
+        RoleArn=os.environ['AWS_AUDIT_SOURCE_ROLE_ARN'],
         RoleSessionName=os.environ['LIST_ACCOUNTS_AWS_AUDIT_SOURCE_ROLE_SESSION_NAME']
     )
     sts_client_destination = boto3.Session(
@@ -29,9 +29,9 @@ def get_aws_client():
     )
     sts = sts_client_destination.client('sts')
     response = sts.assume_role(
-        RoleArn=os.environ['LIST_ACCOUNTS_AWS_AUDIT_DESTINATION_ROLE_ARN'],
+        RoleArn=os.environ['AWS_AUDIT_DESTINATION_ROLE_ARN'],
         RoleSessionName=os.environ['LIST_ACCOUNTS_AWS_AUDIT_DESTINATION_ROLE_SESSION_NAME'],
-        ExternalId=os.environ['LIST_ACCOUNTS_AWS_AUDIT_DESTINATION_ROLE_ARN_EXTERNALID']
+        ExternalId=os.environ['AWS_AUDIT_DESTINATION_ROLE_ARN_EXTERNALID']
     )
     org_session = boto3.Session(
         aws_access_key_id=response['Credentials']['AccessKeyId'],
@@ -77,14 +77,13 @@ def get_accounts_list(client):
 
 LOAD_ACCOUNTLIST_QUERY = f"""
 INSERT INTO {AWS_ACCOUNTS_TABLE} (timestamp, account)
-SELECT {{snapshotclock}}, PARSE_JSON(column1)
+SELECT '{{snapshotclock}}'::timestamp_ltz, PARSE_JSON(column1)
 FROM VALUES {{format_string}}
 """
 
 
 def load_accounts_list(sf_client, accounts_list):
     query = LOAD_ACCOUNTLIST_QUERY.format(
-        account=AWS_ACCOUNTS_TABLE,
         snapshotclock=datetime.datetime.utcnow().isoformat(),
         format_string=", ".join(["(%s)"] * len(accounts_list))
     )
@@ -95,7 +94,7 @@ def main():
     sf_client = get_snowflake_client()
     current_time = datetime.datetime.now(datetime.timezone.utc)
     last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {AWS_ACCOUNTS_TABLE}').fetchall()[0][0]
-    if (current_time - last_time).seconds > 86400:
+    if (current_time - last_time).total_seconds() > 86400:
         client = get_aws_client()
         accounts_list = get_accounts_list(client)
         load_accounts_list(sf_client, accounts_list)

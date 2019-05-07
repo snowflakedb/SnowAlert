@@ -15,7 +15,6 @@ SELECT 'Successful Snowflake login without MFA' AS title
      , 'SnowAlert' AS detector
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity
-     , 'snowflake_login_without_mfa' AS query_name
      , '{uuid}' AS query_id
 FROM data.successful_snowflake_logins_v
 WHERE 1=1
@@ -32,3 +31,49 @@ FROM data.alerts
 WHERE suppressed IS NULL
   AND object = 'DESIGNATED_NOMFA_USER'
 ;
+
+
+ CREATE OR REPLACE VIEW rules.ACTIVITY_BY_ADMIN_{ALERT_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='Alerts on administrative activity in Snowflake, requires MONITOR privileges on a warehouse to monitor that warehouse.
+  @id {uuid}
+  @tags admin activity'
+AS
+SELECT 'Activity by ACCOUNTADMIN Role' AS title
+      , ARRAY_CONSTRUCT('information_schema') AS sources
+      , 'SnowAlert' as environment
+      , warehouse_name AS object
+      , start_time AS event_time
+      , CURRENT_TIMESTAMP() AS alert_time
+      , user_name AS actor
+      , query_text AS action
+      , actor || ' performed ' || query_text AS description
+      , 'SnowAlert' AS detector
+      , OBJECT_CONSTRUCT(*) AS event_data
+      , 'low' AS severity
+      , '{uuid}' AS query_id
+FROM table(information_schema.query_history())
+WHERE 1=1
+  AND role_name = 'ACCOUNTADMIN'
+;
+
+CREATE OR REPLACE VIEW rules.SNOWFLAKE_RESOURCE_CREATION_{ALERT_QUERY_POSTFIX} COPY GRANTS
+  COMMENT='Alerts on a user creating a resource in Snowflake. This query can be modified to look for ALTER or DROP statements. Requires MONITOR privileges on a warehouse to monitor that warehouse.
+  @id {uuid}
+  @tags snowflake, resource creation'
+AS
+SELECT 'Resource created in Snowflake' AS title
+      , ARRAY_CONSTRUCT('information_schema') AS sources
+      , warehouse_name AS object
+      , start_time AS event_time
+      , CURRENT_TIMESTAMP() AS alert_time
+      , 'SnowAlert' as environment
+      , user_name AS actor
+      , query_text AS action
+      , actor || ' performed ' || query_text AS description
+      , 'SnowAlert' AS detector
+      , OBJECT_CONSTRUCT(*) AS event_data
+      , 'low' AS severity
+      , '{uuid}' AS query_id
+FROM table(information_schema.query_history())
+WHERE 1=1
+  AND rlike(query_text, '^create(.)*', 'is') = true;
