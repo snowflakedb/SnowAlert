@@ -23,7 +23,7 @@ def loop(endpoint):
 
         if r.status_code != 200:
             log.error(f"Ingest request for {endpoint} failed", r.text)
-            db.ingest_request_failed(ZENGRC_TABLE, r, TIMESTAMP)
+            db.record_failed_ingestion(ZENGRC_TABLE, r, TIMESTAMP)
             break
 
         j = json.loads(r.text)

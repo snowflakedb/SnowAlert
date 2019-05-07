@@ -351,7 +351,7 @@ def record_metadata(metadata, table, e=None):
         log.error(f"{record_type} metadata failed to log.", e)
 
 
-def ingest_request_failed(table, r, timestamp):
+def record_failed_ingestion(table, r, timestamp):
     log = json.dumps({'headers': dict(r.headers),
                       'text': r.text,
                       'status_code': r.status_code,
