@@ -24,7 +24,6 @@ jobs:
             source .venv/bin/activate
             pip install --upgrade pip
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
-            pip install mypy
 
       - save_cache:
           paths:
@@ -36,10 +35,10 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            pyflakes ./scripts ./runners ./samui/backend/samui
-            MYPYPATH="`pwd`/samui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./samui/backend/samui
-            pytest ./runners -vv
+            pyflakes ./scripts ./runners ./webui/backend/webui
+            MYPYPATH="`pwd`/webui/backend/" \
+              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui
+            pytest -vv
 
       # - run:
       #     name: do the build

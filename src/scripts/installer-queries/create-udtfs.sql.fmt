@@ -16,3 +16,13 @@ AS '
     , slice_end FROM TABLE(time_slices( num_slices, DATEADD(sec, -seconds_in_slice * num_slices, t), t ))
 '
 ;
+
+CREATE OR REPLACE FUNCTION rules.has_no_violations(qid VARCHAR)
+RETURNS BOOLEAN
+AS '
+(
+  SELECT COUNT(*) AS c FROM data.violations
+  WHERE created_time > DATEADD(day, -1, CURRENT_TIMESTAMP())
+    AND query_id = qid
+) = 0
+';

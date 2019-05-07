@@ -64,12 +64,14 @@ def log_alerts(ctx, alerts):
         print("No alerts to log.")
 
 
-def log_failure(ctx, suppression_name, e, event_data=None, description=None):
+def log_failure(suppression_name, e, event_data=None, description=None):
     if event_data is None:
         event_data = f"The suppression '{suppression_name}' failed to execute with error: {e}"
 
     if description is None:
         description = f"The suppression '{suppression_name}' failed to execute with error: {e}"
+
+    ctx = db.connect()
 
     alerts = [json.dumps({
         'ALERT_ID': uuid.uuid4().hex,
@@ -116,18 +118,16 @@ def run_suppressions(squelch_name):
         'START_TIME': datetime.datetime.utcnow(),
     }
 
-    ctx = db.connect()
-
     try:
         suppression_count = run_suppression_query(squelch_name)
         log.info(f"{squelch_name} updated {suppression_count} rows.")
         metadata['ROW_COUNT'] = {'SUPPRESSED': suppression_count}
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
 
     except Exception as e:
-        log_failure(ctx, squelch_name, e)
+        log_failure(squelch_name, e)
         metadata['ROW_COUNT'] = {'SUPPRESSED': 0}
-        log.metadata_record(ctx, metadata, table=QUERY_METADATA_TABLE, e=e)
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
 
     METADATA_HISTORY.append(metadata)
     log.info(f"{squelch_name} done.")
@@ -140,11 +140,10 @@ def main():
         'RUN_ID': RUN_ID,
     }
 
-    ctx = db.connect()
-    for squelch_name in db.load_rules(ctx, ALERT_SQUELCH_POSTFIX):
+    for squelch_name in db.load_rules(ALERT_SQUELCH_POSTFIX):
         run_suppressions(squelch_name)
 
-    num_rows_updated = next(db.fetch(ctx, SET_SUPPRESSED_FALSE))['number of rows updated']
+    num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
     log.info(f'All suppressions done, {num_rows_updated} remaining alerts marked suppressed=FALSE.')
 
     RUN_METADATA['ROW_COUNT'] = {
@@ -152,7 +151,7 @@ def main():
         'SUPPRESSED': sum(m['ROW_COUNT']['SUPPRESSED'] for m in METADATA_HISTORY),
     }
 
-    log.metadata_record(ctx, RUN_METADATA, table=RUN_METADATA_TABLE)
+    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     try:
         if CLOUDWATCH_METRICS:
