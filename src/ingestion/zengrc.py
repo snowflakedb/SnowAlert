@@ -1,5 +1,5 @@
 import requests
-import base64
+from requests.auth import HTTPBasicAuth
 import datetime
 import json
 import os
@@ -13,19 +13,13 @@ ZENGRC_TABLE = os.environ.get('ZENGRC_TABLE')
 TIMESTAMP = str(datetime.datetime.utcnow())
 
 
-def gen_headers(id, secret):
-    auth = base64.b64encode(f'{id}:{secret}'.encode()).decode()
-    return {"Authorization": f"Basic {auth}"}
-
-
 def loop(endpoint):
     log.info(f"starting {endpoint}")
     j = {'links': {'next': {'href': endpoint}}}
-    headers = gen_headers(ZENGRC_ID, ZENGRC_SECRET)
     page = 1
     while j['links']['next'] is not None:
         log.info(f"Getting page {str(page)}")
-        r = requests.get(ZENGRC_URL+j['links']['next']['href'], headers=headers)
+        r = requests.get(ZENGRC_URL+j['links']['next']['href'], auth=HTTPBasicAuth(ZENGRC_ID, ZENGRC_SECRET))
 
         if r.status_code != 200:
             log.error(f"Ingest request for {endpoint} failed", r.text)
