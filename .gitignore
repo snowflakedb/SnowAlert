@@ -3,14 +3,12 @@
 build/
 node_modules/
 
-docs/build
 docs/doctrees
-src/**/*.css
-src/**/*.js
+src/webui/frontend/src/**/*.css
+src/webui/frontend/src/**/*.js
 src/**/lib/
 
 *.pyc
-*.envs
 *.venv
 *.db
 *.egg-info

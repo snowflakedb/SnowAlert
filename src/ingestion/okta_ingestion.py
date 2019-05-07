@@ -8,7 +8,7 @@ import requests
 INPUT_TOKEN = environ.get('ALOOMA_OKTA_TOKEN')
 ALOOMA_SDK = alooma_pysdk.PythonSDK(INPUT_TOKEN)
 OKTA_API_KEY = environ.get('OKTA_API_KEY')
-AUTH = "SSWS "+OKTA_API_KEY
+AUTH = "SSWS " + OKTA_API_KEY
 OKTA_URL = environ.get('OKTA_URL')
 OKTA_TABLE = environ.get('OKTA_TABLE')
 

@@ -3,10 +3,10 @@
 if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
   echo "running in docker container-like environment"
 
-  if [[ "$1" == "samui" ]]; then
+  if [[ "$1" == "webui" ]]; then
 
-    cd /var/task/snowalert/src/samui/backend
-    python samui/app.py
+    cd /var/task/snowalert/src/webui/backend
+    python webui/app.py
 
   else
 
@@ -19,7 +19,7 @@ elif [[ -d "$HOME/.snowsql" && -d "$HOME/.aws" ]]; then
   echo "running in client development-like environment"
 
   if [[ ! -f "$1" ]]; then
-    >&2 echo "usage: ./run snowalert-{env}.envs"
+    >&2 echo "usage: ./run snowalert-{env}.envs {command}"
     >&2 echo "if you don't have an env file, run ./install first"
     exit 1
   fi
