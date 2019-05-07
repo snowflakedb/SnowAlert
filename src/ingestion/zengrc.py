@@ -34,14 +34,11 @@ def loop(endpoint):
 
         j = json.loads(r.text)
         data = [[json.dumps(i), TIMESTAMP] for i in j['data']]
-        if len(data) > 0:
-            try:
-                query = f"INSERT INTO {ZENGRC_TABLE} select parse_json(column1), column2 from values "
-                query = query + ", ".join(["(%s)"] * len(data))
-                db.execute(query, params=data)
-                page += 1
-            except Exception as e:
-                log.error(e)
+        try:
+            db.insert(ZENGRC_TABLE, data, select='PARSE_JSON(column1), column2')
+            page += 1 if len(data) > 0 else 0
+        except Exception as e:
+            log.error(e)
 
 
 def main():
