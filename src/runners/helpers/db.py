@@ -344,3 +344,13 @@ def record_metadata(metadata, table, e=None):
 
     except Exception as e:
         log.error(f"{record_type} metadata failed to log.", e)
+
+
+def ingest_request_failed(table, r, timestamp):
+    log = json.dumps({'headers': dict(r.headers),
+                      'text': r.text,
+                      'status_code': r.status_code,
+                      'failure': True})
+    data = [(log, timestamp)]
+    query = f"INSERT INTO {table} SELECT PARSE_JSON(COLUMN1), COLUMN2 FROM VALUES (%s)"
+    execute(query, params=data)
