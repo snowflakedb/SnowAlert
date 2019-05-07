@@ -195,14 +195,19 @@ def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
 
 
-def insert(table, values, overwrite=False):
+def insert(table, values, overwrite=False, select=""):
     if len(values) == 0:
         return
 
+    if select:
+        select = f'SELECT {select} FROM '
+
+    overwrite = ' OVERWRITE' if overwrite else ''
+
     sql = (
-        f"INSERT{' OVERWRITE' if overwrite else ''}\n"
+        f"INSERT{overwrite}\n"
         f"  INTO {table}\n"
-        f"  VALUES {sql_value_placeholders(len(values))}\n"
+        f"  {select} VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
 
@@ -344,3 +349,13 @@ def record_metadata(metadata, table, e=None):
 
     except Exception as e:
         log.error(f"{record_type} metadata failed to log.", e)
+
+
+def record_failed_ingestion(table, r, timestamp):
+    log = json.dumps({'headers': dict(r.headers),
+                      'text': r.text,
+                      'status_code': r.status_code,
+                      'failure': True})
+    data = [(log, timestamp)]
+    query = f"INSERT INTO {table} SELECT PARSE_JSON(COLUMN1), COLUMN2 FROM VALUES (%s)"
+    execute(query, params=data)

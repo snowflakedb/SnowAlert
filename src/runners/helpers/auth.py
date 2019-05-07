@@ -21,9 +21,11 @@ def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
       True
 
     """
+    passphrase = decrypt_if_encrypted(passphrase, as_bytes=True) if passphrase else None
+
     private_key = serialization.load_pem_private_key(
         p8_private_key,
-        password=decrypt_if_encrypted(passphrase) or None,
+        password=passphrase,
         backend=default_backend()
     )
     return private_key.private_bytes(
