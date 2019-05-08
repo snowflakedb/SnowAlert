@@ -12,7 +12,8 @@ from .kms import decrypt_if_encrypted
 
 
 def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
-    """Loads private key bytes out of p8-encoded private key, using password decrypted via KMS, e.g.:
+    """Loads private key bytes out of p8-encoded private key, using password
+    decrypted via KMS, e.g.:
 
       > pkp8 = open('rsa_key.p8').read().encode('ascii')
       > encrypted_pass = base64.b64decode(open('passphrase').read())
@@ -21,11 +22,11 @@ def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
       True
 
     """
-    passphrase = decrypt_if_encrypted(passphrase, as_bytes=True) if passphrase else None
+    ptpass = decrypt_if_encrypted(passphrase).encode() if passphrase else None
 
     private_key = serialization.load_pem_private_key(
         p8_private_key,
-        password=passphrase,
+        password=ptpass,
         backend=default_backend()
     )
     return private_key.private_bytes(
