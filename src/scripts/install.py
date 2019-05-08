@@ -268,7 +268,7 @@ def find_share_db_name(do_attempt):
     # Database name is 4th attribute in row
     share_db_names = [share_row[3] for share_row in sample_data_share_rows]
     if len(share_db_names) == 0:
-        VERBOSE and print(f"Unable to locate sample data share. Sample data cannot be loaded!")
+        VERBOSE and print(f"Unable to locate sample data share.")
         return
 
     # Prioritize potential tie-breaks
@@ -279,14 +279,13 @@ def find_share_db_name(do_attempt):
     return share_db_names[0]
 
 
-def setup_samples(do_attempt):
-    share_db_name = find_share_db_name(do_attempt)
+def setup_samples(do_attempt, share_db_name):
     tmpl_var = {"SNOWFLAKE_SAMPLE_DATA": share_db_name}
     VERBOSE and print(f"Using SAMPLE DATA share with name {share_db_name}")
-
     do_attempt("Creating data view", read_queries('sample-data-queries', tmpl_var))
-    do_attempt("Creating sample alert", read_queries('sample-alert-queries', tmpl_var))
-    do_attempt("Creating sample violation", read_queries('sample-violation-queries', tmpl_var))
+
+    do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
+    do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
 
 
 def jira_integration(setup_jira=None):
@@ -451,7 +450,11 @@ def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None,
     setup_schemas_and_tables(do_attempt, DATABASE)
 
     if samples:
-        setup_samples(do_attempt)
+        share_db_name = find_share_db_name(do_attempt)
+        if share_db_name:
+            setup_samples(do_attempt, share_db_name)
+        else:
+            print("No share db found, skipping samples.")
 
     do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
 

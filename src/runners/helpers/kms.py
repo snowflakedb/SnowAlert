@@ -1,4 +1,5 @@
 from base64 import b64decode
+from typing import Optional
 
 import boto3
 
@@ -7,20 +8,21 @@ from .dbconfig import REGION
 kms = boto3.client('kms', region_name=REGION)
 
 
-def decrypt_if_encrypted(ct, handleErrors=True):
+def decrypt_if_encrypted(ct: Optional[str]) -> Optional[str]:
     if not ct or len(ct) < 205:  # 1-byte plaintext has 205-byte ct
         return ct
 
     try:
         ctBlob = b64decode(ct)
     except Exception:
-        ctBlob = ct
+        ctBlob = ct.encode()
 
     try:
-        # depending on local AWS config, this might ask for 2FA
-        return kms.decrypt(CiphertextBlob=ctBlob)['Plaintext'].decode()
+        res = None  # retry on incomplete response
+        while res is None or 'Plaintext' not in res:
+            res = kms.decrypt(CiphertextBlob=ctBlob)
+
+        return res['Plaintext'].decode()
+
     except Exception:
-        if handleErrors:
-            return ct
-        else:
-            raise
+        return ct
