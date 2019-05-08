@@ -89,7 +89,7 @@ Installing
 
 Snowflake provides an installer script in the home dir of the docker container, as well as the git repository, which will configure your Snowflake workspace and use KMS to encrypt secrets in the runner's environment:
 
-If you have `~/.aws` and `~/.showcli` credentials in your environment, you can run it with:
+If you have `~/.aws` and `~/.snowsql` credentials in your environment, you can run it with:
 
 .. code::
 
