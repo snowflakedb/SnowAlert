@@ -11,7 +11,7 @@ from requests.auth import HTTPBasicAuth
 from .kms import decrypt_if_encrypted
 
 
-def load_pkb(p8_private_key: bytes, passphrase: Optional[str]) -> bytes:
+def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
     """Loads private key bytes out of p8-encoded private key, using password
     decrypted via KMS, e.g.:
 
@@ -22,7 +22,7 @@ def load_pkb(p8_private_key: bytes, passphrase: Optional[str]) -> bytes:
       True
 
     """
-    ptpass = decrypt_if_encrypted(passphrase) if passphrase else None
+    ptpass = decrypt_if_encrypted(passphrase.decode()) if passphrase else None
 
     private_key = serialization.load_pem_private_key(
         p8_private_key,
