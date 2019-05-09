@@ -207,11 +207,17 @@ def insert(table, values, overwrite=False, select=""):
     sql = (
         f"INSERT{overwrite}\n"
         f"  INTO {table}\n"
-        f"  {select} VALUES {sql_value_placeholders(len(values))}\n"
+        f"  {select}VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
 
-    return execute(sql, params=values)
+    jsony = (dict, list, tuple)
+    params_with_json = [
+        [utils.json_dumps(v) if isinstance(v, jsony) else v for v in vp]
+        for vp in values
+    ]
+
+    return execute(sql, params=params_with_json, fix_errors=False)
 
 
 def insert_alerts(alerts, ctx=None):
