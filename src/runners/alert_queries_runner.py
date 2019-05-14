@@ -68,6 +68,81 @@ def log_failure(query_name, e, event_data=None, description=None):
         log.error("Failed to log query failure", e)
 
 
+RUN_ALERT_QUERY = f"""
+CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
+SELECT OBJECT_CONSTRUCT(
+         'ALERT_ID', UUID_STRING(),
+         'QUERY_NAME', '{{query_name}}',
+         'QUERY_ID', IFNULL(QUERY_ID, PARSE_JSON('null')),
+         'ENVIRONMENT', IFNULL(ENVIRONMENT, PARSE_JSON('null')),
+         'SOURCES', IFNULL(SOURCES, PARSE_JSON('null')),
+         'ACTOR', IFNULL(ACTOR, PARSE_JSON('null')),
+         'OBJECT', IFNULL(OBJECT, PARSE_JSON('null')),
+         'ACTION', IFNULL(ACTION, PARSE_JSON('null')),
+         'TITLE', IFNULL(TITLE, PARSE_JSON('null')),
+         'EVENT_TIME', IFNULL(EVENT_TIME, PARSE_JSON('null')),
+         'ALERT_TIME', IFNULL(ALERT_TIME, PARSE_JSON('null')),
+         'DESCRIPTION', IFNULL(DESCRIPTION, PARSE_JSON('null')),
+         'DETECTOR', IFNULL(DETECTOR, PARSE_JSON('null')),
+         'EVENT_DATA', IFNULL(EVENT_DATA, PARSE_JSON('null')),
+         'SEVERITY', IFNULL(SEVERITY, PARSE_JSON('null')),
+         'HANDLERS', IFNULL(OBJECT_CONSTRUCT(*):HANDLERS, PARSE_JSON('null'))
+       ) AS alert
+     , alert_time
+     , event_time
+     , 1 AS counter
+FROM rules.{{query_name}}
+WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
+"""
+
+
+MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
+
+  SELECT ANY_VALUE(alert) AS alert
+       , SUM(counter) AS counter
+       , MIN(alert_time) AS alert_time
+       , MIN(event_time) AS event_time
+
+  FROM results.{{new_alerts_table}}
+  GROUP BY alert:OBJECT, alert:DESCRIPTION
+
+) AS new_alerts
+
+ON (
+  alerts.alert:OBJECT = new_alerts.alert:OBJECT
+  AND alerts.alert:DESCRIPTION = new_alerts.alert:DESCRIPTION
+  AND alerts.alert:event_time > {{from_time_sql}}
+)
+
+WHEN MATCHED
+THEN UPDATE SET counter = alerts.counter + new_alerts.counter
+
+WHEN NOT MATCHED
+THEN INSERT (alert, counter, alert_time, event_time)
+     VALUES (
+       new_alerts.alert,
+       new_alerts.counter,
+       new_alerts.alert_time,
+       new_alerts.event_time
+    )
+;
+"""
+
+
+def merge_alerts(query_name, from_time_sql):
+    log.info(f"{query_name} processing...")
+
+    sql = MERGE_ALERTS.format(
+        query_name=query_name,
+        from_time_sql=from_time_sql,
+        new_alerts_table=f"RUN_{RUN_ID}_{query_name}",
+    )
+    result = db.execute(sql).fetchall()
+    created_count, updated_count = result[0]
+    log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
+    return created_count, updated_count
+
+
 def create_alerts(rule_name: str) -> Dict[str, Any]:
     metadata: Dict[str, Any] = {
         'QUERY_NAME': rule_name,
@@ -81,11 +156,17 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
     }
 
     try:
-        insert_count, update_count = db.insert_alerts_query_run(rule_name, GROUPING_CUTOFF)
+        db.execute(RUN_ALERT_QUERY.format(
+            query_name=rule_name,
+            from_time_sql="DATEADD(minute, -90, CURRENT_TIMESTAMP())",
+            to_time_sql="CURRENT_TIMESTAMP()",
+        ))
+        insert_count, update_count = merge_alerts(rule_name, GROUPING_CUTOFF)
         metadata['ROW_COUNT'] = {
             'INSERTED': insert_count,
             'UPDATED': update_count,
         }
+        db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 
     except Exception as e:
         log_failure(rule_name, e)
