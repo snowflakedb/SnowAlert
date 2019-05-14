@@ -10,9 +10,12 @@ from webui.api.oauth import oauth_api
 from webui.views import app_views
 
 
+URL_EXTENSIONS_CACHED = ('js', 'woff2')
+
+
 class SAFlask(Flask):
     def get_send_file_max_age(self, name):
-        if not name.lower().endswith('.js'):
+        if not name.split('.')[-1].lower() in URL_EXTENSIONS_CACHED:
             return 0
         return Flask.get_send_file_max_age(self, name)
 
