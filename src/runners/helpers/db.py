@@ -1,10 +1,9 @@
 """Helper specific to SnowAlert connecting to the database"""
-
 from datetime import datetime
 import json
 from threading import local
 from typing import List, Tuple
-from os import path, getpid
+from os import getpid
 from re import match
 
 import snowflake.connector
@@ -226,29 +225,6 @@ def insert_alerts(alerts, ctx=None):
 
     query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
     return ctx.cursor().execute(query, alerts)
-
-
-def insert_alerts_query_run(query_name, from_time_sql, to_time_sql='CURRENT_TIMESTAMP()', ctx=None):
-    if ctx is None:
-        ctx = connect()
-
-    log.info(f"{query_name} processing...")
-
-    try:
-        pwd = path.dirname(path.realpath(__file__))
-        sql = open(f'{pwd}/insert-alert-query.sql.fmt').read().format(
-            query_name=query_name,
-            from_time_sql=from_time_sql,
-            to_time_sql=to_time_sql,
-        )
-        result = ctx.cursor().execute(sql).fetchall()
-        created_count, updated_count = result[0]
-        log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
-        return created_count, updated_count
-
-    except Exception as e:
-        log.info(f"{query_name} run threw an exception:", e)
-        return 0, 0
 
 
 INSERT_VIOLATIONS_QUERY = f"""
