@@ -7,6 +7,8 @@ AGARI_TOKEN = environ.get('AGARI_TOKEN')
 AGARI_SECRET = environ.get('AGARI_SECRET')
 AGARI_TABLE = environ.get('AGARI_TABLE')
 
+AGARI_TRUST_CUTOFF = 5.0
+
 URLS = [
     'https://api.agari.com/v1/ep/messages'
 ]
@@ -35,9 +37,16 @@ def get_newest_timestamp():
     query = f"SELECT raw FROM {AGARI_TABLE} ORDER BY event_time DESC LIMIT 1"
     try:
         return list(db.fetch(query))[0]['RAW']['date']
-    except Exception as e:
+    except Exception:
         log.error("no earlier data found")
         return None
+
+
+def enrich(message, headers):
+    url = f"https://api.agari.com/v1/ep/messages/{message['id']}"
+    r = requests.get(url=url, headers=headers)
+    data = r.json()
+    return data['message']
 
 
 def process_endpoint(url):
@@ -57,6 +66,10 @@ def process_endpoint(url):
             log.error(f"Ingest request for {url} failed.")
             db.record_failed_ingestion(AGARI_TABLE, r, datetime.datetime.utcnow())
             break
+
+        for message in data['messages']:
+            if float(message['message_trust_score']) <= AGARI_TRUST_CUTOFF:
+                message['details'] = enrich(message, headers)
 
         load_data(data['messages'])
 
