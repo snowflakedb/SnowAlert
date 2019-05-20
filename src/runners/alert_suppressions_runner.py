@@ -76,9 +76,9 @@ def log_failure(suppression_name, e, event_data=None, description=None):
     alerts = [json.dumps({
         'ALERT_ID': uuid.uuid4().hex,
         'QUERY_ID': 'b1d02051dd2c4d62bb75274f2ee5996a',
-        'QUERY_NAME': ['Suppression Runner Failure'],
+        'QUERY_NAME': 'Suppression Runner Failure',
         'ENVIRONMENT': 'Suppressions',
-        'SOURCES': 'Suppression Runner',
+        'SOURCES': ['Suppression Runner'],
         'ACTOR': 'Suppression Runner',
         'OBJECT': suppression_name,
         'ACTION': 'Suppression Execution',
