@@ -18,7 +18,7 @@ def oauth_redirect():
     account = json.get('account')
     returnHref = json.get('returnHref')
 
-    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', '')
 
     return jsonify(url=f"https://{account}.snowflakecomputing.com/oauth/authorize?" + urlencode({
         'client_id': OAUTH_CLIENT_ID,
@@ -35,8 +35,8 @@ def oauth_return():
     account = json.get('account')
     redirect_uri = json.get('redirectUri')
 
-    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
-    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.upper()}', '')
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', '')
+    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.partition(".")[0].upper()}', '')
 
     response = requests.post(
         f'https://{account}.snowflakecomputing.com/oauth/token-request',

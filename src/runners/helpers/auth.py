@@ -37,8 +37,8 @@ def load_pkb(p8_private_key: bytes, passphrase: Optional[str]) -> bytes:
 
 
 def oauth_refresh(account: str, refresh_token: str) -> str:
-    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.upper()}', '')
-    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.upper()}', '')
+    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', '')
+    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.partition(".")[0].upper()}', '')
 
     return post(
         f'https://{account}.snowflakecomputing.com/oauth/token-request',
