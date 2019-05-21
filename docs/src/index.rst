@@ -10,3 +10,4 @@ across diverse data sources and time ranges.
    pages/about
    pages/start
    pages/manage
+   pages/Authentication

@@ -2,6 +2,7 @@
 .mypy_cache
 build/
 node_modules/
+.idea/
 
 docs/doctrees
 src/webui/frontend/src/**/*.css
