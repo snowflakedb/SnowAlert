@@ -91,7 +91,7 @@ def get_accounts_list(sf_client):
 
 
 LOAD_INSTANCE_LIST_QUERY = f"""
-INSERT INTO {INSTANCES_TABLE} (timestamp, instance)
+INSERT INTO {INSTANCES_TABLE} (timestamp, modification_result)
 SELECT '{{snapshotclock}}'::timestamp_ltz, PARSE_JSON(column1)
 FROM VALUES {{format_string}}
 """
