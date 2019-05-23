@@ -9,12 +9,17 @@ setup(
         'fire==0.1.3',
         'jira==2.0.0',
         'PyYAML==4.2b1',
-        'snowflake-connector-python==1.7.11',
+        'snowflake-connector-python==1.8.1',
         'snowflake-sqlalchemy==1.1.2',
         'pandas==0.24.1',
         'rpy2==3.0.1',
         'pytz==2018.9',
         'slackclient==1.3.1',
         'tzlocal==1.5.1',
+        'snowflake-ingest==0.9.1',
+        'azure-common==1.1.20',
+        'azure-mgmt-storage==3.3.0',
+        'azure-storage-blob==1.5.0',
+        'azure-storage-common==1.4.0'
     ],
 )
