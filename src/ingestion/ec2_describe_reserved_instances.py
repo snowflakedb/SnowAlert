@@ -89,10 +89,14 @@ def get_accounts_list(sf_client):
     res = sf_client.cursor().execute(GET_ACCOUNTS_QUERY).fetchall()
     return res
 
+# create table ec2_reserved_instances
+#    (data variant, accountid number(38, 0),
+#     region varchar, snapshot_at timestamp_ltz);
+
 
 LOAD_INSTANCE_LIST_QUERY = f"""
-INSERT INTO {INSTANCES_TABLE} (timestamp, instance)
-SELECT '{{snapshotclock}}'::timestamp_ltz, PARSE_JSON(column1)
+INSERT INTO {INSTANCES_TABLE} (accountid, region, snapshot_at, data)
+SELECT PARSE_JSON(column1):AccountId::number, PARSE_JSON(column1):region::varchar, '{{snapshotclock}}'::timestamp_ltz, PARSE_JSON(column1)
 FROM VALUES {{format_string}}
 """
 
@@ -110,8 +114,10 @@ def get_data_worker(account):
             try:
                 client = ec2_session.client('ec2', region_name=region)
                 response = client.describe_reserved_instances()
-                region = [instance for instance in response['ReservedInstances']]
-                instances.extend(region)
+                region_list = [instance for instance in response['ReservedInstances']]
+                for i in region_list:
+                    i['region'] = region
+                instances.extend(region_list)
             except Exception as e:
                 log.error(f"ec2_describe_reserved_instances: account: {account[1]} exception: {e}")
                 return None
@@ -142,7 +148,7 @@ def get_data(accounts_list):
 def main():
     sf_client = get_snowflake_client()
     current_time = datetime.datetime.now(datetime.timezone.utc)
-    last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {INSTANCES_TABLE}').fetchall()[0][0]
+    last_time = sf_client.cursor().execute(f'SELECT max(snapshot_at) FROM {INSTANCES_TABLE}').fetchall()[0][0]
     if last_time is None or (current_time - last_time).total_seconds() > 86400:
         accounts_list = get_accounts_list(sf_client)
         get_data(accounts_list)
