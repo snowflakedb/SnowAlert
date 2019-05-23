@@ -6,7 +6,7 @@ from azure.storage.blob import BlockBlobService
 
 from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD
-from runners.helpers import db, log
+from runners.helpers import db, log, kms
 
 from snowflake.ingest import SimpleIngestManager
 from snowflake.ingest import StagedFile
@@ -15,15 +15,13 @@ from snowflake.ingest import StagedFile
 def get_timestamp(table):
 
     timestamp_query = f"""
-        SELECT EVENT_TIME from {table}
-        order by EVENT_TIME desc
-        limit 1
+        SELECT loaded_on
+        FROM {table}
+        ORDER BY loaded_on DESC
+        LIMIT 1
         """
     ts = next(db.fetch(timestamp_query), None)
-    if ts:
-        return ts['EVENT_TIME']
-    else:
-        return None
+    return ts['LOADED_ON'] if ts else None
 
 
 def main():
@@ -32,18 +30,33 @@ def main():
         metadata = yaml.load(pipe['comment'])
         if metadata['type'] != 'Azure':
             log.info(f"{pipe['name']} is not an Azure pipe, and will be skipped.")
-            break
+            continue
 
         blob_name = metadata['blob']
         account_name = metadata['account']
         pipe_name = pipe['name']
         table = metadata['target']
 
-        sas_token = environ.get('AZURE_SAS_TOKEN_' + metadata['suffix'])
+        sas_token_envar = 'AZURE_SAS_TOKEN_' + metadata.get('suffix', '')
+        if sas_token_envar in environ:
+            encrypted_sas_token = environ.get(sas_token_envar)
+        elif 'encrypted_sas_token' in metadata:
+            encrypted_sas_token = metadata['encrypted_sas_token']
+        else:
+            log.info(f"{pipe['name']} has no azure auth")
+            continue
+
+        sas_token = kms.decrypt_if_encrypted(encrypted_sas_token)
 
         log.info(f"Now working on pipe {pipe_name}")
 
-        block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)
+        endpoint_suffix = metadata.get('endpoint_suffix', 'core.windows.net')
+
+        block_blob_service = BlockBlobService(
+            account_name=account_name,
+            sas_token=sas_token,
+            endpoint_suffix=endpoint_suffix
+        )
 
         files = block_blob_service.list_blobs(blob_name)
 
