@@ -341,3 +341,8 @@ def record_failed_ingestion(table, r, timestamp):
     data = [(log, timestamp)]
     query = f"INSERT INTO {table} SELECT PARSE_JSON(COLUMN1), COLUMN2 FROM VALUES (%s)"
     execute(query, params=data)
+
+
+def get_pipes():
+    query = f"SHOW PIPES IN SNOWALERT.DATA"
+    return fetch(query)
