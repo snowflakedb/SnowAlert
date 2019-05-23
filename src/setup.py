@@ -16,5 +16,10 @@ setup(
         'pytz==2018.9',
         'slackclient==1.3.1',
         'tzlocal==1.5.1',
+        'snowflake-ingest==0.9.1',
+        'azure-common==1.1.20',
+        'azure-mgmt-storage==3.3.0',
+        'azure-storage-blob==1.5.0',
+        'azure-storage-common==1.4.0'
     ],
 )
