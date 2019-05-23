@@ -35,6 +35,10 @@ def main():
 
     for pipe in get_pipes():
         metadata = yaml.load(pipe['comment'])
+        if metadata['type'] != 'Azure':
+            log.info(f"{pipe['name']} is not an Azure pipe, and will be skipped.")
+            break
+
         blob_name = metadata['blob']
         account_name = metadata['account']
         pipe_name = pipe['name']
@@ -44,19 +48,19 @@ def main():
 
         log.info(f"Now working on pipe {pipe_name}")
 
-        block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)  # account_name comes from metadata on pipe,
+        block_blob_service = BlockBlobService(account_name=account_name, sas_token=sas_token)
 
-        gen = block_blob_service.list_blobs(blob_name)  # blob name comes from metadata
+        files = block_blob_service.list_blobs(blob_name)
 
         newest_time = get_timestamp(table)
         new_files = []
         if newest_time:
-            for i in gen:
-                if i.properties.creation_time > newest_time:
-                    new_files.append(StagedFile(i.name, None))
+            for file in files:
+                if file.properties.creation_time > newest_time:
+                    new_files.append(StagedFile(file.name, None))
         else:
-            for i in gen:
-                new_files.append(StagedFile(i.name, None))
+            for file in files:
+                new_files.append(StagedFile(file.name, None))
 
         log.info(new_files)
 
@@ -70,8 +74,8 @@ def main():
                                              private_key=load_pkb_rsa(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
         if len(new_files) > 0:
             try:
-                resp = ingest_manager.ingest_files(new_files)
-                log.info(resp)
+                response = ingest_manager.ingest_files(new_files)
+                log.info(response)
             except Exception as e:
                 log.error(e)
                 return
