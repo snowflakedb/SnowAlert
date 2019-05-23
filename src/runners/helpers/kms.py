@@ -1,3 +1,4 @@
+import os
 from base64 import b64decode
 from typing import Optional
 
@@ -8,7 +9,10 @@ from .dbconfig import REGION
 kms = boto3.client('kms', region_name=REGION)
 
 
-def decrypt_if_encrypted(ct: Optional[str]) -> Optional[str]:
+def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) -> Optional[str]:
+    if envar:
+        ct = os.environ.get(envar)
+
     if not ct or len(ct) < 205:  # 1-byte plaintext has 205-byte ct
         return ct
 
