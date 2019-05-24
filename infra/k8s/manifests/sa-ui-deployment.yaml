@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snowalert-ui
+  labels:
+    app: snowalert
+  annotations:
+    monitoring: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snowalert-ui
+  template:
+    metadata:
+      labels:
+        app: snowalert-ui
+    spec:
+      containers:
+      - image: snowsec/snowalert-webui:1.7.2-rc
+        name: snowalert-ui
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+          requests: 
+            memory: "1Gi"
+            cpu: "500m"
+        ports:
+          - containerPort: 8000
+        env:
+          - name: OAUTH_CLIENT_VA_DEMO07
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: OAUTH_CLIENT_VA_DEMO07
+          - name: OAUTH_SECRET_VA_DEMO07
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: OAUTH_SECRET_VA_DEMO07
+          - name: SA_ROLE
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: SA_ROLE
+          - name: SA_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: SA_DATABASE
+          - name: SA_WAREHOUSE
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: SA_WAREHOUSE
+          - name: REGION
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: REGION
+          - name: SNOWFLAKE_ACCOUNT
+            valueFrom:
+              secretKeyRef:
+                name: snowalert-secrets
+                key: SNOWFLAKE_ACCOUNT
