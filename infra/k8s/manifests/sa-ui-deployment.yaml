@@ -29,16 +29,16 @@ spec:
         ports:
           - containerPort: 8000
         env:
-          - name: OAUTH_CLIENT_VA_DEMO07
+          - name: OAUTH_CLIENT_<account_name>
             valueFrom:
               secretKeyRef:
                 name: snowalert-secrets
-                key: OAUTH_CLIENT_VA_DEMO07
-          - name: OAUTH_SECRET_VA_DEMO07
+                key: OAUTH_CLIENT_<account_name>
+          - name: OAUTH_SECRET_<account_name>
             valueFrom:
               secretKeyRef:
                 name: snowalert-secrets
-                key: OAUTH_SECRET_VA_DEMO07
+                key: OAUTH_SECRET_<account_name>
           - name: SA_ROLE
             valueFrom:
               secretKeyRef:
