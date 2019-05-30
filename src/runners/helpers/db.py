@@ -352,9 +352,9 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace=Fal
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nSET COMMENT = '{comment} '" if comment else ''
     query = f"CREATE {replace}STAGE DATA.{name} \nURL='{url}/{prefix}' "
-    if cloud is 'aws':
+    if cloud == 'aws':
         query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
-    elif cloud is 'azure':
+    elif cloud == 'azure':
         query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
     query += f"\nFILE_FORMAT=({file_format}) "
     query += comment
