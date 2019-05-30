@@ -190,6 +190,10 @@ def delete_connector(name, force=False):
     return {'deleted': 'success', 'force': force}
 
 
+def finalize(name):
+    return db.execute(f'ls @DATA.{name}_STAGE')
+
+
 def main():
     data = {'type': 'cloudtrail',
             'name': 'snowflake',
