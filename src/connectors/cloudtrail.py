@@ -58,7 +58,7 @@ vpc_endpoint_id STRING)
 def create_connector(data):
     # TODO: encapsulate the statements in a transaction
 
-    name = f"{data['name']}_{data['type']}"
+    name = f"{data['type']}_{data['name']}"
     bucket = data['options']['bucket']
     prefix = data['options']['prefix']
     role = data['options']['role']
