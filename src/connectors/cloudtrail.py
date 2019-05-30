@@ -174,7 +174,20 @@ target: {name}_PIPE
         if i[0] is 'STAGE_CREDENTIALS':
             results.append(i)
 
-    return results
+    return
+
+
+def delete_connector(name, force=False):
+    db.execute(f'DROP STAGE DATA.{name}_STAGE')
+    db.execute(f'DROP STREAM DATA.{name}_STREAM')
+    db.execute(f'DROP PIPE DATA.{name}_PIPE')
+    db.execute(f'DROP TASK DATA.{name}_TASK')
+
+    if force:
+        db.execute(f'DROP TABLE DATA.{name}_STAGING')
+        db.execute(f'DROP TABLE DATA.{name}_EVENTS_CONNECTION')
+
+    return {'deleted': 'success', 'force': force}
 
 
 def main():
