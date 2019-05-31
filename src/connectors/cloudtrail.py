@@ -1,4 +1,4 @@
-from runners.helpers import db, log
+from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
 FILE_FORMAT = """
@@ -127,46 +127,58 @@ method: pipe
 target: {name}_PIPE
 """
 
-    results = []
+    results = {}
 
     try:
         db.create_stage(name=name+'_STAGE', url=bucket, prefix=prefix, cloud='aws',
                         credentials=role, file_format=FILE_FORMAT)
-        results.append({'stage': 'success'})
+        results['stage'] = 'success'
     except Exception as e:
-        return e
+        results['stage'] = 'failure'
+        results['exception'] = e
+        return results
 
     try:
         db.create_table(name=name+'_STAGING', cols={'v': 'variant'})
-        results.append({'staging_table': 'success'})
+        results['staging_table'] = 'success'
     except Exception as e:
-        return e
+        results['staging_table'] = 'failure'
+        results['exception'] = e
+        return results
 
     try:
         db.create_stream(name=name+'_STREAM', target=name+'_STAGING')
-        results.append({'stream': 'success'})
+        results['stream'] = 'success'
     except Exception as e:
-        return e
+        results['stream'] = 'failure'
+        results['exception'] = e
+        return results
 
     try:
         pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
         db.create_pipe(name=name+'_PIPE', sql=pipe_sql, replace=True)
-        results.append({'pipe': 'success'})
+        results['pipe'] = 'success'
     except Exception as e:
-        return e
+        results['pipe'] = 'failure'
+        results['exception'] = e
+        return results
 
     try:
         db.create_table(name=name+"_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE, comment=comment)
-        results.append({'events_table': 'success'})
+        results['events_table'] = 'success'
     except Exception as e:
-        return e
+        results['events_table'] = 'failure'
+        results['exception'] = e
+        return results
 
     try:
         db.create_task(name=name+'_TASK', schedule='15 minutes',
                        warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
-        results.append({'task': 'success'})
+        results['task'] = 'success'
     except Exception as e:
-        return e
+        results['task'] = 'failure'
+        results['exception'] = e
+        return results
 
     data = db.execute(f'DESC STAGE DATA.{name}_STAGE')
     desc = list(data)
@@ -174,7 +186,7 @@ target: {name}_PIPE
         if i[0] is 'STAGE_CREDENTIALS':
             results.append(i)
 
-    return
+    return results
 
 
 def delete_connector(name, force=False):
