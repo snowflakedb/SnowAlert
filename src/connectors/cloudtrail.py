@@ -140,7 +140,7 @@ name: {name}
         return results
 
     try:
-        db.create_table(name=name+'_STAGING', cols={'v': 'variant'})
+        db.create_table(name=name+'_STAGING', cols='(v variant)')
         results['staging_table'] = 'success'
     except Exception as e:
         results['staging_table'] = 'failure'
