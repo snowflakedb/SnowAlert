@@ -191,4 +191,8 @@ name: {name}
 
 
 def test(name):
-    return db.execute(f'ls @DATA.{name}_STAGE')
+    return db.fetch(f'ls @DATA.{name}_STAGE')
+
+
+def main():
+    test('')
