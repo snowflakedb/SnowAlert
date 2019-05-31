@@ -204,20 +204,3 @@ def delete_connector(name, force=False):
 
 def finalize(name):
     return db.execute(f'ls @DATA.{name}_STAGE')
-
-
-def main():
-    data = {'type': 'cloudtrail',
-            'name': 'snowflake',
-            'stale': '1 day',
-            'options':
-            {'bucket': 's3://tktk_test_bucket',
-             'prefix': 'foo',
-             'role': 'arn:aws:iam::0123412341:role/test_role'
-             }}
-
-    create_connector(data)
-
-
-if __name__ == '__main__':
-    main()
