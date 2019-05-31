@@ -358,7 +358,6 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace=Fal
         query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
     query += f"\nFILE_FORMAT=({file_format}) "
     query += comment
-    print(query)
     execute(query)
 
 
@@ -367,7 +366,6 @@ def create_table(name, cols, replace=False, comment=None):
     comment = f"\nSET COMMENT = '{comment} '" if comment else ''
     query = f"CREATE {replace}TABLE DATA.{name} \n{cols}"
     query += comment
-
     execute(query)
 
 
@@ -391,5 +389,4 @@ def create_task(name, schedule, warehouse, sql, replace=False, comment=None):
     warehouse = f"WAREHOUSE={warehouse}\n"
     comment = f"\nSET COMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TASK DATA.{name} {schedule} {warehouse} {comment} AS \n{sql}"
-
     execute(query)
