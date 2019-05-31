@@ -1,6 +1,12 @@
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
+CONNECTION_OPTIONS = {
+    'bucket_name': {type: str},
+    'filter': {type: str, 'default': 'AWSLogs/'},
+    'aws_role': {type: str}
+}
+
 FILE_FORMAT = """
     TYPE = "JSON",
     COMPRESSION = "AUTO",
@@ -55,13 +61,12 @@ vpc_endpoint_id STRING)
 """
 
 
-def create_connector(data):
+def connect(name, options):
     # TODO: encapsulate the statements in a transaction
 
-    name = f"{data['type']}_{data['name']}"
-    bucket = data['options']['bucket']
-    prefix = data['options']['prefix']
-    role = data['options']['role']
+    bucket = options['bucket_name']
+    prefix = options['filter'] if options['filter'] else 'AWSLogs/'
+    role = options['aws_role']
 
     cloudtrail_ingest_task = f"""
 INSERT INTO DATA.{name}_EVENTS (
@@ -120,11 +125,7 @@ WHERE ARRAY_SIZE(v:Records) > 0
 
     comment = f"""
 ---
-name: {data['name']}
-type: {data['type']}
-stale: {data['stale']}
-method: pipe
-target: {name}_PIPE
+name: {name}
 """
 
     results = {}
@@ -189,18 +190,5 @@ target: {name}_PIPE
     return results
 
 
-def delete_connector(name, force=False):
-    db.execute(f'DROP STAGE DATA.{name}_STAGE')
-    db.execute(f'DROP STREAM DATA.{name}_STREAM')
-    db.execute(f'DROP PIPE DATA.{name}_PIPE')
-    db.execute(f'DROP TASK DATA.{name}_TASK')
-
-    if force:
-        db.execute(f'DROP TABLE DATA.{name}_STAGING')
-        db.execute(f'DROP TABLE DATA.{name}_EVENTS_CONNECTION')
-
-    return {'deleted': 'success', 'force': force}
-
-
-def finalize(name):
+def test(name):
     return db.execute(f'ls @DATA.{name}_STAGE')
