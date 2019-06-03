@@ -350,7 +350,7 @@ def get_pipes():
 
 def create_stage(name, url, prefix, cloud, credentials, file_format, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nSET COMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}STAGE DATA.{name} \nURL='{url}/{prefix}' "
     if cloud == 'aws':
         query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
@@ -362,7 +362,7 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace='',
 
 def create_table(name, cols, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nSET COMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TABLE DATA.{name} \n{cols}"
     query += comment
     execute(query)
@@ -370,7 +370,7 @@ def create_table(name, cols, replace='', comment=''):
 
 def create_stream(name, target, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nSET COMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}STREAM DATA.{name} {comment}\nON TABLE DATA.{target}"
     execute(query)
 
@@ -378,7 +378,7 @@ def create_stream(name, target, replace='', comment=''):
 def create_pipe(name, sql, replace='', autoingest='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
     autoingest = 'AUTOINGEST=TRUE ' if autoingest else ''
-    comment = f"\nSET COMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}PIPE DATA.{name} {autoingest}{comment} AS \n{sql}"
     execute(query)
 
@@ -387,6 +387,6 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
     schedule = f"SCHEDULE='{schedule}'\n"
     warehouse = f"WAREHOUSE={warehouse}\n"
-    comment = f"\nSET COMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TASK DATA.{name} {schedule} {warehouse} {comment} AS \n{sql}"
     execute(query)
