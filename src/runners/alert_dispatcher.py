@@ -9,10 +9,10 @@ from .utils import apply_some, json_dumps
 GET_ALERTS_QUERY = f"""
 SELECT *
 FROM results.alerts
-WHERE iff(alert:HANDLERS is null, ticket is null, handled is null)
+WHERE IFF(alert:HANDLERS IS NULL, ticket IS NULL, handled IS NULL)
   AND suppressed=FALSE
 ORDER BY event_time ASC
-LIMIT 100
+LIMIT 1000
 """
 
 
