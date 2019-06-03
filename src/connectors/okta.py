@@ -18,7 +18,8 @@ def connect(name, options):
     comment = f"""
 ---
 name: {name}
-api_key: {options['api_key']}
+source: okta
+api_key_secret: {options['api_key']}
 subdomain: {options['subdomain']}
 """
 

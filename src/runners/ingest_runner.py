@@ -1,9 +1,18 @@
-from runners.helpers import log
+from runners.helpers import log, db, kms
 import os
 import subprocess
+import yaml
+import importlib
 
 
 #  The pipeline runner needs to list all the files in the pipeline folder and then invoke them one by one.
+
+# The pipeline runner also has to iterate through all the connection table and call populate() on them.
+
+CONNECTION_TABLE_QUERY = f"""
+SHOW TABLES LIKE '%_CONNECTION' in DATA
+"""
+
 
 def main():
     for name in os.listdir('../ingestion'):
@@ -14,6 +23,17 @@ def main():
             log.info(f"{name} invoked")
         except Exception as e:
             log.error(f"failed to run {name}", e)
+
+    tables = db.fetch(CONNECTION_TABLE_QUERY)
+    for table in tables:
+        log.info(f'Starting {table}')
+        options = yaml.load(table['comment'])
+        if 'source' in options:
+            for option in options:
+                if option.endswith('secret'):
+                    options[option] = kms.decrypt_if_encrypted(options[option])
+            connection_module = importlib.import_module(f"connectors.{options['source']}")
+            connection_module.populate(options['name'], options)
 
 
 if __name__ == "__main__":
