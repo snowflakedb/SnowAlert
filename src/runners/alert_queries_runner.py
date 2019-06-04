@@ -46,7 +46,7 @@ def log_failure(query_name, e, event_data=None, description=None):
     alerts = [json.dumps({
         'ALERT_ID': uuid.uuid4().hex,
         'QUERY_ID': '3a3d173a64ca4fcab2d13ac3e6d08522',
-        'QUERY_NAME': 'Query Runner Failure',
+        'QUERY_NAME': f'Error in {query_name}',
         'ENVIRONMENT': 'Queries',
         'SOURCES': ['Query Runner'],
         'ACTOR': 'Query Runner',
@@ -137,7 +137,7 @@ def merge_alerts(query_name, from_time_sql):
         from_time_sql=from_time_sql,
         new_alerts_table=f"RUN_{RUN_ID}_{query_name}",
     )
-    result = db.execute(sql).fetchall()
+    result = db.execute(sql, fix_errors=False).fetchall()
     created_count, updated_count = result[0]
     log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
     return created_count, updated_count
@@ -160,7 +160,7 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
             query_name=rule_name,
             from_time_sql="DATEADD(minute, -90, CURRENT_TIMESTAMP())",
             to_time_sql="CURRENT_TIMESTAMP()",
-        ))
+        ), fix_errors=False)
         insert_count, update_count = merge_alerts(rule_name, GROUPING_CUTOFF)
         metadata['ROW_COUNT'] = {
             'INSERTED': insert_count,
