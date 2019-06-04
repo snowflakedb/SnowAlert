@@ -1,4 +1,6 @@
 from runners.helpers import db, log
+from runners.config import CONNECTOR_METADATA_TABLE
+
 import datetime
 import requests
 
@@ -46,6 +48,8 @@ def populate(name, options):
     limit 1
     """
 
+    metadata = {'START_TIME': datetime.datetime.utcnow(), 'TYPE': 'Okta', 'QUERY_NAME': f'{name}_Okta'}
+
     try:
         _, ts = db.connect_and_fetchall(timestamp_query)
         log.info(ts)
@@ -63,6 +67,7 @@ def populate(name, options):
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     timestamp = {'since': ts}
+    loaded = 0
 
     while 1:
         log.info(f"url is ${url}")
@@ -70,14 +75,19 @@ def populate(name, options):
             r = requests.get(url=url, headers=headers, params=timestamp)
             if str(r) != '<Response [200]>':
                 log.fatal('OKTA REQUEST FAILED: ', r.text)
-            process_logs(r.json(), name)
+            loaded += process_logs(r.json(), name)
             if len(r.text) == 2:
                 break
             url = r.headers['Link'].split(', ')[1].split(';')[0][1:-1]
         except Exception as e:
             log.error("Error with Okta logs: ", e)
+            db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE, e=e)
+
+    metadata['ROW_COUNT'] = {'INSERTED': loaded}
+    db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE)
 
 
 def process_logs(logs, name):
     output = [(row, row['published']) for row in logs]
     db.insert(f"DATA.{name}_CONNECTION", output, select='PARSE_JSON(column1), column2')
+    return len(output)

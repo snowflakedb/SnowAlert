@@ -14,7 +14,7 @@ SHOW TABLES LIKE '%_CONNECTION' in DATA
 """
 
 
-def main():
+def main(connection_table=""):
     for name in os.listdir('../ingestion'):
         log.info(f"invoking {name}")
         try:
@@ -24,9 +24,13 @@ def main():
         except Exception as e:
             log.error(f"failed to run {name}", e)
 
-    tables = db.fetch(CONNECTION_TABLE_QUERY)
+    if connection_table:
+        tables = db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN DATA")
+    else:
+        tables = db.fetch(CONNECTION_TABLE_QUERY)
+
     for table in tables:
-        log.info(f'Starting {table}')
+        log.info(f"Starting {table['name']}")
         options = yaml.load(table['comment'])
         if 'source' in options:
             for option in options:
