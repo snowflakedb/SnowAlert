@@ -2,9 +2,9 @@ from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
 CONNECTION_OPTIONS = {
-    'bucket_name': {type: str},
-    'filter': {type: str, 'default': 'AWSLogs/'},
-    'aws_role': {type: str}
+    'bucket_name': {'type': 'str'},
+    'filter': {'type': 'str', 'default': 'AWSLogs/'},
+    'aws_role': {'type': 'str'}
 }
 
 FILE_FORMAT = """
@@ -131,7 +131,7 @@ name: {name}
     results = {}
 
     try:
-        db.create_stage(name=name+'_STAGE', url=bucket, prefix=prefix, cloud='aws',
+        db.create_stage(name=name + '_STAGE', url=bucket, prefix=prefix, cloud='aws',
                         credentials=role, file_format=FILE_FORMAT)
         results['stage'] = 'success'
     except Exception as e:
@@ -140,7 +140,7 @@ name: {name}
         return results
 
     try:
-        db.create_table(name=name+'_STAGING', cols='(v variant)')
+        db.create_table(name=name + '_STAGING', cols='(v variant)')
         results['staging_table'] = 'success'
     except Exception as e:
         results['staging_table'] = 'failure'
@@ -148,7 +148,7 @@ name: {name}
         return results
 
     try:
-        db.create_stream(name=name+'_STREAM', target=name+'_STAGING')
+        db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
         results['stream'] = 'success'
     except Exception as e:
         results['stream'] = 'failure'
@@ -157,7 +157,7 @@ name: {name}
 
     try:
         pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
-        db.create_pipe(name=name+'_PIPE', sql=pipe_sql, replace=True)
+        db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True)
         results['pipe'] = 'success'
     except Exception as e:
         results['pipe'] = 'failure'
@@ -165,7 +165,7 @@ name: {name}
         return results
 
     try:
-        db.create_table(name=name+"_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE, comment=comment)
+        db.create_table(name=name + "_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE, comment=comment)
         results['events_table'] = 'success'
     except Exception as e:
         results['events_table'] = 'failure'
@@ -173,7 +173,7 @@ name: {name}
         return results
 
     try:
-        db.create_task(name=name+'_TASK', schedule='15 minutes',
+        db.create_task(name=name + '_TASK', schedule='15 minutes',
                        warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
         results['task'] = 'success'
     except Exception as e:

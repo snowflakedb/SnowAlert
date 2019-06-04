@@ -127,7 +127,7 @@ CREATE_TABLES_QUERIES = [
           );
       """,
     f"""
-      CREATE TABLE IF NOT EXISTS results.connector_metadata(
+      CREATE TABLE IF NOT EXISTS results.ingestion_metadata(
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );

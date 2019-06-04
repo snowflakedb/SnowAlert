@@ -5,8 +5,8 @@ import datetime
 import requests
 
 CONNECTION_OPTIONS = {
-    'subdomain': {type: str},
-    'api_key': {type: str},
+    'subdomain': {'type': 'str'},
+    'api_key': {'type': 'str', 'secret': True},
 }
 
 OKTA_LANDING_TABLE = """
@@ -37,7 +37,7 @@ subdomain: {options['subdomain']}
     return results
 
 
-def populate(name, options):
+def ingest(name, options):
     headers = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': f'SSWS {options["api_key"]}'}
     url = f"https://{options['subdomain']}.okta.com/api/v1/logs"
 
@@ -73,7 +73,7 @@ def populate(name, options):
         log.info(f"url is ${url}")
         try:
             r = requests.get(url=url, headers=headers, params=timestamp)
-            if str(r) != '<Response [200]>':
+            if r.status_code != 200:
                 log.fatal('OKTA REQUEST FAILED: ', r.text)
             loaded += process_logs(r.json(), name)
             if len(r.text) == 2:
