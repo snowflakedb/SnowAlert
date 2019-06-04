@@ -137,7 +137,7 @@ def merge_alerts(query_name, from_time_sql):
         from_time_sql=from_time_sql,
         new_alerts_table=f"RUN_{RUN_ID}_{query_name}",
     )
-    result = db.execute(sql).fetchall()
+    result = db.execute(sql, fix_errors=False).fetchall()
     created_count, updated_count = result[0]
     log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
     return created_count, updated_count
