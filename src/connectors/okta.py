@@ -27,7 +27,7 @@ subdomain: {options['subdomain']}
 
     results = {}
     try:
-        db.create_table(name=name+"_CONNECTION", cols=OKTA_LANDING_TABLE, comment=comment)
+        db.create_table(name=name + "_CONNECTION", cols=OKTA_LANDING_TABLE, comment=comment)
         results['events_table'] = 'success'
     except Exception as e:
         results['events_table'] = 'failure'
@@ -76,7 +76,7 @@ def ingest(name, options):
             if r.status_code != 200:
                 log.fatal('OKTA REQUEST FAILED: ', r.text)
             loaded += process_logs(r.json(), name)
-            if len(r.text) == 2:
+            if r.json == []:
                 break
             url = r.headers['Link'].split(', ')[1].split(';')[0][1:-1]
         except Exception as e:

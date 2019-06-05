@@ -128,40 +128,45 @@ WHERE ARRAY_SIZE(v:Records) > 0
 name: {name}
 """
 
-    results = {}
+    res = {}
 
     db.create_stage(name=name + '_STAGE', url=bucket, prefix=prefix, cloud='aws',
                     credentials=role, file_format=FILE_FORMAT)
-    results['stage'] = 'success'
 
     db.create_table(name=name + '_STAGING', cols='(v variant)')
-    results['staging_table'] = 'success'
 
     db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
-    results['stream'] = 'success'
 
     pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
     db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True)
-    results['pipe'] = 'success'
 
     db.create_table(name=name + "_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE, comment=comment)
-    results['events_table'] = 'success'
 
     db.create_task(name=name + '_TASK', schedule='15 minutes',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
-    results['task'] = 'success'
 
     data = db.execute(f'DESC STAGE DATA.{name}_STAGE')
     desc = list(data)
     for i in desc:
         if i[0] is 'STAGE_CREDENTIALS':
-            results.append(i)
+            res[i[1]] = res[i[3]]
+
+    results = []
+    for field in res:
+        data = {'title': field, 'body': res[field]}
+        results.append(data)
+
+    results.append({'title': 'Next Steps', 'body': """
+Please follow the documentation at
+https://docs.snowflake.net/manuals/user-guide/data-load-s3-config.html#step-4-configuring-the-aws-iam-role-to-allow-access-to-the-stage
+to complete the setup process for the connector.
+"""})
 
     return results
 
 
 def test(name):
-    return db.fetch(f'ls @DATA.{name}_STAGE')
+    yield db.fetch(f'ls @DATA.{name}_STAGE')
 
 
 def main():
