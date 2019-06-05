@@ -238,7 +238,7 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
 
     queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
     assert len(queries_run_records) == 1
-    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == resource_creation_alerts + 52
+    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == resource_creation_alerts + 53
     assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
     # TODO: errors
