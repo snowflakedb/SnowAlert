@@ -167,7 +167,8 @@ to complete the setup process for the connector.
 
 def test(name):
     yield db.fetch(f'ls @DATA.{name}_STAGE')
-
-
-def main():
-    test('')
+    yield db.fetch(f'DESC TABLE DATA.{name}_STAGING')
+    yield db.fetch(f'DESC STREAM DATA.{name}_STREAM')
+    yield db.fetch(f'DESC PIPE DATA.{name}_PIPE')
+    yield db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION')
+    yield db.fetch(f'DESC TASK DATA.{name}_TASK')
