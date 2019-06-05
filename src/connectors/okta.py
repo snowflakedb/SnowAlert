@@ -38,7 +38,12 @@ subdomain: {options['subdomain']}
 
 
 def ingest(name, options):
-    headers = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': f'SSWS {options["api_key"]}'}
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': f'SSWS {options["api_key"]}'
+    }
+
     url = f"https://{options['subdomain']}.okta.com/api/v1/logs"
 
     timestamp_query = f"""
@@ -48,21 +53,24 @@ def ingest(name, options):
     limit 1
     """
 
-    metadata = {'START_TIME': datetime.datetime.utcnow(), 'TYPE': 'Okta', 'QUERY_NAME': f'{name}_Okta'}
+    metadata = {
+        'START_TIME': datetime.datetime.utcnow(),
+        'TYPE': 'Okta',
+        'QUERY_NAME': f'{name}_Okta'
+    }
 
     try:
-        _, ts = db.connect_and_fetchall(timestamp_query)
-        log.info(ts)
-        ts = ts[0][0]
-        ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        log.info(ts)
-        if len(ts) < 1:
-            log.error("The okta timestamp is too short or doesn't exist; defaulting to one hour ago")
+        ts = next(db.fetch(timestamp_query), [None])[0]
+        if ts:
+            ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        else:
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
             ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
-    except Exception as e:
-        log.error("Unable to find a timestamp of most recent okta log, defaulting to one hour ago", e)
+        log.info(ts)
+
+    except Exception:
+        log.error("Unable to find a timestamp of most recent okta log, defaulting to one hour ago")
         ts = datetime.datetime.now() - datetime.timedelta(hours=1)
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
