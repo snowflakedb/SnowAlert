@@ -272,13 +272,13 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert suppression_rule_run_records[1]['NUM_ALERTS_SUPPRESSED'] == 1
     assert suppression_rule_run_records[2]['RUN_ID'] == RUN_ID
     assert suppression_rule_run_records[2]['RULE_NAME'] == '__SUPPRESS_SAMPLE_ALERTS_ALERT_SUPPRESSION'
-    assert suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED'] == resource_creation_alerts + 48
+    assert suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED'] == resource_creation_alerts + 49
 
     suppression_run_records = list(db.fetch('SELECT * FROM data.alert_suppressions_runs'))
     assert len(suppression_run_records) == 1
     assert_dict_has_subset(suppression_run_records[0], {
         'RUN_ID': RUN_ID,
-        'NUM_ALERTS_SUPPRESSED': resource_creation_alerts + 49,
+        'NUM_ALERTS_SUPPRESSED': resource_creation_alerts + 50,
         'NUM_ALERTS_PASSED': 3,
     })
 
