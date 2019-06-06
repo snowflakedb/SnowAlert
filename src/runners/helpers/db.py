@@ -346,3 +346,50 @@ def record_failed_ingestion(table, r, timestamp):
 def get_pipes():
     query = f"SHOW PIPES IN SNOWALERT.DATA"
     return fetch(query)
+
+
+def create_stage(name, url, prefix, cloud, credentials, file_format, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}STAGE DATA.{name} \nURL='{url}/{prefix}' "
+    if cloud == 'aws':
+        query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
+    elif cloud == 'azure':
+        query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
+    query += f"\nFILE_FORMAT=({file_format}) {comment}"
+    execute(query)
+
+
+def create_table(name, cols, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment}' " if comment else ''
+    columns = '('
+    for pair in cols:
+        columns += f'{pair[0]} {pair[1]}, '
+    columns = columns[:-2] + ')'
+    query = f"CREATE {replace}TABLE DATA.{name} \n{columns}{comment}"
+    execute(query)
+
+
+def create_stream(name, target, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}STREAM DATA.{name} {comment}\nON TABLE DATA.{target}"
+    execute(query)
+
+
+def create_pipe(name, sql, replace='', autoingest='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    autoingest = 'AUTOINGEST=TRUE ' if autoingest else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}PIPE DATA.{name} {autoingest}{comment} AS \n{sql}"
+    execute(query)
+
+
+def create_task(name, schedule, warehouse, sql, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    schedule = f"SCHEDULE='{schedule}'\n"
+    warehouse = f"WAREHOUSE={warehouse}\n"
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}TASK DATA.{name} {schedule} {warehouse} {comment} AS \n{sql}"
+    execute(query)

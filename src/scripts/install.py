@@ -125,7 +125,13 @@ CREATE_TABLES_QUERIES = [
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
-      """
+      """,
+    f"""
+      CREATE TABLE IF NOT EXISTS results.ingestion_metadata(
+          event_time TIMESTAMP_LTZ
+          , v VARIANT
+          );
+    """
 ]
 
 
