@@ -1,11 +1,11 @@
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
-CONNECTION_OPTIONS = {
-    'bucket_name': {'type': 'str'},
-    'filter': {'type': 'str', 'default': 'AWSLogs/'},
-    'aws_role': {'type': 'str'}
-}
+CONNECTION_OPTIONS = [
+    {'name': 'bucket_name', 'type': 'str'},
+    {'name': 'filter', 'type': 'str', 'default': 'AWSLogs/'},
+    {'name': 'aws_role', 'type': 'str'}
+]
 
 FILE_FORMAT = """
     TYPE = "JSON",
@@ -18,56 +18,89 @@ FILE_FORMAT = """
     SKIP_BYTE_ORDER_MARK = TRUE
 """
 
-CLOUDTRAIL_LANDING_TABLE = """
-(raw VARIANT,
-hash_raw NUMBER,
-event_time TIMESTAMP_LTZ(9),
-aws_region STRING,
-event_id STRING,
-event_name STRING,
-event_source STRING,
-event_type STRING,
-event_version STRING,
-recipient_account_id STRING,
-request_id STRING,
-request_parameters VARIANT,
-response_elements VARIANT,
-source_ip_address STRING,
-user_agent STRING,
-user_identity VARIANT,
-user_identity_type STRING,
-user_identity_principal_id STRING,
-user_identity_arn STRING,
-user_identity_accountid STRING,
-user_identity_invokedby STRING,
-user_identity_access_key_id STRING,
-user_identity_username STRING,
-user_identity_session_context_attributes_mfa_authenticated BOOLEAN,
-user_identity_session_context_attributes_creation_date STRING,
-user_identity_session_context_session_issuer_type STRING,
-user_identity_session_context_session_issuer_principal_id STRING,
-user_identity_session_context_session_issuer_arn STRING,
-user_identity_session_context_session_issuer_account_id STRING,
-user_identity_session_context_session_issuer_user_name STRING,
-error_code STRING,
-error_message STRING,
-additional_event_data VARIANT,
-api_version STRING,
-read_only BOOLEAN,
-resources VARIANT,
-service_event_details STRING,
-shared_event_id STRING,
-vpc_endpoint_id STRING)
-"""
+CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('hash_raw', 'NUMBER'),
+    ('event_time', 'TIMESTAMP_LTZ(9)'),
+    ('aws_region', 'STRING'),
+    ('event_id', 'STRING'),
+    ('event_name', 'STRING'),
+    ('event_source', 'STRING'),
+    ('event_type', 'STRING'),
+    ('event_version', 'STRING'),
+    ('recipient_account_id', 'STRING'),
+    ('request_id', 'STRING'),
+    ('request_parameters', 'VARIANT'),
+    ('response_elements', 'VARIANT'),
+    ('source_ip_address', 'STRING'),
+    ('user_agent', 'STRING'),
+    ('user_identity', 'VARIANT'),
+    ('user_identity_type', 'STRING'),
+    ('user_identity_principal_id', 'STRING'),
+    ('user_identity_arn', 'STRING'),
+    ('user_identity_accountid', 'STRING'),
+    ('user_identity_invokedby', 'STRING'),
+    ('user_identity_access_key_id', 'STRING'),
+    ('user_identity_username', 'STRING'),
+    ('user_identity_session_context_attributes_mfa_authenticated', 'BOOLEAN'),
+    ('user_identity_session_context_attributes_creation_date', 'STRING'),
+    ('user_identity_session_context_session_issuer_type', 'STRING'),
+    ('user_identity_session_context_session_issuer_principal_id', 'STRING'),
+    ('user_identity_session_context_session_issuer_arn', 'STRING'),
+    ('user_identity_session_context_session_issuer_account_id', 'STRING'),
+    ('user_identity_session_context_session_issuer_user_name', 'STRING'),
+    ('error_code', 'STRING'),
+    ('error_message', 'STRING'),
+    ('additional_event_data', 'VARIANT'),
+    ('api_version', 'STRING'),
+    ('read_only', 'BOOLEAN'),
+    ('resources', 'VARIANT'),
+    ('service_event_details', 'STRING'),
+    ('shared_event_id', 'STRING'),
+    ('vpc_endpoint_id', 'STRING')
+]
 
 
 def connect(name, options):
-    # TODO: encapsulate the statements in a transaction
+    # Step one: create everything we can with the knowledge we have
+
+    name = f'CLOUDTRAIL_{name}'.upper()
 
     bucket = options['bucket_name']
-    prefix = options['filter'] if options['filter'] else 'AWSLogs/'
+    prefix = options.get('filter', 'AWSLogs/')
     role = options['aws_role']
 
+    comment = f"""
+---
+name: {name}
+"""
+
+    db.create_stage(name=name + '_STAGE', url=f's3://{bucket}', prefix=prefix, cloud='aws',
+                    credentials=role, file_format=FILE_FORMAT)
+
+    db.create_table(name=name + '_STAGING', cols=[('v', 'variant')])
+
+    db.create_table(name=name + "_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS, comment=comment)
+
+    results = []
+    stage_data = db.fetch(f'DESC STAGE DATA.{name}_STAGE')
+    for row in stage_data:
+        if row['property'] == 'AWS_EXTERNAL_ID' or row['property'] == 'SNOWFLAKE_IAM_USER':
+            results.append({row['property']: row['property_value']})
+
+    results.append({'title': 'Next Steps', 'body': """
+Please follow the documentation at
+https://docs.snowflake.net/manuals/user-guide/data-load-s3-config.html#step-4-configuring-the-aws-iam-role-to-allow-access-to-the-stage
+to complete the setup process for the connector.
+"""})
+
+    return results
+
+
+def complete(name):
+    name = f'CLOUDTRAIL_{name}'.upper()
+
+    # Step two: Configure the remainder once the role is properly configured.
     cloudtrail_ingest_task = f"""
 INSERT INTO DATA.{name}_EVENTS (
   raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
@@ -123,46 +156,13 @@ FROM DATA.{name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
 """
 
-    comment = f"""
----
-name: {name}
-"""
-
-    res = {}
-
-    db.create_stage(name=name + '_STAGE', url=bucket, prefix=prefix, cloud='aws',
-                    credentials=role, file_format=FILE_FORMAT)
-
-    db.create_table(name=name + '_STAGING', cols='(v variant)')
-
     db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
 
     pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
     db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True)
 
-    db.create_table(name=name + "_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE, comment=comment)
-
     db.create_task(name=name + '_TASK', schedule='15 minutes',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
-
-    data = db.execute(f'DESC STAGE DATA.{name}_STAGE')
-    desc = list(data)
-    for i in desc:
-        if i[0] is 'STAGE_CREDENTIALS':
-            res[i[1]] = res[i[3]]
-
-    results = []
-    for field in res:
-        data = {'title': field, 'body': res[field]}
-        results.append(data)
-
-    results.append({'title': 'Next Steps', 'body': """
-Please follow the documentation at
-https://docs.snowflake.net/manuals/user-guide/data-load-s3-config.html#step-4-configuring-the-aws-iam-role-to-allow-access-to-the-stage
-to complete the setup process for the connector.
-"""})
-
-    return results
 
 
 def test(name):
@@ -172,3 +172,4 @@ def test(name):
     yield db.fetch(f'DESC PIPE DATA.{name}_PIPE')
     yield db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION')
     yield db.fetch(f'DESC TASK DATA.{name}_TASK')
+

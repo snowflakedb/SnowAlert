@@ -15,14 +15,14 @@ SHOW TABLES LIKE '%_CONNECTION' in DATA
 
 
 def main(connection_table=""):
-    for name in os.listdir('../ingestion'):
-        log.info(f"invoking {name}")
-        try:
-            res = subprocess.call(f"python ../ingestion/{name}", shell=True)
-            log.info("subprocess returns: ", res)
-            log.info(f"{name} invoked")
-        except Exception as e:
-            log.error(f"failed to run {name}", e)
+    # for name in os.listdir('../ingestion'):
+    #     log.info(f"invoking {name}")
+    #     try:
+    #         res = subprocess.call(f"python ../ingestion/{name}", shell=True)
+    #         log.info("subprocess returns: ", res)
+    #         log.info(f"{name} invoked")
+    #     except Exception as e:
+    #         log.error(f"failed to run {name}", e)
 
     if connection_table:
         tables = db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN DATA")
@@ -35,8 +35,9 @@ def main(connection_table=""):
         if 'module' in options:
             connection_module = importlib.import_module(f"connectors.{options['module']}")
             for option in options:
-                if connection_module.CONNECTION_OPTIONS.get(option, {}).get('secret'):
-                    options[option] = kms.decrypt_if_encrypted(options[option])
+                for module_option in connection_module.CONNECTION_OPTIONS:
+                    if module_option['name'] == option and module_option.get('secret'):
+                        options[option] = kms.decrypt_if_encrypted(options[option])
             connection_module.ingest(options['name'], options)
 
 

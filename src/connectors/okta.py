@@ -4,30 +4,31 @@ from runners.config import CONNECTOR_METADATA_TABLE
 import datetime
 import requests
 
-CONNECTION_OPTIONS = {
-    'subdomain': {'type': 'str'},
-    'api_key': {'type': 'str', 'secret': True},
-}
+CONNECTION_OPTIONS = [
+    {'name': 'subdomain', 'type': 'str'},
+    {'name': 'api_key', 'type': 'str', 'secret': False},
+]
 
-OKTA_LANDING_TABLE = """
-(raw VARIANT,
- event_time TIMESTAMP_LTZ
-)
-"""
+OKTA_LANDING_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('event_time', 'TIMESTAMP_LTZ')
+]
 
 
 def connect(name, options):
+    name = f'OKTA_{name}'
+
     comment = f"""
 ---
 name: {name}
-source: okta
-api_key_secret: {options['api_key']}
+module: okta
+api_key: {options['api_key']}
 subdomain: {options['subdomain']}
 """
 
     results = {}
     try:
-        db.create_table(name=name + "_CONNECTION", cols=OKTA_LANDING_TABLE, comment=comment)
+        db.create_table(name=name + "_CONNECTION", cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
         results['events_table'] = 'success'
     except Exception as e:
         results['events_table'] = 'failure'

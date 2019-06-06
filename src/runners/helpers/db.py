@@ -362,9 +362,12 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace='',
 
 def create_table(name, cols, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}TABLE DATA.{name} \n{cols}"
-    query += comment
+    comment = f"\nCOMMENT='{comment}' " if comment else ''
+    columns = '('
+    for pair in cols:
+        columns += f'{pair[0]} {pair[1]}, '
+    columns = columns[:-2] + ')'
+    query = f"CREATE {replace}TABLE DATA.{name} \n{columns}{comment}"
     execute(query)
 
 
