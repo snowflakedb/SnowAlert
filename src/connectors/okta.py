@@ -57,7 +57,7 @@ def ingest(name, options):
     metadata = {
         'START_TIME': datetime.datetime.utcnow(),
         'TYPE': 'Okta',
-        'QUERY_NAME': f'{name}_Okta'
+        'TARGET_TABLE': f'{name}_CONNECTION'
     }
 
     try:
