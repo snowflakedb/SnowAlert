@@ -1,10 +1,15 @@
+"""This is a CloudTrail connector
+
+it pipes in CloudTrail stuff...
+"""
+
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
 import json
 
 CONNECTION_OPTIONS = [
-    {'name': 'bucket_name', 'type': 'str'},
+    {'name': 'bucket_name', 'type': 'str', 'prefix': 's3://'},
     {'name': 'filter', 'type': 'str', 'default': 'AWSLogs/'},
     {'name': 'aws_role', 'type': 'str'}
 ]

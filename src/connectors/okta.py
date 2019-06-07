@@ -1,12 +1,18 @@
+"""This is an Okta connector
+
+it connects to Okta things!
+"""
+
 from runners.helpers import db, log
 from runners.config import CONNECTOR_METADATA_TABLE
+from runners.utils import format_exception_only
 
 import datetime
 import requests
 
 CONNECTION_OPTIONS = [
-    {'name': 'subdomain', 'type': 'str'},
-    {'name': 'api_key', 'type': 'str', 'secret': False},
+    {'name': 'subdomain', 'type': 'str', 'postfix': '.okta.com', 'prefix': 'https://'},
+    {'name': 'api_key', 'type': 'str', 'secret': True},
 ]
 
 OKTA_LANDING_TABLE_COLUMNS = [
@@ -16,29 +22,31 @@ OKTA_LANDING_TABLE_COLUMNS = [
 
 
 def connect(name, options):
-    name = f'OKTA_{name}'
+    table_name = f'okta_{name}_connection'
 
     comment = f"""
 ---
-name: {name}
 module: okta
+name: {table_name}
 api_key: {options['api_key']}
 subdomain: {options['subdomain']}
 """
 
-    results = {}
     try:
-        db.create_table(name=name + "_CONNECTION", cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
-        results['events_table'] = 'success'
+        db.create_table(name=table_name, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+        return {
+            'newStage': 'finalized',
+            'newMessage': "Okta ingestion table created!",
+        }
+
     except Exception as e:
-        results['events_table'] = 'failure'
-        results['exception'] = e
-        return results
+        return {
+            'newStage': 'error',
+            'newMessage': format_exception_only(e),
+        }
 
-    return results
 
-
-def ingest(name, options):
+def ingest(table_name, options):
     headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -48,46 +56,43 @@ def ingest(name, options):
     url = f"https://{options['subdomain']}.okta.com/api/v1/logs"
 
     timestamp_query = f"""
-    SELECT EVENT_TIME from DATA.{name}_CONNECTION
-    WHERE EVENT_TIME IS NOT NULL
-    order by EVENT_TIME desc
-    limit 1
+    SELECT event_time
+    FROM data.{table_name}
+    WHERE event_time IS NOT NULL
+    ORDER BY event_time DESC
+    LIMIT 1
     """
 
     metadata = {
         'START_TIME': datetime.datetime.utcnow(),
         'TYPE': 'Okta',
-        'TARGET_TABLE': f'{name}_CONNECTION'
+        'TARGET_TABLE': table_name
     }
 
     try:
-        ts = next(db.fetch(timestamp_query), [None])[0]
-        if ts:
-            ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        else:
-            ts = datetime.datetime.now() - datetime.timedelta(hours=1)
-            ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
-        log.info(ts)
+        ts = datetime.datetime.now() - datetime.timedelta(hours=1)
+        ts = next(db.fetch(timestamp_query))
 
     except Exception:
-        log.error("Unable to find a timestamp of most recent okta log, defaulting to one hour ago")
-        ts = datetime.datetime.now() - datetime.timedelta(hours=1)
-        ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        log.error(
+            "Unable to find a timestamp of most recent Okta log, "
+            "defaulting to one hour ago"
+        )
 
-    timestamp = {'since': ts}
+    params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
     loaded = 0
 
     while 1:
-        log.info(f"url is ${url}")
         try:
-            r = requests.get(url=url, headers=headers, params=timestamp)
-            if r.status_code != 200:
-                log.fatal('OKTA REQUEST FAILED: ', r.text)
-            loaded += process_logs(r.json(), name)
-            if r.json == []:
+            response = requests.get(url=url, headers=headers, params=params)
+            result = response.json()
+            if response.status_code != 200:
+                log.fatal('OKTA REQUEST FAILED: ', response.text)
+            loaded += process_logs(result, table_name)
+            if result == []:
                 break
-            url = r.headers['Link'].split(', ')[1].split(';')[0][1:-1]
+            url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
+
         except Exception as e:
             log.error("Error with Okta logs: ", e)
             db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE, e=e)
@@ -96,7 +101,18 @@ def ingest(name, options):
     db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE)
 
 
-def process_logs(logs, name):
+def process_logs(logs, table_name):
     output = [(row, row['published']) for row in logs]
-    db.insert(f"DATA.{name}_CONNECTION", output, select='PARSE_JSON(column1), column2')
+    db.insert(
+        f"data.{table_name}",
+        output,
+        select='PARSE_JSON(column1), column2'
+    )
     return len(output)
+
+
+def test(name):
+    yield {
+        'check': 'everything works',
+        'success': True,
+    }

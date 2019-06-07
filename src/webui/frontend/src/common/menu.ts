@@ -3,21 +3,27 @@ import * as stateTypes from '../reducers/types';
 
 const menuData: stateTypes.MenuData = [
   {
-    name: 'Policies',
-    icon: 'file-done',
-    path: 'dashboard/policies',
-    roles: [roles.ADMIN, roles.USER],
-  },
-  {
     name: 'Alerts',
-    icon: 'table',
+    icon: 'alert',
     path: 'dashboard/alerts',
     roles: [roles.ADMIN, roles.USER],
   },
   {
     name: 'Violations',
-    icon: 'table',
+    icon: 'eye',
     path: 'dashboard/violations',
+    roles: [roles.ADMIN, roles.USER],
+  },
+  {
+    name: 'Data Connectors',
+    icon: 'api',
+    path: 'dashboard/connectors',
+    roles: [roles.ADMIN, roles.USER],
+  },
+  {
+    name: 'Policies',
+    icon: 'file-done',
+    path: 'dashboard/policies',
     roles: [roles.ADMIN, roles.USER],
   },
   {
