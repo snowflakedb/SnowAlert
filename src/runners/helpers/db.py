@@ -393,3 +393,4 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TASK data.{name} {schedule} {warehouse} {comment} AS \n{sql}"
     execute(query)
+    execute(f"ALTER TASK data.{name} RESUME")
