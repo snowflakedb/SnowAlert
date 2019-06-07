@@ -126,7 +126,7 @@ def complete(name):
 
     # Step two: Configure the remainder once the role is properly configured.
     cloudtrail_ingest_task = f"""
-INSERT INTO DATA.{name}_EVENTS (
+INSERT INTO DATA.{name}_EVENTS_CONNECTION (
   raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
   recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
   user_agent, user_identity, user_identity_type, user_identity_principal_id, user_identity_arn,
