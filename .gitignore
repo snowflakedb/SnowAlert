@@ -13,3 +13,5 @@ src/**/lib/
 *.venv
 *.db
 *.egg-info
+*.envs
+
