@@ -3,16 +3,16 @@ from . import okta
 
 __all__ = ['cloudtrail', 'okta']
 
+connectors = {
+    'cloudtrail': cloudtrail,
+    'okta': okta
+}
+
 CONNECTION_OPTIONS = [
     {
-        'connector': 'okta',
-        'options': okta.CONNECTION_OPTIONS,
-        'docstring': okta.__doc__
-    },
-    {
-        'connector': 'cloudtrail',
-        'options': cloudtrail.CONNECTION_OPTIONS,
-        'finalize': True,
-        'docstring': cloudtrail.__doc__
-    },
+        'connector': name,
+        'options': connector.CONNECTION_OPTIONS,
+        'docstring': connector.__doc__,
+        'finalize': callable(getattr(cloudtrail, 'complete', None)),
+    } for name, connector in connectors.items()
 ]
