@@ -5,13 +5,13 @@ __all__ = ['cloudtrail', 'okta']
 
 connectors = {
     'cloudtrail': cloudtrail,
-    'okta': okta
+    'okta': okta,
 }
 
 CONNECTION_OPTIONS = [
     {
         'connector': name,
-        'options': connector.CONNECTION_OPTIONS,
+        'options': getattr(connector, 'CONNECTION_OPTIONS', {}),
         'docstring': connector.__doc__,
         'finalize': callable(getattr(cloudtrail, 'complete', None)),
     } for name, connector in connectors.items()
