@@ -3,6 +3,7 @@ import inspect
 from itertools import zip_longest
 import json
 import traceback
+from types import GeneratorType
 
 NO_FILL = object()
 
@@ -39,6 +40,9 @@ def json_dumps(obj):
 
         if callable(getattr(x, 'to_json', None)):
             return json.parse(x.to_json())
+
+        if type(x) is GeneratorType:
+            return [json.parse(o) for o in x]
 
         return repr(x)
 

@@ -380,7 +380,7 @@ def create_stream(name, target, replace='', comment=''):
 
 def create_pipe(name, sql, replace='', autoingest='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    autoingest = 'AUTOINGEST=TRUE ' if autoingest else ''
+    autoingest = 'AUTO_INGEST=TRUE ' if autoingest else ''
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}PIPE data.{name} {autoingest}{comment} AS \n{sql}"
     execute(query)

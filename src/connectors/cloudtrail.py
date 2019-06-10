@@ -118,10 +118,10 @@ Please apply this policy as a trust relationship for the role you specified, to 
 {json.dumps(aws_trust_relationship)}
 """}
 
-    return output
+    return {'newStage': 'created', 'newMessage': output['body']}
 
 
-def complete(name):
+def finalize(name):
     name = f'CLOUDTRAIL_{name}'.upper()
 
     # Step two: Configure the remainder once the role is properly configured.
@@ -183,7 +183,7 @@ WHERE ARRAY_SIZE(v:Records) > 0
     db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
 
     pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
-    db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True)
+    db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True, autoingest=True)
 
     db.create_task(name=name + '_TASK', schedule='15 minutes',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)

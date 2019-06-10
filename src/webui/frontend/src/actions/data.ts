@@ -72,9 +72,12 @@ export const FINALIZE_CONNECTION = 'FINALIZE_CONNECTION';
 type FinalizeConnectionAction = ActionWithPayload<typeof FINALIZE_CONNECTION, {connector: string; name: string}>;
 export const finalizeConnection = (connector: string, name: string) => async (dispatch: Dispatch) => {
   dispatch(createAction(FINALIZE_CONNECTION, {connector, name}));
+  dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'finalizing'}));
+  const response = await api.finalizeConnector(connector, name);
+  dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'finalized', newMessage: response}));
 };
 
-// finalizing connection
+// testing connection
 export const TEST_CONNECTION = 'TEST_CONNECTION';
 type TestConnectionAction = ActionWithPayload<typeof TEST_CONNECTION, {connector: string; name: string}>;
 export const testConnection = (connector: string, name: string) => async (dispatch: Dispatch) => {
