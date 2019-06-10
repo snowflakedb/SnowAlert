@@ -12,7 +12,7 @@ from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTH
 
 from . import log
 from .auth import load_pkb, oauth_refresh
-from .dbconfig import ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconfig import HOST, PORT, PROTOCOL, ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
 from runners import utils
@@ -58,6 +58,9 @@ def connect(flush_cache=False, oauth={}):
 
     def connect():
         return connect_db(
+            host=HOST,
+            port=PORT,
+            protocol=PROTOCOL,
             account=oauth_account or ACCOUNT,
             database=DATABASE,
             user=oauth_username or USER,

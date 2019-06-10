@@ -132,6 +132,10 @@ CREATE_TABLES_QUERIES = [
 def parse_snowflake_url(url):
     account = None
     region = None
+    host = None
+    port = '443' # default
+    protocol = 'https' # default
+
     res = urlsplit(url)
     path = res.netloc or res.path
 
@@ -140,11 +144,20 @@ def parse_snowflake_url(url):
     if len(c) == 1:
         account = c[0]
     else:
+        # for customers
         if path.endswith("snowflakecomputing.com"):
             account = c[0]
             region = c[1] if len(c) == 4 else 'us-west-2'
+        else:
+        # for internal use
+            searchObj = re.search('(.+snowflakecomputing.com):([0-9]+)', path)
+            if searchObj:
+                account = c[0]
+                host = searchObj.group(1)
+                port = searchObj.group(2)
+                protocol = 'http'
 
-    return account, region
+    return account, region, host, port, protocol
 
 
 def login(configuration=None):
@@ -164,18 +177,24 @@ def login(configuration=None):
         username = config.get('username')
         password = config.get('password')
         region = config.get('region')
+        host = config.get('host')
+        port = config.get('port')
+        protocol = config.get('protocol')
     else:
         account = None
         username = None
         password = None
         region = None
+        host = None
+        port = '443' # default
+        protocol = 'https' # default
 
     print("Starting installer for SnowAlert.")
 
     if not account:
         while 1:
             url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
-            account, region = parse_snowflake_url(url)
+            account, region, host, port, protocol = parse_snowflake_url(url)
             if not account:
                 print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
             else:
@@ -197,7 +216,7 @@ def login(configuration=None):
     if not region:
         region = input("Region of your Snowflake account [blank for us-west-2]: ")
 
-    connect_kwargs = {'user': username, 'account': account}
+    connect_kwargs = {'user': username, 'account': account, 'host' : host, 'port' : port, 'protocol' : protocol}
     if password == '':
         connect_kwargs['authenticator'] = 'externalbrowser'
     else:
@@ -222,7 +241,7 @@ def login(configuration=None):
 
     ctx = attempt("Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs))
 
-    return ctx, account, region or "us-west-2", attempt
+    return ctx, account, region or "us-west-2", host, port, protocol, attempt
 
 
 def load_aws_config() -> Tuple[str, str]:
@@ -363,19 +382,25 @@ def setup_authentication(jira_password, region, pk_passphrase=None):
     return private_key, pk_passphrase, jira_password, rsa_public_key
 
 
-def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
+def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, host, port, protocol,
              private_key, pk_passphrase, aws_key, aws_secret, **x):
+    # for the .envs file being written, we redesigned the format,
+    # so that currently, host become the TOP argument
     vars = [
-        ('SNOWFLAKE_ACCOUNT', account),
-        ('SA_USER', USER),
-        ('SA_ROLE', ROLE),
-        ('SA_DATABASE', DATABASE),
-        ('SA_WAREHOUSE', WAREHOUSE),
-        ('REGION', region or 'us-west-2'),
+        ('SNOWFLAKE_HOST', host),
+        ('SH_ACCOUNT', account),
+        ('SH_USER', USER),
+        ('SH_ROLE', ROLE),
+        ('SH_DATABASE', DATABASE),
+        ('SH_WAREHOUSE', WAREHOUSE),
+        ('SH_REGION', region or 'us-west-2'),
+        ('SH_PORT', port),
+        ('SH_PROTOCOL', protocol),
 
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
         ('PRIVATE_KEY_PASSWORD', pk_passphrase),
     ]
+
 
     if jira_url:
         vars += [
@@ -424,7 +449,7 @@ def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None,
         'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
     }
 
-    ctx, account, region, do_attempt = login(configuration)
+    ctx, account, region, host, port, protocol, do_attempt = login(configuration)
 
     if admin_role:
         do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")

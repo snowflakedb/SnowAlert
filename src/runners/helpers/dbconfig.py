@@ -15,18 +15,26 @@ if ENV == 'test':
 else:
     tail = ''
 
-# database & account properties
-REGION = environ.get('REGION', "us-west-2")
-REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
-ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
 
-USER = environ.get('SA_USER', "snowalert") + tail
+
+# database & account properties
+# For customer: HOST = '', PORT = '443', PROTOCOL = 'https'
+# For internal use: REGION = ''
+HOST = environ.get('SNOWFLAKE_HOST', '') # '' for customer,
+PORT = environ.get('SH_PORT')
+PROTOCOL = environ.get('SH_PROTOCOL')
+
+REGION = environ.get('SH_REGION', "us-west-2")
+REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
+ACCOUNT = environ.get('SH_ACCOUNT', '') if HOST else environ.get('SH_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
+
+USER = environ.get('SH_USER', "snowalert") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
 PRIVATE_KEY = b64decode(environ['PRIVATE_KEY']) if environ.get('PRIVATE_KEY') else None
 
-ROLE = environ.get('SA_ROLE', "snowalert") + tail
-WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert") + tail
-DATABASE = environ.get('SA_DATABASE', "snowalert") + tail
+ROLE = environ.get('SH_ROLE', "snowalert") + tail
+WAREHOUSE = environ.get('SH_WAREHOUSE', "snowalert") + tail
+DATABASE = environ.get('SH_DATABASE', "snowalert") + tail
 
 # connection properties
 TIMEOUT = environ.get('SA_TIMEOUT', 500)
