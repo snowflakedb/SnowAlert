@@ -190,12 +190,18 @@ WHERE ARRAY_SIZE(v:Records) > 0
     db.create_task(name=name + '_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
+    sqs_arn = next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))['notification_channel']
+    output = {'title': 'Next Steps', 'body': f"""
+Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}
+"""}
+
+    return {'newStage': 'finalized', 'newMessage': output}
+
 
 def test(name):
-    yield db.fetch(f'ls @DATA.{name}_STAGE')
-    yield db.fetch(f'DESC TABLE DATA.{name}_STAGING')
-    yield db.fetch(f'DESC STREAM DATA.{name}_STREAM')
-    yield db.fetch(f'DESC PIPE DATA.{name}_PIPE')
-    yield db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION')
-    yield db.fetch(f'DESC TASK DATA.{name}_TASK')
-
+    yield next(db.fetch(f'ls @DATA.{name}_STAGE'))
+    yield next(db.fetch(f'DESC TABLE DATA.{name}_STAGING'))
+    yield next(db.fetch(f'DESC STREAM DATA.{name}_STREAM'))
+    yield next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))
+    yield next(db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION'))
+    yield next(db.fetch(f'DESC TASK DATA.{name}_TASK'))

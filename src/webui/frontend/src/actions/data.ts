@@ -74,7 +74,7 @@ export const finalizeConnection = (connector: string, name: string) => async (di
   dispatch(createAction(FINALIZE_CONNECTION, {connector, name}));
   dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'finalizing'}));
   const response = await api.finalizeConnector(connector, name);
-  dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'finalized', newMessage: response}));
+  dispatch(createAction(CHANGE_CONNECTION_STAGE, response));
 };
 
 // testing connection
