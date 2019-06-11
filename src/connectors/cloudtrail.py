@@ -3,16 +3,20 @@
 it pipes in CloudTrail stuff...
 """
 
+from json import dumps
+
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 from time import sleep
 
-import json
-
 CONNECTION_OPTIONS = [
     {'name': 'bucket_name', 'type': 'str', 'prefix': 's3://'},
     {'name': 'filter', 'type': 'str', 'default': 'AWSLogs/'},
-    {'name': 'aws_role', 'type': 'str'}
+    {
+        'name': 'aws_role',
+        'type': 'str',
+        'prompt': "(optionally new) Role ARN being granted access to bucket"
+    }
 ]
 
 FILE_FORMAT = """
@@ -69,6 +73,18 @@ CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
 ]
 
 
+CONNECT_RESPONSE_MESSAGE = """
+First, please attach this Trust Relationship to Bucket `{bucket}`
+
+{bucket_trust_relationship}
+
+
+Then, please attach this Policy to Role `{role}`
+
+{role_policy}
+"""
+
+
 def connect(name, options):
     # Step one: create everything we can with the knowledge we have
 
@@ -83,43 +99,86 @@ def connect(name, options):
 name: {name}
 """
 
-    db.create_stage(name=name + '_STAGE', url=f's3://{bucket}', prefix=prefix, cloud='aws',
-                    credentials=role, file_format=FILE_FORMAT)
+    db.create_stage(
+        name=f'{name}_STAGE',
+        url=f's3://{bucket}',
+        prefix=prefix,
+        cloud='aws',
+        credentials=role,
+        file_format=FILE_FORMAT
+    )
 
-    db.create_table(name=name + '_STAGING', cols=[('v', 'variant')])
+    db.create_table(
+        name=f'{name}_STAGING',
+        cols=[('v', 'variant')]
+    )
 
-    db.create_table(name=name + "_EVENTS_CONNECTION", cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(
+        name=f'{name}_EVENTS_CONNECTION',
+        cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS,
+        comment=comment
+    )
 
     results = {}
     stage_data = db.fetch(f'DESC STAGE DATA.{name}_STAGE')
     for row in stage_data:
-        if row['property'] == 'AWS_EXTERNAL_ID' or row['property'] == 'SNOWFLAKE_IAM_USER':
+        if row['property'] in ('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER'):
             results[row['property']] = row['property_value']
 
-    aws_trust_relationship = {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": f"{results['SNOWFLAKE_IAM_USER']}"
-                },
-                "Action": "sts:AssumeRole",
-                "Condition": {
-                    "StringEquals": {
-                        "sts:ExternalId": f"{results['AWS_EXTERNAL_ID']}"
+    prefix = prefix.rstrip('/')
+
+    return {
+        'newStage': 'created',
+        'newMessage': CONNECT_RESPONSE_MESSAGE.format(
+            bucket=bucket,
+            bucket_trust_relationship=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": results['SNOWFLAKE_IAM_USER']
+                        },
+                        "Action": "sts:AssumeRole",
+                        "Condition": {
+                            "StringEquals": {
+                                "sts:ExternalId": results['AWS_EXTERNAL_ID']
+                            }
+                        }
                     }
-                }
-            }
-        ]
+                ]
+            }, indent=4),
+            role=role,
+            role_policy=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:PutObject",
+                            "s3:GetObject",
+                            "s3:GetObjectVersion",
+                            "s3:DeleteObject",
+                            "s3:DeleteObjectVersion"
+                        ],
+                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": f"arn:aws:s3:::{bucket}",
+                        "Condition": {
+                            "StringLike": {
+                                "s3:prefix": [
+                                    f"{prefix}/*"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }, indent=4),
+        )
     }
-
-    output = {'title': 'Next Steps', 'body': f"""
-Please apply this policy as a trust relationship for the role you specified, to allow Snowflake the ability to assume the role and read files from the designated S3 Bucket.\n\n
-{json.dumps(aws_trust_relationship)}
-"""}
-
-    return {'newStage': 'created', 'newMessage': output['body']}
 
 
 def finalize(name):

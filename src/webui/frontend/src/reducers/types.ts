@@ -79,6 +79,7 @@ export interface ConnectorPayload {
   finalize: boolean;
   docstring: string;
   secret: boolean;
+  prompt: string;
 }
 
 export interface FlowPayload {

@@ -103,7 +103,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           selectedConnector.options.map((o: any) => (
             <div key={o.name}>
               <label>
-                {o.name.replace('_', ' ')}&nbsp;
+                {o.prompt || o.name.replace('_', ' ')}&nbsp;
                 {React.createElement(o.secret ? Input.Password : Input, {
                   name: o.name,
                   defaultValue: o.default,

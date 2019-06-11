@@ -7,6 +7,7 @@ export class Connector {
   options: any;
   finalize: boolean;
   secret: boolean;
+  prompt: string;
 
   constructor(payload: ConnectorPayload) {
     this.raw = payload;
@@ -15,5 +16,6 @@ export class Connector {
     this.finalize = payload.finalize;
     this.description = payload.docstring;
     this.secret = payload.secret;
+    this.prompt = payload.prompt;
   }
 }
