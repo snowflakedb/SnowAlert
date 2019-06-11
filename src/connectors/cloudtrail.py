@@ -249,6 +249,8 @@ WHERE ARRAY_SIZE(v:Records) > 0
     db.create_task(name=name + '_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
+    db.execute(f"ALTER PIPE DATA.{name}_PIPE REFRESH")
+
     sqs_arn = next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))['notification_channel']
     output = {'title': 'Next Steps', 'body': f"""
 Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}
