@@ -199,9 +199,9 @@ Please add this SQS Queue ARN to the bucket event notification channel for all o
 
 
 def test(name):
-    yield next(db.fetch(f'ls @DATA.{name}_STAGE'))
-    yield next(db.fetch(f'DESC TABLE DATA.{name}_STAGING'))
-    yield next(db.fetch(f'DESC STREAM DATA.{name}_STREAM'))
-    yield next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))
-    yield next(db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION'))
-    yield next(db.fetch(f'DESC TASK DATA.{name}_TASK'))
+    yield db.fetch(f'ls @DATA.{name}_STAGE')
+    yield db.fetch(f'DESC TABLE DATA.{name}_STAGING')
+    yield db.fetch(f'DESC STREAM DATA.{name}_STREAM')
+    yield db.fetch(f'DESC PIPE DATA.{name}_PIPE')
+    yield db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION')
+    yield db.fetch(f'DESC TASK DATA.{name}_TASK')
