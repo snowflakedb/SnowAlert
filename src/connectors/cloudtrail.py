@@ -5,6 +5,7 @@ it pipes in CloudTrail stuff...
 
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
+from time import sleep
 
 import json
 
@@ -182,10 +183,11 @@ WHERE ARRAY_SIZE(v:Records) > 0
 
     db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
 
-    pipe_sql = f"COPY INTO DATA.{name}_STAGING FROM @DATA.{name}_STAGE/"
+    sleep(7)  # We need to make sure the IAM change has time to take effect.
+    pipe_sql = f"COPY INTO DATA.{name}_STAGING(v) FROM @DATA.{name}_STAGE/"
     db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True, autoingest=True)
 
-    db.create_task(name=name + '_TASK', schedule='15 minutes',
+    db.create_task(name=name + '_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
 

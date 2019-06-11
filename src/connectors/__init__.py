@@ -13,6 +13,6 @@ CONNECTION_OPTIONS = [
         'connector': name,
         'options': getattr(connector, 'CONNECTION_OPTIONS', {}),
         'docstring': connector.__doc__,
-        'finalize': callable(getattr(cloudtrail, 'complete', None)),
+        'finalize': callable(getattr(cloudtrail, 'finalize', None)),
     } for name, connector in connectors.items()
 ]
