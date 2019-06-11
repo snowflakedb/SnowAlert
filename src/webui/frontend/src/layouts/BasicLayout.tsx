@@ -75,7 +75,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     const {routerData} = this.props;
     const {viewport} = this.props.viewport;
 
-    let title = 'SAMUI';
+    let title = 'WebUI';
     const viewportData = routerData[viewport];
     if (viewportData && viewportData.name) {
       title = `${viewportData.name} - ${title}`;
