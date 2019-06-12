@@ -253,8 +253,7 @@ WHERE ARRAY_SIZE(v:Records) > 0
 
     sqs_arn = next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))['notification_channel']
     output = {'title': 'Next Steps', 'body': f"""
-Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}
-"""}
+Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}"""}
 
     return {'newStage': 'finalized', 'newMessage': output}
 
