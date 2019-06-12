@@ -17,7 +17,7 @@ import {Connector} from '../store/data';
 export const initialState: SADataState = {
   isFetching: false,
   selected: null,
-  connectionStage: null,
+  connectionStage: 'start',
   connectionMessage: null,
   connectors: [],
 };
@@ -49,7 +49,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       return {
         ...state,
         selected: selection,
-        connectionStage: null,
+        connectionStage: 'start',
         connectionMessage: null,
       };
     }

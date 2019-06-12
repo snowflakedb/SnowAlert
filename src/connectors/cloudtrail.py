@@ -1,6 +1,5 @@
-"""This is a CloudTrail connector
-
-it pipes in CloudTrail stuff...
+"""AWS CloudTrail Connector
+collects CloudTrail logs from S3 into a columnar table
 """
 
 from json import dumps
@@ -10,12 +9,25 @@ from runners.helpers.dbconfig import WAREHOUSE
 from time import sleep
 
 CONNECTION_OPTIONS = [
-    {'name': 'bucket_name', 'type': 'str', 'prefix': 's3://'},
-    {'name': 'filter', 'type': 'str', 'default': 'AWSLogs/'},
     {
-        'name': 'aws_role',
         'type': 'str',
-        'prompt': "(optionally new) Role ARN being granted access to bucket"
+        'name': 'bucket_name',
+        'title': 'CloudTrail Bucket',
+        'prompt': 'where CloudTrail puts your logs',
+        'prefix': 's3://'
+    },
+    {
+        'type': 'str',
+        'name': 'filter',
+        'title': 'Filter',
+        'prompt': 'folder in CloudTrail S3 bucket',
+        'default': 'AWSLogs/'
+    },
+    {
+        'type': 'str',
+        'name': 'aws_role',
+        'title': 'AWS Role',
+        'prompt': "ARN of Role we'll grant access to bucket",
     }
 ]
 
@@ -74,12 +86,12 @@ CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
 
 
 CONNECT_RESPONSE_MESSAGE = """
-First, please attach this Trust Relationship to Bucket `{bucket}`
+Step 1: attach this Trust Relationship to Role `{role}`
 
-{bucket_trust_relationship}
+{role_trust_relationship}
 
 
-Then, please attach this Policy to Role `{role}`
+Step 2: attach this Policy to Role `{role}`
 
 {role_policy}
 """
@@ -130,8 +142,8 @@ name: {name}
     return {
         'newStage': 'created',
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
-            bucket=bucket,
-            bucket_trust_relationship=dumps({
+            role=role,
+            role_trust_relationship=dumps({
                 "Version": "2012-10-17",
                 "Statement": [
                     {
@@ -148,7 +160,6 @@ name: {name}
                     }
                 ]
             }, indent=4),
-            role=role,
             role_policy=dumps({
                 "Version": "2012-10-17",
                 "Statement": [
@@ -240,13 +251,13 @@ FROM DATA.{name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
 """
 
-    db.create_stream(name=name + '_STREAM', target=name+'_STAGING')
+    db.create_stream(name=f'{name}_STREAM', target=f'{name}_STAGING')
 
     sleep(7)  # We need to make sure the IAM change has time to take effect.
     pipe_sql = f"COPY INTO DATA.{name}_STAGING(v) FROM @DATA.{name}_STAGE/"
-    db.create_pipe(name=name + '_PIPE', sql=pipe_sql, replace=True, autoingest=True)
+    db.create_pipe(name=f'{name}_PIPE', sql=pipe_sql, replace=True, autoingest=True)
 
-    db.create_task(name=name + '_TASK', schedule='1 minute',
+    db.create_task(name=f'{name}_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
     db.execute(f"ALTER PIPE DATA.{name}_PIPE REFRESH")
