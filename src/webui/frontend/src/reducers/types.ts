@@ -79,6 +79,7 @@ export interface ConnectorPayload {
   finalize: boolean;
   docstring: string;
   secret: boolean;
+  title: string;
   prompt: string;
 }
 
@@ -100,7 +101,7 @@ export interface SAData {
 }
 
 export type ConnectionStage =
-  | null
+  | 'start'
   | 'error'
   | 'creating'
   | 'created'

@@ -1,6 +1,5 @@
-"""This is an Okta connector
-
-it connects to Okta things!
+"""Okta Connector
+collects X into a single-VARIANT table
 """
 
 from runners.helpers import db, log

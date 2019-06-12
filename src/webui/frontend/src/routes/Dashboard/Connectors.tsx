@@ -3,7 +3,7 @@ import {
   // Card,
   Icon,
   Input,
-  // Row,
+  List,
 } from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -58,6 +58,24 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
     const selectedConnector = connectors.find(c => c.name == selected);
 
+    let options = [];
+    if (selectedConnector) {
+      options = [
+        {
+          name: 'name',
+          title: 'Data Connection Name',
+          prompt: 'unique-per-connector name matching [a-z_]+',
+          default: 'default',
+          disabled: connectionStage !== null,
+          onChange: (e: any) =>
+            this.setState({
+              newConnectionName: e.target.value,
+            }),
+        },
+        ...selectedConnector.options,
+      ];
+    }
+
     return selectedConnector ? (
       <div>
         <h1 style={{textTransform: 'capitalize'}}>add {selected} connection</h1>
@@ -66,14 +84,17 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           disabled={!newConnectionName || connectionStage !== null}
           onClick={() => this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions)}
         >
-          create
+          {connectionStage[0] === 'c' ? connectionStage : 'created'}
+          {connectionStage === 'creating' && <Icon type="loading" />}
         </Button>
         {selectedConnector.finalize ? (
           <Button
             disabled={!newConnectionName || connectionStage !== 'created'}
             onClick={() => this.props.finalizeConnection(selectedConnector.name, newConnectionName!)}
           >
+            {connectionStage[0] === 'f' ? connectionStage : connectionStage[0] === 't' ? 'finalized' : 'finalize'}
             finalize
+            {connectionStage === 'finalizing' && <Icon type="loading" />}
           </Button>
         ) : null}
         <Button
@@ -81,44 +102,40 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           onClick={() => this.props.testConnection(selectedConnector.name, newConnectionName)}
         >
           test
+          {connectionStage === 'testing' && <Icon type="loading" />}
         </Button>
-        <div>
-          name&nbsp;
-          <Input
-            name="name"
-            defaultValue="default"
-            disabled={connectionStage !== null}
-            onChange={e =>
-              this.setState({
-                newConnectionName: e.target.value,
-              })
-            }
-          />
-        </div>
         {connectionStage !== null ? (
           <pre>
             {typeof connectionMessage == 'string' ? connectionMessage : JSON.stringify(connectionMessage, undefined, 2)}
           </pre>
         ) : (
-          selectedConnector.options.map((o: any) => (
-            <div key={o.name}>
-              <label>
-                {o.prompt || o.name.replace('_', ' ')}&nbsp;
-                {React.createElement(o.secret ? Input.Password : Input, {
-                  name: o.name,
-                  defaultValue: o.default,
-                  addonBefore: o.prefix,
-                  addonAfter: o.postfix,
-                  onChange: (e: any) => {
-                    // todo why doesn't ref to e work here w/ prevState?
-                    this.setState({
-                      newConnectionOptions: Object.assign({}, newConnectionOptions, {[o.name]: e.target.value}),
-                    });
-                  },
-                })}
-              </label>
-            </div>
-          ))
+          <List
+            itemLayout="vertical"
+            size="small"
+            grid={{gutter: 0}}
+            dataSource={options}
+            renderItem={(opt: any) => (
+              <List.Item key={opt.name}>
+                <label>
+                  <List.Item.Meta title={opt.title || opt.name.replace('_', ' ')} description={opt.prompt} />
+                  {React.createElement(opt.secret ? Input.Password : Input, {
+                    name: opt.name,
+                    defaultValue: opt.default,
+                    addonBefore: opt.prefix,
+                    addonAfter: opt.postfix,
+                    onChange:
+                      opt.onChange ||
+                      ((e: any) => {
+                        // todo why doesn't ref to e work here w/ prevState?
+                        this.setState({
+                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
+                        });
+                      }),
+                  })}
+                </label>
+              </List.Item>
+            )}
+          />
         )}
       </div>
     ) : (
@@ -130,7 +147,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                 <td>
                   <img style={{height: 20}} src={`/icons/connectors/${c.name}.png`} />
                 </td>
-                <td style={{textTransform: 'capitalize'}}>{c.name}</td>
+                <td>{c.title}</td>
                 <td>{c.description}</td>
                 <td>
                   <Button onClick={() => this.props.selectConnector(c.name)}>
