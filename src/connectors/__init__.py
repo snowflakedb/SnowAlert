@@ -1,11 +1,13 @@
 from . import cloudtrail
 from . import okta
+from . import azure_log
 
-__all__ = ['cloudtrail', 'okta']
+__all__ = ['cloudtrail', 'okta', 'azure_log']
 
 connectors = {
     'cloudtrail': cloudtrail,
     'okta': okta,
+    'azure_log': azure_log,
 }
 
 CONNECTION_OPTIONS = [

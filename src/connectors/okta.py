@@ -10,8 +10,20 @@ import datetime
 import requests
 
 CONNECTION_OPTIONS = [
-    {'name': 'subdomain', 'type': 'str', 'postfix': '.okta.com', 'prefix': 'https://'},
-    {'name': 'api_key', 'type': 'str', 'secret': True},
+    {
+        'name': 'subdomain',
+        'type': 'str',
+        'postfix': '.okta.com',
+        'prefix': 'https://',
+        'placeholder': 'domain_name',
+        'required': True
+    },
+    {
+        'name': 'api_key',
+        'type': 'str',
+        'secret': True,
+        'required': True
+    },
 ]
 
 OKTA_LANDING_TABLE_COLUMNS = [
