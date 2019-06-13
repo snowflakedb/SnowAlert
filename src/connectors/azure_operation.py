@@ -130,6 +130,8 @@ FROM @DATA.{name}_STAGE)
         sql=pipe_sql,
         replace=True)
 
+    return {'newStage': 'finalized', 'newMessage': 'Table, Stage, and Pipe created'}
+
 
 def ingest(name, options):
     name = f"AZURE_OPERATION_{name}"
@@ -180,5 +182,18 @@ def ingest(name, options):
 
 
 def test(name):
-    yield db.fetch(f"ls @data.{name}_STAGE")
-    yield db.fetch(f"SHOW TABLES LIKE '{name}_CONNECTION' IN DATA")
+    res = list(db.fetch(f"ls @data.{name}_STAGE"))
+    if len(res) > 0:
+        stage_test = f"There are {len(res)} files visible in the stage."
+    else:
+        stage_test = f"There are zero files visible in the stage; please make sure the blob, storage account, and SAS token are correct."
+
+    yield stage_test
+
+    res = list(db.fetch(f"SHOW TABLES LIKE '{name}_CONNECTION' IN DATA"))
+    if len(res) > 0:
+        table_test = f"The table was properly created."
+    else:
+        table_test = f"The table does not exist; please check that the name you provided is valid for a SQL Object."
+
+    yield table_test
