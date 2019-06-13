@@ -9,6 +9,7 @@ export class Connector {
   secret: boolean;
   title: string;
   prompt: string;
+  placeholder: string;
 
   constructor(payload: ConnectorPayload) {
     this.raw = payload;
@@ -19,5 +20,6 @@ export class Connector {
     this.description = payload.docstring.replace(/[^\n]*\n/m, '');
     this.secret = payload.secret;
     this.prompt = payload.prompt;
+    this.placeholder = payload.placeholder;
   }
 }

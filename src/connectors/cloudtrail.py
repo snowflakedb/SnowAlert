@@ -1,4 +1,4 @@
-"""AWS CloudTrail Connector
+"""AWS CloudTrail
 collects CloudTrail logs from S3 into a columnar table
 """
 
@@ -14,20 +14,24 @@ CONNECTION_OPTIONS = [
         'name': 'bucket_name',
         'title': 'CloudTrail Bucket',
         'prompt': 'where CloudTrail puts your logs',
-        'prefix': 's3://'
+        'prefix': 's3://',
+        'placeholder': 'my-test-s3-bucket',
+        'required': True,
     },
     {
         'type': 'str',
         'name': 'filter',
-        'title': 'Filter',
-        'prompt': 'folder in CloudTrail S3 bucket',
-        'default': 'AWSLogs/'
+        'title': 'Prefix Filter',
+        'prompt': 'folder in S3 bucket where CloudTrail puts logs',
+        'default': 'AWSLogs/',
     },
     {
         'type': 'str',
         'name': 'aws_role',
         'title': 'AWS Role',
         'prompt': "ARN of Role we'll grant access to bucket",
+        'placeholder': 'arn:aws:iam::012345678987:role/my-test-role',
+        'required': True,
     }
 ]
 
@@ -86,12 +90,12 @@ CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
 
 
 CONNECT_RESPONSE_MESSAGE = """
-Step 1: attach this Trust Relationship to Role `{role}`
+STEP 1: Modify the Role "{role}" to include the following trust relationship:
 
 {role_trust_relationship}
 
 
-Step 2: attach this Policy to Role `{role}`
+STEP 2: For Role "{role}", add the following inline policy:
 
 {role_policy}
 """
@@ -166,11 +170,8 @@ name: {name}
                     {
                         "Effect": "Allow",
                         "Action": [
-                            "s3:PutObject",
                             "s3:GetObject",
                             "s3:GetObjectVersion",
-                            "s3:DeleteObject",
-                            "s3:DeleteObjectVersion"
                         ],
                         "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
                     },

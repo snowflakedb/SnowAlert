@@ -1,4 +1,4 @@
-"""Okta Connector
+"""Okta
 collects X into a single-VARIANT table
 """
 

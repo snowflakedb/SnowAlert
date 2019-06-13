@@ -348,16 +348,15 @@ def get_pipes():
     return fetch(query)
 
 
-def create_stage(name, url, prefix, cloud, credentials, file_format, replace='', comment=''):
+def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}STAGE data.{name} \nURL='{url}/{prefix}' "
     if cloud == 'aws':
         query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
     elif cloud == 'azure':
         query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
-    query += f"\nFILE_FORMAT=({file_format}) {comment}"
-    execute(query)
+    query += f"\nFILE_FORMAT=({file_format}) \nCOMMENT='{comment}'"
+    execute(query, fix_errors=False)
 
 
 def create_table(name, cols, replace=False, comment=''):
@@ -375,7 +374,7 @@ def create_stream(name, target, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}STREAM data.{name} {comment}\nON TABLE data.{target}"
-    execute(query)
+    execute(query, fix_errors=False)
 
 
 def create_pipe(name, sql, replace='', autoingest='', comment=''):
@@ -383,7 +382,7 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
     autoingest = 'AUTO_INGEST=TRUE ' if autoingest else ''
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}PIPE data.{name} {autoingest}{comment} AS \n{sql}"
-    execute(query)
+    execute(query, fix_errors=False)
 
 
 def create_task(name, schedule, warehouse, sql, replace='', comment=''):
@@ -392,5 +391,5 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     warehouse = f"WAREHOUSE={warehouse}\n"
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TASK data.{name} {schedule} {warehouse} {comment} AS \n{sql}"
-    execute(query)
+    execute(query, fix_errors=False)
     execute(f"ALTER TASK data.{name} RESUME")
