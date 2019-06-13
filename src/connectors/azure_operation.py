@@ -17,27 +17,33 @@ CONNECTION_OPTIONS = [
         'name': 'account_name',
         'title': 'Storage Account',
         'prompt': 'The storage account holding your Operation log blobs',
+        'placeholder': 'azstorageaccount',
+        'required': True
     },
     {
         'type': 'str',
         'name': 'blob_name',
         'title': 'Blob Name',
         'prompt': 'Blob in the Storage Account containing the Operation logs',
-        'default': 'insights-operational-logs'
+        'default': 'insights-operational-logs',
+        'required': True
     },
     {
         'type': 'str',
         'name': 'sas_token',
         'title': 'SAS Token',
         'prompt': "A SAS Token which can list and read the files in the blob.",
-        'secret': True
+        'secret': True,
+        'placeholder': '?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z&st=2011-01-23T45:67:89Z&spr=https&sig=abcdefghijklmnopqrstuvwxyz%3D',
+        'required': True
     },
     {
         'type': 'str',
         'name': 'suffix',
         'title': 'URL Suffix',
         'prompt': 'The Azure URL Suffix for the storage account',
-        'default': 'core.windows.net'
+        'default': 'core.windows.net',
+        'required': True
     }
 ]
 
