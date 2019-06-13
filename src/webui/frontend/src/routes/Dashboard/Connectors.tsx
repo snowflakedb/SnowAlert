@@ -61,50 +61,27 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     let options = [];
     if (selectedConnector) {
       options = [
+        ...selectedConnector.options,
         {
           name: 'name',
-          title: 'Data Connection Name',
-          prompt: 'unique-per-connector name matching [a-z_]+',
+          title: 'Custom Name (optional)',
+          prompt: 'to make more than one connection for this connector, enter its name, matching [a-z_]+',
           default: 'default',
-          disabled: connectionStage !== null,
-          onChange: (e: any) =>
+          disabled: connectionStage !== 'start',
+          onChange: (e: any) => {
             this.setState({
               newConnectionName: e.target.value,
-            }),
+            });
+          },
         },
-        ...selectedConnector.options,
       ];
     }
 
     return selectedConnector ? (
       <div>
-        <h1 style={{textTransform: 'capitalize'}}>add {selected} connection</h1>
-        <Button onClick={() => this.props.selectConnector(null)}>&larr; back</Button>
-        <Button
-          disabled={!newConnectionName || connectionStage !== null}
-          onClick={() => this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions)}
-        >
-          {connectionStage[0] === 'c' ? connectionStage : 'created'}
-          {connectionStage === 'creating' && <Icon type="loading" />}
-        </Button>
-        {selectedConnector.finalize ? (
-          <Button
-            disabled={!newConnectionName || connectionStage !== 'created'}
-            onClick={() => this.props.finalizeConnection(selectedConnector.name, newConnectionName!)}
-          >
-            {connectionStage[0] === 'f' ? connectionStage : connectionStage[0] === 't' ? 'finalized' : 'finalize'}
-            finalize
-            {connectionStage === 'finalizing' && <Icon type="loading" />}
-          </Button>
-        ) : null}
-        <Button
-          disabled={!newConnectionName || connectionStage !== 'finalized'}
-          onClick={() => this.props.testConnection(selectedConnector.name, newConnectionName)}
-        >
-          test
-          {connectionStage === 'testing' && <Icon type="loading" />}
-        </Button>
-        {connectionStage !== null ? (
+        <h1>Create {selectedConnector.title} Data Connection</h1>
+
+        {connectionStage !== 'start' ? (
           <pre>
             {typeof connectionMessage == 'string' ? connectionMessage : JSON.stringify(connectionMessage, undefined, 2)}
           </pre>
@@ -118,11 +95,21 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
               <List.Item key={opt.name}>
                 <label>
                   <List.Item.Meta title={opt.title || opt.name.replace('_', ' ')} description={opt.prompt} />
+
                   {React.createElement(opt.secret ? Input.Password : Input, {
                     name: opt.name,
                     defaultValue: opt.default,
                     addonBefore: opt.prefix,
                     addonAfter: opt.postfix,
+                    placeholder: opt.placeholder,
+                    onBlur: e => {
+                      console.log(e);
+                      if (opt.default && e.target.value === '') {
+                        this.setState({
+                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
+                        });
+                      }
+                    },
                     onChange:
                       opt.onChange ||
                       ((e: any) => {
@@ -137,6 +124,38 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             )}
           />
         )}
+
+        <Button
+          onClick={() => {
+            this.props.selectConnector(null);
+          }}
+        >
+          &larr; Cancel
+        </Button>
+
+        <Button
+          style={{float: 'right'}}
+          disabled={!newConnectionName || connectionStage !== 'finalized'}
+          onClick={() => this.props.testConnection(selectedConnector.name, newConnectionName)}
+        >
+          Test {connectionStage === 'testing' && <Icon type="loading" />}
+        </Button>
+        {selectedConnector.finalize ? (
+          <Button
+            style={{float: 'right'}}
+            disabled={!newConnectionName || connectionStage !== 'created'}
+            onClick={() => this.props.finalizeConnection(selectedConnector.name, newConnectionName!)}
+          >
+            Create {connectionStage === 'finalizing' && <Icon type="loading" />}
+          </Button>
+        ) : null}
+        <Button
+          style={{float: 'right'}}
+          disabled={!newConnectionName || connectionStage !== 'start'}
+          onClick={() => this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions)}
+        >
+          Next {connectionStage === 'creating' && <Icon type="loading" />}
+        </Button>
       </div>
     ) : (
       <div>

@@ -37,21 +37,45 @@ def cache_oauth_connection(f):
 
 @data_api.route('/connectors/<connector>/<name>', methods=['POST'])
 @cache_oauth_connection
+@jsonify
 def post_connector(connector, name):
     body = request.get_json()
-    connector = importlib.import_module(f"connectors.{connector}")
-    return jsonify(connector.connect(name, body))
+    try:
+        connector = importlib.import_module(f"connectors.{connector}")
+        return connector.connect(name, body)
+
+    except Exception as e:
+        return {
+            'newStage': 'error',
+            'message': e
+        }
 
 
 @data_api.route('/connectors/<connector>/<name>/finalize', methods=['POST'])
 @cache_oauth_connection
+@jsonify
 def post_connector_finalize(connector, name):
-    connector = importlib.import_module(f"connectors.{connector}")
-    return jsonify(connector.finalize(name))
+    try:
+        connector = importlib.import_module(f"connectors.{connector}")
+        return connector.finalize(name)
+
+    except Exception as e:
+        return {
+            'newStage': 'error',
+            'message': e
+        }
 
 
 @data_api.route('/connectors/<connector>/<name>/test', methods=['POST'])
 @cache_oauth_connection
+@jsonify
 def post_connector_test(connector, name):
     connector = importlib.import_module(f"connectors.{connector}")
-    return jsonify(list(connector.test(name)))
+    try:
+        return list(connector.test(name))
+
+    except Exception as e:
+        return {
+            'newStage': 'error',
+            'message': e
+        }
