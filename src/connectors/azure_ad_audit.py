@@ -171,7 +171,6 @@ def ingest(name, options):
             new_files.append(StagedFile(file.name, None))
 
     log.info(f"Found {len(new_files)} files to ingest")
-    print(f"DATA.{name}_PIPE")
 
     # Proxy object that abstracts the Snowpipe REST API
     ingest_manager = SimpleIngestManager(account=environ.get('SNOWFLAKE_ACCOUNT'),
