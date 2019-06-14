@@ -59,18 +59,19 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   }
 
   selectConnector(name: string | null) {
-    this.props.selectConnector(name);
-    const selectedConnector = this.findSelectedConnector();
+    const selectedConnector = this.findSelectedConnector(name);
     if (selectedConnector) {
+      let entries = [...selectedConnector.options.map((o: any) => [o.name, o.default]), ['name', 'default']];
       this.setState({
-        optionValues: Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default])),
+        optionValues: Object.fromEntries(entries),
       });
     }
+    this.props.selectConnector(name);
   }
 
-  findSelectedConnector() {
+  findSelectedConnector(name: string | null = null) {
     let {connectors, selected} = this.props.data;
-    return connectors.find(c => c.name == selected);
+    return connectors.find(c => c.name === (name || selected));
   }
 
   render() {
@@ -158,7 +159,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
         <Button
           onClick={() => {
-            this.props.selectConnector(null);
+            this.selectConnector(null);
           }}
         >
           &larr; Go Back
@@ -202,7 +203,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                 <td>{c.title}</td>
                 <td>{c.description}</td>
                 <td>
-                  <Button onClick={() => this.props.selectConnector(c.name)}>
+                  <Button onClick={() => this.selectConnector(c.name)}>
                     <Icon type="link" /> connect
                   </Button>
                 </td>
