@@ -52,6 +52,10 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     this.state = {
       optionValues: {},
     };
+
+    if (this.findConnector()) {
+      this.selectConnector(null);
+    }
   }
 
   componentDidMount() {
@@ -59,7 +63,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   }
 
   selectConnector(name: string | null) {
-    const selectedConnector = this.findSelectedConnector(name);
+    const selectedConnector = this.findConnector(name);
     if (selectedConnector) {
       let entries = [...selectedConnector.options.map((o: any) => [o.name, o.default]), ['name', 'default']];
       this.setState({
@@ -69,9 +73,10 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     this.props.selectConnector(name);
   }
 
-  findSelectedConnector(name: string | null = null) {
-    let {connectors, selected} = this.props.data;
-    return connectors.find(c => c.name === (name || selected));
+  findConnector(name: string | null = null) {
+    const {connectors, selected} = this.props.data;
+    const toFind = name || selected;
+    return connectors.find(c => c.name === toFind);
   }
 
   render() {
@@ -79,7 +84,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
     let {optionValues} = this.state;
 
-    const selectedConnector = this.findSelectedConnector();
+    const selectedConnector = this.findConnector();
 
     let options = [];
     if (selectedConnector) {
@@ -188,7 +193,8 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             this.props.newConnection(selectedConnector.name, optionValues.name!, optionValues);
           }}
         >
-          Next {connectionStage === 'creating' && <Icon type="loading" />}
+          {selectedConnector.finalize ? 'Next' : 'Create'}
+          {connectionStage === 'creating' && <Icon type="loading" />}
         </Button>
       </div>
     ) : (
