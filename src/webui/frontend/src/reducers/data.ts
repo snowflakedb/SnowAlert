@@ -6,6 +6,8 @@ import {
   LOAD_SA_DATA_FAILURE,
   CHANGE_CONNECTOR_SELECTION,
   CHANGE_CONNECTION_STAGE,
+  CHANGE_CONNECTION_STAGE_ERROR,
+  CHANGE_CONNECTION_STAGE_DISMISS_ERROR,
 } from '../actions/data';
 import {
   // SAData,
@@ -17,6 +19,7 @@ import {Connector} from '../store/data';
 export const initialState: SADataState = {
   isFetching: false,
   selected: null,
+  errorMessage: null,
   connectionStage: 'start',
   connectionMessage: null,
   connectors: [],
@@ -59,6 +62,19 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
         ...state,
         connectionStage: newStage,
         connectionMessage: newMessage,
+      };
+    }
+    case CHANGE_CONNECTION_STAGE_ERROR: {
+      let {message} = action.payload;
+      return {
+        ...state,
+        errorMessage: message,
+      };
+    }
+    case CHANGE_CONNECTION_STAGE_DISMISS_ERROR: {
+      return {
+        ...state,
+        errorMessage: null,
       };
     }
   }
