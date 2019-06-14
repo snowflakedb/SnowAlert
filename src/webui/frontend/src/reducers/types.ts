@@ -81,6 +81,7 @@ export interface ConnectorPayload {
   secret: boolean;
   title: string;
   prompt: string;
+  placeholder: string;
 }
 
 export interface FlowPayload {
@@ -100,19 +101,12 @@ export interface SAData {
   flows: ReadonlyArray<FlowPayload>;
 }
 
-export type ConnectionStage =
-  | 'start'
-  | 'error'
-  | 'creating'
-  | 'created'
-  | 'finalizing'
-  | 'finalized'
-  | 'testing'
-  | 'tested';
+export type ConnectionStage = 'start' | 'creating' | 'created' | 'finalizing' | 'finalized' | 'testing' | 'tested';
 
 export interface SADataState {
   readonly isFetching: boolean;
   readonly selected: string | null;
+  readonly errorMessage: string | null;
   readonly connectionMessage: string | null;
   readonly connectors: ReadonlyArray<Connector>;
   readonly connectionStage: ConnectionStage;

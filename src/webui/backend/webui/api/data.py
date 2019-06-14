@@ -7,6 +7,7 @@ import importlib
 
 from connectors import CONNECTION_OPTIONS
 from runners.helpers import db, dbconfig
+from runners.utils import format_exception_only
 
 logger = logbook.Logger(__name__)
 
@@ -35,47 +36,44 @@ def cache_oauth_connection(f):
     return wrapper
 
 
+def jsonified(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            result = f(*args, **kwargs)
+            result.setdefault('success', True)
+
+        except Exception as e:
+            result = {
+                'success': False,
+                'errorMessage': format_exception_only(e),
+            }
+
+        return jsonify(result)
+
+    return wrapper
+
+
 @data_api.route('/connectors/<connector>/<name>', methods=['POST'])
 @cache_oauth_connection
-@jsonify
+@jsonified
 def post_connector(connector, name):
     body = request.get_json()
-    try:
-        connector = importlib.import_module(f"connectors.{connector}")
-        return connector.connect(name, body)
-
-    except Exception as e:
-        return {
-            'newStage': 'error',
-            'message': e
-        }
+    connector = importlib.import_module(f"connectors.{connector}")
+    return connector.connect(name, body)
 
 
 @data_api.route('/connectors/<connector>/<name>/finalize', methods=['POST'])
 @cache_oauth_connection
-@jsonify
+@jsonified
 def post_connector_finalize(connector, name):
-    try:
-        connector = importlib.import_module(f"connectors.{connector}")
-        return connector.finalize(name)
-
-    except Exception as e:
-        return {
-            'newStage': 'error',
-            'message': e
-        }
+    connector = importlib.import_module(f"connectors.{connector}")
+    return connector.finalize(name)
 
 
 @data_api.route('/connectors/<connector>/<name>/test', methods=['POST'])
 @cache_oauth_connection
-@jsonify
+@jsonified
 def post_connector_test(connector, name):
     connector = importlib.import_module(f"connectors.{connector}")
-    try:
-        return list(connector.test(name))
-
-    except Exception as e:
-        return {
-            'newStage': 'error',
-            'message': e
-        }
+    return list(connector.test(name))

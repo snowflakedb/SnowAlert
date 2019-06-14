@@ -1,7 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {ConnectionStage, ConnectorPayload, State} from '../reducers/types';
-import {createAction, ActionWithPayload, GetState} from './action-helpers';
+import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
 //
@@ -50,12 +50,34 @@ export const selectConnector = (name: string | null) => async (dispatch: Dispatc
   dispatch(createAction(CHANGE_CONNECTOR_SELECTION, name));
 };
 
-// stage complete
+// stage change complete
 export const CHANGE_CONNECTION_STAGE = 'CHANGE_CONNECTION_STAGE';
 type ConnectionStageCompleteAction = ActionWithPayload<
   typeof CHANGE_CONNECTION_STAGE,
   {newStage: ConnectionStage; newMessage: string}
 >;
+
+// stage change failed
+export const CHANGE_CONNECTION_STAGE_ERROR = 'CHANGE_CONNECTION_STAGE_ERROR';
+type ConnectionStageFailedAction = ActionWithPayload<typeof CHANGE_CONNECTION_STAGE_ERROR, {message: string}>;
+
+// dismiss stage change failure
+export const CHANGE_CONNECTION_STAGE_DISMISS_ERROR = 'CHANGE_CONNECTION_STAGE_DISMISS_ERROR';
+type ConnectionStageDismissErrorAction = Action<typeof CHANGE_CONNECTION_STAGE_DISMISS_ERROR>;
+export const dismissErrorMessage = () => async (dispatch: Dispatch, getState: GetState) => {
+  const {data} = getState();
+  dispatch(
+    createAction(CHANGE_CONNECTION_STAGE, {
+      newMessage: data.connectionMessage,
+      newStage: {
+        creating: 'start',
+        finalizing: 'finalize',
+        testing: 'test',
+      }[data.connectionStage],
+    }),
+  );
+  dispatch(createAction(CHANGE_CONNECTION_STAGE_DISMISS_ERROR));
+};
 
 // adding new connection
 export const NEW_CONNECTION = 'NEW_CONNECTION';
@@ -64,7 +86,11 @@ export const newConnection = (connector: string, name: string, options: any) => 
   dispatch(createAction(NEW_CONNECTION, {connector, name, options}));
   dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'creating'}));
   const response = await api.createConnector(connector, name, options);
-  dispatch(createAction(CHANGE_CONNECTION_STAGE, response));
+  if (response.success) {
+    dispatch(createAction(CHANGE_CONNECTION_STAGE, response));
+  } else {
+    dispatch(createAction(CHANGE_CONNECTION_STAGE_ERROR, {message: response.errorMessage}));
+  }
 };
 
 // finalizing connection
@@ -84,7 +110,11 @@ export const testConnection = (connector: string, name: string) => async (dispat
   dispatch(createAction(TEST_CONNECTION, {name}));
   dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'testing'}));
   const response = await api.testConnector(connector, name);
-  dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'tested', newMessage: response}));
+  if (response.success) {
+    dispatch(createAction(CHANGE_CONNECTION_STAGE, {newStage: 'tested', newMessage: response}));
+  } else {
+    dispatch(createAction(CHANGE_CONNECTION_STAGE_ERROR, {message: response.errorMessage}));
+  }
 };
 
 export type DataActions =
@@ -93,4 +123,6 @@ export type DataActions =
   | NewConnectionAction
   | FinalizeConnectionAction
   | TestConnectionAction
-  | ConnectionStageCompleteAction;
+  | ConnectionStageCompleteAction
+  | ConnectionStageFailedAction
+  | ConnectionStageDismissErrorAction;

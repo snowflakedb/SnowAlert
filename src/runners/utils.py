@@ -42,7 +42,7 @@ def json_dumps(obj):
             return json.parse(x.to_json())
 
         if type(x) is GeneratorType:
-            return [json.parse(o) for o in x]
+            return list(x)
 
         return repr(x)
 

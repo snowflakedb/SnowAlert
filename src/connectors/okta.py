@@ -4,7 +4,6 @@ collects X into a single-VARIANT table
 
 from runners.helpers import db, log
 from runners.config import CONNECTOR_METADATA_TABLE
-from runners.utils import format_exception_only
 
 import datetime
 import requests
@@ -31,18 +30,11 @@ api_key: {options['api_key']}
 subdomain: {options['subdomain']}
 """
 
-    try:
-        db.create_table(name=table_name, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
-        return {
-            'newStage': 'finalized',
-            'newMessage': "Okta ingestion table created!",
-        }
-
-    except Exception as e:
-        return {
-            'newStage': 'error',
-            'newMessage': format_exception_only(e),
-        }
+    db.create_table(name=table_name, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+    return {
+        'newStage': 'finalized',
+        'newMessage': "Okta ingestion table created!",
+    }
 
 
 def ingest(table_name, options):
