@@ -27,8 +27,7 @@ import {
 import './Connectors.css';
 
 interface OwnState {
-  newConnectionName: string;
-  newConnectionOptions: any;
+  optionValues: any;
 }
 
 interface StateProps {
@@ -51,23 +50,35 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     super(props);
 
     this.state = {
-      newConnectionName: 'default',
-      newConnectionOptions: {
-        name: 'default',
-      },
+      optionValues: {},
     };
   }
 
   componentDidMount() {
     this.props.loadSAData();
-    this.props.selectConnector(null);
+  }
+
+  selectConnector(name: string | null) {
+    this.props.selectConnector(name);
+    const selectedConnector = this.findSelectedConnector();
+    if (selectedConnector) {
+      this.setState({
+        optionValues: Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default])),
+      });
+    }
+  }
+
+  findSelectedConnector() {
+    let {connectors, selected} = this.props.data;
+    return connectors.find(c => c.name == selected);
   }
 
   render() {
-    let {selected, connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
-    let {newConnectionOptions, newConnectionName} = this.state;
+    let {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
 
-    const selectedConnector = connectors.find(c => c.name == selected);
+    let {optionValues} = this.state;
+
+    const selectedConnector = this.findSelectedConnector();
 
     let options = [];
     if (selectedConnector) {
@@ -78,6 +89,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           title: 'Custom Name (optional)',
           prompt: 'to make more than one connection for this connector, enter its name, matching [a-z_]+',
           default: 'default',
+          required: true,
           disabled: connectionStage !== 'start',
         },
       ];
@@ -115,7 +127,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                   {React.createElement(opt.secret ? Input.Password : Input, {
                     name: opt.name,
                     defaultValue: opt.default,
-                    value: newConnectionOptions[opt.name],
+                    value: optionValues[opt.name],
                     addonBefore: opt.prefix,
                     addonAfter: opt.postfix,
                     placeholder: opt.placeholder,
@@ -123,14 +135,14 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                     onBlur: (e: any) => {
                       if (opt.required && opt.default && e.target.value === '') {
                         this.setState({
-                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: opt.default}),
+                          optionValues: Object.assign({}, optionValues, {[opt.name]: opt.default}),
                         });
                       }
                     },
                     onChange: (e: any) => {
                       // todo why doesn't ref to e work here w/ prevState?
                       this.setState({
-                        newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
+                        optionValues: Object.assign({}, optionValues, {[opt.name]: e.target.value}),
                       });
                     },
                   })}
@@ -154,25 +166,25 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
         <Button
           style={{float: 'right'}}
-          disabled={!newConnectionName || connectionStage !== 'finalized'}
-          onClick={() => this.props.testConnection(selectedConnector.name, newConnectionName)}
+          disabled={!optionValues.name || connectionStage !== 'finalized'}
+          onClick={() => this.props.testConnection(selectedConnector.name, optionValues.name)}
         >
           Test {connectionStage === 'testing' && <Icon type="loading" />}
         </Button>
         {selectedConnector.finalize ? (
           <Button
             style={{float: 'right'}}
-            disabled={!newConnectionName || connectionStage !== 'created'}
-            onClick={() => this.props.finalizeConnection(selectedConnector.name, newConnectionName!)}
+            disabled={!optionValues.name || connectionStage !== 'created'}
+            onClick={() => this.props.finalizeConnection(selectedConnector.name, optionValues.name!)}
           >
             Create {connectionStage === 'finalizing' && <Icon type="loading" />}
           </Button>
         ) : null}
         <Button
           style={{float: 'right'}}
-          disabled={!newConnectionName || connectionStage !== 'start'}
+          disabled={!optionValues.name || connectionStage !== 'start'}
           onClick={() => {
-            this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions);
+            this.props.newConnection(selectedConnector.name, optionValues.name!, optionValues);
           }}
         >
           Next {connectionStage === 'creating' && <Icon type="loading" />}
