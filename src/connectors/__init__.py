@@ -1,17 +1,13 @@
 from . import cloudtrail
 from . import okta
-from . import azure_ad_audit
-from . import azure_ad_signin
-from . import azure_operation
+from . import azure_log
 
 __all__ = ['cloudtrail', 'okta']
 
 connectors = {
     'cloudtrail': cloudtrail,
     'okta': okta,
-    'azure ad audit': azure_ad_audit,
-    'azure ad signin': azure_ad_signin,
-    'azure operation': azure_operation,
+    'azure log': azure_log,
 }
 
 CONNECTION_OPTIONS = [
