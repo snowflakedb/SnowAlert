@@ -4,6 +4,7 @@ import {
   Icon,
   Input,
   List,
+  Modal,
 } from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -13,7 +14,14 @@ import {bindActionCreators, Dispatch} from 'redux';
 // import {getAuthDetails} from '../../reducers/auth';
 import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
-import {loadSAData, newConnection, selectConnector, finalizeConnection, testConnection} from '../../actions/data';
+import {
+  loadSAData,
+  newConnection,
+  selectConnector,
+  finalizeConnection,
+  testConnection,
+  dismissErrorMessage,
+} from '../../actions/data';
 // import {Query, Suppression} from '../../store/rules';
 
 import './Connectors.css';
@@ -33,6 +41,7 @@ interface DispatchProps {
   finalizeConnection: typeof finalizeConnection;
   testConnection: typeof testConnection;
   selectConnector: typeof selectConnector;
+  dismissErrorMessage: typeof dismissErrorMessage;
 }
 
 type ConnectorsProps = StateProps & DispatchProps;
@@ -43,7 +52,9 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
     this.state = {
       newConnectionName: 'default',
-      newConnectionOptions: {},
+      newConnectionOptions: {
+        name: 'default',
+      },
     };
   }
 
@@ -53,7 +64,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   }
 
   render() {
-    let {selected, connectors, connectionStage, connectionMessage} = this.props.data;
+    let {selected, connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
     let {newConnectionOptions, newConnectionName} = this.state;
 
     const selectedConnector = connectors.find(c => c.name == selected);
@@ -68,24 +79,29 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           prompt: 'to make more than one connection for this connector, enter its name, matching [a-z_]+',
           default: 'default',
           disabled: connectionStage !== 'start',
-          onChange: (e: any) => {
-            this.setState({
-              newConnectionName: e.target.value,
-            });
-          },
         },
       ];
     }
 
     return selectedConnector ? (
       <div>
+        <Modal
+          title={`Failed ${connectionStage} connection`}
+          visible={!!errorMessage}
+          centered={true}
+          closable={false}
+          footer={[
+            <Button key="ok" onClick={() => this.props.dismissErrorMessage()}>
+              Ok
+            </Button>,
+          ]}
+        >
+          <pre>{errorMessage}</pre>
+        </Modal>
+
         <h1>Create {selectedConnector.title} Data Connection</h1>
 
-        {connectionStage !== 'start' ? (
-          <pre>
-            {typeof connectionMessage == 'string' ? connectionMessage : JSON.stringify(connectionMessage, undefined, 2)}
-          </pre>
-        ) : (
+        {connectionStage === 'start' || connectionStage === 'creating' ? (
           <List
             itemLayout="vertical"
             size="small"
@@ -99,30 +115,33 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                   {React.createElement(opt.secret ? Input.Password : Input, {
                     name: opt.name,
                     defaultValue: opt.default,
+                    value: newConnectionOptions[opt.name],
                     addonBefore: opt.prefix,
                     addonAfter: opt.postfix,
                     placeholder: opt.placeholder,
-                    onBlur: e => {
-                      console.log(e);
-                      if (opt.default && e.target.value === '') {
+                    autoComplete: 'off',
+                    onBlur: (e: any) => {
+                      if (opt.required && opt.default && e.target.value === '') {
                         this.setState({
-                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
+                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: opt.default}),
                         });
                       }
                     },
-                    onChange:
-                      opt.onChange ||
-                      ((e: any) => {
-                        // todo why doesn't ref to e work here w/ prevState?
-                        this.setState({
-                          newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
-                        });
-                      }),
+                    onChange: (e: any) => {
+                      // todo why doesn't ref to e work here w/ prevState?
+                      this.setState({
+                        newConnectionOptions: Object.assign({}, newConnectionOptions, {[opt.name]: e.target.value}),
+                      });
+                    },
                   })}
                 </label>
               </List.Item>
             )}
           />
+        ) : (
+          <pre>
+            {typeof connectionMessage == 'string' ? connectionMessage : JSON.stringify(connectionMessage, undefined, 2)}
+          </pre>
         )}
 
         <Button
@@ -152,7 +171,9 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
         <Button
           style={{float: 'right'}}
           disabled={!newConnectionName || connectionStage !== 'start'}
-          onClick={() => this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions)}
+          onClick={() => {
+            this.props.newConnection(selectedConnector.name, newConnectionName!, newConnectionOptions);
+          }}
         >
           Next {connectionStage === 'creating' && <Icon type="loading" />}
         </Button>
@@ -191,6 +212,7 @@ const mapStateToProps = (state: stateTypes.State) => {
 const mapDispatchToProps = (dispatch: Dispatch) => {
   return bindActionCreators(
     {
+      dismissErrorMessage,
       loadSAData,
       selectConnector,
       finalizeConnection,

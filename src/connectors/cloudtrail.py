@@ -24,6 +24,7 @@ CONNECTION_OPTIONS = [
         'title': 'Prefix Filter',
         'prompt': 'folder in S3 bucket where CloudTrail puts logs',
         'default': 'AWSLogs/',
+        'required': True,
     },
     {
         'type': 'str',
