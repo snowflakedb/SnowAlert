@@ -205,7 +205,7 @@ def login(configuration=None):
     if region != '':
         connect_kwargs['region'] = region
 
-    def attempt(message="doing", todo=None):
+    def attempt(message="doing", todo=None, fail_silently=False):
         print(f"{message}", end="..", flush=True)
         try:
             if type(todo) is str:
@@ -216,7 +216,11 @@ def login(configuration=None):
             elif callable(todo):
                 retval = todo()
         except Exception as e:
-            log.fatal("failed", e)
+            if fail_silently:
+                return []
+            else:
+                log.fatal("failed", e)
+
         print(" ✓")
         return retval
 
@@ -262,7 +266,11 @@ def setup_user_and_role(do_attempt):
 
 
 def find_share_db_name(do_attempt):
-    sample_data_share_rows = do_attempt("Retrieving sample data share(s)", r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'")
+    sample_data_share_rows = do_attempt(
+        "Retrieving sample data share(s)",
+        r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'",
+        fail_silently=True
+    )
 
     # Database name is 4th attribute in row
     share_db_names = [share_row[3] for share_row in sample_data_share_rows]
