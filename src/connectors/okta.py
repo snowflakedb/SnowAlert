@@ -61,16 +61,17 @@ def ingest(table_name, options):
     }
 
     try:
-        ts = datetime.datetime.now() - datetime.timedelta(hours=1)
-        ts = next(db.fetch(timestamp_query))
+        ts = next(db.fetch(timestamp_query))['EVENT_TIME']
 
     except Exception:
         log.error(
             "Unable to find a timestamp of most recent Okta log, "
             "defaulting to one hour ago"
         )
+        ts = datetime.datetime.now() - datetime.timedelta(hours=1)
 
     params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
+
     loaded = 0
 
     while 1:

@@ -161,7 +161,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             this.props.selectConnector(null);
           }}
         >
-          &larr; Cancel
+          &larr; Go Back
         </Button>
 
         <Button
