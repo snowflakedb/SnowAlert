@@ -22,9 +22,13 @@ export default function loadDynamicComponent(config: ConfigType) {
   const LoadingComponent = config.LoadingComponent || defaultLoadingComponent;
 
   return class DynamicComponent extends React.PureComponent<Props, State> {
-    state = {
-      Component: null,
-    };
+    constructor(props: any) {
+      super(props);
+
+      this.state = {
+        Component: null,
+      };
+    }
 
     mounted: boolean;
 
@@ -42,7 +46,7 @@ export default function loadDynamicComponent(config: ConfigType) {
 
     render() {
       const {Component} = this.state;
-      if (Component) {
+      if (Component !== null) {
         const ActualComponent = Component as React.ComponentType<any>;
         return <ActualComponent {...this.props} />;
       }
