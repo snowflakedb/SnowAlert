@@ -1,5 +1,5 @@
-"""
-This is the Azure Log connector; it connects blobs holding Azure logs in an Azure Storage Account to Snowflake.
+"""Azure Log
+Collects Azure AD Signin, AD Activity, or Operation logs into a columnar table
 """
 from os import environ
 
@@ -16,7 +16,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'account_name',
         'title': 'Storage Account',
-        'prompt': 'The storage account holding your AD Audit log blobs',
+        'prompt': 'The storage account holding your log blobs',
         'placeholder': 'azstorageaccount',
         'required': True
     },
@@ -24,8 +24,8 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'blob_name',
         'title': 'Blob Name',
-        'prompt': 'Blob in the Storage Account containing the AD Audit logs',
-        'default': 'insights-logs-auditlogs',
+        'prompt': 'Blob in the Storage Account containing the logs',
+        'placeholder': 'insights-logs',
         'required': True
     },
     {
