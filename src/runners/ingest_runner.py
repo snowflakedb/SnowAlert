@@ -10,14 +10,14 @@ import importlib
 # The pipeline runner also has to iterate through all the connection table and call ingest() on them.
 
 def main(connection_table="%_CONNECTION"):
-    # for name in os.listdir('../ingestion'):
-    #     log.info(f"invoking {name}")
-    #     try:
-    #         res = subprocess.call(f"python ../ingestion/{name}", shell=True)
-    #         log.info("subprocess returns: ", res)
-    #         log.info(f"{name} invoked")
-    #     except Exception as e:
-    #         log.error(f"failed to run {name}", e)
+    for name in os.listdir('../ingestion'):
+        log.info(f"invoking {name}")
+        try:
+            res = subprocess.call(f"python ../ingestion/{name}", shell=True)
+            log.info("subprocess returns: ", res)
+            log.info(f"{name} invoked")
+        except Exception as e:
+            log.error(f"failed to run {name}", e)
 
     tables = db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data")
 
