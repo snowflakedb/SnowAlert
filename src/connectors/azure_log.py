@@ -1,7 +1,9 @@
 """Azure Log
 Collects Azure AD Signin, AD Activity, or Operation logs into a columnar table
 """
+
 from os import environ
+import re
 
 from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE
@@ -11,6 +13,11 @@ from runners.helpers import db, log
 from azure.storage.blob import BlockBlobService
 from snowflake.ingest import SimpleIngestManager
 from snowflake.ingest import StagedFile
+
+
+class RequiredOptionMissing(RuntimeError):
+    pass
+
 
 CONNECTION_OPTIONS = [
     {
@@ -173,6 +180,32 @@ AZURE_TABLE_COLUMNS = {
 
 
 def connect(name, options):
+
+    try:
+        options['account_name']
+    except KeyError:
+        raise RequiredOptionMissing('account_name')
+
+    try:
+        options['blob_name']
+    except KeyError:
+        raise RequiredOptionMissing('blob_name')
+
+    try:
+        options['sas_token']
+    except KeyError:
+        raise RequiredOptionMissing('sas_token')
+
+    try:
+        options['suffix']
+    except KeyError:
+        raise RequiredOptionMissing('suffix')
+
+    try:
+        options['log_type']
+    except KeyError:
+        raise RequiredOptionMissing('log_type')
+
     name = f"AZURE_{options['log_type']}_{name}"
     comment = f"""
 ---
@@ -285,7 +318,7 @@ def ingest(name, options):
         sas_token=options['sas_token'],
         endpoint_suffix=options['suffix']
     )
-    base_name = name.rstrip('CONNECTION')
+    base_name = re.sub(r'_CONNECTION$', '', name)
 
     db.execute(f"select SYSTEM$PIPE_FORCE_RESUME('DATA.{base_name}_PIPE');")
 
