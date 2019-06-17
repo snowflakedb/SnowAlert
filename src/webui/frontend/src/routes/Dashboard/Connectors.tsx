@@ -1,4 +1,4 @@
-import {Avatar, Button, Card, Icon, Input, List, Modal} from 'antd';
+import {Avatar, Button, Card, Icon, Input, List, Modal, Select, Option} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -72,6 +72,13 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     return connectors.find(c => c.name === toFind);
   }
 
+  changeOption(name: string, value: string) {
+    let {optionValues} = this.state;
+    this.setState({
+      optionValues: Object.assign({}, optionValues, {[name]: value}),
+    });
+  }
+
   render() {
     let {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
 
@@ -123,28 +130,39 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                 <label>
                   <List.Item.Meta title={opt.title || opt.name.replace('_', ' ')} description={opt.prompt} />
 
-                  {React.createElement(opt.secret ? Input.Password : Input, {
-                    name: opt.name,
-                    defaultValue: opt.default,
-                    value: optionValues[opt.name],
-                    addonBefore: opt.prefix,
-                    addonAfter: opt.postfix,
-                    placeholder: opt.placeholder,
-                    autoComplete: 'off',
-                    onBlur: (e: any) => {
-                      if (opt.required && opt.default && e.target.value === '') {
-                        this.setState({
-                          optionValues: Object.assign({}, optionValues, {[opt.name]: opt.default}),
-                        });
-                      }
-                    },
-                    onChange: (e: any) => {
-                      // todo why doesn't ref to e work here w/ prevState?
-                      this.setState({
-                        optionValues: Object.assign({}, optionValues, {[opt.name]: e.target.value}),
-                      });
-                    },
-                  })}
+                  {opt.type == 'select' ? (
+                    <Select
+                      defaultValue={opt.default || '- pick one -'}
+                      onChange={(v: any) => {
+                        this.changeOption(opt.name, v);
+                      }}
+                    >
+                      {opt.options.map((o: string) => (
+                        <Select.Option key={o} value={o}>
+                          {o}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  ) : (
+                    React.createElement(opt.secret ? Input.Password : Input, {
+                      name: opt.name,
+                      defaultValue: opt.default,
+                      value: optionValues[opt.name],
+                      addonBefore: opt.prefix,
+                      addonAfter: opt.postfix,
+                      placeholder: opt.placeholder,
+                      autoComplete: 'off',
+                      onBlur: (e: any) => {
+                        if (opt.required && opt.default && e.target.value === '') {
+                          this.changeOption(opt.name, opt.default);
+                        }
+                      },
+                      onChange: (e: any) => {
+                        // todo why doesn't ref to e work here w/ prevState?
+                        this.changeOption(opt.name, e.target.value);
+                      },
+                    })
+                  )}
                 </label>
               </List.Item>
             )}
