@@ -1,15 +1,19 @@
-from runners.helpers import log, db, kms
+"""SA Ingestion Runner (SAIR)
+
+1. SAIR processes all the files in the src/ingestion folder
+2. SAIR processes Data Connections in *_CONNECTION tables
+
+"""
+import importlib
 import os
 import subprocess
 import yaml
-import importlib
 
+from runners.helpers import log, db, kms
 
-#  The pipeline runner needs to list all the files in the pipeline folder and then invoke them one by one.
-
-# The pipeline runner also has to iterate through all the connection table and call ingest() on them.
 
 def main(connection_table="%_CONNECTION"):
+    # ingestion scripts
     for name in os.listdir('../ingestion'):
         log.info(f"invoking {name}")
         try:
@@ -19,9 +23,8 @@ def main(connection_table="%_CONNECTION"):
         except Exception as e:
             log.error(f"failed to run {name}", e)
 
-    tables = db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data")
-
-    for table in tables:
+    # data connections
+    for table in db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"):
         log.info(f"Starting {table['name']}")
         options = yaml.load(table['comment'])
         if 'module' in options:
