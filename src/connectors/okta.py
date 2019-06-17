@@ -3,6 +3,7 @@ collects X into a single-VARIANT table
 """
 
 from runners.helpers import db, log
+from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.config import CONNECTOR_METADATA_TABLE
 
 import datetime
@@ -31,6 +32,7 @@ subdomain: {options['subdomain']}
 """
 
     db.create_table(name=table_name, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON DATA.{table_name} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
         'newMessage': "Okta ingestion table created!",
