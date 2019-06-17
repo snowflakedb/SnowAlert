@@ -103,8 +103,6 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(name, options):
-    # Step one: create everything we can with the knowledge we have
-
     name = f'CLOUDTRAIL_{name}'.upper()
 
     bucket = options['bucket_name']

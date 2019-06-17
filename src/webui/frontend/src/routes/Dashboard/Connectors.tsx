@@ -1,11 +1,4 @@
-import {
-  Button,
-  // Card,
-  Icon,
-  Input,
-  List,
-  Modal,
-} from 'antd';
+import {Avatar, Button, Card, Icon, Input, List, Modal} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -109,7 +102,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           centered={true}
           closable={false}
           footer={[
-            <Button key="ok" onClick={() => this.props.dismissErrorMessage()}>
+            <Button key="ok" type="primary" onClick={() => this.props.dismissErrorMessage()}>
               Ok
             </Button>,
           ]}
@@ -199,24 +192,24 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
       </div>
     ) : (
       <div>
-        <table>
-          <tbody>
-            {connectors.map(c => (
-              <tr key={c.name}>
-                <td>
-                  <img style={{height: 20}} src={`/icons/connectors/${c.name}.png`} />
-                </td>
-                <td>{c.title}</td>
-                <td>{c.description}</td>
-                <td>
-                  <Button onClick={() => this.selectConnector(c.name)}>
-                    <Icon type="link" /> connect
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {connectors.map(c => (
+          <Card
+            key={c.name}
+            style={{width: 350, margin: 10, float: 'left'}}
+            actions={[
+              <a onClick={() => this.selectConnector(c.name)}>
+                <Icon type="link" /> connect
+              </a>,
+            ]}
+          >
+            <Card.Meta
+              avatar={<Avatar src={`/icons/connectors/${c.name}.png`} />}
+              title={c.title}
+              description={c.description}
+              style={{height: 75}}
+            />
+          </Card>
+        ))}
       </div>
     );
   }
