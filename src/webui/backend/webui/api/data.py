@@ -58,9 +58,18 @@ def jsonified(f):
 @cache_oauth_connection
 @jsonified
 def post_connector(connector, name):
-    body = request.get_json()
+    options = request.get_json()
     connector = importlib.import_module(f"connectors.{connector}")
-    return connector.connect(name, body)
+
+    for opt in connector.CONNECTION_OPTIONS:
+        opt_name = opt['name']
+        if opt.get('required') and opt_name not in options:
+            return {
+                'success': False,
+                'errorMessage': f"Missing required option '{opt_name}'.",
+            }
+
+    return connector.connect(name, options)
 
 
 @data_api.route('/connectors/<connector>/<name>/finalize', methods=['POST'])
