@@ -5,6 +5,7 @@ from os import environ
 
 from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE
+from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.helpers import db, log
 
 from azure.storage.blob import BlockBlobService
@@ -175,7 +176,7 @@ def connect(name, options):
     name = f"AZURE_{options['log_type']}_{name}"
     comment = f"""
 ---
-module: azure_ad_signin
+module: azure_log
 name: {name}
 storage_account: {options['account_name']}
 blob_name: {options['blob_name']}
@@ -192,11 +193,15 @@ suffix: {options['suffix']}
         file_format=FILE_FORMAT
     )
 
+    db.execute(f'GRANT USAGE ON STAGE DATA.{name}_STAGE TO ROLE {SA_ROLE}')
+
     db.create_table(
         name=f'{name}_CONNECTION',
         cols=AZURE_TABLE_COLUMNS[options['log_type']],
         comment=comment
     )
+
+    db.execute(f'GRANT INSERT, SELECT ON DATA.{name}_CONNECTION TO ROLE {SA_ROLE}')
 
     pipe_sql = {
         'operation': f"""
@@ -268,22 +273,27 @@ FROM @DATA.{name}_STAGE
         sql=pipe_sql[options['log_type']],
         replace=True)
 
+    db.execute(f'ALTER PIPE DATA.{name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
+    db.execute(f'GRANT OWNERSHIP ON PIPE DATA.{name}_PIPE TO ROLE {SA_ROLE}')
+
     return {'newStage': 'finalized', 'newMessage': 'Table, Stage, and Pipe created'}
 
 
 def ingest(name, options):
-    name = f"AZURE_{options['log_type']}_{name}"
     block_blob_service = BlockBlobService(
-        account_name=options['account_name'],
+        account_name=options['storage_account'],
         sas_token=options['sas_token'],
         endpoint_suffix=options['suffix']
     )
+    base_name = name.rstrip('CONNECTION')
+
+    db.execute(f"select SYSTEM$PIPE_FORCE_RESUME('DATA.{base_name}_PIPE');")
 
     files = block_blob_service.list_blobs(options['blob_name'])
 
     timestamp_query = f"""
     SELECT loaded_on
-    FROM data.{name}_CONNECTION
+    FROM data.{name}
     ORDER BY loaded_on DESC
     LIMIT 1
     """
@@ -307,7 +317,7 @@ def ingest(name, options):
     ingest_manager = SimpleIngestManager(account=environ.get('SNOWFLAKE_ACCOUNT'),
                                          host=f'{environ.get("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com',
                                          user=environ.get('SA_USER'),
-                                         pipe=f'{DATABASE}.DATA.{name}_PIPE',
+                                         pipe=f'{DATABASE}.DATA.{base_name}_PIPE',
                                          private_key=load_pkb_rsa(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
 
     if len(new_files) > 0:
