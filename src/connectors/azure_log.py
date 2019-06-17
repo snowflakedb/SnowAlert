@@ -180,7 +180,6 @@ AZURE_TABLE_COLUMNS = {
 
 
 def connect(name, options):
-
     try:
         options['account_name']
     except KeyError:
@@ -313,6 +312,15 @@ FROM @DATA.{name}_STAGE
 
 
 def ingest(name, options):
+    try:
+        environ['SNOWFLAKE_ACCOUNT']
+    except KeyError:
+        raise RequiredOptionMissing('SNOWFLAKE_ACCOUNT')
+    try:
+        environ['SA_USER']
+    except KeyError:
+        raise RequiredOptionMissing('SA_USER')
+
     block_blob_service = BlockBlobService(
         account_name=options['storage_account'],
         sas_token=options['sas_token'],
