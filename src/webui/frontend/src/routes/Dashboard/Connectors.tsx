@@ -1,4 +1,4 @@
-import {Avatar, Button, Card, Icon, Input, List, Modal, Select, Option} from 'antd';
+import {Avatar, Button, Card, Icon, Input, List, Modal, Select} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
