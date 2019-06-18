@@ -57,9 +57,8 @@ def main():
                     'alert_count': alert_row['COUNTER'],
                 })
 
-                handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
                 try:
-
+                    handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
                     result = {
                         'success': True,
                         'details': apply_some(handler_module.handle, **handler_kwargs)
