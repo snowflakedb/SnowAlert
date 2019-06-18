@@ -182,7 +182,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
         </Button>
 
         <Button
-          style={{float: 'right'}}
+          style={{float: 'right', display: 'none'}}
           disabled={!optionValues.name || connectionStage !== 'finalized'}
           onClick={() => this.props.testConnection(selectedConnector.name, optionValues.name)}
         >
