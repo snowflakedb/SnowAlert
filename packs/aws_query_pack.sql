@@ -1,117 +1,141 @@
-create or replace view snowalert.rules.aws_audit_log_configuration_changes_alert_query as
-select
-      object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
-    , array_construct('cloudtrail') as sources
-    , RAW:requestParameters:name::string as object
-    , 'AWS Audit Log Configuration Changes' as title
-    , event_time as event_time
-    , current_timestamp() as alert_time
-    , 'User ' || USER_IDENTITY_SESSION_CONTEXT_SESSION_ISSUER_USER_NAME || ' performed ' || event_name || ' on trail ' || RAW:requestParameters:name::string as description
-    , USER_IDENTITY_SESSION_CONTEXT_SESSION_ISSUER_USER_NAME as actor
-    , event_name as action
-    , 'SnowAlert' as detector
-    , RAW as event_data
-    , 'High' as severity
-    , 'cd4765a6e4e44eb3816799a50bc3dbf4' as query_id
-    , 'aws_audit_log_configuration_changes_v' as query_name
-  from snowalert.data.cloudtrail_v
-  where 1=1
-    and event_name in ('StopLogging', 'UpdateTrail', 'DeleteTrail')
+CREATE OR REPLACE VIEW rules.aws_audit_log_configuration_changes_alert_query COPY GRANTS
+  COMMENT='Flags destructive CloudTrail actions for review
+  @id cd4765a6e4e44eb3816799a50bc3dbf4'
+AS
+SELECT
+      OBJECT_CONSTRUCT(
+        'cloud', 'AWS',
+        'deployment', cloudtrail.DEPLOYMENT,
+        'account', cloudtrail.recipient_account_id
+      ) AS environment
+    , ARRAY_CONSTRUCT('cloudtrail') AS sources
+    , raw:requestParameters:name::string AS object
+    , 'AWS Audit Log Configuration Changes' AS title
+    , event_time AS event_time
+    , CURRENT_TIMESTAMP() AS alert_time
+    , 'User ' || user_identity_session_context_session_issuer_user_name || ' performed ' || event_name || ' on trail ' || raw:requestParameters:name::string AS description
+    , user_identity_session_context_session_issuer_user_name AS actor
+    , event_name AS action
+    , 'SnowAlert' AS detector
+    , raw AS event_data
+    , 'high' AS severity
+    , 'cd4765a6e4e44eb3816799a50bc3dbf4' AS query_id
+FROM data.cloudtrail_v
+WHERE 1=1
+  AND event_name IN ('StopLogging', 'UpdateTrail', 'DeleteTrail')
 ;
 
-grant select on view snowalert.rules.aws_audit_log_configuration_changes_alert_query to role snowalert;
+GRANT SELECT ON view rules.aws_audit_log_configuration_changes_alert_query TO ROLE snowalert;
 
-create or replace view snowalert.rules.aws_permission_modification_denied_alert_query as
-select
-      object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
-    , array_construct('cloudtrail') as sources
-    , USER_IDENTITY_ARN as object
-    , 'AWS Permission Modification Denied' as title
-    , event_time as event_time
-    , current_timestamp() as alert_time
-    , error_message as description
-    , 'SnowAlert' as detector
-    , RAW as event_data
-    , user_identity_arn as actor
-    , cloudtrail.event_name as action
-    , 'Medium' as severity
-    , 'dad7800f08ba4789a47d6d519be42886' as query_id
-    , 'aws_permission_modification_denied_v' as query_name
-  from snowalert.data.cloudtrail_v as cloudtrail
-  where 1=1
-    AND cloudtrail.error_code = 'AccessDenied'
-    AND (cloudtrail.EVENT_NAME = 'AddUserToGroup'
-      OR cloudtrail.EVENT_NAME = 'AttachGroupPolicy'
-      OR cloudtrail.EVENT_NAME = 'AttachRolePolicy'
-      OR cloudtrail.EVENT_NAME = 'AttachUserPolicy'
-      OR cloudtrail.EVENT_NAME = 'CreateAccessKey'
-      OR cloudtrail.EVENT_NAME = 'CreateLoginProfile'
-      OR cloudtrail.EVENT_NAME = 'CreatePolicy'
-      OR cloudtrail.EVENT_NAME = 'CreateRole'
-      OR cloudtrail.EVENT_NAME = 'CreateUser'
-      OR cloudtrail.EVENT_NAME = 'CreateVirtualMFADevice'
-      OR cloudtrail.EVENT_NAME = 'DeactivateMFADevice'
-      OR cloudtrail.EVENT_NAME = 'DeleteAccessKey'
-      OR cloudtrail.EVENT_NAME = 'DeleteGroup'
-      OR cloudtrail.EVENT_NAME = 'DeleteGroupPolicy'
-      OR cloudtrail.EVENT_NAME = 'DeletePolicy'
-      OR cloudtrail.EVENT_NAME = 'DeleteRole'
-      OR cloudtrail.EVENT_NAME = 'DeleteRolePolicy'
-      OR cloudtrail.EVENT_NAME = 'DeleteServerCertificate'
-      OR cloudtrail.EVENT_NAME = 'DeleteUser'
-      OR cloudtrail.EVENT_NAME = 'DeleteUserPolicy'
-      OR cloudtrail.EVENT_NAME = 'DeleteVirtualMFADevice'
-      OR cloudtrail.EVENT_NAME = 'DetachGroupPolicy')
+CREATE OR REPLACE VIEW rules.aws_permission_modification_denied_alert_query COPY GRANTS
+  COMMENT='Access Denied errors on administrative events
+  @id dad7800f08ba4789a47d6d519be42886'
+AS
+SELECT
+      OBJECT_CONSTRUCT(
+        'cloud', 'AWS',
+        'deployment', cloudtrail.deployment,
+        'account', cloudtrail.recipient_account_id
+      ) AS environment
+    , ARRAY_CONSTRUCT('cloudtrail') AS sources
+    , user_identity_arn AS object
+    , 'AWS Permission Modification Denied' AS title
+    , event_time AS event_time
+    , CURRENT_TIMESTAMP() AS alert_time
+    , error_message AS description
+    , 'SnowAlert' AS detector
+    , raw AS event_data
+    , user_identity_arn AS actor
+    , cloudtrail.event_name AS action
+    , 'medium' AS severity
+    , 'dad7800f08ba4789a47d6d519be42886' AS query_id
+FROM data.cloudtrail_v
+WHERE 1=1
+  AND error_code = 'AccessDenied'
+  AND event_name IN (
+      'AddUserToGroup',
+      'AttachGroupPolicy',
+      'AttachRolePolicy',
+      'AttachUserPolicy',
+      'CreateAccessKey',
+      'CreateLoginProfile',
+      'CreatePolicy',
+      'CreateRole',
+      'CreateUser',
+      'CreateVirtualMFADevice',
+      'DeactivateMFADevice',
+      'DeleteAccessKey',
+      'DeleteGroup',
+      'DeleteGroupPolicy',
+      'DeletePolicy',
+      'DeleteRole',
+      'DeleteRolePolicy',
+      'DeleteServerCertificate',
+      'DeleteUser',
+      'DeleteUserPolicy',
+      'DeleteVirtualMFADevice',
+      'DetachGroupPolicy'
+  )
 ;
 
-grant select on view snowalert.rules.aws_permission_modification_denied_alert_query to role snowalert;
+GRANT SELECT ON view rules.aws_permission_modification_denied_alert_query TO ROLE snowalert;
 
-create or replace view snowalert.rules.aws_root_account_activity_alert_query as
-select
-      object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
-    , array_construct('cloudtrail') as sources
-    , recipient_account_id as object
-    , 'AWS Root Account Activity' as title
-    , event_time as event_time
-    , current_timestamp() as alert_time
-    , 'Root user performed ' || event_name || ' at account ' || recipient_account_id as description
-    , 'SnowAlert' as detector
-    , RAW as event_data
-    , 'High' as severity
-    , 'Root' as actor
-    , event_name as action
-    , '2337ac7e963f4ef89252834ae877258f' as query_id
-    , 'aws_root_account_activity_v' as query_name
-  from snowalert.data.cloudtrail_v as cloudtrail
-  where 1=1
-    and cloudtrail.USER_IDENTITY_TYPE = 'Root'
-    and cloudtrail.SOURCE_IP_ADDRESS <> 'support.amazonaws.com'
+CREATE OR REPLACE VIEW rules.aws_root_account_activity_alert_query
+  COMMENT='AWS Root account activity
+  @id 2337ac7e963f4ef89252834ae877258f'
+AS
+SELECT OBJECT_CONSTRUCT(
+         'cloud', 'AWS',
+         'deployment', cloudtrail.DEPLOYMENT,
+         'account', cloudtrail.recipient_account_id
+       ) AS environment
+     , ARRAY_CONSTRUCT('cloudtrail') AS sources
+     , recipient_account_id AS object
+     , 'AWS Root Account Activity' AS title
+     , event_time AS event_time
+     , CURRENT_TIMESTAMP() AS alert_time
+     , 'Root user performed ' || event_name || ' at account ' || recipient_account_id AS description
+     , 'SnowAlert' AS detector
+     , raw AS event_data
+     , 'High' AS severity
+     , 'Root' AS actor
+     , event_name AS action
+     , '2337ac7e963f4ef89252834ae877258f' AS query_id
+FROM data.cloudtrail_v AS cloudtrail
+WHERE 1=1
+  AND cloudtrail.USER_IDENTITY_TYPE = 'Root'
+  AND cloudtrail.SOURCE_IP_ADDRESS <> 'support.amazonaws.com'
 ;
 
-grant select on view snowalert.rules.aws_root_account_activity_alert_query to role snowalert;
+GRANT SELECT ON view rules.aws_root_account_activity_alert_query TO ROLE snowalert;
 
-create or replace view snowalert.rules.aws_internal_bucket_access_alert_query as
-select
-      object_construct('cloud', 'AWS', 'deployment', cloudtrail.DEPLOYMENT, 'account', cloudtrail.recipient_account_id) as environment
-    , array_construct('cloudtrail') as sources
-    , REQUEST_PARAMETERS['bucketName']::string as object
-    , 'Internal Bucket Accessed By External Account' as title
-    , event_time as event_time
-    , 'User from external account ' || USER_IDENTITY['accountId']::string || ' performed ' || event_name || ' at non-public bucket ' || REQUEST_PARAMETERS['bucketName']::string as description
-    , 'SnowAlert' as detector
-    , RAW as event_data
-    , USER_IDENTITY['accountId']::string as actor
-    , event_name as action
-    , 'Critical' as severity
-    , '1fda47b046ac4030a7cc7de536941e8a' as query_id
-    , 'aws_internal_bucket_access_v' as query_name
-  from snowalert.data.cloudtrail_v as cloudtrail
-  where 1=1
-    and affectedobject not like '%public'
-    and USER_IDENTITY['accountId'] not in
-        (
-            select distinct account_id from snowalert.prod.aws_account_map
-        )
+CREATE OR REPLACE VIEW rules.aws_internal_bucket_access_alert_query COPY GRANTS
+  COMMENT='AWS Internal Bucket Access by external account
+  @id 1fda47b046ac4030a7cc7de536941e8a'
+AS
+SELECT
+      OBJECT_CONSTRUCT(
+        'cloud', 'AWS',
+        'deployment', cloudtrail.deployment,
+        'account', cloudtrail.recipient_account_id
+      ) AS environment
+    , ARRAY_CONSTRUCT('cloudtrail') AS sources
+    , request_parameters['bucketName']::string AS object
+    , 'Internal Bucket Accessed By External Account' AS title
+    , event_time AS event_time
+    , 'User from external account ' || USER_IDENTITY['accountId']::string || ' performed ' || event_name || ' at non-public bucket ' || REQUEST_PARAMETERS['bucketName']::string AS description
+    , 'SnowAlert' AS detector
+    , raw AS event_data
+    , user_identity['accountId']::string AS actor
+    , event_name AS action
+    , 'critical' AS severity
+    , '1fda47b046ac4030a7cc7de536941e8a' AS query_id
+FROM data.cloudtrail_v AS cloudtrail
+WHERE 1=1
+  AND affectedobject NOT LIKE '%public'
+  AND user_identity['accountId'] NOT IN (
+    SELECT DISTINCT account_id FROM prod.aws_account_map
+  )
 ;
 
-grant select on view snowalert.rules.aws_root_account_activity_alert_query to role snowalert;
+GRANT SELECT ON view rules.aws_root_account_activity_alert_query TO ROLE snowalert;
