@@ -183,7 +183,6 @@ def connect(name, options):
     comment = f"""
 ---
 module: azure_log
-name: {name}
 storage_account: {options['account_name']}
 blob_name: {options['blob_name']}
 sas_token: {options['sas_token']}

@@ -109,11 +109,6 @@ def connect(name, options):
     prefix = options.get('filter', 'AWSLogs/')
     role = options['aws_role']
 
-    comment = f"""
----
-name: {name}
-"""
-
     db.create_stage(
         name=f'{name}_STAGE',
         url=f's3://{bucket}',

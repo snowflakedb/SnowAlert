@@ -38,7 +38,6 @@ def connect(name, options):
     comment = f"""
 ---
 module: okta
-name: {table_name}
 api_key: {options['api_key']}
 subdomain: {options['subdomain']}
 """
