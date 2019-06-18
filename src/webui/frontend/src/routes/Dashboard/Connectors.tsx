@@ -216,7 +216,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
               <a onClick={() => this.selectConnector(c.name)}>
-                <Icon type="link" /> connect
+                <Icon type="link" /> Connect
               </a>,
             ]}
           >
