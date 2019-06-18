@@ -178,39 +178,45 @@ AZURE_TABLE_COLUMNS = {
 }
 
 
-def connect(name, options):
-    name = f"AZURE_{options['log_type']}_{name}"
+def connect(connection_name, options):
+    log_type = options['log_type']
+    base_name = f"AZURE_{connection_name}_{log_type}"
+    account_name = options['account_name']
+    blob_name = options['blob_name']
+    suffix = options['suffix']
+    sas_token = options['sas_token']
+
     comment = f"""
 ---
 module: azure_log
-storage_account: {options['account_name']}
-blob_name: {options['blob_name']}
-sas_token: {options['sas_token']}
-suffix: {options['suffix']}
+storage_account: {account_name}
+blob_name: {blob_name}
+sas_token: {sas_token}
+suffix: {suffix}
 """
 
     db.create_stage(
-        name=f'{name}_STAGE',
-        url=f"azure://{options['account_name']}.blob.{options['suffix']}/{options['blob_name']}",
+        name=f'{base_name}_STAGE',
+        url=f"azure://{account_name}.blob.{suffix}/{blob_name}",
         cloud='azure',
         prefix='',
-        credentials=options['sas_token'],
+        credentials=sas_token,
         file_format=FILE_FORMAT
     )
 
-    db.execute(f'GRANT USAGE ON STAGE DATA.{name}_STAGE TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT USAGE ON STAGE DATA.{base_name}_STAGE TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=f'{name}_CONNECTION',
-        cols=AZURE_TABLE_COLUMNS[options['log_type']],
+        name=f'{base_name}_CONNECTION',
+        cols=AZURE_TABLE_COLUMNS[log_type],
         comment=comment
     )
 
-    db.execute(f'GRANT INSERT, SELECT ON DATA.{name}_CONNECTION TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON DATA.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
     pipe_sql = {
         'operation': f"""
-COPY INTO DATA.{name}_CONNECTION(RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
+COPY INTO DATA.{base_name}_CONNECTION(RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
                                  IDENTITY, IDENTITY_AUTHORIZATION, IDENTITY_CLAIMS, LEVEL, LOCATION,
                                  OPERATION_NAME, PROPERTIES, PROPERTIES_ANCESTORS, PROPERTIES_IS_COMPLIANCE_CHECK,
                                  PROPERTIES_POLICIES, PROPERTIES_RESOURCE_LOCAATION, RESOURCE_ID, RESULT_SIGNATURE,
@@ -222,10 +228,10 @@ FROM (
         $1:properties.ancestors::STRING, $1:properties.isComplianceCheck::STRING, PARSE_JSON($1:properties.policies),
         $1:properties.resourceLocation::STRING, $1:resourceId::STRING, $1:resultSignature::STRING,
         $1:resultType::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
-    FROM @DATA.{name}_STAGE)
+    FROM @DATA.{base_name}_STAGE)
 """,
         'audit': f"""
-COPY INTO data.{name}_CONNECTION (RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
+COPY INTO data.{base_name}_CONNECTION (RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
                                   DURATION_MS, LEVEL, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
                                   PROPERTIES_ACTIVITY_DATE_TIME, PROPERTIES_ACTIVITY_DISPLAY_NAME,
                                   PROPERTIES_ADDITIONAL_DETAILS, PROPERTIES_CATEGORY, PROPERTIES_ID,
@@ -241,11 +247,11 @@ FROM (
         $1:properties.loggedByService::STRING, $1:properties.operationType::STRING, $1:properties.result::STRING,
         $1:resultReason::STRING, $1:properties.targetResources::VARIANT, $1:resourceId::STRING,
         $1:resultSignature::STRING, $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
-  FROM @data.{name}_stage
+  FROM @data.{base_name}_STAGE
 )
 """,
         'signin': f"""
-COPY INTO DATA.{name}_CONNECTION (
+COPY INTO DATA.{base_name}_CONNECTION (
     RAW, HASH_RAW, LEVEL, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
     IDENTITY, LOCATION, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
     PROPERTIES_APP_DISPLAY_NAME, PROPERTIES_APP_ID,
@@ -262,92 +268,88 @@ COPY INTO DATA.{name}_CONNECTION (
 )
 FROM (
     SELECT $1, HASH($1), $1:Level::NUMBER, $1:callerIpAddress::STRING, $1:category::STRING, $1:correlationId::STRING,
-        $1:durationMs, $1:identity::STRING, $1:location::STRING, $1:operationName::STRING, $1:operationVersion::STRING,
-        $1:properties::VARIANT, $1:properties.appDisplayName::STRING, $1:properties.appId::STRING,
-        $1:properties.appliedConditionalAccessPolicies::VARIANT, $1:properties.authenticationMethodsUsed::VARIANT,
-        $1:properties.authenticationProcessingDetails::VARIANT, $1:properties.clientAppUsed::STRING,
-        $1:properties.conditionalAccessStatus::STRING, $1:properties.createdDateTime::TIMESTAMP_LTZ,
-        $1:properties.deviceDetail::VARIANT, $1:properties.id::STRING, $1:properties.ipAddress::STRING,
-        $1:properties.isInteractive::BOOLEAN, $1:properties.location::VARIANT, $1:properties.mfaDetail::VARIANT,
-        $1:properties.networkLocationDetails::VARIANT, $1:properties.processingTimeInMilliseconds::NUMBER,
-        $1:properties.resourceDisplayName::STRING, $1:properties.resourceId::STRING, $1:properties.riskDetail::STRING,
-        $1:properties.riskEventTypes::VARIANT, $1:properties.riskLevelAggregated::STRING,
-        $1:properties.riskLevelDuringSignIn::STRING, $1:properties.riskState::VARIANT, $1:properties.status::VARIANT,
-        $1:properties.tokenIssuerType::STRING, $1:properties.userDisplayName::STRING, $1:properties.userId::STRING,
-        $1:properties.userPrincipalName::STRING, $1:resourceId::STRING, $1:resultDescription::STRING,
-        $1:resultSignature::STRING, $1:resultType::STRING, $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ,
+        $1:durationMs, $1:identity::STRING, $1:location::STRING, $1:operationName::STRING,
+        $1:operationVersion::STRING, $1:properties::VARIANT, $1:properties.appDisplayName::STRING,
+        $1:properties.appId::STRING, $1:properties.appliedConditionalAccessPolicies::VARIANT,
+        $1:properties.authenticationMethodsUsed::VARIANT, $1:properties.authenticationProcessingDetails::VARIANT,
+        $1:properties.clientAppUsed::STRING, $1:properties.conditionalAccessStatus::STRING,
+        $1:properties.createdDateTime::TIMESTAMP_LTZ, $1:properties.deviceDetail::VARIANT, $1:properties.id::STRING,
+        $1:properties.ipAddress::STRING, $1:properties.isInteractive::BOOLEAN, $1:properties.location::VARIANT,
+        $1:properties.mfaDetail::VARIANT, $1:properties.networkLocationDetails::VARIANT,
+        $1:properties.processingTimeInMilliseconds::NUMBER, $1:properties.resourceDisplayName::STRING,
+        $1:properties.resourceId::STRING, $1:properties.riskDetail::STRING, $1:properties.riskEventTypes::VARIANT,
+        $1:properties.riskLevelAggregated::STRING, $1:properties.riskLevelDuringSignIn::STRING,
+        $1:properties.riskState::VARIANT, $1:properties.status::VARIANT, $1:properties.tokenIssuerType::STRING,
+        $1:properties.userDisplayName::STRING, $1:properties.userId::STRING, $1:properties.userPrincipalName::STRING,
+        $1:resourceId::STRING, $1:resultDescription::STRING, $1:resultSignature::STRING, $1:resultType::STRING,
+        $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ,
         CURRENT_TIMESTAMP()
-    FROM @DATA.{name}_STAGE
+    FROM @DATA.{base_name}_STAGE
 )
 """
     }
 
     db.create_pipe(
-        name=f"{name}_PIPE",
+        name=f"{base_name}_PIPE",
         sql=pipe_sql[options['log_type']],
-        replace=True)
+        replace=True
+    )
 
-    db.execute(f'ALTER PIPE DATA.{name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
-    db.execute(f'GRANT OWNERSHIP ON PIPE DATA.{name}_PIPE TO ROLE {SA_ROLE}')
+    db.execute(f'ALTER PIPE DATA.{base_name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
+    db.execute(f'GRANT OWNERSHIP ON PIPE DATA.{base_name}_PIPE TO ROLE {SA_ROLE}')
 
     return {'newStage': 'finalized', 'newMessage': 'Table, Stage, and Pipe created'}
 
 
-def ingest(name, options):
+def ingest(table_name, options):
+    base_name = re.sub(r'_CONNECTION$', '', table_name)
+    storage_account = options['storage_account']
+    sas_token = options['sas_token']
+    suffix = options['suffix']
+    blob_name = options['blob_name']
+
     required_envars = {'SA_USER', 'SNOWFLAKE_ACCOUNT'}
     missing_envars = required_envars - set(environ)
     if missing_envars:
         raise RuntimeError(f'Missing required env variable(s): {missing_envars}')
 
+    SNOWFLAKE_ACCOUNT = environ['SNOWFLAKE_ACCOUNT']
+    SA_USER = environ['SA_USER']
+
     block_blob_service = BlockBlobService(
-        account_name=options['storage_account'],
-        sas_token=options['sas_token'],
-        endpoint_suffix=options['suffix']
+        account_name=storage_account,
+        sas_token=sas_token,
+        endpoint_suffix=suffix
     )
-    base_name = re.sub(r'_CONNECTION$', '', name)
 
     db.execute(f"select SYSTEM$PIPE_FORCE_RESUME('DATA.{base_name}_PIPE');")
 
-    files = block_blob_service.list_blobs(options['blob_name'])
+    files = block_blob_service.list_blobs(blob_name)
 
-    timestamp_query = f"""
-    SELECT loaded_on
-    FROM data.{name}
-    ORDER BY loaded_on DESC
-    LIMIT 1
-    """
-    ts = next(db.fetch(timestamp_query), None)
-    last_loaded = ts['LOADED_ON'] if ts else None
+    last_loaded = db.fetch_latest(f'data.{table_name}', 'loaded_on')
 
     log.info(f"Last loaded time is {last_loaded}")
 
-    new_files = []
-    if last_loaded:
-        for file in files:
-            if file.properties.creation_time > last_loaded:
-                new_files.append(StagedFile(file.name, None))
-    else:
-        for file in files:
-            new_files.append(StagedFile(file.name, None))
+    new_files = [
+        StagedFile(f.name, None) for f in files if (
+            last_loaded and f.properties.creation_time > last_loaded
+        )
+    ]
 
     log.info(f"Found {len(new_files)} files to ingest")
 
     # Proxy object that abstracts the Snowpipe REST API
     ingest_manager = SimpleIngestManager(
-        account=environ.get('SNOWFLAKE_ACCOUNT'),
-        host=f'{environ.get("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com',
-        user=environ.get('SA_USER'),
+        account=SNOWFLAKE_ACCOUNT,
+        host=f'{SNOWFLAKE_ACCOUNT}.snowflakecomputing.com',
+        user=SA_USER,
         pipe=f'{DATABASE}.DATA.{base_name}_PIPE',
         private_key=load_pkb_rsa(PRIVATE_KEY, PRIVATE_KEY_PASSWORD)
     )
 
     if len(new_files) > 0:
-        try:
-            response = ingest_manager.ingest_files(new_files)
-            log.info(response)
-        except Exception as e:
-            log.error(e)
-            return
+        response = ingest_manager.ingest_files(new_files)
+        log.info(response)
 
 
 def test(name):

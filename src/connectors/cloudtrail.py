@@ -102,15 +102,20 @@ STEP 2: For Role "{role}", add the following inline policy:
 """
 
 
-def connect(name, options):
-    name = f'CLOUDTRAIL_{name}'.upper()
+def connect(connection_name, options):
+    base_name = f'CLOUDTRAIL_{connection_name}'.upper()
 
     bucket = options['bucket_name']
     prefix = options.get('filter', 'AWSLogs/')
     role = options['aws_role']
 
+    comment = f"""
+---
+module: cloudtrail
+"""
+
     db.create_stage(
-        name=f'{name}_STAGE',
+        name=f'{base_name}_STAGE',
         url=f's3://{bucket}',
         prefix=prefix,
         cloud='aws',
@@ -119,18 +124,18 @@ def connect(name, options):
     )
 
     db.create_table(
-        name=f'{name}_STAGING',
+        name=f'{base_name}_STAGING',
         cols=[('v', 'variant')]
     )
 
     db.create_table(
-        name=f'{name}_EVENTS_CONNECTION',
+        name=f'{base_name}_EVENTS_CONNECTION',
         cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS,
         comment=comment
     )
 
     results = {}
-    stage_data = db.fetch(f'DESC STAGE DATA.{name}_STAGE')
+    stage_data = db.fetch(f'DESC STAGE DATA.{base_name}_STAGE')
     for row in stage_data:
         if row['property'] in ('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER'):
             results[row['property']] = row['property_value']
@@ -187,12 +192,12 @@ def connect(name, options):
     }
 
 
-def finalize(name):
-    name = f'CLOUDTRAIL_{name}'.upper()
+def finalize(connection_name):
+    base_name = f'CLOUDTRAIL_{connection_name}'.upper()
 
     # Step two: Configure the remainder once the role is properly configured.
     cloudtrail_ingest_task = f"""
-INSERT INTO DATA.{name}_EVENTS_CONNECTION (
+INSERT INTO DATA.{base_name}_EVENTS_CONNECTION (
   raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
   recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
   user_agent, user_identity, user_identity_type, user_identity_principal_id, user_identity_arn,
@@ -242,32 +247,41 @@ SELECT value raw
     , value:serviceEventDetails::STRING service_event_details
     , value:sharedEventID::STRING shared_event_id
     , value:vpcEndpointID::STRING vpc_endpoint_id
-FROM DATA.{name}_STREAM, table(flatten(input => v:Records))
+FROM DATA.{base_name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
 """
 
-    db.create_stream(name=f'{name}_STREAM', target=f'{name}_STAGING')
+    db.create_stream(name=f'{base_name}_STREAM', target=f'{base_name}_STAGING')
 
-    sleep(7)  # We need to make sure the IAM change has time to take effect.
-    pipe_sql = f"COPY INTO DATA.{name}_STAGING(v) FROM @DATA.{name}_STAGE/"
-    db.create_pipe(name=f'{name}_PIPE', sql=pipe_sql, replace=True, autoingest=True)
+    # IAM change takes 5-15 seconds to take effect
+    sleep(5)
+    db.retry(
+        lambda: db.create_pipe(
+            name=f'{base_name}_PIPE',
+            sql=f"COPY INTO DATA.{base_name}_STAGING(v) FROM @DATA.{base_name}_STAGE/",
+            replace=True,
+            autoingest=True
+        ),
+        n=10,
+        sleep_seconds_btw_retry=1
+    )
 
-    db.create_task(name=f'{name}_TASK', schedule='1 minute',
+    db.create_task(name=f'{base_name}_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
-    db.execute(f"ALTER PIPE DATA.{name}_PIPE REFRESH")
+    db.execute(f"ALTER PIPE DATA.{base_name}_PIPE REFRESH")
 
-    sqs_arn = next(db.fetch(f'DESC PIPE DATA.{name}_PIPE'))['notification_channel']
+    sqs_arn = next(db.fetch(f'DESC PIPE DATA.{base_name}_PIPE'))['notification_channel']
     output = {'title': 'Next Steps', 'body': f"""
 Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}"""}
 
     return {'newStage': 'finalized', 'newMessage': output}
 
 
-def test(name):
-    yield db.fetch(f'ls @DATA.{name}_STAGE')
-    yield db.fetch(f'DESC TABLE DATA.{name}_STAGING')
-    yield db.fetch(f'DESC STREAM DATA.{name}_STREAM')
-    yield db.fetch(f'DESC PIPE DATA.{name}_PIPE')
-    yield db.fetch(f'DESC TABLE DATA.{name}_EVENTS_CONNECTION')
-    yield db.fetch(f'DESC TASK DATA.{name}_TASK')
+def test(base_name):
+    yield db.fetch(f'ls @DATA.{base_name}_STAGE')
+    yield db.fetch(f'DESC TABLE DATA.{base_name}_STAGING')
+    yield db.fetch(f'DESC STREAM DATA.{base_name}_STREAM')
+    yield db.fetch(f'DESC PIPE DATA.{base_name}_PIPE')
+    yield db.fetch(f'DESC TABLE DATA.{base_name}_EVENTS_CONNECTION')
+    yield db.fetch(f'DESC TASK DATA.{base_name}_TASK')

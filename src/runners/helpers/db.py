@@ -2,6 +2,7 @@
 from datetime import datetime
 import json
 from threading import local
+import time
 from typing import List, Tuple
 from os import getpid
 from re import match
@@ -21,12 +22,13 @@ CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 
 
-def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
+def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_retry=0):
     while 1:
         try:
             return f()
         except E as e:
             n -= 1
+            time.sleep(sleep_seconds_btw_retry)
             for exception, handler in handlers:
                 if isinstance(e, exception):
                     return handler(e)
@@ -144,6 +146,11 @@ def connect_and_execute(queries=None):
 def connect_and_fetchall(query):
     ctx = connect()
     return ctx, execute(query).fetchall()
+
+
+def fetch_latest(table, col):
+    ts = next(fetch(f'SELECT {col} FROM {table} ORDER BY {col} DESC LIMIT 1'), None)
+    return ts[col.upper()] if ts else None
 
 
 ###

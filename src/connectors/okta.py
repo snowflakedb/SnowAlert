@@ -32,8 +32,8 @@ OKTA_LANDING_TABLE_COLUMNS = [
 ]
 
 
-def connect(name, options):
-    table_name = f'okta_{name}_connection'
+def connect(connection_name, options):
+    table_name = f'okta_{connection_name}_connection'
 
     comment = f"""
 ---
@@ -59,24 +59,14 @@ def ingest(table_name, options):
 
     url = f"https://{options['subdomain']}.okta.com/api/v1/logs"
 
-    timestamp_query = f"""
-    SELECT event_time
-    FROM data.{table_name}
-    WHERE event_time IS NOT NULL
-    ORDER BY event_time DESC
-    LIMIT 1
-    """
-
     metadata = {
         'START_TIME': datetime.datetime.utcnow(),
         'TYPE': 'Okta',
         'TARGET_TABLE': table_name
     }
 
-    try:
-        ts = next(db.fetch(timestamp_query))['EVENT_TIME']
-
-    except Exception:
+    ts = db.fetch_latest(f'data.{table_name}', 'event_time')
+    if ts is None:
         log.error(
             "Unable to find a timestamp of most recent Okta log, "
             "defaulting to one hour ago"

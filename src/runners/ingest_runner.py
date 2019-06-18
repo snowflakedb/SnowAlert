@@ -26,14 +26,23 @@ def main(connection_table="%_CONNECTION"):
     # data connections
     for table in db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"):
         log.info(f"Starting {table['name']}")
-        options = yaml.load(table['comment'])
-        if 'module' in options:
-            connector = importlib.import_module(f"connectors.{options['module']}")
-            for option in options:
-                for module_option in connector.CONNECTION_OPTIONS:
-                    if module_option['name'] == option and module_option.get('secret'):
-                        options[option] = kms.decrypt_if_encrypted(options[option])
-            connector.ingest(table['name'], options)
+        try:
+            options = yaml.load(table['comment'])
+            if 'module' in options:
+                connector = importlib.import_module(f"connectors.{options['module']}")
+
+                for option in options:
+                    for module_option in connector.CONNECTION_OPTIONS:
+                        if module_option['name'] == option and module_option.get('secret'):
+                            options[option] = kms.decrypt_if_encrypted(options[option])
+
+                if callable(getattr(connector, 'ingest', None)):
+                    connector.ingest(table['name'], options)
+
+        except Exception as e:
+            log.error(e)
+
+        log.info(f"Finished {table['name']}")
 
 
 if __name__ == "__main__":

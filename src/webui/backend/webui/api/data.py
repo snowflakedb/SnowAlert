@@ -61,14 +61,18 @@ def post_connector(connector, name):
     options = request.get_json()
     connector = importlib.import_module(f"connectors.{connector}")
 
-    for opt in connector.CONNECTION_OPTIONS:
-        opt_name = opt['name']
-        opt_title = opt.get('title', opt_name)
-        if opt.get('required') and opt_name not in options:
-            return {
-                'success': False,
-                'errorMessage': f"Missing required option '{opt_title}'.",
-            }
+    required_options = {
+        o['name']: o for o in connector.CONNECTION_OPTIONS if o.get('required')
+    }
+    missing_option_names = set(required_options) - set(options)
+    if missing_option_names:
+        missing_options = [required_options[n] for n in missing_option_names]
+        missing_titles = set(o.get('title', o['name']) for o in missing_options)
+        missing_titles_str = '\n  - ' + '\n  - '.join(missing_titles)
+        return {
+            'success': False,
+            'errorMessage': f"Missing required option(s):{missing_titles_str}",
+        }
 
     return connector.connect(name, options)
 
