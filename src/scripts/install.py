@@ -418,12 +418,14 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None, config_account=None,
-         config_region=None, config_username=None, config_password=None, connection_name=None,
-         uninstall=False, set_env_vars=False, verbose=False):
+def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=None, jira=None, config_account=None,
+         config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False,
+         set_env_vars=False, verbose=False):
 
     global VERBOSE
     VERBOSE = verbose
+
+    samples = samples and _samples  # so that --no-samples works, as well
 
     configuration = connection_name if connection_name is not None else {
         'region': config_region or environ.get('REGION'),
