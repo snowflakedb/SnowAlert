@@ -77,7 +77,7 @@ class UserLayout extends React.PureComponent<UserLayoutProps> {
               <div className={'user-header'}>
                 <a href={'javascript:void(0)'} onClick={() => this.props.setViewport(routes.DEFAULT)}>
                   <img alt="logo" className={'logo'} src={logo} />
-                  <span className={'title'}>WebUI</span>
+                  <span className={'title'}>SnowAlert</span>
                 </a>
               </div>
               <div className={'desc'}>SnowAlert Web UI</div>

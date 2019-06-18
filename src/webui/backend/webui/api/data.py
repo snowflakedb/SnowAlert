@@ -63,10 +63,11 @@ def post_connector(connector, name):
 
     for opt in connector.CONNECTION_OPTIONS:
         opt_name = opt['name']
+        opt_title = opt.get('title', opt_name)
         if opt.get('required') and opt_name not in options:
             return {
                 'success': False,
-                'errorMessage': f"Missing required option '{opt_name}'.",
+                'errorMessage': f"Missing required option '{opt_title}'.",
             }
 
     return connector.connect(name, options)

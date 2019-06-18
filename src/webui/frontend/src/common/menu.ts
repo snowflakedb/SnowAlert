@@ -3,6 +3,12 @@ import * as stateTypes from '../reducers/types';
 
 const menuData: stateTypes.MenuData = [
   {
+    name: 'Data Connectors',
+    icon: 'api',
+    path: 'dashboard/connectors',
+    roles: [roles.ADMIN, roles.USER],
+  },
+  {
     name: 'Alerts',
     icon: 'alert',
     path: 'dashboard/alerts',
@@ -12,12 +18,6 @@ const menuData: stateTypes.MenuData = [
     name: 'Violations',
     icon: 'eye',
     path: 'dashboard/violations',
-    roles: [roles.ADMIN, roles.USER],
-  },
-  {
-    name: 'Data Connectors',
-    icon: 'api',
-    path: 'dashboard/connectors',
     roles: [roles.ADMIN, roles.USER],
   },
   {
