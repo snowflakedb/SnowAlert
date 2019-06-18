@@ -15,10 +15,6 @@ from snowflake.ingest import SimpleIngestManager
 from snowflake.ingest import StagedFile
 
 
-class RequiredOptionMissing(RuntimeError):
-    pass
-
-
 CONNECTION_OPTIONS = [
     {
         'type': 'str',
@@ -180,31 +176,6 @@ AZURE_TABLE_COLUMNS = {
 
 
 def connect(name, options):
-    try:
-        options['account_name']
-    except KeyError:
-        raise RequiredOptionMissing('account_name')
-
-    try:
-        options['blob_name']
-    except KeyError:
-        raise RequiredOptionMissing('blob_name')
-
-    try:
-        options['sas_token']
-    except KeyError:
-        raise RequiredOptionMissing('sas_token')
-
-    try:
-        options['suffix']
-    except KeyError:
-        raise RequiredOptionMissing('suffix')
-
-    try:
-        options['log_type']
-    except KeyError:
-        raise RequiredOptionMissing('log_type')
-
     name = f"AZURE_{options['log_type']}_{name}"
     comment = f"""
 ---
