@@ -1,17 +1,20 @@
-import os
-from base64 import b64decode
+from os import environ
+from base64 import b64decode, b64encode
 from typing import Optional
 
 import boto3
+from botocore.exceptions import ClientError
 
 from .dbconfig import REGION
+
+KMS_KEY = environ.get('SA_KMS_KEY')
 
 kms = boto3.client('kms', region_name=REGION)
 
 
 def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) -> Optional[str]:
     if envar:
-        ct = os.environ.get(envar)
+        ct = environ.get(envar)
 
     if not ct or len(ct) < 205:  # 1-byte plaintext has 205-byte ct
         return ct
@@ -28,5 +31,15 @@ def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) 
 
         return res['Plaintext'].decode()
 
+    except ClientError:
+        raise
+
     except Exception:
         return ct
+
+
+def encrypt(pt):
+    return b64encode(kms.encrypt(
+        KeyId=KMS_KEY,
+        Plaintext=pt,
+    )['CiphertextBlob']).decode()

@@ -70,17 +70,17 @@ class UserLayout extends React.PureComponent<UserLayoutProps> {
     const ViewportComponent = viewportContent.component as React.ComponentClass;
 
     return (
-      <DocumentTitle title={'SnowAlert Management UI'}>
+      <DocumentTitle title={'SnowAlert Web UI'}>
         <div className={'container'}>
           <div className={'content'}>
             <div className={'top'}>
               <div className={'user-header'}>
                 <a href={'javascript:void(0)'} onClick={() => this.props.setViewport(routes.DEFAULT)}>
                   <img alt="logo" className={'logo'} src={logo} />
-                  <span className={'title'}>SAMUI</span>
+                  <span className={'title'}>SnowAlert</span>
                 </a>
               </div>
-              <div className={'desc'}>SnowAlert Management UI</div>
+              <div className={'desc'}>SnowAlert Web UI</div>
             </div>
             <ViewportComponent />
           </div>

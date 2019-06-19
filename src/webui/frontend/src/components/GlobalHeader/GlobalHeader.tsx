@@ -22,7 +22,6 @@ import {State} from '../../reducers/types';
 import * as stateTypes from '../../reducers/types';
 // import {HeaderSearch} from '../HeaderSearch';
 // import Link from '../Link';
-// import {NoticeIcon, NotificationDetails} from '../NoticeIcon';
 import './GlobalHeader.css';
 
 const {Header} = Layout;
@@ -120,7 +119,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     );
 
     return (
-      <Header className={'header'} tagName={'header'}>
+      <Header className={'header'}>
         <div className={'right'}>
           {auth && auth.username ? (
             <Dropdown overlay={menu} trigger={['click']}>
@@ -152,17 +151,6 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
               <Icon type="question-circle-o" />
             </a>
           </Tooltip>
-          <NoticeIcon
-            className={'action'}
-            count={notificationsData.length}
-            onClear={this.handleNoticeClear}
-            onPopupVisibleChange={this.handleNoticeVisibleChange}
-            loading={notifications.isFetching}
-            list={notificationsData}
-            title={'Notifications'}
-            emptyText={'No notifications'}
-            clearText={'Clear'}
-          />
           {auth.email ? (
 
           ) : (

@@ -44,14 +44,17 @@ export const getRouterData = () => {
     [routes.DEFAULT]: {
       component: dynamicWrapper(() => import('../layouts/BasicLayout')),
     },
-    [routes.POLICIES]: {
-      component: dynamicWrapper(() => import('../routes/Dashboard/Policies')),
-    },
     [routes.ALERTS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Alerts')),
     },
     [routes.VIOLATIONS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Violations')),
+    },
+    [routes.POLICIES]: {
+      component: dynamicWrapper(() => import('../routes/Dashboard/Policies')),
+    },
+    [routes.CONNECTORS]: {
+      component: dynamicWrapper(() => import('../routes/Dashboard/Connectors')),
     },
     // [routes.USER]: {
     //   component: dynamicWrapper(() => import('../layouts/UserLayout')),
