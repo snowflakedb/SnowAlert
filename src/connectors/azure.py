@@ -1,5 +1,5 @@
-"""Azure Log
-Collects one of Azure AD Signin, AD Activity, or Operation logs into columnar tables
+"""Azure
+Collects one of AD Signin, AD Activity, or Operation log into a columnar table
 """
 
 import re
