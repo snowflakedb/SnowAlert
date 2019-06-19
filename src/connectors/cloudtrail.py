@@ -127,7 +127,7 @@ module: cloudtrail
     )
 
     db.create_table(
-        name=f'data.{staging_table}',
+        name=staging_table,
         cols=[('v', 'variant')]
     )
 
