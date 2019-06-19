@@ -63,8 +63,7 @@ def main():
         try:
             r = requests.get(url=url, headers=HEADERS, params=timestamp)
             if str(r) != '<Response [200]>':
-                log.error('OKTA REQUEST FAILED: ', r.text)
-                break
+                log.fatal('OKTA REQUEST FAILED: ', r.text)
             process_logs(json.loads(r.text))
             if len(r.text) == 2:
                 break
