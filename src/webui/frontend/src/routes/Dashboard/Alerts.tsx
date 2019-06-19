@@ -6,14 +6,12 @@ import {newRule, renameRule} from '../../actions/rules';
 import {RuleDashboard} from '../../components/Dashboard';
 import '../../index.css';
 import {getRules} from '../../reducers/rules';
-import {getAuthDetails} from '../../reducers/auth';
 import * as stateTypes from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
 
 import './Alerts.css';
 
 interface StateProps {
-  auth: stateTypes.AuthDetails;
   rules: stateTypes.SnowAlertRulesState;
 }
 
@@ -221,7 +219,6 @@ class AlertsDashboard extends React.PureComponent<Props> {
 
 const mapStateToProps = (state: stateTypes.State) => {
   return {
-    auth: getAuthDetails(state),
     rules: getRules(state),
   };
 };

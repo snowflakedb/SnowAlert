@@ -75,7 +75,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     const {routerData} = this.props;
     const {viewport} = this.props.viewport;
 
-    let title = 'SAMUI';
+    let title = 'SnowAlert';
     const viewportData = routerData[viewport];
     if (viewportData && viewportData.name) {
       title = `${viewportData.name} - ${title}`;
@@ -99,7 +99,7 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
     }
 
     const layout = (
-      <Layout tagName="header">
+      <Layout>
         <DrawerSiderMenu
           logo={logo}
           menuData={getMenuData()}
@@ -107,13 +107,13 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
           isMobile={this.state.isMobile}
           onCollapse={this.handleMenuCollapse}
         />
-        <Layout tagName="main">
+        <Layout>
           <GlobalHeader
             menuCollapsed={this.state.menuCollapsed}
             isMobile={this.state.isMobile}
             onMenuCollapse={this.handleMenuCollapse}
           />
-          <Content style={{margin: '24px 24px 0', height: '100%'}} tagName="section">
+          <Content style={{margin: '24px 24px 0', height: '100%'}}>
             <AuthorizedRoute component={content.component} roles={content.roles} />
           </Content>
           <GlobalFooter copyright={<div />} />

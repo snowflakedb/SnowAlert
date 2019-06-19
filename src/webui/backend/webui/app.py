@@ -1,19 +1,29 @@
 import sys
 
-from flask import Flask, request
+from flask import Flask, request, json
 import logbook
 
 from webui import config
 from webui.gunicorn_conf import host, port
-from webui.api import rules_api
+from webui.api import rules_api, data_api
 from webui.api.oauth import oauth_api
 from webui.views import app_views
+
+from runners.utils import json_dumps
 
 
 URL_EXTENSIONS_CACHED = ('js', 'woff2')
 
 
+class SAJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        return json_dumps(o)
+
+
 class SAFlask(Flask):
+    def json_encoder(self, **kwargs):
+        return SAJSONEncoder(**kwargs)
+
     def get_send_file_max_age(self, name):
         if not name.split('.')[-1].lower() in URL_EXTENSIONS_CACHED:
             return 0
@@ -27,6 +37,7 @@ app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
 
 app.register_blueprint(app_views)
+app.register_blueprint(data_api, url_prefix='/api/sa/data')
 app.register_blueprint(rules_api, url_prefix='/api/sa/rules')
 app.register_blueprint(oauth_api, url_prefix='/api/sa/oauth')
 

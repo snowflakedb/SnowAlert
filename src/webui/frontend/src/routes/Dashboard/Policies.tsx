@@ -86,7 +86,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
         <Row>
           <List
             itemLayout="vertical"
-            dataSource={policies}
+            dataSource={Array.from(policies)}
             renderItem={(policy: Policy) => (
               <List.Item>
                 <List.Item.Meta
