@@ -20,15 +20,15 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'account_name',
         'title': 'Storage Account',
-        'prompt': 'The storage account holding your log blobs',
+        'prompt': 'The account with your log blobs',
         'placeholder': 'azstorageaccount',
         'required': True
     },
     {
         'type': 'str',
-        'name': 'blob_name',
-        'title': 'Blob Name',
-        'prompt': 'Blob in the Storage Account containing the logs',
+        'name': 'container_name',
+        'title': 'Container Name',
+        'prompt': 'Container in the Storage Account with your log blobs',
         'placeholder': 'insights-logs',
         'required': True
     },
@@ -182,7 +182,7 @@ def connect(connection_name, options):
     log_type = options['log_type']
     base_name = f"AZURE_{connection_name}_{log_type}"
     account_name = options['account_name']
-    blob_name = options['blob_name']
+    container_name = options['container_name']
     suffix = options['suffix']
     sas_token = options['sas_token']
 
@@ -190,14 +190,14 @@ def connect(connection_name, options):
 ---
 module: azure_log
 storage_account: {account_name}
-blob_name: {blob_name}
+container_name: {container_name}
 sas_token: {sas_token}
 suffix: {suffix}
 """
 
     db.create_stage(
         name=f'{base_name}_STAGE',
-        url=f"azure://{account_name}.blob.{suffix}/{blob_name}",
+        url=f"azure://{account_name}.blob.{suffix}/{container_name}",
         cloud='azure',
         prefix='',
         credentials=sas_token,
@@ -306,7 +306,7 @@ def ingest(table_name, options):
     storage_account = options['storage_account']
     sas_token = options['sas_token']
     suffix = options['suffix']
-    blob_name = options['blob_name']
+    container_name = options['container_name']
 
     required_envars = {'SA_USER', 'SNOWFLAKE_ACCOUNT'}
     missing_envars = required_envars - set(environ)
@@ -324,15 +324,14 @@ def ingest(table_name, options):
 
     db.execute(f"select SYSTEM$PIPE_FORCE_RESUME('DATA.{base_name}_PIPE');")
 
-    files = block_blob_service.list_blobs(blob_name)
-
     last_loaded = db.fetch_latest(f'data.{table_name}', 'loaded_on')
 
     log.info(f"Last loaded time is {last_loaded}")
 
+    blobs = block_blob_service.list_blobs(container_name)
     new_files = [
-        StagedFile(f.name, None) for f in files if (
-            last_loaded and f.properties.creation_time > last_loaded
+        StagedFile(b.name, None) for b in blobs if (
+            last_loaded and b.properties.creation_time > last_loaded
         )
     ]
 
