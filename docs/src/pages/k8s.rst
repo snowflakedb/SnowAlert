@@ -18,7 +18,7 @@ suitable for your environment.
 
 Quickstart
 ==========
-To use the included manifests (warninig, they will deploy into the default
+To use the included manifests (warning, they will deploy into the default
 namespace). Modify the sa-secrets.yaml file with base64 encoded values that are
 the result of the non-KMS install process (i.e. the values contained within the
 envs file).
@@ -29,7 +29,7 @@ Assuming you have kubectl configured and pointing to your cluster you can execut
 
 .. code::
 
-    $ kubectl apply -f manifests 
+    $ kubectl apply -f manifests
 
 from within the /infra/k8s/ directory.
 
