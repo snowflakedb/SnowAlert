@@ -187,7 +187,7 @@ def connect(connection_name, options):
 
     comment = f"""
 ---
-module: azure_log
+module: azure
 storage_account: {account_name}
 container_name: {container_name}
 sas_token: {sas_token}
