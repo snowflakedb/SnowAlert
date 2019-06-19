@@ -1,12 +1,11 @@
 """Azure Log
-Collects Azure AD Signin, AD Activity, or Operation logs into a columnar table
+Collects one of Azure AD Signin, AD Activity, or Operation logs into columnar tables
 """
 
-from os import environ
 import re
 
 from runners.helpers.auth import load_pkb_rsa
-from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE
+from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE, USER, ACCOUNT
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.helpers import db, log
 
@@ -193,10 +192,13 @@ storage_account: {account_name}
 container_name: {container_name}
 sas_token: {sas_token}
 suffix: {suffix}
+sa_user: {USER}
+snowflake_account: {ACCOUNT}
+database: {DATABASE}
 """
 
     db.create_stage(
-        name=f'{base_name}_STAGE',
+        name=f'data.{base_name}_STAGE',
         url=f"azure://{account_name}.blob.{suffix}/{container_name}",
         cloud='azure',
         prefix='',
@@ -204,15 +206,15 @@ suffix: {suffix}
         file_format=FILE_FORMAT
     )
 
-    db.execute(f'GRANT USAGE ON STAGE DATA.{base_name}_STAGE TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT USAGE ON STAGE data.{base_name}_STAGE TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=f'{base_name}_CONNECTION',
+        name=f'data.{base_name}_CONNECTION',
         cols=AZURE_TABLE_COLUMNS[log_type],
         comment=comment
     )
 
-    db.execute(f'GRANT INSERT, SELECT ON DATA.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
     pipe_sql = {
         'operation': f"""
@@ -290,13 +292,13 @@ FROM (
     }
 
     db.create_pipe(
-        name=f"{base_name}_PIPE",
+        name=f"data.{base_name}_PIPE",
         sql=pipe_sql[options['log_type']],
         replace=True
     )
 
-    db.execute(f'ALTER PIPE DATA.{base_name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
-    db.execute(f'GRANT OWNERSHIP ON PIPE DATA.{base_name}_PIPE TO ROLE {SA_ROLE}')
+    db.execute(f'ALTER PIPE data.{base_name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
+    db.execute(f'GRANT OWNERSHIP ON PIPE data.{base_name}_PIPE TO ROLE {SA_ROLE}')
 
     return {'newStage': 'finalized', 'newMessage': 'Table, Stage, and Pipe created'}
 
@@ -307,14 +309,9 @@ def ingest(table_name, options):
     sas_token = options['sas_token']
     suffix = options['suffix']
     container_name = options['container_name']
-
-    required_envars = {'SA_USER', 'SNOWFLAKE_ACCOUNT'}
-    missing_envars = required_envars - set(environ)
-    if missing_envars:
-        raise RuntimeError(f'Missing required env variable(s): {missing_envars}')
-
-    SNOWFLAKE_ACCOUNT = environ['SNOWFLAKE_ACCOUNT']
-    SA_USER = environ['SA_USER']
+    snowflake_account = options['snowflake_account']
+    sa_user = options['sa_user']
+    database = options['database']
 
     block_blob_service = BlockBlobService(
         account_name=storage_account,
@@ -339,10 +336,10 @@ def ingest(table_name, options):
 
     # Proxy object that abstracts the Snowpipe REST API
     ingest_manager = SimpleIngestManager(
-        account=SNOWFLAKE_ACCOUNT,
-        host=f'{SNOWFLAKE_ACCOUNT}.snowflakecomputing.com',
-        user=SA_USER,
-        pipe=f'{DATABASE}.DATA.{base_name}_PIPE',
+        account=snowflake_account,
+        host=f'{snowflake_account}.snowflakecomputing.com',
+        user=sa_user,
+        pipe=f'{database}.data.{base_name}_PIPE',
         private_key=load_pkb_rsa(PRIVATE_KEY, PRIVATE_KEY_PASSWORD)
     )
 

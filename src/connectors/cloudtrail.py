@@ -103,7 +103,10 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'CLOUDTRAIL_{connection_name}'.upper()
+    base_name = f'CLOUDTRAIL_{connection_name}_EVENTS'.upper()
+    stage = f'data.{base_name}_STAGE'
+    staging_table = f'data.{base_name}_STAGING'
+    landing_table = f'data.{base_name}_CONNECTION'
 
     bucket = options['bucket_name']
     prefix = options.get('filter', 'AWSLogs/')
@@ -115,7 +118,7 @@ module: cloudtrail
 """
 
     db.create_stage(
-        name=f'{base_name}_STAGE',
+        name=stage,
         url=f's3://{bucket}',
         prefix=prefix,
         cloud='aws',
@@ -124,21 +127,20 @@ module: cloudtrail
     )
 
     db.create_table(
-        name=f'{base_name}_STAGING',
+        name=f'data.{staging_table}',
         cols=[('v', 'variant')]
     )
 
     db.create_table(
-        name=f'{base_name}_EVENTS_CONNECTION',
+        name=landing_table,
         cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS,
         comment=comment
     )
 
-    results = {}
-    stage_data = db.fetch(f'DESC STAGE DATA.{base_name}_STAGE')
-    for row in stage_data:
-        if row['property'] in ('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER'):
-            results[row['property']] = row['property_value']
+    stage_props = db.fetch_props(
+        f'DESC STAGE {stage}',
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+    )
 
     prefix = prefix.rstrip('/')
 
@@ -152,12 +154,12 @@ module: cloudtrail
                     {
                         "Effect": "Allow",
                         "Principal": {
-                            "AWS": results['SNOWFLAKE_IAM_USER']
+                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
                         },
                         "Action": "sts:AssumeRole",
                         "Condition": {
                             "StringEquals": {
-                                "sts:ExternalId": results['AWS_EXTERNAL_ID']
+                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
                             }
                         }
                     }
@@ -193,11 +195,13 @@ module: cloudtrail
 
 
 def finalize(connection_name):
-    base_name = f'CLOUDTRAIL_{connection_name}'.upper()
+    base_name = f'CLOUDTRAIL_{connection_name}_EVENTS'.upper()
+    pipe = f'data.{base_name}_PIPE'
+    landing_table = f'data.{base_name}_CONNECTION'
 
     # Step two: Configure the remainder once the role is properly configured.
     cloudtrail_ingest_task = f"""
-INSERT INTO DATA.{base_name}_EVENTS_CONNECTION (
+INSERT INTO {landing_table} (
   raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
   recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
   user_agent, user_identity, user_identity_type, user_identity_principal_id, user_identity_arn,
@@ -247,18 +251,21 @@ SELECT value raw
     , value:serviceEventDetails::STRING service_event_details
     , value:sharedEventID::STRING shared_event_id
     , value:vpcEndpointID::STRING vpc_endpoint_id
-FROM DATA.{base_name}_STREAM, table(flatten(input => v:Records))
+FROM data.{base_name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
 """
 
-    db.create_stream(name=f'{base_name}_STREAM', target=f'{base_name}_STAGING')
+    db.create_stream(
+        name=f'data.{base_name}_STREAM',
+        target=f'data.{base_name}_STAGING'
+    )
 
     # IAM change takes 5-15 seconds to take effect
     sleep(5)
     db.retry(
         lambda: db.create_pipe(
-            name=f'{base_name}_PIPE',
-            sql=f"COPY INTO DATA.{base_name}_STAGING(v) FROM @DATA.{base_name}_STAGE/",
+            name=pipe,
+            sql=f"COPY INTO data.{base_name}_STAGING(v) FROM @data.{base_name}_STAGE/",
             replace=True,
             autoingest=True
         ),
@@ -266,16 +273,20 @@ WHERE ARRAY_SIZE(v:Records) > 0
         sleep_seconds_btw_retry=1
     )
 
-    db.create_task(name=f'{base_name}_TASK', schedule='1 minute',
+    db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
 
-    db.execute(f"ALTER PIPE DATA.{base_name}_PIPE REFRESH")
+    db.execute(f"ALTER PIPE {pipe} REFRESH")
 
-    sqs_arn = next(db.fetch(f'DESC PIPE DATA.{base_name}_PIPE'))['notification_channel']
-    output = {'title': 'Next Steps', 'body': f"""
-Please add this SQS Queue ARN to the bucket event notification channel for all object create events: {sqs_arn}"""}
+    sqs_arn = db.fetch_props(f'DESC PIPE {pipe}')['notification_channel']
 
-    return {'newStage': 'finalized', 'newMessage': output}
+    return {
+        'newStage': 'finalized',
+        'newMessage': (
+            f"Please add this SQS Queue ARN to the bucket event notification"
+            f"channel for all object create events: {sqs_arn}"
+        )
+    }
 
 
 def test(base_name):
@@ -283,5 +294,5 @@ def test(base_name):
     yield db.fetch(f'DESC TABLE DATA.{base_name}_STAGING')
     yield db.fetch(f'DESC STREAM DATA.{base_name}_STREAM')
     yield db.fetch(f'DESC PIPE DATA.{base_name}_PIPE')
-    yield db.fetch(f'DESC TABLE DATA.{base_name}_EVENTS_CONNECTION')
+    yield db.fetch(f'DESC TABLE DATA.{base_name}_CONNECTION')
     yield db.fetch(f'DESC TASK DATA.{base_name}_TASK')

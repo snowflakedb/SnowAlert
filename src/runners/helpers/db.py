@@ -153,6 +153,15 @@ def fetch_latest(table, col):
     return ts[col.upper()] if ts else None
 
 
+def fetch_props(sql, filter=None):
+    return {
+        row['property']: row['property_value'] for row in fetch(sql) if (
+            filter is None
+            or row['property'] in filter
+        )
+    }
+
+
 ###
 # SnowAlert specific helpers, similar to ORM
 ###
@@ -350,14 +359,13 @@ def record_failed_ingestion(table, r, timestamp):
     execute(query, params=data)
 
 
-def get_pipes():
-    query = f"SHOW PIPES IN snowalert.data"
-    return fetch(query)
+def get_pipes(schema):
+    return fetch(f"SHOW PIPES IN {schema}")
 
 
 def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    query = f"CREATE {replace}STAGE data.{name} \nURL='{url}/{prefix}' "
+    query = f"CREATE {replace}STAGE {name} \nURL='{url}/{prefix}' "
     if cloud == 'aws':
         query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
     elif cloud == 'azure':
@@ -373,14 +381,14 @@ def create_table(name, cols, replace=False, comment=''):
     for pair in cols:
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
-    query = f"CREATE {replace}TABLE data.{name} \n{columns}{comment}"
+    query = f"CREATE {replace}TABLE {name} \n{columns}{comment}"
     execute(query, fix_errors=False)
 
 
 def create_stream(name, target, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}STREAM data.{name} {comment}\nON TABLE data.{target}"
+    query = f"CREATE {replace}STREAM {name} {comment}\nON TABLE {target}"
     execute(query, fix_errors=False)
 
 
@@ -388,7 +396,7 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
     autoingest = 'AUTO_INGEST=TRUE ' if autoingest else ''
     comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}PIPE data.{name} {autoingest}{comment} AS \n{sql}"
+    query = f"CREATE {replace}PIPE {name} {autoingest}{comment} AS \n{sql}"
     execute(query, fix_errors=False)
 
 
@@ -397,6 +405,6 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     schedule = f"SCHEDULE='{schedule}'\n"
     warehouse = f"WAREHOUSE={warehouse}\n"
     comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}TASK data.{name} {schedule} {warehouse} {comment} AS \n{sql}"
+    query = f"CREATE {replace}TASK {name} {schedule} {warehouse} {comment} AS \n{sql}"
     execute(query, fix_errors=False)
-    execute(f"ALTER TASK data.{name} RESUME")
+    execute(f"ALTER TASK {name} RESUME")

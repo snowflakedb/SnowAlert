@@ -1,10 +1,10 @@
 """Okta
-collects X into a single-VARIANT table
+collects Okta API v1 logs into a single-VARIANT table
 """
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from runners.config import CONNECTOR_METADATA_TABLE
+from runners.config import DC_METADATA_TABLE
 
 import datetime
 import requests
@@ -34,16 +34,19 @@ OKTA_LANDING_TABLE_COLUMNS = [
 
 def connect(connection_name, options):
     table_name = f'okta_{connection_name}_connection'
+    landing_table = f'data.{table_name}'
+    api_key = options["api_key"]
+    subdomain = options["subdomain"]
 
     comment = f"""
 ---
 module: okta
-api_key: {options['api_key']}
-subdomain: {options['subdomain']}
+api_key: {api_key}
+subdomain: {subdomain}
 """
 
-    db.create_table(name=table_name, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON DATA.{table_name} TO ROLE {SA_ROLE}')
+    db.create_table(name=landing_table, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
         'newMessage': "Okta ingestion table created!",
@@ -51,21 +54,27 @@ subdomain: {options['subdomain']}
 
 
 def ingest(table_name, options):
+    landing_table = f'data.{table_name}'
+    api_key = options["api_key"]
+    subdomain = options["subdomain"]
+
+    url = f"https://{subdomain}.okta.com/api/v1/logs"
     headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': f'SSWS {options["api_key"]}'
+        'Authorization': f'SSWS {api_key}'
     }
-
-    url = f"https://{options['subdomain']}.okta.com/api/v1/logs"
 
     metadata = {
-        'START_TIME': datetime.datetime.utcnow(),
         'TYPE': 'Okta',
-        'TARGET_TABLE': table_name
+        'START_TIME': datetime.datetime.utcnow(),
+        'LANDING_TABLE': table_name,
+        'ROW_COUNT': {
+            'INSERTED': 0,
+        }
     }
 
-    ts = db.fetch_latest(f'data.{table_name}', 'event_time')
+    ts = db.fetch_latest(landing_table, 'event_time')
     if ts is None:
         log.error(
             "Unable to find a timestamp of most recent Okta log, "
@@ -75,35 +84,33 @@ def ingest(table_name, options):
 
     params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
 
-    loaded = 0
-
     while 1:
         try:
             response = requests.get(url=url, headers=headers, params=params)
-            result = response.json()
             if response.status_code != 200:
-                log.fatal('OKTA REQUEST FAILED: ', response.text)
-            loaded += process_logs(result, table_name)
+                log.error('OKTA REQUEST FAILED: ', response.text)
+                return
+
+            result = response.json()
             if result == []:
                 break
+
+            db.insert(
+                landing_table,
+                values=[(row, row['published']) for row in result],
+                select='PARSE_JSON(column1), column2'
+            )
+
+            metadata['ROW_COUNT']['INSERTED'] += len(result)
+
             url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
 
         except Exception as e:
-            log.error("Error with Okta logs: ", e)
-            db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE, e=e)
+            log.error("Error loading Okta logs: ", e)
+            db.record_metadata(metadata, table=DC_METADATA_TABLE, e=e)
+            return
 
-    metadata['ROW_COUNT'] = {'INSERTED': loaded}
-    db.record_metadata(metadata, table=CONNECTOR_METADATA_TABLE)
-
-
-def process_logs(logs, table_name):
-    output = [(row, row['published']) for row in logs]
-    db.insert(
-        f"data.{table_name}",
-        output,
-        select='PARSE_JSON(column1), column2'
-    )
-    return len(output)
+    db.record_metadata(metadata, table=DC_METADATA_TABLE)
 
 
 def test(name):
