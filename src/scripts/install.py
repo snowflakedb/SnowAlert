@@ -382,7 +382,7 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
         ('REGION', region or 'us-west-2'),
 
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
-        ('PRIVATE_KEY_PASSWORD', pk_passphrase),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase.replace('$', r'\$')),
     ]
 
     if jira_url:
