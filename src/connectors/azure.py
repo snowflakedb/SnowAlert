@@ -8,6 +8,7 @@ from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE, USER, ACCOUNT
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.helpers import db, log
+from runners.utils import groups_of
 
 from azure.storage.blob import BlockBlobService
 from snowflake.ingest import SimpleIngestManager
@@ -333,7 +334,6 @@ def ingest(table_name, options):
     ]
 
     log.info(f"Found {len(new_files)} files to ingest")
-    yield len(new_files)
 
     # Proxy object that abstracts the Snowpipe REST API
     ingest_manager = SimpleIngestManager(
@@ -345,8 +345,10 @@ def ingest(table_name, options):
     )
 
     if len(new_files) > 0:
-        response = ingest_manager.ingest_files(new_files)
-        log.info(response)
+        for file_group in groups_of(4999, new_files):
+            response = ingest_manager.ingest_files(file_group)
+            log.info(response)
+            yield len(file_group)
 
 
 def test(name):
