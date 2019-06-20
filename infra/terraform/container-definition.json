@@ -1,0 +1,61 @@
+[
+  {
+    "logConfiguration": {
+    "logDriver": "awslogs",
+    "options": {
+      "awslogs-group": "[SNOWALERT LOGS GROUP]",
+      "awslogs-region": "[SNOWALERT AWS REGION]",
+      "awslogs-stream-prefix": "[SNOWFLAKE AWS LOGS PREFIX]"
+    }
+    },
+    "entryPoint": ["sh", "-c"],
+    "environment": [
+      {
+        "name": "PRIVATE_KEY",
+        "value": "[KEY]"
+      },
+      {
+        "name": "PRIVATE_KEY_PASSWORD",
+        "value": "[PASSWORD]"
+      },
+      {
+        "name": "REGION",
+        "value": "[SNOWALERT AWS REGION]"
+      },
+      {
+        "name": "SA_USER",
+        "value": "[SNOWALERT USER]"
+      },
+      {
+        "name": "SA_WAREHOUSE",
+        "value": "[SNOWALERT WAREHOUSE]"
+      },
+      {
+        "name": "SA_DATABASE",
+        "value": "[SNOWALERT DATABASE]"
+      },
+      {
+        "name": "SA_ROLE",
+        "value": "[SNOWALERT ROLE]"
+      },
+      {
+        "name": "SA_KMS_KEY",
+        "value": "[SNOWALERT KMS KEY ARN]"
+      },
+      {
+        "name": "SLACK_API_TOKEN",
+        "value": "[SLACK TOKEN]"
+      },
+      {
+        "name": "SNOWFLAKE_ACCOUNT",
+        "value": "[SNOWALERT ACCOUNT]"
+      },
+      {
+        "name": "CLOUDWATCH_METRICS",
+        "value": "True"
+      }
+    ],
+    "image": "snowsec/snowalert:latest",
+    "name": "snowalert_container"
+  }
+]
