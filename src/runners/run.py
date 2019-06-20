@@ -2,7 +2,7 @@
 
 import fire
 
-from runners import ingest_runner
+from runners import ingest_runner, connectors_runner
 from runners import baseline_runner
 
 from runners import alert_queries_runner
@@ -52,6 +52,10 @@ def main(target="all", rule_name=None):
 
         if target in ['ingest']:
             ingest_runner.main()
+            connectors_runner.main()
+
+        if target in ['connectors']:
+            connectors_runner.main()
 
         if target in ['baseline', 'baselines']:
             baseline_runner.main()
