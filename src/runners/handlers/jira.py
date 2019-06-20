@@ -173,6 +173,7 @@ def handle(alert, correlation_id):
             ticket_status = check_ticket_status(ticket_id)
         except Exception:
             log.error(f"Failed to get ticket status for {ticket_id}")
+            return
 
         if ticket_status == 'To Do':
             try:
