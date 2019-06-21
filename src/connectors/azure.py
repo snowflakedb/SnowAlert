@@ -191,7 +191,6 @@ def connect(connection_name, options):
 module: azure
 storage_account: {account_name}
 container_name: {container_name}
-sas_token: {sas_token}
 suffix: {suffix}
 sa_user: {USER}
 snowflake_account: {ACCOUNT}
