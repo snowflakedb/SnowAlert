@@ -37,7 +37,7 @@ CONNECTION_OPTIONS = [
         'name': 'sas_token',
         'title': 'SAS Token',
         'prompt': "A SAS Token which can list and read the files in the blob.",
-        'secret': True,
+        'mask_on_screen': True,
         'placeholder': (
             '?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z'
             '&st=2011-01-23T45:67:89Z&spr=https&sig=abcdefghijklmnopqrstuvwxyz%3D'

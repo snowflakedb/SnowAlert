@@ -144,7 +144,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                       ))}
                     </Select>
                   ) : (
-                    React.createElement(opt.secret ? Input.Password : Input, {
+                    React.createElement(opt.secret || opt.mask_on_screen ? Input.Password : Input, {
                       name: opt.name,
                       defaultValue: opt.default,
                       value: optionValues[opt.name],

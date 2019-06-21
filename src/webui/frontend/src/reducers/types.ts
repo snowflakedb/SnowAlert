@@ -79,6 +79,7 @@ export interface ConnectorPayload {
   finalize: boolean;
   docstring: string;
   secret: boolean;
+  mask_on_screen: boolean;
   title: string;
   prompt: string;
   placeholder: string;
