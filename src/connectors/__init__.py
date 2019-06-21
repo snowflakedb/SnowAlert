@@ -1,13 +1,15 @@
 from . import cloudtrail
 from . import okta
 from . import azure
+from . import aws_config
 
-__all__ = ['cloudtrail', 'okta', 'azure']
+__all__ = ['cloudtrail', 'okta', 'azure', 'aws_config']
 
 connectors = {
     'cloudtrail': cloudtrail,
     'okta': okta,
     'azure': azure,
+    'aws_config': aws_config
 }
 
 CONNECTION_OPTIONS = [
