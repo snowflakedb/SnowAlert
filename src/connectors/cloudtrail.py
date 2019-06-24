@@ -1,5 +1,5 @@
 """AWS CloudTrail
-collects CloudTrail logs from S3 into a columnar table
+Collect AWS logs from an S3 bucket
 """
 
 from json import dumps
@@ -12,28 +12,28 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'bucket_name',
-        'title': 'CloudTrail Bucket',
-        'prompt': 'where CloudTrail puts your logs',
+        'title': 'Source S3 Bucket',
+        'prompt': 'Your S3 bucket where AWS sends CloudTrail',
         'prefix': 's3://',
         'placeholder': 'my-test-s3-bucket',
         'required': True,
     },
     {
         'type': 'str',
-        'name': 'filter',
-        'title': 'Prefix Filter',
-        'prompt': 'folder in S3 bucket where CloudTrail puts logs',
-        'default': 'AWSLogs/',
+        'name': 'aws_role',
+        'title': 'AWS Role',
+        'prompt': "The full ARN of an IAM role with permissions to read from the bucket",
+        'placeholder': 'arn:aws:iam::012345678987:role/read-role',
         'required': True,
     },
     {
         'type': 'str',
-        'name': 'aws_role',
-        'title': 'AWS Role',
-        'prompt': "ARN of Role we'll grant access to bucket",
-        'placeholder': 'arn:aws:iam::012345678987:role/my-test-role',
+        'name': 'filter',
+        'title': 'Prefix Filter (optional)',
+        'prompt': 'folder in S3 bucket where CloudTrail puts logs',
+        'default': 'AWSLogs/',
         'required': True,
-    }
+    },
 ]
 
 FILE_FORMAT = """

@@ -58,7 +58,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   selectConnector(name: string | null) {
     const selectedConnector = this.findConnector(name);
     if (selectedConnector) {
-      let entries = [...selectedConnector.options.map((o: any) => [o.name, o.default]), ['name', 'default']];
+      let entries = [['name', 'default'], ...selectedConnector.options.map((o: any) => [o.name, o.default])];
       this.setState({
         optionValues: Object.fromEntries(entries),
       });
@@ -93,7 +93,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
         {
           name: 'name',
           title: 'Custom Name (optional)',
-          prompt: 'to make more than one connection for this connector, enter its name, matching [a-z_]+',
+          prompt: 'if you are configuring multiple CloudTrail connections, enter a custom name for this one',
           default: 'default',
           required: true,
           disabled: connectionStage !== 'start',
@@ -104,7 +104,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     return selectedConnector ? (
       <div>
         <Modal
-          title={`Failed ${connectionStage} connection`}
+          title={`Error Creating ${connectionStage} Connection`}
           visible={!!errorMessage}
           centered={true}
           closable={false}
@@ -132,7 +132,8 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
                   {opt.options ? (
                     <Select
-                      defaultValue={opt.default || '- pick one -'}
+                      defaultValue={opt.placeholder || opt.default || '- pick one -'}
+                      dropdownMatchSelectWidth={false}
                       onChange={(v: any) => {
                         this.changeOption(opt.name, v);
                       }}
@@ -216,7 +217,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
               <a onClick={() => this.selectConnector(c.name)}>
-                <Icon type="link" /> Connect
+                <Icon type="api" /> Connect
               </a>,
             ]}
           >

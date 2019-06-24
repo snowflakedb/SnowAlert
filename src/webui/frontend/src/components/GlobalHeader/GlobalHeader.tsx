@@ -112,7 +112,30 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 
     const menu = (
       <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
-        <Menu.Item key="logout">
+        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+          role {auth.scope.replace(/^refresh_token session:role:/, '')}
+        </Menu.Item>
+        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+          account {auth.account}
+        </Menu.Item>
+        <Menu.Divider />
+        <Menu.Item>
+          <a href="https://snowalert.readthedocs.io/en/latest/">
+            <Icon type="file-text" /> Documentation
+          </a>
+        </Menu.Item>
+        <Menu.Item>
+          <a href="https://community.snowflake.com/s/article/How-To-Submit-a-Support-Case-in-Snowflake-Lodge">
+            <Icon type="heart" /> Support
+          </a>
+        </Menu.Item>
+        <Menu.Item>
+          <a href="https://github.com/snowflakedb/SnowAlert">
+            <Icon type="warning" /> SnowAlert v1.8.0
+          </a>
+        </Menu.Item>
+        <Menu.Divider />
+        <Menu.Item>
           <Icon type="logout" /> Sign out
         </Menu.Item>
       </Menu>
@@ -124,9 +147,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
           {auth && auth.username ? (
             <Dropdown overlay={menu} trigger={['click']}>
               <span className={'action account'}>
-                <span className={'name'}>
-                  user {auth.username}, role {auth.scope.replace(/^refresh_token session:role:/, '')} @ {auth.account}
-                </span>
+                <span className={'name'}>logged in as {auth.username}</span>
               </span>
             </Dropdown>
           ) : (

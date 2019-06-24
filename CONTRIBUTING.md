@@ -103,11 +103,12 @@ This is a list of dict's which describe the connection options that are presente
 - `title: str` (optional) - the human readable title that will be used when the user picks the option
 - `prompt: str` (optional) - subtitle to the title clarifying what the user should enter
 - `type: str` (default "str") - the kind of value this input holds
-- `options List[str]` - if present, the UI will be a dropdown with these options
+- `options List[str]` - when present, will make UI a dropdown with the listed options
 - `required: bool` - returns error to user if True, and user does not fill it in
 - `postfix: str` - antd input element's  custom `addonAfter`
 - `prefix: str` - antd input element's  custom `addonBefore`
-- `placeholder: str` - input element's placeholder text
+- `default: str` - input element's initial value or select element's initial selection. if required, the reset value on empty input blur.
+- `placeholder: str` - input element's placeholder text, or select element's un-selectable initial option
 - `secret: bool` - will mask input on user's screen and use a vault if one is configured on the server
 - `mask_on_screen: bool`- will mask input on user's screen but not use vault
 

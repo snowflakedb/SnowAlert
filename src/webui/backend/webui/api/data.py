@@ -72,7 +72,7 @@ def post_connector(connector, name):
         missing_titles_str = '\n  - ' + '\n  - '.join(missing_titles)
         return {
             'success': False,
-            'errorMessage': f"Missing required option(s):{missing_titles_str}",
+            'errorMessage': f"Missing required configuration options:{missing_titles_str}",
         }
 
     secret_option_names = {

@@ -1,5 +1,5 @@
-"""Azure
-Collects one of AD Signin, AD Activity, or Operation log into a columnar table
+"""Azure Activity Logs
+Collect Active Directory (AD) Sign-ins, Audit, or Operation Logs
 """
 
 import re
@@ -20,7 +20,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'account_name',
         'title': 'Storage Account',
-        'prompt': 'The account with your log blobs',
+        'prompt': 'Your storage account with the container where Azure sends logs',
         'placeholder': 'azstorageaccount',
         'required': True
     },
@@ -28,7 +28,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'container_name',
         'title': 'Container Name',
-        'prompt': 'Container in the Storage Account with your log blobs',
+        'prompt': 'Your storage container where Azure sends logs',
         'placeholder': 'insights-logs',
         'required': True
     },
@@ -36,7 +36,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'sas_token',
         'title': 'SAS Token',
-        'prompt': "A SAS Token which can list and read the files in the blob.",
+        'prompt': "Access Token which can list and read the log files in your storage account",
         'mask_on_screen': True,
         'placeholder': (
             '?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z'
@@ -46,17 +46,22 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'options': ['audit', 'signin', 'operation'],
         'name': 'log_type',
+        'options': [
+            'Active Directory (AD) Sign-in Logs',
+            'Active Directory (AD) Audit Logs',
+            'Operation Logs'
+        ],
         'title': 'Log Type',
-        'prompt': 'The type of logs you are ingesting to Snowflake.',
+        'placeholder': 'Choose Log Type',
+        'prompt': 'Azure provides several activity log streams, choose one for this connector',
         'required': True
     },
     {
         'type': 'str',
         'name': 'suffix',
-        'title': 'URL Suffix',
-        'prompt': 'The Azure URL Suffix for the storage account',
+        'title': 'Endpoint Suffix (optional)',
+        'prompt': "If using Azure Storage in an independent cloud, modify the endpoint suffix below",
         'default': 'core.windows.net',
         'required': True
     },
@@ -179,7 +184,12 @@ AZURE_TABLE_COLUMNS = {
 
 
 def connect(connection_name, options):
-    log_type = options['log_type']
+    log_type = {
+        'Active Directory (AD) Sign-in Logs': 'signin',
+        'Active Directory (AD) Audit Logs': 'audit',
+        'Operation Logs': 'operation',
+    }[options['log_type']]
+
     base_name = f"azure_{connection_name}_{log_type}"
     account_name = options['account_name']
     container_name = options['container_name']
@@ -192,6 +202,7 @@ module: azure
 storage_account: {account_name}
 container_name: {container_name}
 suffix: {suffix}
+sas_token: {sas_token}
 sa_user: {USER}
 snowflake_account: {ACCOUNT}
 database: {DATABASE}

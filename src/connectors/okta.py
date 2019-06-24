@@ -1,5 +1,5 @@
-"""Okta
-collects Okta API v1 logs into a single-VARIANT table
+"""Okta System Log
+Collect Okta activity logs
 """
 
 from runners.helpers import db, log
@@ -11,6 +11,8 @@ import requests
 CONNECTION_OPTIONS = [
     {
         'name': 'subdomain',
+        'title': 'Okta Account Name',
+        'prompt': "the first part of your Okta URL",
         'type': 'str',
         'postfix': '.okta.com',
         'prefix': 'https://',
@@ -19,6 +21,8 @@ CONNECTION_OPTIONS = [
     },
     {
         'name': 'api_key',
+        'title': "API Token",
+        'prompt': "available in your Okta settings",
         'type': 'str',
         'secret': True,
         'required': True
