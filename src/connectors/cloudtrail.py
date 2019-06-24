@@ -294,12 +294,3 @@ WHERE ARRAY_SIZE(v:Records) > 0
             f"channel for all object create events: {sqs_arn}"
         )
     }
-
-
-def test(base_name):
-    yield db.fetch(f'ls @DATA.{base_name}_STAGE')
-    yield db.fetch(f'DESC TABLE DATA.{base_name}_STAGING')
-    yield db.fetch(f'DESC STREAM DATA.{base_name}_STREAM')
-    yield db.fetch(f'DESC PIPE DATA.{base_name}_PIPE')
-    yield db.fetch(f'DESC TABLE DATA.{base_name}_CONNECTION')
-    yield db.fetch(f'DESC TASK DATA.{base_name}_TASK')

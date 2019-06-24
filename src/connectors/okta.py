@@ -94,10 +94,3 @@ def ingest(table_name, options):
         yield len(result)
 
         url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
-
-
-def test(name):
-    yield {
-        'check': 'everything works',
-        'success': True,
-    }

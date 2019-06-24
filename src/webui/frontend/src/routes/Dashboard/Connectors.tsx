@@ -130,7 +130,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                 <label>
                   <List.Item.Meta title={opt.title || opt.name.replace('_', ' ')} description={opt.prompt} />
 
-                  {opt.type == 'select' ? (
+                  {opt.options ? (
                     <Select
                       defaultValue={opt.default || '- pick one -'}
                       onChange={(v: any) => {

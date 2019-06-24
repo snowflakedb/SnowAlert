@@ -46,20 +46,20 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
+        'options': ['audit', 'signin', 'operation'],
+        'name': 'log_type',
+        'title': 'Log Type',
+        'prompt': 'The type of logs you are ingesting to Snowflake.',
+        'required': True
+    },
+    {
+        'type': 'str',
         'name': 'suffix',
         'title': 'URL Suffix',
         'prompt': 'The Azure URL Suffix for the storage account',
         'default': 'core.windows.net',
         'required': True
     },
-    {
-        'type': 'select',
-        'options': ['audit', 'signin', 'operation'],
-        'name': 'log_type',
-        'title': 'Log Type',
-        'prompt': 'The type of logs you are ingesting to Snowflake.',
-        'required': True
-    }
 ]
 
 FILE_FORMAT = """
@@ -348,7 +348,3 @@ def ingest(table_name, options):
             response = ingest_manager.ingest_files(file_group)
             log.info(response)
             yield len(file_group)
-
-
-def test(name):
-    yield True
