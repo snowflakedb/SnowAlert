@@ -60,6 +60,12 @@ class Violations extends React.PureComponent<ViolationsProps> {
                         span: 24,
                         fields: [
                           {
+                            title: 'Off / On',
+                            type: 'boolean',
+                            getValue: (q: Query) => q.fields.enabled,
+                            setValue: (q: Query, v: boolean) => q.copy({fields: {enabled: v}}),
+                          },
+                          {
                             title: 'Rule Title',
                             type: 'string',
                             getValue: (q: Query) => q.fields.select.title,
@@ -157,12 +163,6 @@ class Violations extends React.PureComponent<ViolationsProps> {
                             type: 'text',
                             getValue: (q: Query) => q.fields.where,
                             setValue: (q: Query, v: string) => q.copy({fields: {where: v}}),
-                          },
-                          {
-                            title: 'ENABLED',
-                            type: 'boolean',
-                            getValue: (q: Query) => q.fields.enabled,
-                            setValue: (q: Query, v: boolean) => q.copy({fields: {enabled: v}}),
                           },
                         ],
                       },
