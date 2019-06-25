@@ -95,24 +95,24 @@ A Data Connector is a Python module in the `./src/connectors` repository.
 
 This module has several pieces:
 
-## (required) `CONNECTION_OPTIONS`
+### (required) `CONNECTION_OPTIONS`
 
-This is a list of dict's which describe the connection options that are presented to the user when creating a connection. The keys of each dict are one of:
+This is a list of dict's which describe the connection options that are presented to the user when creating a connection. The key / value pairs in each dict in the list are one of:
 
 - `name: str` (required) - the underscore-separated "machine" name that will be used to refer to the variable
 - `title: str` (optional) - the human readable title that will be used when the user picks the option
 - `prompt: str` (optional) - subtitle to the title clarifying what the user should enter
-- `type: str` (default "str") - the kind of value this input holds
+- `type: 'str' | 'bool'` (default "str") - the kind of value this input holds
 - `options List[str]` - when present, will make UI a dropdown with the listed options
 - `required: bool` - returns error to user if True, and user does not fill it in
 - `postfix: str` - antd input element's  custom `addonAfter`
 - `prefix: str` - antd input element's  custom `addonBefore`
 - `default: str` - input element's initial value or select element's initial selection. if required, the reset value on empty input blur.
 - `placeholder: str` - input element's placeholder text, or select element's un-selectable initial option
-- `secret: bool` - will mask input on user's screen and use a vault if one is configured on the server
+- `secret: bool` - will mask input on user's screen and convert to ciphertext via `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`
 - `mask_on_screen: bool`- will mask input on user's screen but not use vault
 
-## (required) `connect(connection_name, options)`
+### (required) `connect(connection_name, options)`
 
 This function takes the name of the connection being created as well as the options given by the user. It returns a string representing the instructions
 the user is to see after the first stage is complete, as well as the next stage, with the type:
@@ -124,15 +124,15 @@ type ConnectionResult = {
 }
 ~~~
 
-## (optional) `finalize(connection_name)`
+### (optional) `finalize(connection_name)`
 
 If a Connector (e.g. the CloudTrail connector) requires the user to take some action before a connection is fully done, the Connector module author can include a "finalize" step to
 
-## (optional) `ingest(connection_name)`
+### (optional) `ingest(connection_name, options)`
 
 If a Connection requires regular ingestion on a cron, you can do so with this method. It sould return a string, a `GeneratorType[int]`, or a number.
 
-## (optional) `test(connection_name)`
+### (optional) `test(connection_name)`
 
 If a Connector would like to present ths user with an option to test the connection, you can do so here. Must return `GeneratorType[dict]` with items of type
 

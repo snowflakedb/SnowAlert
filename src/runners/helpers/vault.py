@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 from .dbconfig import REGION
 
 KMS_KEY = environ.get('SA_KMS_KEY')
+ENABLED = bool(KMS_KEY)
 
 kms = boto3.client('kms', region_name=REGION)
 

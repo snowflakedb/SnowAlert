@@ -7,7 +7,7 @@ import re
 from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE, USER, ACCOUNT
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from runners.helpers import db, log
+from runners.helpers import db, log, vault
 from runners.utils import groups_of
 
 from azure.storage.blob import BlockBlobService
@@ -195,6 +195,7 @@ def connect(connection_name, options):
     container_name = options['container_name']
     suffix = options['suffix']
     sas_token = options['sas_token']
+    sas_token_ct = vault.encrypt(sas_token)
 
     comment = f"""
 ---
@@ -202,7 +203,7 @@ module: azure
 storage_account: {account_name}
 container_name: {container_name}
 suffix: {suffix}
-sas_token: {sas_token}
+sas_token: {sas_token_ct}
 sa_user: {USER}
 snowflake_account: {ACCOUNT}
 database: {DATABASE}

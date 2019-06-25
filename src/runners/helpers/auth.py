@@ -9,7 +9,7 @@ from cryptography.hazmat.backends.openssl.rsa import _RSAPrivateKey
 from requests import post
 from requests.auth import HTTPBasicAuth
 
-from .kms import decrypt_if_encrypted
+from .vault import decrypt_if_encrypted
 
 
 def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> _RSAPrivateKey:

@@ -6,7 +6,7 @@ from azure.storage.blob import BlockBlobService
 
 from runners.helpers.auth import load_pkb_rsa
 from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD
-from runners.helpers import db, log, kms
+from runners.helpers import db, log, vault
 
 from snowflake.ingest import SimpleIngestManager
 from snowflake.ingest import StagedFile
@@ -45,7 +45,7 @@ def main():
             log.info(f"{pipe['name']} has no azure auth")
             continue
 
-        sas_token = kms.decrypt_if_encrypted(encrypted_sas_token)
+        sas_token = vault.decrypt_if_encrypted(encrypted_sas_token)
 
         log.info(f"Now working on pipe {pipe_name}")
 
