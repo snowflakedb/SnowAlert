@@ -47,7 +47,7 @@ FILE_FORMAT = """
     SKIP_BYTE_ORDER_MARK = TRUE
 """
 
-CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
+LANDING_TABLE_COLUMNS = [
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
     ('event_time', 'TIMESTAMP_LTZ(9)'),
@@ -133,7 +133,7 @@ module: cloudtrail
 
     db.create_table(
         name=landing_table,
-        cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS,
+        cols=LANDING_TABLE_COLUMNS,
         comment=comment
     )
 

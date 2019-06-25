@@ -29,7 +29,7 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-OKTA_LANDING_TABLE_COLUMNS = [
+LANDING_TABLE_COLUMNS = [
     ('raw', 'VARIANT'),
     ('event_time', 'TIMESTAMP_LTZ')
 ]
@@ -48,7 +48,7 @@ api_key: {api_key}
 subdomain: {subdomain}
 """
 
-    db.create_table(name=landing_table, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
