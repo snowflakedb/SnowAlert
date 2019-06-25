@@ -249,8 +249,8 @@ SELECT value raw
     , value:readOnly::BOOLEAN read_only
     , value:resources::VARIANT resources
     , value:serviceEventDetails::STRING service_event_details
-    , value:sharedEventID::STRING shared_event_id
-    , value:vpcEndpointID::STRING vpc_endpoint_id
+    , value:sharedEventId::STRING shared_event_id
+    , value:vpcEndpointId::STRING vpc_endpoint_id
 FROM data.{base_name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
 """
