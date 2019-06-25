@@ -314,7 +314,7 @@ FROM (
 def ingest(table_name, options):
     base_name = re.sub(r'_CONNECTION$', '', table_name)
     storage_account = options['storage_account']
-    sas_token = options['sas_token']
+    sas_token = vault.decrypt_if_encrypted(options['sas_token'])
     suffix = options['suffix']
     container_name = options['container_name']
     snowflake_account = options['snowflake_account']
