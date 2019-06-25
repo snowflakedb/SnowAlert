@@ -132,7 +132,7 @@ This is a `List[dict]` which describe the connection options that are presented 
 - `secret: bool` - will mask input on user's screen and convert to ciphertext via `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`
 - `mask_on_screen: bool`- will mask input on user's screen but not use vault to encrypt your secrets
 
-### `LANDING_TABLE_COLUMNS` or `LANDING_TABLES_COLUMNS`
+### `LANDING_TABLE_COLUMNS` or `LANDING_TABLES_COLUMNS` (required)
 
 There are two kinds of connectors -- those that create a single table, or those that can create one or more tables. This variable specifies either the table columns of the landing table, or the connection types and landing table columns of each type.
 
