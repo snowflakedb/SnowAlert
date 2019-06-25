@@ -91,11 +91,9 @@ snowalert@snowflake.com.
 
 A Data Connector lets you use SnowAlert infrastructure to configure and run data collection into your database from sources outside of Snowflake. Contributing to the connector library allows security defenders to share the costs of data collection from their fleet, server, and cloud infrastructure.
 
-A Data Connector is a Python module in the `./src/connectors` repository.
+A Data Connector is a Python module in the `./src/connectors` directory and has several pieces:
 
-This module has several pieces:
-
-### (required) `CONNECTION_OPTIONS`
+### `CONNECTION_OPTIONS` (required)
 
 This is a list of dict's which describe the connection options that are presented to the user when creating a connection. The key / value pairs in each dict in the list are one of:
 
@@ -110,9 +108,9 @@ This is a list of dict's which describe the connection options that are presente
 - `default: str` - input element's initial value or select element's initial selection. if required, the reset value on empty input blur.
 - `placeholder: str` - input element's placeholder text, or select element's un-selectable initial option
 - `secret: bool` - will mask input on user's screen and convert to ciphertext via `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`
-- `mask_on_screen: bool`- will mask input on user's screen but not use vault
+- `mask_on_screen: bool`- will mask input on user's screen but not use vault to encrypt your secrets
 
-### (required) `connect(connection_name, options)`
+### `connect(connection_name, options)` (required)
 
 This function takes the name of the connection being created as well as the options given by the user. It returns a string representing the instructions
 the user is to see after the first stage is complete, as well as the next stage, with the type:
@@ -124,15 +122,15 @@ type ConnectionResult = {
 }
 ~~~
 
-### (optional) `finalize(connection_name)`
+### `finalize(connection_name)` (optional)
 
 If a Connector (e.g. the CloudTrail connector) requires the user to take some action before a connection is fully done, the Connector module author can include a "finalize" step to
 
-### (optional) `ingest(connection_name, options)`
+### `ingest(connection_name, options)` (optional)
 
 If a Connection requires regular ingestion on a cron, you can do so with this method. It sould return a string, a `GeneratorType[int]`, or a number.
 
-### (optional) `test(connection_name)`
+### `test(connection_name)` (optional)
 
 If a Connector would like to present ths user with an option to test the connection, you can do so here. Must return `GeneratorType[dict]` with items of type
 
