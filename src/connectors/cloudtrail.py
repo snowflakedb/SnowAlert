@@ -48,6 +48,8 @@ FILE_FORMAT = """
 """
 
 LANDING_TABLE_COLUMNS = [
+    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('insert_time', 'TIMESTAMP_LTZ(9)'),
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
     ('event_time', 'TIMESTAMP_LTZ(9)'),
@@ -202,8 +204,8 @@ def finalize(connection_name):
     # Step two: Configure the remainder once the role is properly configured.
     cloudtrail_ingest_task = f"""
 INSERT INTO {landing_table} (
-  raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
-  recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
+  insert_time, raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type,
+  event_version, recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
   user_agent, user_identity, user_identity_type, user_identity_principal_id, user_identity_arn,
   user_identity_accountid, user_identity_invokedby, user_identity_access_key_id, user_identity_username,
   user_identity_session_context_attributes_mfa_authenticated, user_identity_session_context_attributes_creation_date,
@@ -212,7 +214,8 @@ INSERT INTO {landing_table} (
   user_identity_session_context_session_issuer_user_name, error_code, error_message, additional_event_data,
   api_version, read_only, resources, service_event_details, shared_event_id, vpc_endpoint_id
 )
-SELECT value raw
+SELECT CURRENT_TIMESTAMP() insert_time
+    , value raw
     , HASH(value) hash_raw
     , value:eventTime::TIMESTAMP_LTZ(9) event_time
     , value:awsRegion::STRING aws_region
