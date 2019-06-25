@@ -48,9 +48,9 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'log_type',
         'options': [
-            'Active Directory (AD) Sign-in Logs',
-            'Active Directory (AD) Audit Logs',
-            'Operation Logs'
+            {'value': 'signin', 'label': 'Active Directory (AD) Sign-in Logs'},
+            {'value': 'audit', 'label': 'Active Directory (AD) Audit Logs'},
+            {'value': 'operation', 'label': 'Operation Logs'},
         ],
         'title': 'Log Type',
         'placeholder': 'Choose Log Type',
@@ -78,7 +78,7 @@ FILE_FORMAT = """
     SKIP_BYTE_ORDER_MARK = TRUE
 """
 
-AZURE_TABLE_COLUMNS = {
+LANDING_TABLES_COLUMNS = {
     'operation': [
         ('RAW', 'VARIANT'),
         ('HASH_RAW', 'NUMBER'),
@@ -184,11 +184,7 @@ AZURE_TABLE_COLUMNS = {
 
 
 def connect(connection_name, options):
-    log_type = {
-        'Active Directory (AD) Sign-in Logs': 'signin',
-        'Active Directory (AD) Audit Logs': 'audit',
-        'Operation Logs': 'operation',
-    }[options['log_type']]
+    log_type = options['log_type']
 
     base_name = f"azure_{connection_name}_{log_type}"
     account_name = options['account_name']
@@ -222,7 +218,7 @@ database: {DATABASE}
 
     db.create_table(
         name=f'data.{base_name}_CONNECTION',
-        cols=AZURE_TABLE_COLUMNS[log_type],
+        cols=LANDING_TABLES_COLUMNS[log_type],
         comment=comment
     )
 

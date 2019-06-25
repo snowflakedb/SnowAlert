@@ -138,9 +138,9 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                         this.changeOption(opt.name, v);
                       }}
                     >
-                      {opt.options.map((o: string) => (
-                        <Select.Option key={o} value={o}>
-                          {o}
+                      {opt.options.map((o: any) => (
+                        <Select.Option key={o.value} value={o.value}>
+                          {o.label}
                         </Select.Option>
                       ))}
                     </Select>
