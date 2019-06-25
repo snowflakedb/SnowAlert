@@ -15,7 +15,7 @@ CONNECTION_OPTIONS = [
         'title': 'Source S3 Bucket',
         'prompt': 'Your S3 bucket where AWS sends CloudTrail',
         'prefix': 's3://',
-        'placeholder': 'my-test-s3-bucket',
+        'placeholder': 'my-cloudtrail-s3-bucket',
         'required': True,
     },
     {
@@ -23,7 +23,7 @@ CONNECTION_OPTIONS = [
         'name': 'aws_role',
         'title': 'AWS Role',
         'prompt': "The full ARN of an IAM role with permissions to read from the bucket",
-        'placeholder': 'arn:aws:iam::012345678987:role/read-role',
+        'placeholder': 'arn:aws:iam::012345678987:role/s3-read-role',
         'required': True,
     },
     {
