@@ -12,10 +12,10 @@ CONNECTION_OPTIONS = [
     {
         'name': 'subdomain',
         'title': "Okta Account Name",
-        'prompt': "The first part of your Okta URL, without the '-admin' suffix",
+        'prompt': "The subdomain of your Okta login page",
         'type': 'str',
-        'postfix': '.okta.com',
-        'prefix': 'https://',
+        'postfix': ".okta.com",
+        'prefix': "https://",
         'placeholder': "account-name",
         'required': True
     },
@@ -38,8 +38,8 @@ LANDING_TABLE_COLUMNS = [
 def connect(connection_name, options):
     table_name = f'okta_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    api_key = options["api_key"]
-    subdomain = options["subdomain"]
+    api_key = options['api_key']
+    subdomain = options['subdomain']
 
     comment = f'''
 ---

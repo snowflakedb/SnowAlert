@@ -17,8 +17,6 @@ import yaml
 
 
 def main(connection_table="%_CONNECTION"):
-    log.info('--- Data Connections Ingest ---')
-    # data connections
     for table in db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"):
         table_name = table['name']
         table_comment = table['comment']

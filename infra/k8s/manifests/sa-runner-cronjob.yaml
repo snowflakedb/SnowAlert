@@ -13,7 +13,7 @@ spec:
       template:
         spec:
           containers:
-          - image: snowsec/snowalert:1.7.2-rc
+          - image: snowsec/snowalert:latest
             name: snowalert
             resources:
               limits:

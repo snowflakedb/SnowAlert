@@ -28,7 +28,8 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
             return f()
         except E as e:
             n -= 1
-            time.sleep(sleep_seconds_btw_retry)
+            if sleep_seconds_btw_retry > 0:
+                time.sleep(sleep_seconds_btw_retry)
             for exception, handler in handlers:
                 if isinstance(e, exception):
                     return handler(e)

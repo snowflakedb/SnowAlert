@@ -56,18 +56,9 @@ export const getRouterData = () => {
     [routes.CONNECTORS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Connectors')),
     },
-    // [routes.USER]: {
-    //   component: dynamicWrapper(() => import('../layouts/UserLayout')),
-    // },
     [routes.LOGIN]: {
       component: dynamicWrapper(() => import('../routes/User/Login')),
     },
-    // [routes.REGISTER]: {
-    //   component: dynamicWrapper(() => import('../routes/User/Register')),
-    // },
-    // [routes.REGISTER_RESULT]: {
-    //   component: dynamicWrapper(() => import('../routes/User/RegisterResult')),
-    // },
     [routes.NOT_FOUND_ERROR]: {
       component: dynamicWrapper(() => import('../routes/Exception/404')),
     },

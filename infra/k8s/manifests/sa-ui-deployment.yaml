@@ -17,7 +17,7 @@ spec:
         app: snowalert-ui
     spec:
       containers:
-      - image: snowsec/snowalert-webui:1.7.2-rc
+      - image: snowsec/snowalert-webui:latest
         name: snowalert-ui
         resources:
           limits:

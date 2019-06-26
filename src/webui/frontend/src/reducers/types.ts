@@ -90,14 +90,7 @@ export interface FlowPayload {
   connector: string;
 }
 
-// export interface BaselinePayload {
-//   table_name: string;
-//   comment: string;
-//   rows: number;
-// }
-
 export interface SAData {
-  // baselines: ReadonlyArray<BaselinePayload>;
   connectors: ReadonlyArray<ConnectorPayload>;
   flows: ReadonlyArray<FlowPayload>;
 }

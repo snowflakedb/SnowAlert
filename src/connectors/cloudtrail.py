@@ -14,7 +14,7 @@ CONNECTION_OPTIONS = [
         'name': 'bucket_name',
         'title': "Source S3 Bucket",
         'prompt': "Your S3 bucket where AWS sends CloudTrail",
-        'prefix': 's3://',
+        'prefix': "s3://",
         'placeholder': "my-cloudtrail-s3-bucket",
         'required': True,
     },
