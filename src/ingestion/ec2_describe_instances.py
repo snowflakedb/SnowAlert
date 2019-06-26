@@ -8,11 +8,13 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from multiprocessing import Pool
 from runners.utils import groups_of
+from runners.helpers import db
 
 import snowflake.connector
 
 INSTANCES_TABLE = os.environ['EC2_INSTANCE_LIST_SNOWFLAKE_TABLE_IDENTIFIER']
 AWS_ACCOUNTS_TABLE = os.environ['LIST_ACCOUNTS_SNOWFLAKE_TABLE_IDENTIFIER']
+AWS_ACCOUNTS_INFORMATION_TABLE = os.environ['AWS_ACCOUNTS_INFORMATION_TABLE_IDENTIFIER']
 AWS_AUDIT_ROLE_NAME = os.environ['AWS_AUDIT_DESTINATION_ROLE_NAME']
 SA_ACCOUNT = os.environ['INGEST_SNOWFLAKE_ACCOUNT']
 SA_USER = os.environ['INGEST_SNOWFLAKE_USER']
@@ -114,12 +116,42 @@ def get_data_worker(account):
                 instances.extend(region)
             except Exception as e:
                 print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
+                db.insert(
+                    AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
+                        datetime.datetime.utcnow(),
+                        account[0],
+                        account[1],
+                        None,
+                        e
+                    )]
+                )
                 return None
         instance_list = [json.dumps({**instance,"AccountId":account[0]}, default=str) for instance in instances]
+        try:
+            db.insert(
+                AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
+                    datetime.datetime.utcnow(),
+                    account[0],
+                    account[1],
+                    len(instance_list),
+                    None
+                )]
+            )
+        except Exception:
+            print('Failed to insert into AWS_ACCOUNT_INFORMATION table.')
         print(f"ec2_describe_instances: account: {account[1]} instances: {len(instance_list)}")
         return instance_list
     except Exception as e:
         print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
+        db.insert(
+            AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
+                datetime.datetime.utcnow(),
+                account[0],
+                account[1],
+                None,
+                e
+            )]
+        )
         return None
 
 def get_data(accounts_list):
