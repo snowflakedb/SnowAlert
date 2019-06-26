@@ -18,4 +18,5 @@ COPY ./install ./install
 RUN PYTHONPATH='' pip install ./snowalert/src/
 RUN PYTHONPATH='' pip install alooma-pysdk requests
 
-CMD ./run all
+CMD ./run allpush
+

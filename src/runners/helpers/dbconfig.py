@@ -16,9 +16,13 @@ else:
     tail = ''
 
 # database & account properties
-REGION = environ.get('REGION', "us-west-2")
+HOST = environ.get('SNOWFLAKE_HOST', '')
+PORT = environ.get('SA_PORT')
+PROTOCOL = environ.get('SA_PROTOCOL')
+
+REGION = environ.get('SA_REGION', "us-west-2")
 REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
-ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
+ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') if HOST else environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
 
 USER = environ.get('SA_USER', "snowalert") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
