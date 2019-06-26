@@ -142,7 +142,7 @@ def main():
     sf_client = get_snowflake_client()
     current_time = datetime.datetime.now(datetime.timezone.utc)
     last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {INSTANCES_TABLE}').fetchall()[0][0]
-    if last_time is None or (current_time - last_time).total_seconds() > 86400:
+    if last_time is None or (current_time - last_time).total_seconds() > 3600:  # 3600 seconds is one hour
         accounts_list = get_accounts_list(sf_client)
         get_data(accounts_list)
     else:

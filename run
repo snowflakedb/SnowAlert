@@ -11,7 +11,7 @@ if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
   else
 
     cd /var/task/snowalert/src/runners/
-    python run.py $1
+    python run.py $@
 
   fi
 

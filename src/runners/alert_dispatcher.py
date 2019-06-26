@@ -39,7 +39,8 @@ def main():
         alert = alert_row['ALERT']
         results = []
 
-        for handler in alert.get('HANDLERS') or ['jira']:
+        handlers = alert.get('HANDLERS')
+        for handler in ['jira'] if handlers is None else handlers:
             if handler is None:
                 results.append(None)
 
@@ -56,9 +57,8 @@ def main():
                     'alert_count': alert_row['COUNTER'],
                 })
 
-                handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
                 try:
-
+                    handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
                     result = {
                         'success': True,
                         'details': apply_some(handler_module.handle, **handler_kwargs)

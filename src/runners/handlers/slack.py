@@ -5,7 +5,7 @@ from slackclient import SlackClient
 
 from runners.helpers import log
 from runners.helpers import db
-from runners.helpers import kms
+from runners.helpers import vault
 
 
 def message_template(vars):
@@ -41,7 +41,7 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
 
-    slack_token = kms.decrypt_if_encrypted(os.environ["SLACK_API_TOKEN"])
+    slack_token = vault.decrypt_if_encrypted(os.environ['SLACK_API_TOKEN'])
 
     sc = SlackClient(slack_token)
 

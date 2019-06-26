@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {RouterState} from 'react-router-redux';
+import {Connector} from '../store/data';
 import {Policy, Query, Suppression} from '../store/rules';
 
 export interface AuthDetails {
@@ -72,11 +73,45 @@ export interface SnowAlertRulesState {
   readonly filter: string;
 }
 
+export interface ConnectorPayload {
+  connector: string;
+  options: any;
+  finalize: boolean;
+  docstring: string;
+  secret: boolean;
+  mask_on_screen: boolean;
+  title: string;
+  prompt: string;
+  placeholder: string;
+}
+
+export interface FlowPayload {
+  name: string;
+  connector: string;
+}
+
+export interface SAData {
+  connectors: ReadonlyArray<ConnectorPayload>;
+  flows: ReadonlyArray<FlowPayload>;
+}
+
+export type ConnectionStage = 'start' | 'creating' | 'created' | 'finalizing' | 'finalized' | 'testing' | 'tested';
+
+export interface SADataState {
+  readonly isFetching: boolean;
+  readonly selected: string | null;
+  readonly errorMessage: string | null;
+  readonly connectionMessage: string | null;
+  readonly connectors: ReadonlyArray<Connector>;
+  readonly connectionStage: ConnectionStage;
+}
+
 export interface State {
   readonly auth: AuthState;
   readonly router: RouterState;
   readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;
+  readonly data: SADataState;
 }
 
 export interface RouterData {

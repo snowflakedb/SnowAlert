@@ -4,7 +4,7 @@ import yaml
 
 from jira import JIRA
 
-from runners.helpers import log, kms, db
+from runners.helpers import log, vault, db
 
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
@@ -38,7 +38,7 @@ Event Data: {{code}}{EVENT_DATA}{{code}}
 Severity: {SEVERITY}
 """
 
-password = kms.decrypt_if_encrypted(environ.get('JIRA_PASSWORD'))
+password = vault.decrypt_if_encrypted(environ.get('JIRA_PASSWORD'))
 user = environ.get('JIRA_USER')
 
 if user and password:
@@ -173,6 +173,7 @@ def handle(alert, correlation_id):
             ticket_status = check_ticket_status(ticket_id)
         except Exception:
             log.error(f"Failed to get ticket status for {ticket_id}")
+            return
 
         if ticket_status == 'To Do':
             try:

@@ -1,5 +1,5 @@
 import {
-  // Avatar,
+  Avatar,
   Button,
   // Divider,
   Dropdown,
@@ -22,7 +22,6 @@ import {State} from '../../reducers/types';
 import * as stateTypes from '../../reducers/types';
 // import {HeaderSearch} from '../HeaderSearch';
 // import Link from '../Link';
-// import {NoticeIcon, NotificationDetails} from '../NoticeIcon';
 import './GlobalHeader.css';
 
 const {Header} = Layout;
@@ -113,6 +112,28 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 
     const menu = (
       <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
+        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+          User {auth.username}
+        </Menu.Item>
+        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+          Role {auth.scope.replace(/^refresh_token session:role:/, '')}
+        </Menu.Item>
+        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+          Account {auth.account}
+        </Menu.Item>
+        <Menu.Divider />
+        <Menu.Item>
+          <a href="https://snowalert.readthedocs.io/en/latest/">Documentation</a>
+        </Menu.Item>
+        <Menu.Item>
+          <a href="https://community.snowflake.com/s/article/How-To-Submit-a-Support-Case-in-Snowflake-Lodge">
+            Support
+          </a>
+        </Menu.Item>
+        <Menu.Item>
+          <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.8.0</a>
+        </Menu.Item>
+        <Menu.Divider />
         <Menu.Item key="logout">
           <Icon type="logout" /> Sign out
         </Menu.Item>
@@ -120,13 +141,13 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     );
 
     return (
-      <Header className={'header'} tagName={'header'}>
+      <Header className={'header'}>
         <div className={'right'}>
           {auth && auth.username ? (
             <Dropdown overlay={menu} trigger={['click']}>
-              <span className={'action account'}>
+              <span className={'action account'} style={{width: 64, padding: '0 16px'}}>
                 <span className={'name'}>
-                  user {auth.username}, role {auth.scope.replace(/^refresh_token session:role:/, '')} @ {auth.account}
+                  <Avatar size={32} icon="user" />
                 </span>
               </span>
             </Dropdown>
@@ -152,17 +173,6 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
               <Icon type="question-circle-o" />
             </a>
           </Tooltip>
-          <NoticeIcon
-            className={'action'}
-            count={notificationsData.length}
-            onClear={this.handleNoticeClear}
-            onPopupVisibleChange={this.handleNoticeVisibleChange}
-            loading={notifications.isFetching}
-            list={notificationsData}
-            title={'Notifications'}
-            emptyText={'No notifications'}
-            clearText={'Clear'}
-          />
           {auth.email ? (
 
           ) : (

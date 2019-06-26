@@ -2,6 +2,7 @@
 from datetime import datetime
 import json
 from threading import local
+import time
 from typing import List, Tuple
 from os import getpid
 from re import match
@@ -21,12 +22,14 @@ CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 
 
-def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
+def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_retry=0):
     while 1:
         try:
             return f()
         except E as e:
             n -= 1
+            if sleep_seconds_btw_retry > 0:
+                time.sleep(sleep_seconds_btw_retry)
             for exception, handler in handlers:
                 if isinstance(e, exception):
                     return handler(e)
@@ -40,7 +43,7 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[]):
 # Connecting
 ###
 
-def connect(flush_cache=False, oauth={}):
+def connect(flush_cache=False, set_cache=False, oauth={}):
     account = oauth.get('account')
     oauth_refresh_token = oauth.get('refresh_token')
     oauth_access_token = oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
@@ -73,9 +76,9 @@ def connect(flush_cache=False, oauth={}):
     try:
         connection = retry(connect)
 
-        # see SP-1116
-        # if not cached_connection and not oauth_access_token:
-        #     setattr(CACHE, CONNECTION, connection)
+        # see SP-1116 for why set_cache=False by default
+        if set_cache and not cached_connection:
+            setattr(CACHE, CONNECTION, connection)
 
         return connection
 
@@ -144,6 +147,20 @@ def connect_and_execute(queries=None):
 def connect_and_fetchall(query):
     ctx = connect()
     return ctx, execute(query).fetchall()
+
+
+def fetch_latest(table, col):
+    ts = next(fetch(f'SELECT {col} FROM {table} ORDER BY {col} DESC LIMIT 1'), None)
+    return ts[col.upper()] if ts else None
+
+
+def fetch_props(sql, filter=None):
+    return {
+        row['property']: row['property_value'] for row in fetch(sql) if (
+            filter is None
+            or row['property'] in filter
+        )
+    }
 
 
 ###
@@ -343,6 +360,52 @@ def record_failed_ingestion(table, r, timestamp):
     execute(query, params=data)
 
 
-def get_pipes():
-    query = f"SHOW PIPES IN SNOWALERT.DATA"
-    return fetch(query)
+def get_pipes(schema):
+    return fetch(f"SHOW PIPES IN {schema}")
+
+
+def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    query = f"CREATE {replace}STAGE {name} \nURL='{url}/{prefix}' "
+    if cloud == 'aws':
+        query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
+    elif cloud == 'azure':
+        query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
+    query += f"\nFILE_FORMAT=({file_format}) \nCOMMENT='{comment}'"
+    execute(query, fix_errors=False)
+
+
+def create_table(name, cols, replace=False, comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment}' " if comment else ''
+    columns = '('
+    for pair in cols:
+        columns += f'{pair[0]} {pair[1]}, '
+    columns = columns[:-2] + ')'
+    query = f"CREATE {replace}TABLE {name}{columns}{comment}"
+    execute(query, fix_errors=False)
+
+
+def create_stream(name, target, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}STREAM {name} {comment}\nON TABLE {target}"
+    execute(query, fix_errors=False)
+
+
+def create_pipe(name, sql, replace='', autoingest='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    autoingest = 'AUTO_INGEST=TRUE ' if autoingest else ''
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}PIPE {name} {autoingest}{comment} AS \n{sql}"
+    execute(query, fix_errors=False)
+
+
+def create_task(name, schedule, warehouse, sql, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    schedule = f"SCHEDULE='{schedule}'\n"
+    warehouse = f"WAREHOUSE={warehouse}\n"
+    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    query = f"CREATE {replace}TASK {name} {schedule} {warehouse} {comment} AS \n{sql}"
+    execute(query, fix_errors=False)
+    execute(f"ALTER TASK {name} RESUME")

@@ -106,3 +106,64 @@ For example:
 Note that in the second case, the "channel" value is created dynamically by Alert Queries that use the Slack handler, and thus should have a default value in order for alert queries without that value create non-failing alerts. Failing alerts should be avoided and may be automatically retried in the future.
 
 New handlers should be placed in the `./src/runners/handlers` directory; you should ensure that the name of the handler module is its type -- the string you will refer to it in the HANDLERS field in Alert Queries.
+
+## Developing a new Data Connector (DC)
+
+A Data Connector lets you use SnowAlert infrastructure to configure and run data collection into your database from sources outside of Snowflake. Contributing to the connector library allows security defenders to share the costs of data collection from their fleet, server, and cloud infrastructure.
+
+Please get in touch with us if you're thinking of contributing a Data Connector, as these interfaces are likely to change, e.g. to have the DC framework create the landing tables and comments based on what a connector declares.
+
+A Data Connector is a Python module in the `./src/connectors` directory and has several pieces:
+
+### `CONNECTION_OPTIONS` (required)
+
+This is a `List[dict]` which describe the connection options that are presented to the user when creating a connection. The key / value pairs in each dict in the list are one of:
+
+- `name: str` (required) - the underscore-separated "machine" name that will be used to refer to the variable
+- `title: str` (optional) - the human readable title that will be used when the user picks the option
+- `prompt: str` (optional) - subtitle to the title clarifying what the user should enter
+- `type: 'str' | 'bool'` (default "str") - the kind of value this input holds
+- `options List[str]` - when present, will make UI a dropdown with the listed options
+- `required: bool` - returns error to user if True, and user does not fill it in
+- `postfix: str` - antd input element's  custom `addonAfter`
+- `prefix: str` - antd input element's  custom `addonBefore`
+- `default: str` - input element's initial value or select element's initial selection. if required, the reset value on empty input blur.
+- `placeholder: str` - input element's placeholder text, or select element's un-selectable initial option
+- `secret: bool` - will mask input on user's screen and `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`. when landing table
+- `mask_on_screen: bool`- will mask input on user's screen but not use vault to encrypt your secrets
+
+### `LANDING_TABLE_COLUMNS` or `LANDING_TABLES_COLUMNS` (required)
+
+There are two kinds of connectors -- those that create a single table, or those that can create one or more tables. This variable specifies either the table columns of the landing table, or the connection types and landing table columns of each type.
+
+### `connect(connection_name, options)` (required)
+
+This function takes the name of the connection being created as well as the options given by the user. It returns a string representing the instructions the user is to see after the first stage is complete, as well as the next stage, with the type:
+
+~~~
+type ConnectionResult = {
+    newStage: 'created' | 'finalized',
+    newMessage: string,
+}
+~~~
+
+For now, this function *must* create a "landing table" in the `data` schema with underscore-separated values of the `connector_name`, `connection_name`, `connection_type`, and the string `"connection"`, e.g. `azure_uswest_audit_connection`. In the case that a connector creates one and only one kind of table, you may skip the `connection_type`, e.g. `okta_snowflake_connection`. In the case that your organization expects only one connection of a type, you should leave that connection named `default`, e.g. `cloudtrail_default_connection`. Your function must grant SELECT and INSERT on this table to the SnowAlert runner role.
+
+### `finalize(connection_name)` (optional)
+
+If a Connector (e.g. the CloudTrail connector) requires the user to take some action before completing the connection, the Connector module author can include a "finalize" step to allow the user to do so.
+
+### `ingest(connection_name, options)` (optional)
+
+If a Connection requires regular ingestion via a Scheduled Task, you can do so using this method. It sould return a string, a `GeneratorType[number]`, or a number.
+
+### `test(connection_name)` (optional)
+
+If a Connector would like to present this user with an option to test the connection, you can do so here. Must return `GeneratorType[dict]` with items of type
+
+~~~
+type TestResult = {
+    success: bool,
+    description: string,
+}
+~~~

@@ -68,10 +68,10 @@ def get_aws_client(account):
         CACHED_AWS_CLIENT = get_cached_aws_client()
     target_role = f'arn:aws:iam::{account}:role/{AWS_AUDIT_ROLE_NAME}'
     dest_role = CACHED_AWS_CLIENT.assume_role(
-            RoleArn=target_role,
-            RoleSessionName=os.environ['IAM_CREDENTIAL_REPORTS_AWS_AUDIT_DESTINATION_ROLE_SESSION_NAME'],
-            ExternalId=os.environ['AWS_AUDIT_DESTINATION_ROLE_ARN_EXTERNALID']
-        )
+        RoleArn=target_role,
+        RoleSessionName=os.environ['IAM_CREDENTIAL_REPORTS_AWS_AUDIT_DESTINATION_ROLE_SESSION_NAME'],
+        ExternalId=os.environ['AWS_AUDIT_DESTINATION_ROLE_ARN_EXTERNALID']
+    )
     iam_session = boto3.Session(
         aws_access_key_id=dest_role['Credentials']['AccessKeyId'],
         aws_secret_access_key=dest_role['Credentials']['SecretAccessKey'],

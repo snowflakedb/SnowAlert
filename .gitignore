@@ -11,5 +11,6 @@ src/**/lib/
 
 *.pyc
 *.venv
+venv
 *.db
 *.egg-info

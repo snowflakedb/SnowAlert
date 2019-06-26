@@ -44,27 +44,21 @@ export const getRouterData = () => {
     [routes.DEFAULT]: {
       component: dynamicWrapper(() => import('../layouts/BasicLayout')),
     },
-    [routes.POLICIES]: {
-      component: dynamicWrapper(() => import('../routes/Dashboard/Policies')),
-    },
     [routes.ALERTS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Alerts')),
     },
     [routes.VIOLATIONS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Violations')),
     },
-    // [routes.USER]: {
-    //   component: dynamicWrapper(() => import('../layouts/UserLayout')),
-    // },
+    [routes.POLICIES]: {
+      component: dynamicWrapper(() => import('../routes/Dashboard/Policies')),
+    },
+    [routes.CONNECTORS]: {
+      component: dynamicWrapper(() => import('../routes/Dashboard/Connectors')),
+    },
     [routes.LOGIN]: {
       component: dynamicWrapper(() => import('../routes/User/Login')),
     },
-    // [routes.REGISTER]: {
-    //   component: dynamicWrapper(() => import('../routes/User/Register')),
-    // },
-    // [routes.REGISTER_RESULT]: {
-    //   component: dynamicWrapper(() => import('../routes/User/RegisterResult')),
-    // },
     [routes.NOT_FOUND_ERROR]: {
       component: dynamicWrapper(() => import('../routes/Exception/404')),
     },

@@ -10,13 +10,13 @@ Query Rules
 
 Before creating new alerts, take a look at the alert configuration file ``packs/snowflake_query_pack.sql`` to see examples of useful Queries.
 
-Note that each Query Rule defines a set set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the `SNOWALERT.RESULTS` schema in your Snowflake account.
+Note that each Query Rule defines a set set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the ``results`` schema in your Snowflake account.
 
 
 Creating New Alert Queries
 ==========================
 
-Since a Query Rule is a view over data in Snowflake, they can be managed by writing SQL statements to create those views and grant the SnowAlert role `SELECT` privileges on them. Those statements can be saved in a .sql file and either pasted into the SnowFlake worksheet UI or executed via snowsql. A single .sql file can contain multiple rules.
+Since a Query Rule is a view over data in Snowflake, they can be managed by writing SQL statements to create those views and grant the SnowAlert role ``SELECT`` privileges on them. Those statements can be saved in a .sql file and either pasted into the SnowFlake worksheet UI or executed via snowsql. A single .sql file can contain multiple rules.
 
 
 Viewing Alert Results
@@ -24,17 +24,17 @@ Viewing Alert Results
 
 When alert queries return data from your warehouse, the results will be added to the alerts table in your SnowAlert database. You can select them in the database to confirm that they are being generated as expected.
 
-If you've configured the alert handler to notify you on alerts, e.g. through JIRA, you can expect to see those notifications as soon as the container finishes executing all three Python scripts.
+If you've configured the alert handlers to notify you on alerts, e.g. through Jira, you can expect to see those notifications as soon as the Dispatch step is done.
 
 
 Adding Suppressions
 ===================
 
-SnowAlert supports suppression queries to prevent false positives from creating alerts. Suppression queries are configured similarly to alert queries, within .sql files in the alerts/suppressions folder. Suppressions are best targeted for specific queries, with a suppression for, e.g. ``AWS_ACCESS_DENIED_ALERT_QUERY``, being called ``AWS_ACCESS_DENIED_ALERT_SUPPRESSION``.
+SnowAlert supports Suppression Queries to prevent known behavior from being dispatched for review. Suppression Queries are configured similarly to Alert Queries, but end with ``_ALERT_SUPPRESSION``. Suppressions can suppress Alerts from multiple Queries or from a specific query, with a suppression for, e.g. ``AWS_ACCESS_DENIED_ALERT_QUERY``, being called ``AWS_ACCESS_DENIED_ALERT_SUPPRESSION``.
 
-Suppressions are views over the Alerts table, just like how queries are views over data, and can be managed in the same way as queries: by writing .sql files with statements to create the view and make the appropriate grants.
+Suppressions are views over the Alerts table, like Queries are views over data, and so can be managed in the same way: by writing .sql files with statements to create the view and make the appropriate grants.
 
-When the suppression function runs, it marks new alerts as suppressed or not. Only alerts that have been assessed by the suppression function are then processed by the alert handler.
+When the suppression step runs, it marks Alerts as suppressed or not. Alerts that have been through the suppression step and were not suppressed are then dispatched to handlers (e.g. Jira, Slack) by the Alert Dispatcher.
 
 
 SnowAlert Query Packs
@@ -44,7 +44,7 @@ SnowAlert is shipped with some sample queries, categorized by the type of monito
 
 To enable a query pack, copy the query pack file from packs/ into the Snowflake Worksheet UI and run the SQL statements to create the appropriate views and enable the appropriate grants.
 
-The current query packs and the queries are documented below:
+The current query packs and queries are documented below:
 
 - Snowflake Query Pack
 

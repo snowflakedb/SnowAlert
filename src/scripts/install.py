@@ -58,11 +58,17 @@ def read_queries(file, tmpl_vars=None):
 VERBOSE = False
 
 GRANT_PRIVILEGES_QUERIES = [
+    # data
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
-    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
-    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
+
+    # rules
+    f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
+
+    # results
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
 ]
 
@@ -125,7 +131,13 @@ CREATE_TABLES_QUERIES = [
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
-      """
+      """,
+    f"""
+      CREATE TABLE IF NOT EXISTS results.ingestion_metadata(
+          event_time TIMESTAMP_LTZ
+          , v VARIANT
+          );
+    """
 ]
 
 
@@ -205,7 +217,7 @@ def login(configuration=None):
     if region != '':
         connect_kwargs['region'] = region
 
-    def attempt(message="doing", todo=None):
+    def attempt(message="doing", todo=None, fail_silently=False):
         print(f"{message}", end="..", flush=True)
         try:
             if type(todo) is str:
@@ -215,8 +227,12 @@ def login(configuration=None):
                 retval = [ctx.cursor().execute(query) for query in todo if (True, print('.', end='', flush=True))]
             elif callable(todo):
                 retval = todo()
-        except Exception as e:
-            log.fatal("failed", e)
+
+        except Exception:
+            if fail_silently:
+                return []
+            raise
+
         print(" ✓")
         return retval
 
@@ -262,7 +278,11 @@ def setup_user_and_role(do_attempt):
 
 
 def find_share_db_name(do_attempt):
-    sample_data_share_rows = do_attempt("Retrieving sample data share(s)", r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'")
+    sample_data_share_rows = do_attempt(
+        "Retrieving sample data share(s)",
+        r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'",
+        fail_silently=True
+    )
 
     # Database name is 4th attribute in row
     share_db_names = [share_row[3] for share_row in sample_data_share_rows]
@@ -374,7 +394,7 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
         ('REGION', region or 'us-west-2'),
 
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
-        ('PRIVATE_KEY_PASSWORD', pk_passphrase),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase.replace('$', r'\$')),
     ]
 
     if jira_url:
@@ -410,12 +430,14 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
     ]
 
 
-def main(admin_role="accountadmin", samples=True, pk_passphrase=None, jira=None, config_account=None,
-         config_region=None, config_username=None, config_password=None, connection_name=None,
-         uninstall=False, set_env_vars=False, verbose=False):
+def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=None, jira=None, config_account=None,
+         config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False,
+         set_env_vars=False, verbose=False):
 
     global VERBOSE
     VERBOSE = verbose
+
+    samples = samples and _samples  # so that --no-samples works, as well
 
     configuration = connection_name if connection_name is not None else {
         'region': config_region or environ.get('REGION'),

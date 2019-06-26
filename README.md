@@ -1,7 +1,7 @@
 [![CircleCI](https://circleci.com/gh/snowflakedb/SnowAlert.svg?style=svg)](https://circleci.com/gh/snowflakedb/SnowAlert)
 
 <p align="center">
-  <img height="300" src="./docs/src/static/images/snowalert-logo.png">
+  <img height="300" src="//raw.githubusercontent.com/snowflakedb/SnowAlert/master/docs/src/static/images/snowalert-logo.png">
 </p>
 
 SnowAlert is a security analytics framework that uses the Snowflake data warehouse for detecting security incidents

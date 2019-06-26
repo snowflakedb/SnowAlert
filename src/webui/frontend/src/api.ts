@@ -112,6 +112,30 @@ export const loadSnowAlertRules = () =>
     .then(handleResponse)
     .catch(handleError);
 
+export const loadSnowAlertData = () =>
+  axios
+    .get('/api/sa/data/', {headers: authHeader()})
+    .then(handleResponse)
+    .catch(handleError);
+
+export const createConnector = (connector: string, name: string, options: any) =>
+  axios
+    .post(`/api/sa/data/connectors/${connector}/${name}`, options, {headers: authHeader()})
+    .then(handleResponse)
+    .catch(handleError);
+
+export const finalizeConnector = (connector: string, name: string) =>
+  axios
+    .post(`/api/sa/data/connectors/${connector}/${name}/finalize`, {}, {headers: authHeader()})
+    .then(handleResponse)
+    .catch(handleError);
+
+export const testConnector = (connector: string, name: string) =>
+  axios
+    .post(`/api/sa/data/connectors/${connector}/${name}/test`, {}, {headers: authHeader()})
+    .then(handleResponse)
+    .catch(handleError);
+
 export const oauthLogin = (returnArgs: any) =>
   axios
     .post('/api/sa/oauth/return', returnArgs)
