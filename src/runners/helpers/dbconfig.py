@@ -1,11 +1,21 @@
 from base64 import b64decode
 from random import choice
 from os import environ
+import re
 from string import ascii_uppercase
 
 
 def random_string(n=10, alphabet=ascii_uppercase):
     return ''.join(choice(alphabet) for _ in range(n))
+
+
+def format_p8_from_key(key, encrypted=False):
+    '''Sometimes users put just the "meat" of the p8 key in the env var'''
+    pk_type = 'ENCRYPTED PRIVATE' if encrypted else 'PRIVATE'
+    start = f'-----BEGIN {pk_type} KEY-----'
+    p8_formatted_key_body = '\n'.join(re.findall(r'.{64}', key))
+    end = f'-----END {pk_type} KEY-----'
+    return f'{start}\n{p8_formatted_key_body}\n{end}'
 
 
 ENV = environ.get('SA_ENV', 'unset')
@@ -22,7 +32,12 @@ ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
 
 USER = environ.get('SA_USER', "snowalert") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
-PRIVATE_KEY = b64decode(environ['PRIVATE_KEY']) if environ.get('PRIVATE_KEY') else None
+pk = environ.get('PRIVATE_KEY')
+if pk:
+    PRIVATE_KEY = (
+        b64decode(pk) if pk.startswith('LS0t')  # "LS0t" is base64 of '---'
+        else format_p8_from_key(pk, encrypted=PRIVATE_KEY_PASSWORD)
+    )
 
 ROLE = environ.get('SA_ROLE', "snowalert") + tail
 WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert") + tail
