@@ -140,7 +140,7 @@ def parse_snowflake_url(url):
         (?P<protocol>http)?
         (:\/\/)?
         (?P<host>
-          (?P<account_1>[a-z]*)
+          (?P<internal_account>[\w]*)
           [^:]+?
           (?:
             \.(?P<internal>int)?
@@ -148,7 +148,7 @@ def parse_snowflake_url(url):
         :(?P<port>\d+)\/?
         |
         (
-          (?P<account_2>[^.]+)
+          (?P<account>[^.]+)
           (?:\.(?P<region>[^.\n]+))?
           (?:\.\w+\.com)?
         )
@@ -158,7 +158,7 @@ def parse_snowflake_url(url):
 
     if m:
         groups = m.groupdict()
-        account = groups['account_1'] or groups['account_2']
+        account = groups['internal_account'] or groups['account']
         region = groups['region']
         host = groups['host']
         protocol = groups['protocol'] or ('http' if host else 'https')
