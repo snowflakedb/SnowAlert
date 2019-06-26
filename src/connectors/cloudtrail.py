@@ -12,31 +12,31 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'bucket_name',
-        'title': 'Source S3 Bucket',
-        'prompt': 'Your S3 bucket where AWS sends CloudTrail',
+        'title': "Source S3 Bucket",
+        'prompt': "Your S3 bucket where AWS sends CloudTrail",
         'prefix': 's3://',
-        'placeholder': 'my-cloudtrail-s3-bucket',
+        'placeholder': "my-cloudtrail-s3-bucket",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': 'AWS Role',
+        'title': "AWS Role",
         'prompt': "The full ARN of an IAM role with permissions to read from the bucket",
-        'placeholder': 'arn:aws:iam::012345678987:role/s3-read-role',
+        'placeholder': "arn:aws:iam::012345678987:role/s3-read-role",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'filter',
-        'title': 'Prefix Filter (optional)',
-        'prompt': 'folder in S3 bucket where CloudTrail puts logs',
-        'default': 'AWSLogs/',
+        'title': "Prefix Filter (optional)",
+        'prompt': "Folder in S3 bucket where CloudTrail puts logs",
+        'default': "AWSLogs/",
         'required': True,
     },
 ]
 
-FILE_FORMAT = """
+FILE_FORMAT = '''
     TYPE = "JSON",
     COMPRESSION = "AUTO",
     ENABLE_OCTAL = FALSE,
@@ -45,7 +45,7 @@ FILE_FORMAT = """
     STRIP_NULL_VALUES = FALSE,
     IGNORE_UTF8_ERRORS = FALSE,
     SKIP_BYTE_ORDER_MARK = TRUE
-"""
+'''
 
 LANDING_TABLE_COLUMNS = [
     ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
@@ -92,7 +92,7 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-CONNECT_RESPONSE_MESSAGE = """
+CONNECT_RESPONSE_MESSAGE = '''
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
 
 {role_trust_relationship}
@@ -101,7 +101,7 @@ STEP 1: Modify the Role "{role}" to include the following trust relationship:
 STEP 2: For Role "{role}", add the following inline policy:
 
 {role_policy}
-"""
+'''
 
 
 def connect(connection_name, options):
@@ -114,10 +114,10 @@ def connect(connection_name, options):
     prefix = options.get('filter', 'AWSLogs/')
     role = options['aws_role']
 
-    comment = f"""
+    comment = f'''
 ---
 module: cloudtrail
-"""
+'''
 
     db.create_stage(
         name=stage,
@@ -151,41 +151,41 @@ module: cloudtrail
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
             role=role,
             role_trust_relationship=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
+                'Version': '2012-10-17',
+                'Statement': [
                     {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+                        'Effect': 'Allow',
+                        'Principal': {
+                            'AWS': stage_props['SNOWFLAKE_IAM_USER']
                         },
-                        "Action": "sts:AssumeRole",
-                        "Condition": {
-                            "StringEquals": {
-                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                        'Action': 'sts:AssumeRole',
+                        'Condition': {
+                            'StringEquals': {
+                                'sts:ExternalId': stage_props['AWS_EXTERNAL_ID']
                             }
                         }
                     }
                 ]
             }, indent=4),
             role_policy=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
+                'Version': '2012-10-17',
+                'Statement': [
                     {
-                        "Effect": "Allow",
-                        "Action": [
-                            "s3:GetObject",
-                            "s3:GetObjectVersion",
+                        'Effect': 'Allow',
+                        'Action': [
+                            's3:GetObject',
+                            's3:GetObjectVersion',
                         ],
-                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                        'Resource': f'arn:aws:s3:::{bucket}/{prefix}/*'
                     },
                     {
-                        "Effect": "Allow",
-                        "Action": "s3:ListBucket",
-                        "Resource": f"arn:aws:s3:::{bucket}",
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    f"{prefix}/*"
+                        'Effect': 'Allow',
+                        'Action': 's3:ListBucket',
+                        'Resource': f'arn:aws:s3:::{bucket}',
+                        'Condition': {
+                            'StringLike': {
+                                's3:prefix': [
+                                    f'{prefix}/*'
                                 ]
                             }
                         }
@@ -202,7 +202,7 @@ def finalize(connection_name):
     landing_table = f'data.{base_name}_CONNECTION'
 
     # Step two: Configure the remainder once the role is properly configured.
-    cloudtrail_ingest_task = f"""
+    cloudtrail_ingest_task = f'''
 INSERT INTO {landing_table} (
   insert_time, raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type,
   event_version, recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
@@ -256,7 +256,7 @@ SELECT CURRENT_TIMESTAMP() insert_time
     , value:vpcEndpointId::STRING vpc_endpoint_id
 FROM data.{base_name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
-"""
+'''
 
     db.create_stream(
         name=f'data.{base_name}_STREAM',

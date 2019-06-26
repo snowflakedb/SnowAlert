@@ -19,55 +19,55 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'account_name',
-        'title': 'Storage Account',
-        'prompt': 'Your storage account with the container where Azure sends logs',
-        'placeholder': 'azstorageaccount',
+        'title': "Storage Account",
+        'prompt': "Your storage account with the container where Azure sends logs",
+        'placeholder': "azstorageaccount",
         'required': True
     },
     {
         'type': 'str',
         'name': 'container_name',
-        'title': 'Container Name',
-        'prompt': 'Your storage container where Azure sends logs',
-        'placeholder': 'insights-logs',
+        'title': "Container Name",
+        'prompt': "Your storage container where Azure sends logs",
+        'placeholder': "insights-logs",
         'required': True
     },
     {
         'type': 'str',
         'name': 'sas_token',
-        'title': 'SAS Token',
+        'title': "SAS Token",
         'prompt': "Access Token which can list and read the log files in your storage account",
         'mask_on_screen': True,
         'placeholder': (
-            '?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z'
-            '&st=2011-01-23T45:67:89Z&spr=https&sig=abcdefghijklmnopqrstuvwxyz%3D'
+            "?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z"
+            "&st=2011-01-23T45:67:89Z&spr=https&sig=abcdefghijklmnopqrstuvwxyz%3D"
         ),
         'required': True
     },
     {
         'type': 'str',
-        'name': 'log_type',
+        'name': 'connection_type',
         'options': [
-            {'value': 'signin', 'label': 'Active Directory (AD) Sign-in Logs'},
-            {'value': 'audit', 'label': 'Active Directory (AD) Audit Logs'},
-            {'value': 'operation', 'label': 'Operation Logs'},
+            {'value': 'signin', 'label': "Active Directory (AD) Sign-in Logs"},
+            {'value': 'audit', 'label': "Active Directory (AD) Audit Logs"},
+            {'value': 'operation', 'label': "Operation Logs"},
         ],
-        'title': 'Log Type',
-        'placeholder': 'Choose Log Type',
-        'prompt': 'Azure provides several activity log streams, choose one for this connector',
+        'title': "Log Type",
+        'placeholder': "Choose Log Type",
+        'prompt': "Azure provides several activity log streams, choose one for this connector",
         'required': True
     },
     {
         'type': 'str',
         'name': 'suffix',
-        'title': 'Endpoint Suffix (optional)',
+        'title': "Endpoint Suffix (optional)",
         'prompt': "If using Azure Storage in an independent cloud, modify the endpoint suffix below",
         'default': 'core.windows.net',
         'required': True
     },
 ]
 
-FILE_FORMAT = """
+FILE_FORMAT = '''
     TYPE = "JSON",
     COMPRESSION = "AUTO",
     ENABLE_OCTAL = FALSE,
@@ -76,7 +76,7 @@ FILE_FORMAT = """
     STRIP_NULL_VALUES = FALSE,
     IGNORE_UTF8_ERRORS = FALSE,
     SKIP_BYTE_ORDER_MARK = TRUE
-"""
+'''
 
 LANDING_TABLES_COLUMNS = {
     'operation': [
@@ -184,16 +184,16 @@ LANDING_TABLES_COLUMNS = {
 
 
 def connect(connection_name, options):
-    log_type = options['log_type']
+    connection_type = options['connection_type']
 
-    base_name = f"azure_{connection_name}_{log_type}"
+    base_name = f"azure_{connection_name}_{connection_type}"
     account_name = options['account_name']
     container_name = options['container_name']
     suffix = options['suffix']
     sas_token = options['sas_token']
     sas_token_ct = vault.encrypt(sas_token)
 
-    comment = f"""
+    comment = f'''
 ---
 module: azure
 storage_account: {account_name}
@@ -203,7 +203,7 @@ sas_token: {sas_token_ct}
 sa_user: {USER}
 snowflake_account: {ACCOUNT}
 database: {DATABASE}
-"""
+'''
 
     db.create_stage(
         name=f'data.{base_name}_STAGE',
@@ -218,14 +218,14 @@ database: {DATABASE}
 
     db.create_table(
         name=f'data.{base_name}_CONNECTION',
-        cols=LANDING_TABLES_COLUMNS[log_type],
+        cols=LANDING_TABLES_COLUMNS[connection_type],
         comment=comment
     )
 
     db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
     pipe_sql = {
-        'operation': f"""
+        'operation': f'''
 COPY INTO DATA.{base_name}_CONNECTION(RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
                                  IDENTITY, IDENTITY_AUTHORIZATION, IDENTITY_CLAIMS, LEVEL, LOCATION,
                                  OPERATION_NAME, PROPERTIES, PROPERTIES_ANCESTORS, PROPERTIES_IS_COMPLIANCE_CHECK,
@@ -239,8 +239,8 @@ FROM (
         $1:properties.resourceLocation::STRING, $1:resourceId::STRING, $1:resultSignature::STRING,
         $1:resultType::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
     FROM @DATA.{base_name}_STAGE)
-""",
-        'audit': f"""
+''',
+        'audit': f'''
 COPY INTO data.{base_name}_CONNECTION (RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
                                   DURATION_MS, LEVEL, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
                                   PROPERTIES_ACTIVITY_DATE_TIME, PROPERTIES_ACTIVITY_DISPLAY_NAME,
@@ -259,8 +259,8 @@ FROM (
         $1:resultSignature::STRING, $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
   FROM @data.{base_name}_STAGE
 )
-""",
-        'signin': f"""
+''',
+        'signin': f'''
 COPY INTO DATA.{base_name}_CONNECTION (
     RAW, HASH_RAW, LEVEL, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
     IDENTITY, LOCATION, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
@@ -296,12 +296,12 @@ FROM (
         CURRENT_TIMESTAMP()
     FROM @DATA.{base_name}_STAGE
 )
-"""
+'''
     }
 
     db.create_pipe(
         name=f"data.{base_name}_PIPE",
-        sql=pipe_sql[options['log_type']],
+        sql=pipe_sql[options['connection_type']],
         replace=True
     )
 

@@ -11,18 +11,18 @@ import requests
 CONNECTION_OPTIONS = [
     {
         'name': 'subdomain',
-        'title': 'Okta Account Name',
-        'prompt': "the first part of your Okta URL",
+        'title': "Okta Account Name",
+        'prompt': "The first part of your Okta URL, without the '-admin' suffix",
         'type': 'str',
         'postfix': '.okta.com',
         'prefix': 'https://',
-        'placeholder': 'account-name',
+        'placeholder': "account-name",
         'required': True
     },
     {
         'name': 'api_key',
         'title': "API Token",
-        'prompt': "available in your Okta settings",
+        'prompt': "This available in your Okta settings",
         'type': 'str',
         'secret': True,
         'required': True
@@ -41,12 +41,12 @@ def connect(connection_name, options):
     api_key = options["api_key"]
     subdomain = options["subdomain"]
 
-    comment = f"""
+    comment = f'''
 ---
 module: okta
 api_key: {api_key}
 subdomain: {subdomain}
-"""
+'''
 
     db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
@@ -58,10 +58,10 @@ subdomain: {subdomain}
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    api_key = options["api_key"]
-    subdomain = options["subdomain"]
+    api_key = options['api_key']
+    subdomain = options['subdomain']
 
-    url = f"https://{subdomain}.okta.com/api/v1/logs"
+    url = f'https://{subdomain}.okta.com/api/v1/logs'
     headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',

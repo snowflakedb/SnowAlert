@@ -107,11 +107,11 @@ Note that in the second case, the "channel" value is created dynamically by Aler
 
 New handlers should be placed in the `./src/runners/handlers` directory; you should ensure that the name of the handler module is its type -- the string you will refer to it in the HANDLERS field in Alert Queries.
 
-## Developing a new Data Connector (alpha)
+## Developing a new Data Connector (DC)
 
 A Data Connector lets you use SnowAlert infrastructure to configure and run data collection into your database from sources outside of Snowflake. Contributing to the connector library allows security defenders to share the costs of data collection from their fleet, server, and cloud infrastructure.
 
-Please get in touch with us if you're thinking of contributing a Data Connector, as these interfaces are subject to change.
+Please get in touch with us if you're thinking of contributing a Data Connector, as these interfaces are likely to change, e.g. to have the DC framework create the landing tables and comments based on what a connector declares.
 
 A Data Connector is a Python module in the `./src/connectors` directory and has several pieces:
 
@@ -129,7 +129,7 @@ This is a `List[dict]` which describe the connection options that are presented 
 - `prefix: str` - antd input element's  custom `addonBefore`
 - `default: str` - input element's initial value or select element's initial selection. if required, the reset value on empty input blur.
 - `placeholder: str` - input element's placeholder text, or select element's un-selectable initial option
-- `secret: bool` - will mask input on user's screen and convert to ciphertext via `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`
+- `secret: bool` - will mask input on user's screen and `vault.encrypt` before passing it to `connect` and `vault.decrypt` before passing it to `ingest`. when landing table
 - `mask_on_screen: bool`- will mask input on user's screen but not use vault to encrypt your secrets
 
 ### `LANDING_TABLE_COLUMNS` or `LANDING_TABLES_COLUMNS` (required)
@@ -147,7 +147,7 @@ type ConnectionResult = {
 }
 ~~~
 
-This function must create a "landing table" in the `data` schema with underscore-separated values of the `connector_name`, `connection_name`, `connection_type`, and the string `"connection"`, e.g. `azure_uswest_audit_connection`. In the case that a connector creates one and only one kind of table, you may skip the `connection_type`, e.g. `okta_snowflake_connection`. In the case that your organization expects only one connection of a type, you should leave that connection named `default`, e.g. `cloudtrail_default_connection`. Your function must grant SELECT and INSERT on this table to the SnowAlert runner role.
+For now, this function *must* create a "landing table" in the `data` schema with underscore-separated values of the `connector_name`, `connection_name`, `connection_type`, and the string `"connection"`, e.g. `azure_uswest_audit_connection`. In the case that a connector creates one and only one kind of table, you may skip the `connection_type`, e.g. `okta_snowflake_connection`. In the case that your organization expects only one connection of a type, you should leave that connection named `default`, e.g. `cloudtrail_default_connection`. Your function must grant SELECT and INSERT on this table to the SnowAlert runner role.
 
 ### `finalize(connection_name)` (optional)
 

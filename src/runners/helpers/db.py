@@ -382,7 +382,6 @@ def create_table(name, cols, replace=False, comment=''):
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
     query = f"CREATE {replace}TABLE {name}{columns}{comment}"
-    print(query)
     execute(query, fix_errors=False)
 
 

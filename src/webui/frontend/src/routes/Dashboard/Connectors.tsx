@@ -2,9 +2,6 @@ import {Avatar, Button, Card, Icon, Input, List, Modal, Select} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-// import {RuleDashboard} from '../../components/Dashboard';
-// import '../../index.css';
-// import {getAuthDetails} from '../../reducers/auth';
 import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
 import {
@@ -15,7 +12,6 @@ import {
   testConnection,
   dismissErrorMessage,
 } from '../../actions/data';
-// import {Query, Suppression} from '../../store/rules';
 
 import './Connectors.css';
 
@@ -93,7 +89,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
         {
           name: 'name',
           title: 'Custom Name (optional)',
-          prompt: 'if you are configuring multiple CloudTrail connections, enter a custom name for this one',
+          prompt: 'If you are configuring multiple connections of this type, enter a custom name for this one',
           default: 'default',
           required: true,
           disabled: connectionStage !== 'start',

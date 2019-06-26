@@ -19,7 +19,7 @@ spec:
               limits:
                 memory: "2Gi"
                 cpu: "1000m"
-              requests: 
+              requests:
                 memory: "1Gi"
                 cpu: "500m"
             env:
