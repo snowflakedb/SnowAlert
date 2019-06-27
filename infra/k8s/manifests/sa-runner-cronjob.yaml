@@ -13,13 +13,13 @@ spec:
       template:
         spec:
           containers:
-          - image: snowsec/snowalert:1.7.2-rc
+          - image: snowsec/snowalert:latest
             name: snowalert
             resources:
               limits:
                 memory: "2Gi"
                 cpu: "1000m"
-              requests: 
+              requests:
                 memory: "1Gi"
                 cpu: "500m"
             env:

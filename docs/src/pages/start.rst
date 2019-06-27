@@ -37,14 +37,12 @@ Requirements
 To use SnowAlert, you will need
 
 1. Administrator access to a Snowflake account
-    - to create a snowalert user that reads alert definitions and manages security events
+    - the SnowAlert installer needs Snowflake account administrator (ACCOUNTADMIN) privileges.
+    - after installation is complete, SnowAlert accesses Snowflake using a dedicated, non-admin user.
 
-2. A way to run alert creation and processing functions, e.g. —
-    - a server on which the SnowAlert docker container can be scheduled to run
-
-3. A way to handle alerts, e.g. —
-    - Jira repository and user with permission to create tickets
-    - Sigma Computing account to create and manage dashboards
+2. Docker container orchestration in the cloud, e.g. —
+    - SnowAlert runners are published in a Docker container to run on AWS Fargate, Azure Container, or Kubernetes,
+    - SnowAlert WebUI is published in a separate Docker container hosting a web application which needs to be network accessible by SnowAlert administrators.
 
 Additionally, if you would like to use KMS as an extra layer of encryption and audit, please run the installer with AWS credentials that are allowed to manage and/or use KMS keys, e.g. —
 

@@ -17,13 +17,13 @@ spec:
         app: snowalert-ui
     spec:
       containers:
-      - image: snowsec/snowalert-webui:1.7.2-rc
+      - image: snowsec/snowalert-webui:latest
         name: snowalert-ui
         resources:
           limits:
             memory: "2Gi"
             cpu: "1000m"
-          requests: 
+          requests:
             memory: "1Gi"
             cpu: "500m"
         ports:

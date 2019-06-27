@@ -8,7 +8,7 @@ from azure.storage.blob import BlockBlobService
 from azure.storage.blob import ContentSettings
 from azure.storage.common import TokenCredential
 
-from runners.helpers import kms
+from runners.helpers import vault
 
 # Azure Gov Cloud Endpoints
 AAD_ENDPOINT_URI = "https://login.microsoftonline.us/"
@@ -179,10 +179,10 @@ def main():
     # Set your Azure Active Directory application credentials.
     # Application must have permission for Microsoft.Graph AuditLog.Read.All
     # and RBAC role "Storage Blob Contributor" to the storage account.
-    tenant_id = kms.decrypt_if_encrypted(envar='AAD_TENANT_ID')
-    client_id = kms.decrypt_if_encrypted(envar='AAD_CLIENT_ID')
-    client_secret = kms.decrypt_if_encrypted(envar='AAD_CLIENT_SECRET')
-    storage_account = kms.decrypt_if_encrypted(envar='AAD_STORAGE_ACCOUNT')
+    tenant_id = vault.decrypt_if_encrypted(envar='AAD_TENANT_ID')
+    client_id = vault.decrypt_if_encrypted(envar='AAD_CLIENT_ID')
+    client_secret = vault.decrypt_if_encrypted(envar='AAD_CLIENT_SECRET')
+    storage_account = vault.decrypt_if_encrypted(envar='AAD_STORAGE_ACCOUNT')
 
     if not (tenant_id and client_id and client_secret and storage_account):
         print('[aad_auditlogs] missing required env var')

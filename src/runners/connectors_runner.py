@@ -9,7 +9,7 @@ from datetime import datetime
 from types import GeneratorType
 from runners.helpers import log
 from runners.helpers import db
-from runners.helpers import kms
+from runners.helpers import vault
 from runners.config import RUN_ID
 from runners.config import DC_METADATA_TABLE
 
@@ -17,8 +17,6 @@ import yaml
 
 
 def main(connection_table="%_CONNECTION"):
-    log.info('--- Data Connections Ingest ---')
-    # data connections
     for table in db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"):
         table_name = table['name']
         table_comment = table['comment']
@@ -43,7 +41,7 @@ def main(connection_table="%_CONNECTION"):
                 for module_option in connector.CONNECTION_OPTIONS:
                     name = module_option['name']
                     if module_option.get('secret') and name in options:
-                        options[name] = kms.decrypt_if_encrypted(options[name])
+                        options[name] = vault.decrypt_if_encrypted(options[name])
 
                 if callable(getattr(connector, 'ingest', None)):
                     ingested = connector.ingest(table_name, options)

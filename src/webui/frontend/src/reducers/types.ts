@@ -79,6 +79,7 @@ export interface ConnectorPayload {
   finalize: boolean;
   docstring: string;
   secret: boolean;
+  mask_on_screen: boolean;
   title: string;
   prompt: string;
   placeholder: string;
@@ -89,14 +90,7 @@ export interface FlowPayload {
   connector: string;
 }
 
-// export interface BaselinePayload {
-//   table_name: string;
-//   comment: string;
-//   rows: number;
-// }
-
 export interface SAData {
-  // baselines: ReadonlyArray<BaselinePayload>;
   connectors: ReadonlyArray<ConnectorPayload>;
   flows: ReadonlyArray<FlowPayload>;
 }

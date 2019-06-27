@@ -13,7 +13,11 @@ SELECT
     , 'AWS Audit Log Configuration Changes' AS title
     , event_time AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
-    , 'User ' || user_identity_session_context_session_issuer_user_name || ' performed ' || event_name || ' on trail ' || raw:requestParameters:name::string AS description
+    , (
+        'User ' || user_identity_session_context_session_issuer_user_name ||
+        ' performed ' || event_name ||
+        ' on trail ' || raw:requestParameters:name::string
+      ) AS description
     , user_identity_session_context_session_issuer_user_name AS actor
     , event_name AS action
     , 'SnowAlert' AS detector
@@ -123,7 +127,11 @@ SELECT
     , request_parameters['bucketName']::string AS object
     , 'Internal Bucket Accessed By External Account' AS title
     , event_time AS event_time
-    , 'User from external account ' || USER_IDENTITY['accountId']::string || ' performed ' || event_name || ' at non-public bucket ' || REQUEST_PARAMETERS['bucketName']::string AS description
+    , (
+        'User from external account ' || USER_IDENTITY['accountId']::string ||
+        ' performed ' || event_name ||
+        ' at non-public bucket ' || REQUEST_PARAMETERS['bucketName']::string
+      ) AS description
     , 'SnowAlert' AS detector
     , raw AS event_data
     , user_identity['accountId']::string AS actor

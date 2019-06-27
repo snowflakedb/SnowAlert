@@ -28,7 +28,8 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
             return f()
         except E as e:
             n -= 1
-            time.sleep(sleep_seconds_btw_retry)
+            if sleep_seconds_btw_retry > 0:
+                time.sleep(sleep_seconds_btw_retry)
             for exception, handler in handlers:
                 if isinstance(e, exception):
                     return handler(e)
@@ -382,7 +383,6 @@ def create_table(name, cols, replace=False, comment=''):
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
     query = f"CREATE {replace}TABLE {name}{columns}{comment}"
-    print(query)
     execute(query, fix_errors=False)
 
 

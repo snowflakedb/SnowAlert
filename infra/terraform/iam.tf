@@ -132,4 +132,3 @@ resource "aws_iam_policy_attachment" "snowalert_runtask" {
   roles      = ["${aws_iam_role.ecs_run_task.name}"]
   policy_arn = "${aws_iam_policy.snowalert_runtask.arn}"
 }
-

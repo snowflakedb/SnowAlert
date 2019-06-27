@@ -1,11 +1,11 @@
 CREATE OR REPLACE VIEW rules.snowflake_admin_role_grant_monitor_alert_query COPY GRANTS AS
 SELECT
-      object_construct('cloud', 'Snowflake', 'account', current_account()) AS environment
-    , array_construct('snowflake') AS sources
-    , regexp_substr(query_text, '\\s([^\\s]+)\\sto\\s',1,1,'ie') AS object
+      OBJECT_CONSTRUCT('cloud', 'Snowflake', 'account', current_account()) AS environment
+    , ARRAY_CONSTRUCT('snowflake') AS sources
+    , REGEXP_SUBSTR(query_text, '\\s([^\\s]+)\\sto\\s',1,1,'ie') AS object
     , 'Snowflake - Admin role granted' AS alerttype
     , start_time AS event_time
-    , current_timestamp() AS alert_time
+    , CURRENT_TIMESTAMP() AS alert_time
     , 'A new grant was added ' || LOWER(REGEXP_SUBSTR(query_text, '\\s(to\\s[^\\s]+\\s[^\\s]+);?',1,1,'ie')) || ' by user ' || user_name || ' using role ' || role_name AS description
     , 'SnowAlert' AS detector
     , query_text AS event_data
@@ -25,8 +25,8 @@ GRANT SELECT ON VIEW rules.snowflake_admin_role_grant_monitor_alert_query TO ROL
 
 CREATE OR REPLACE VIEW rules.snowflake_authorization_error_alert_query COPY GRANTS AS
 SELECT
-      object_construct('cloud', 'Snowflake', 'account', current_account()) AS environment
-    , array_construct('snowflake') AS sources
+      OBJECT_CONSTRUCT('cloud', 'Snowflake', 'account', current_account()) AS environment
+    , ARRAY_CONSTRUCT('snowflake') AS sources
     , 'Snowflake Query' AS object
     , 'Snowflake Access Control Error' AS title
     , START_TIME AS event_time
@@ -48,15 +48,15 @@ GRANT SELECT ON VIEW rules.snowflake_authorization_error_alert_query TO ROLE sno
 
 CREATE OR REPLACE VIEW rules.snowflake_authentication_failure_alert_query COPY GRANTS AS
 SELECT
-      object_construct('cloud', 'Snowflake', 'account', current_account()) AS environment
-    , array_construct('snowflake') AS sources
+      OBJECT_CONSTRUCT('cloud', 'Snowflake', 'account', current_account()) AS environment
+    , ARRAY_CONSTRUCT('snowflake') AS sources
     , 'Snowflake' AS object
     , 'Snowflake Authentication Failure' AS title
     , event_timestamp AS event_time
-    , current_timestamp() AS alert_time
+    , CURRENT_TIMESTAMP() AS alert_time
     , 'User ' || USER_NAME || ' failed to authentication to Snowflake, from IP: ' || CLIENT_IP AS description
     , 'SnowAlert' AS detector
-    , ERROR_MESSAGE AS event_data
+    , error_message AS event_data
     , user_name AS actor
     , 'failed to authenticate to Snowflake' AS action
     , 'Low' AS severity

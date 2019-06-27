@@ -227,11 +227,11 @@ def login(configuration=None):
                 retval = [ctx.cursor().execute(query) for query in todo if (True, print('.', end='', flush=True))]
             elif callable(todo):
                 retval = todo()
-        except Exception as e:
+
+        except Exception:
             if fail_silently:
                 return []
-            else:
-                log.fatal("failed", e)
+            raise
 
         print(" ✓")
         return retval

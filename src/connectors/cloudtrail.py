@@ -1,5 +1,5 @@
 """AWS CloudTrail
-collects CloudTrail logs from S3 into a columnar table
+Collect AWS logs from an S3 bucket
 """
 
 from json import dumps
@@ -12,31 +12,31 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'bucket_name',
-        'title': 'CloudTrail Bucket',
-        'prompt': 'where CloudTrail puts your logs',
-        'prefix': 's3://',
-        'placeholder': 'my-test-s3-bucket',
-        'required': True,
-    },
-    {
-        'type': 'str',
-        'name': 'filter',
-        'title': 'Prefix Filter',
-        'prompt': 'folder in S3 bucket where CloudTrail puts logs',
-        'default': 'AWSLogs/',
+        'title': "Source S3 Bucket",
+        'prompt': "Your S3 bucket where AWS sends CloudTrail",
+        'prefix': "s3://",
+        'placeholder': "my-cloudtrail-s3-bucket",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': 'AWS Role',
-        'prompt': "ARN of Role we'll grant access to bucket",
-        'placeholder': 'arn:aws:iam::012345678987:role/my-test-role',
+        'title': "AWS Role",
+        'prompt': "The full ARN of an IAM role with permissions to read from the bucket",
+        'placeholder': "arn:aws:iam::012345678987:role/s3-read-role",
         'required': True,
-    }
+    },
+    {
+        'type': 'str',
+        'name': 'filter',
+        'title': "Prefix Filter (optional)",
+        'prompt': "Folder in S3 bucket where CloudTrail puts logs",
+        'default': "AWSLogs/",
+        'required': True,
+    },
 ]
 
-FILE_FORMAT = """
+FILE_FORMAT = '''
     TYPE = "JSON",
     COMPRESSION = "AUTO",
     ENABLE_OCTAL = FALSE,
@@ -45,9 +45,11 @@ FILE_FORMAT = """
     STRIP_NULL_VALUES = FALSE,
     IGNORE_UTF8_ERRORS = FALSE,
     SKIP_BYTE_ORDER_MARK = TRUE
-"""
+'''
 
-CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
+LANDING_TABLE_COLUMNS = [
+    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('insert_time', 'TIMESTAMP_LTZ(9)'),
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
     ('event_time', 'TIMESTAMP_LTZ(9)'),
@@ -90,7 +92,7 @@ CLOUDTRAIL_LANDING_TABLE_COLUMNS = [
 ]
 
 
-CONNECT_RESPONSE_MESSAGE = """
+CONNECT_RESPONSE_MESSAGE = '''
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
 
 {role_trust_relationship}
@@ -99,7 +101,7 @@ STEP 1: Modify the Role "{role}" to include the following trust relationship:
 STEP 2: For Role "{role}", add the following inline policy:
 
 {role_policy}
-"""
+'''
 
 
 def connect(connection_name, options):
@@ -112,10 +114,10 @@ def connect(connection_name, options):
     prefix = options.get('filter', 'AWSLogs/')
     role = options['aws_role']
 
-    comment = f"""
+    comment = f'''
 ---
 module: cloudtrail
-"""
+'''
 
     db.create_stage(
         name=stage,
@@ -133,7 +135,7 @@ module: cloudtrail
 
     db.create_table(
         name=landing_table,
-        cols=CLOUDTRAIL_LANDING_TABLE_COLUMNS,
+        cols=LANDING_TABLE_COLUMNS,
         comment=comment
     )
 
@@ -149,41 +151,41 @@ module: cloudtrail
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
             role=role,
             role_trust_relationship=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
+                'Version': '2012-10-17',
+                'Statement': [
                     {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+                        'Effect': 'Allow',
+                        'Principal': {
+                            'AWS': stage_props['SNOWFLAKE_IAM_USER']
                         },
-                        "Action": "sts:AssumeRole",
-                        "Condition": {
-                            "StringEquals": {
-                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                        'Action': 'sts:AssumeRole',
+                        'Condition': {
+                            'StringEquals': {
+                                'sts:ExternalId': stage_props['AWS_EXTERNAL_ID']
                             }
                         }
                     }
                 ]
             }, indent=4),
             role_policy=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
+                'Version': '2012-10-17',
+                'Statement': [
                     {
-                        "Effect": "Allow",
-                        "Action": [
-                            "s3:GetObject",
-                            "s3:GetObjectVersion",
+                        'Effect': 'Allow',
+                        'Action': [
+                            's3:GetObject',
+                            's3:GetObjectVersion',
                         ],
-                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                        'Resource': f'arn:aws:s3:::{bucket}/{prefix}/*'
                     },
                     {
-                        "Effect": "Allow",
-                        "Action": "s3:ListBucket",
-                        "Resource": f"arn:aws:s3:::{bucket}",
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    f"{prefix}/*"
+                        'Effect': 'Allow',
+                        'Action': 's3:ListBucket',
+                        'Resource': f'arn:aws:s3:::{bucket}',
+                        'Condition': {
+                            'StringLike': {
+                                's3:prefix': [
+                                    f'{prefix}/*'
                                 ]
                             }
                         }
@@ -200,10 +202,10 @@ def finalize(connection_name):
     landing_table = f'data.{base_name}_CONNECTION'
 
     # Step two: Configure the remainder once the role is properly configured.
-    cloudtrail_ingest_task = f"""
+    cloudtrail_ingest_task = f'''
 INSERT INTO {landing_table} (
-  raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type, event_version,
-  recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
+  insert_time, raw, hash_raw, event_time, aws_region, event_id, event_name, event_source, event_type,
+  event_version, recipient_account_id, request_id, request_parameters, response_elements, source_ip_address,
   user_agent, user_identity, user_identity_type, user_identity_principal_id, user_identity_arn,
   user_identity_accountid, user_identity_invokedby, user_identity_access_key_id, user_identity_username,
   user_identity_session_context_attributes_mfa_authenticated, user_identity_session_context_attributes_creation_date,
@@ -212,7 +214,8 @@ INSERT INTO {landing_table} (
   user_identity_session_context_session_issuer_user_name, error_code, error_message, additional_event_data,
   api_version, read_only, resources, service_event_details, shared_event_id, vpc_endpoint_id
 )
-SELECT value raw
+SELECT CURRENT_TIMESTAMP() insert_time
+    , value raw
     , HASH(value) hash_raw
     , value:eventTime::TIMESTAMP_LTZ(9) event_time
     , value:awsRegion::STRING aws_region
@@ -249,11 +252,11 @@ SELECT value raw
     , value:readOnly::BOOLEAN read_only
     , value:resources::VARIANT resources
     , value:serviceEventDetails::STRING service_event_details
-    , value:sharedEventID::STRING shared_event_id
-    , value:vpcEndpointID::STRING vpc_endpoint_id
+    , value:sharedEventId::STRING shared_event_id
+    , value:vpcEndpointId::STRING vpc_endpoint_id
 FROM data.{base_name}_STREAM, table(flatten(input => v:Records))
 WHERE ARRAY_SIZE(v:Records) > 0
-"""
+'''
 
     db.create_stream(
         name=f'data.{base_name}_STREAM',
@@ -294,12 +297,3 @@ WHERE ARRAY_SIZE(v:Records) > 0
             f"channel for all object create events: {sqs_arn}"
         )
     }
-
-
-def test(base_name):
-    yield db.fetch(f'ls @DATA.{base_name}_STAGE')
-    yield db.fetch(f'DESC TABLE DATA.{base_name}_STAGING')
-    yield db.fetch(f'DESC STREAM DATA.{base_name}_STREAM')
-    yield db.fetch(f'DESC PIPE DATA.{base_name}_PIPE')
-    yield db.fetch(f'DESC TABLE DATA.{base_name}_CONNECTION')
-    yield db.fetch(f'DESC TASK DATA.{base_name}_TASK')

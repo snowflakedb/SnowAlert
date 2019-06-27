@@ -3,9 +3,10 @@ Collects AWS EC2, SG, ELB details into a columnar table
 """
 import datetime
 import json
-import os
-import boto3
 from datetime import datetime
+
+import boto3
+
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -145,7 +146,7 @@ def ingest_ec2(client_id, secret_key, landing_table, regions):
             row['Architecture'],
             monitor_time,
             row['InstanceType'],
-            row.get('KeyName', 'n/a'),  # can be not present if a managed instance such as EMR
+            row.get('KeyName', ''),  # can be not present if a managed instance such as EMR
             row['LaunchTime'],
             row['Region']['RegionName'],
             row['State']['Name'],
@@ -235,14 +236,11 @@ def get_ec2_instance_name(instance=None):
     for the Name tag and returns that value as a string.
     """
     # return the name if possible, return empty string if not possible
-    try:
-        for tag in instance["Tags"]:
-            if "Name" == tag["Key"]:
-                return tag["Value"]
-    except Exception as e:
-        log.info(f"Could not extract EC2 instance name from [{instance}]")
-
-    return ""
+    if "Tags" not in instance:
+        return ""
+    for tag in instance["Tags"]:
+        if "Name" == tag["Key"]:
+            return tag["Value"]
 
 
 def get_all_security_groups(client_id, secret_key, regions):

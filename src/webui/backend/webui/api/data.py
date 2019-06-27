@@ -6,7 +6,7 @@ import logbook
 import importlib
 
 from connectors import CONNECTION_OPTIONS
-from runners.helpers import db, dbconfig, kms, log
+from runners.helpers import db, dbconfig, vault, log
 from runners.utils import format_exception_only
 
 logger = logbook.Logger(__name__)
@@ -72,15 +72,15 @@ def post_connector(connector, name):
         missing_titles_str = '\n  - ' + '\n  - '.join(missing_titles)
         return {
             'success': False,
-            'errorMessage': f"Missing required option(s):{missing_titles_str}",
+            'errorMessage': f"Missing required configuration options:{missing_titles_str}",
         }
 
     secret_option_names = {
         o['name']: o for o in connector.CONNECTION_OPTIONS if o.get('secret')
     }
     for opt_name in secret_option_names:
-        if kms.KMS_KEY and opt_name in options:
-            options[opt_name] = kms.encrypt(options[opt_name])
+        if vault.ENABLED and opt_name in options:
+            options[opt_name] = vault.encrypt(options[opt_name])
 
     return connector.connect(name, options)
 

@@ -2,9 +2,6 @@ import {Avatar, Button, Card, Icon, Input, List, Modal, Select} from 'antd';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-// import {RuleDashboard} from '../../components/Dashboard';
-// import '../../index.css';
-// import {getAuthDetails} from '../../reducers/auth';
 import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
 import {
@@ -15,7 +12,6 @@ import {
   testConnection,
   dismissErrorMessage,
 } from '../../actions/data';
-// import {Query, Suppression} from '../../store/rules';
 
 import './Connectors.css';
 
@@ -58,7 +54,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   selectConnector(name: string | null) {
     const selectedConnector = this.findConnector(name);
     if (selectedConnector) {
-      let entries = [...selectedConnector.options.map((o: any) => [o.name, o.default]), ['name', 'default']];
+      let entries = [['name', 'default'], ...selectedConnector.options.map((o: any) => [o.name, o.default])];
       this.setState({
         optionValues: Object.fromEntries(entries),
       });
@@ -93,7 +89,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
         {
           name: 'name',
           title: 'Custom Name (optional)',
-          prompt: 'to make more than one connection for this connector, enter its name, matching [a-z_]+',
+          prompt: 'If you are configuring multiple connections of this type, enter a custom name for this one',
           default: 'default',
           required: true,
           disabled: connectionStage !== 'start',
@@ -104,7 +100,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
     return selectedConnector ? (
       <div>
         <Modal
-          title={`Failed ${connectionStage} connection`}
+          title={`Error Creating ${connectionStage} Connection`}
           visible={!!errorMessage}
           centered={true}
           closable={false}
@@ -130,21 +126,22 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
                 <label>
                   <List.Item.Meta title={opt.title || opt.name.replace('_', ' ')} description={opt.prompt} />
 
-                  {opt.type == 'select' ? (
+                  {opt.options ? (
                     <Select
-                      defaultValue={opt.default || '- pick one -'}
+                      defaultValue={opt.placeholder || opt.default || '- pick one -'}
+                      dropdownMatchSelectWidth={false}
                       onChange={(v: any) => {
                         this.changeOption(opt.name, v);
                       }}
                     >
-                      {opt.options.map((o: string) => (
-                        <Select.Option key={o} value={o}>
-                          {o}
+                      {opt.options.map((o: any) => (
+                        <Select.Option key={o.value} value={o.value}>
+                          {o.label}
                         </Select.Option>
                       ))}
                     </Select>
                   ) : (
-                    React.createElement(opt.secret ? Input.Password : Input, {
+                    React.createElement(opt.secret || opt.mask_on_screen ? Input.Password : Input, {
                       name: opt.name,
                       defaultValue: opt.default,
                       value: optionValues[opt.name],
@@ -216,7 +213,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
               <a onClick={() => this.selectConnector(c.name)}>
-                <Icon type="link" /> Connect
+                <Icon type="api" /> Connect
               </a>,
             ]}
           >

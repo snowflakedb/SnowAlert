@@ -161,6 +161,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                 </div>
               ) : field.type === 'boolean' ? (
                 <div key={`col-${i}`}>
+                  <h3>{field.title}</h3>
                   <Switch
                     disabled={q.isSaving}
                     defaultChecked={field.getValue(q)}

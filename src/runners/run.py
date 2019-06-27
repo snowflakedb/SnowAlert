@@ -18,7 +18,16 @@ from runners.helpers import log
 
 
 def main(target="all", rule_name=None):
-    if rule_name:
+    if target == "connector" and rule_name:
+        connectors_runner.main(rule_name.upper())
+
+    elif target == "processor":
+        alert_processor.main()
+
+    elif target == "dispatcher":
+        alert_dispatcher.main()
+
+    elif rule_name:
         if rule_name.endswith("_ALERT_QUERY"):
             alert_queries_runner.main(rule_name.upper())
 
@@ -30,12 +39,6 @@ def main(target="all", rule_name=None):
 
         if rule_name.endswith("_VIOLATION_SUPPRESSION"):
             violation_suppressions_runner.main(rule_name.upper())
-
-        if rule_name == "processor":
-            alert_processor.main()
-
-        if rule_name == "dispatcher":
-            alert_dispatcher.main()
 
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")

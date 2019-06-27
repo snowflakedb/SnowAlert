@@ -1,5 +1,5 @@
-"""Okta
-collects Okta API v1 logs into a single-VARIANT table
+"""Okta System Log
+Collect Okta activity logs
 """
 
 from runners.helpers import db, log
@@ -11,21 +11,25 @@ import requests
 CONNECTION_OPTIONS = [
     {
         'name': 'subdomain',
+        'title': "Okta Account Name",
+        'prompt': "The subdomain of your Okta login page",
         'type': 'str',
-        'postfix': '.okta.com',
-        'prefix': 'https://',
-        'placeholder': 'account-name',
+        'postfix': ".okta.com",
+        'prefix': "https://",
+        'placeholder': "account-name",
         'required': True
     },
     {
         'name': 'api_key',
+        'title': "API Token",
+        'prompt': "This available in your Okta settings",
         'type': 'str',
         'secret': True,
         'required': True
     },
 ]
 
-OKTA_LANDING_TABLE_COLUMNS = [
+LANDING_TABLE_COLUMNS = [
     ('raw', 'VARIANT'),
     ('event_time', 'TIMESTAMP_LTZ')
 ]
@@ -34,17 +38,17 @@ OKTA_LANDING_TABLE_COLUMNS = [
 def connect(connection_name, options):
     table_name = f'okta_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    api_key = options["api_key"]
-    subdomain = options["subdomain"]
+    api_key = options['api_key']
+    subdomain = options['subdomain']
 
-    comment = f"""
+    comment = f'''
 ---
 module: okta
 api_key: {api_key}
 subdomain: {subdomain}
-"""
+'''
 
-    db.create_table(name=landing_table, cols=OKTA_LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
@@ -54,10 +58,10 @@ subdomain: {subdomain}
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    api_key = options["api_key"]
-    subdomain = options["subdomain"]
+    api_key = options['api_key']
+    subdomain = options['subdomain']
 
-    url = f"https://{subdomain}.okta.com/api/v1/logs"
+    url = f'https://{subdomain}.okta.com/api/v1/logs'
     headers = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -94,10 +98,3 @@ def ingest(table_name, options):
         yield len(result)
 
         url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
-
-
-def test(name):
-    yield {
-        'check': 'everything works',
-        'success': True,
-    }

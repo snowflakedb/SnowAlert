@@ -225,7 +225,7 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     if len(pipe_description) < 1:
         return {
             'newStage': 'error',
-            'newMessage': f"{pipe} doesn't exist; please reach out to Snowflake Security for assistance."
+            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
         }
     else:
         sqs_arn = pipe_description[0]['notification_channel']
@@ -233,7 +233,7 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     return {
         'newStage': 'finalized',
         'newMessage': (
-            f"Please add this SQS Queue ARN to the bucket event notification"
+            f"Please add this SQS Queue ARN to the bucket event notification "
             f"channel for all object create events: {sqs_arn}"
         )
     }
