@@ -1,348 +1,248 @@
 """AWS Config
-Collects AWS EC2 config information into a columnar table
+collects Config logs from S3 into a columnar table
 """
-import datetime
-import json
-import os
-import boto3
-from datetime import datetime
-from runners.helpers import db, log
-from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+from json import dumps
+
+from runners.helpers import db
+from runners.helpers.dbconfig import WAREHOUSE
+from time import sleep
 
 CONNECTION_OPTIONS = [
     {
-        # The AWS Client ID. The account ID is not necessary as Client ID's are globally unique
-        'name': 'Client_ID',
         'type': 'str',
-        'required': True
+        'name': 'bucket_name',
+        'title': 'Config Bucket',
+        'prompt': 'where Config puts your logs',
+        'prefix': 's3://',
+        'placeholder': 'my-test-s3-bucket',
+        'required': True,
     },
     {
-        # The AWS Secret Key
-        'name': 'Secret_Key',
         'type': 'str',
-        'secret': True,
-        'required': True
+        'name': 'filter',
+        'title': 'Prefix Filter',
+        'prompt': 'folder in S3 bucket where Config puts logs',
+        'default': 'AWSLogs/',
+        'required': True,
+    },
+    {
+        'type': 'str',
+        'name': 'aws_role',
+        'title': 'AWS Role',
+        'prompt': "ARN of Role we'll grant access to bucket",
+        'placeholder': 'arn:aws:iam::012345678987:role/my-test-role',
+        'required': True,
     }
 ]
 
-# Define the columns for the EC2 Instances Landing Table
-AWS_EC2_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
-    ('INSTANCE_ID', 'STRING(30)'),
-    ('ARCHITECTURE', 'STRING(16)'),
-    ('MONITORED_TIME_UTC', 'TIMESTAMP_TZ'),
-    ('INSTANCE_TYPE', 'STRING(256)'),
-    ('KEY_NAME', 'STRING(256)'),
-    ('LAUNCH_TIME', 'TIMESTAMP_TZ'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('INSTANCE_STATE', 'STRING(16)'),
-    ('INSTANCE_NAME', 'STRING(256)')
+FILE_FORMAT = """
+    TYPE = "JSON",
+    COMPRESSION = "AUTO",
+    ENABLE_OCTAL = FALSE,
+    ALLOW_DUPLICATE = FALSE,
+    STRIP_OUTER_ARRAY = TRUE,
+    STRIP_NULL_VALUES = FALSE,
+    IGNORE_UTF8_ERRORS = FALSE,
+    SKIP_BYTE_ORDER_MARK = TRUE
+"""
+
+CONFIG_LANDING_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('hash_raw', 'NUMBER'),
+    ('config_capture_time', 'TIMESTAMP_LTZ(9)'),
+    ('account_id', 'STRING'),
+    ('aws_region', 'STRING'),
+    ('arn', 'STRING'),
+    ('availability_zone', 'STRING'),
+    ('resource_creation_time', 'TIMESTAMP_LTZ(9)'),
+    ('resource_name', 'STRING'),
+    ('resource_Id', 'STRING'),
+    ('resource_type', 'STRING'),
+    ('relationships', 'VARIANT'),
+    ('configuration', 'VARIANT'),
+    ('tags', 'VARIANT')
 ]
 
-# Define the columns for the Security Group Landing table
-AWS_SG_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
-    ('DESCRIPTION', 'STRING(256)'),
-    ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-    ('GROUP_ID', 'STRING(30)'),
-    ('GROUP_NAME', 'STRING(255)'),
-    ('ACCOUNT_ID', 'STRING(30)'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('VPC_ID', 'STRING(30)')
-]
 
-# Define the columns for the Elastic Load Balancer landing table
-AWS_ELB_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
-    ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-    ('HOSTED_ZONE_NAME', 'STRING(256)'),
-    ('HOSTED_ZONE_NAME_ID', 'STRING(30)'),
-    ('CREATED_TIME', 'TIMESTAMP_TZ'),
-    ('DNS_NAME', 'STRING(512)'),
-    ('LOAD_BALANCER_NAME', 'STRING(256)'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('SCHEME', 'STRING(30)'),
-    ('VPC_ID', 'STRING(30)')
-]
+CONNECT_RESPONSE_MESSAGE = """
+STEP 1: Modify the Role "{role}" to include the following trust relationship:
+
+{role_trust_relationship}
+
+
+STEP 2: For Role "{role}", add the following inline policy:
+
+{role_policy}
+"""
 
 
 def connect(connection_name, options):
-    # create 3 tables for the asset inventory
-    result = create_config_table(connection_name, 'EC2', AWS_EC2_LANDING_TABLE_COLUMNS, options)
-    result = result + os.linesep
-    result = result + create_config_table(connection_name, 'SG', AWS_SG_LANDING_TABLE_COLUMNS, options)
-    result = result + os.linesep
-    result = result + create_config_table(connection_name, 'ELB', AWS_ELB_LANDING_TABLE_COLUMNS, options)
+    base_name = f'CONFIG_{connection_name}_EVENTS'.upper()
+    stage = f'data.{base_name}_STAGE'
+    staging_table = f'data.{base_name}_STAGING'
+    landing_table = f'data.{base_name}_CONNECTION'
 
-    return {
-        'newStage': 'finalized',
-        'newMessage': f"{result}",
-    }
-
-
-def create_config_table(connection_name, config_type, columns, options):
-    # create the tables, based on the config type (i.e. SG, EC2, ELB)
-    table_name = f'aws_config_{config_type}_{connection_name}_connection'
-    landing_table = f'data.{table_name}'
-    client_id = options["Client_ID"]
-    secret_key = options["Secret_Key"]
+    bucket = options['bucket_name']
+    prefix = options.get('filter', 'AWSLogs/')
+    role = options['aws_role']
 
     comment = f"""
 ---
 module: aws_config
-client_id: {client_id}
-secret_key: {secret_key}
 """
 
-    db.create_table(name=landing_table, cols=columns, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
-
-    return f'AWS Config {config_type} ingestion table created!'
-
-
-def ingest(table_name, options):
-    landing_table = f'data.{table_name}'
-    client_id = options["client_id"]
-    secret_key = options["secret_key"]
-
-    regions = boto3.client(
-            'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key
-    ).describe_regions()['Regions']
-
-    count = 0
-    if 'EC2' in table_name:
-        count = ingest_ec2(client_id, secret_key, landing_table, regions)
-    if 'SG' in table_name:
-        count = ingest_sg(client_id, secret_key, landing_table, regions)
-    if 'ELB' in table_name:
-        count = ingest_elb(client_id, secret_key, landing_table, regions)
-
-    log.info(f'Inserted {count} rows.')
-    yield count
-
-
-def ingest_ec2(client_id, secret_key, landing_table, regions):
-    instances = get_ec2_instances(client_id, secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
-    db.insert(
-        landing_table,
-        values=[(
-            row,
-            row['InstanceId'],
-            row['Architecture'],
-            monitor_time,
-            row['InstanceType'],
-            row.get('KeyName', 'n/a'),  # can be not present if a managed instance such as EMR
-            row['LaunchTime'],
-            row['Region']['RegionName'],
-            row['State']['Name'],
-            row['InstanceName'])
-            for row in instances
-        ],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8, column9, column10'
+    db.create_stage(
+        name=stage,
+        url=f's3://{bucket}',
+        prefix=prefix,
+        cloud='aws',
+        credentials=role,
+        file_format=FILE_FORMAT
     )
-    return len(instances)
 
-
-def ingest_sg(client_id, secret_key, landing_table, regions):
-    groups = get_all_security_groups(client_id, secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
-    db.insert(
-        landing_table,
-        values=[(
-            row,
-            row['Description'],
-            monitor_time,
-            row['GroupId'],
-            row['GroupName'],
-            row['OwnerId'],
-            row['Region']['RegionName'],
-            row['VpcId'])
-            for row in groups],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8'
+    db.create_table(
+        name=staging_table,
+        cols=[('v', 'variant')]
     )
-    return len(groups)
 
-
-def ingest_elb(client_id, secret_key, landing_table, regions):
-    elbs = get_all_elbs(client_id, secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
-
-    db.insert(
-        landing_table,
-        values=[(
-            row,
-            monitor_time,
-            row['CanonicalHostedZoneName'],
-            row['CanonicalHostedZoneNameID'],
-            row['CreatedTime'],
-            row['DNSName'],
-            row['LoadBalancerName'],
-            row['Region']['RegionName'],
-            row['Scheme'],
-            row['VPCId'])
-            for row in elbs],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, '
-               'column7, column8, column9, column10'
+    db.create_table(
+        name=landing_table,
+        cols=CONFIG_LANDING_TABLE_COLUMNS,
+        comment=comment
     )
-    return len(elbs)
 
+    stage_props = db.fetch_props(
+        f'DESC STAGE {stage}',
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+    )
 
-def get_ec2_instances(client_id, secret_key, regions):
-    log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
+    prefix = prefix.rstrip('/')
 
-    # get list of all instances in each region
-    instances = []
-    for region in regions:
-        reservations = boto3.client(
-            'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
-            region_name=region['RegionName']
-        ).describe_instances()["Reservations"]
-
-        for reservation in reservations:
-
-            for instance in reservation['Instances']:
-                instance["Region"] = region
-                instance["InstanceName"] = get_ec2_instance_name(instance)
-                # for the boto3 datetime fix
-                instance_str = json.dumps(instance, default=datetime_serializer).encode("utf-8")
-                instance = json.loads(instance_str)
-                instances.append(instance)
-
-    # return list of instances
-    log.info(f"Successfully serialized {len(instances)} EC2 instance(s).")
-    return instances
-
-
-def get_ec2_instance_name(instance=None):
-    """
-    This method searches an ec2 instance object
-    for the Name tag and returns that value as a string.
-    """
-    # return the name if possible, return empty string if not possible
-    try:
-        for tag in instance["Tags"]:
-            if "Name" == tag["Key"]:
-                return tag["Value"]
-    except Exception as e:
-        log.info(f"Could not extract EC2 instance name from [{instance}]")
-
-    return ""
-
-
-def get_all_security_groups(client_id, secret_key, regions):
-    """
-    This function grabs each security group from each region and returns
-    a list of the security groups.
-
-    Each security group is manually given a 'Region' field for clarity
-    """
-    log.info(f"Searching for Security Groups in {len(regions)} region(s).")
-
-    # get list of all groups in each region
-    security_groups = []
-    for region in regions:
-        ec2 = boto3.client(
-            'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
-            region_name=region['RegionName']
+    return {
+        'newStage': 'created',
+        'newMessage': CONNECT_RESPONSE_MESSAGE.format(
+            role=role,
+            role_trust_relationship=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+                        },
+                        "Action": "sts:AssumeRole",
+                        "Condition": {
+                            "StringEquals": {
+                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                            }
+                        }
+                    }
+                ]
+            }, indent=4),
+            role_policy=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:GetObject",
+                            "s3:GetObjectVersion",
+                        ],
+                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": f"arn:aws:s3:::{bucket}",
+                        "Condition": {
+                            "StringLike": {
+                                "s3:prefix": [
+                                    f"{prefix}/*"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }, indent=4),
         )
-        for group in ec2.describe_security_groups()['SecurityGroups']:
-            group["Region"] = region
-            group_str = json.dumps(group, default=datetime_serializer).encode("utf-8")  # for the boto3 datetime fix
-            group = json.loads(group_str)
-            security_groups.append(group)
-
-    # return list of groups
-    log.info(f"Successfully serialized {len(security_groups)} security group(s).")
-    return security_groups
-
-
-def get_all_elbs(client_id, secret_key, regions):
-    v1_elbs = get_all_v1_elbs(client_id, secret_key, regions)
-    v2_elbs = get_all_v2_elbs(client_id, secret_key, regions)
-    elbs = v1_elbs + v2_elbs
-
-    if len(elbs) is 0:
-        log.info("no elastic load balancers found")
-        return
-
-    return elbs
-
-
-def get_all_v1_elbs(client_id, secret_key, regions):
-    """
-    This function grabs each classic elb from each region and returns
-    a list of them.
-    """
-    log.info(f"Searching {len(regions)} region(s) for classic load balancers.")
-
-    # get list of all load balancers in each region
-    elbs = []
-    for region in regions:
-        elb_client = boto3.client(
-            'elb',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
-            region_name=region['RegionName'])
-        for elb in elb_client.describe_load_balancers()['LoadBalancerDescriptions']:
-            # add region before adding elb to list of elbs
-            elb["Region"] = region
-            elb_str = json.dumps(elb, default=datetime_serializer).encode("utf-8")  # for the datetime ser fix
-            elb = json.loads(elb_str)
-            elbs.append(elb)
-
-    # return list of load balancers
-    log.info(f"Successfully serialized {len(elbs)} classic elastic load balancers(s).")
-    return elbs
-
-
-def get_all_v2_elbs(client_id, secret_key, regions):
-    """
-    This function grabs each v2 elb from each region and returns
-    a list of them.
-    """
-    log.info(f"Searching {len(regions)} region(s) for modern load balancers.")
-
-    # get list of all load balancers in each region
-    elbs = []
-    for region in regions:
-        elb_client = boto3.client(
-            'elbv2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
-            region_name=region['RegionName']
-        )
-        for elb in elb_client.describe_load_balancers()['LoadBalancers']:
-            # add region
-            elb["Region"] = region
-
-            # add listeners to see which SSL policies are attached to this elb
-            elb_arn = elb['LoadBalancerArn']
-            listeners = elb_client.describe_listeners(LoadBalancerArn=elb_arn)
-            elb["Listeners"] = listeners  # add listeners as field in the ELB
-            elb = json.dumps(elb, default=datetime_serializer).encode("utf-8")
-            elb = json.loads(elb)
-            elbs.append(elb)
-
-    # return list of load balancers
-    log.info(f"Successfully serialized {len(elbs)} modern elastic load balancers(s).")
-    return elbs
-
-
-def datetime_serializer(obj):
-    if isinstance(obj, datetime):
-        return obj.isoformat()
-    raise TypeError(f"Type {type(obj)} not serializable")
-
-
-def test(name):
-    yield {
-        'check': 'everything works',
-        'success': True,
     }
+
+
+def finalize(connection_name):
+    base_name = f'CONFIG_{connection_name}_EVENTS'.upper()
+    pipe = f'data.{base_name}_PIPE'
+    landing_table = f'data.{base_name}_CONNECTION'
+
+    # Step two: Configure the remainder once the role is properly configured.
+    config_ingest_task = f"""
+INSERT INTO {landing_table} (
+  raw, hash_raw, config_capture_time, account_id, aws_region, resource_type, arn, availability_zone, 
+  resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
+)
+SELECT value raw
+    , HASH(value) hash_raw
+    , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) config_capture_time
+    , value:awsAccountId::STRING account_id
+    , value:awsRegion::STRING aws_region
+    , value:resourceType::STRING aws_region
+    , value:ARN::STRING arn
+    , value:availabilityZone::STRING availability_zone
+    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_creation_time
+    , value:resourceName::STRING resource_name
+    , value:resourceId::STRING resource_Id
+    , value:relationships::VARIANT relationships
+    , value:configuration::VARIANT configuration
+    , value:tags::VARIANT tags
+FROM data.{base_name}_STREAM, lateral flatten(input => v:configurationItems)
+WHERE ARRAY_SIZE(v:configurationItems) > 0
+"""
+
+    db.create_stream(
+        name=f'data.{base_name}_STREAM',
+        target=f'data.{base_name}_STAGING'
+    )
+
+    # IAM change takes 5-15 seconds to take effect
+    sleep(5)
+    db.retry(
+        lambda: db.create_pipe(
+            name=pipe,
+            sql=f"COPY INTO data.{base_name}_STAGING(v) FROM @data.{base_name}_STAGE/",
+            replace=True,
+            autoingest=True
+        ),
+        n=10,
+        sleep_seconds_btw_retry=1
+    )
+
+    db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
+                   warehouse=WAREHOUSE, sql=config_ingest_task)
+
+    db.execute(f"ALTER PIPE {pipe} REFRESH")
+
+    pipe_description = list(db.fetch(f'DESC PIPE {pipe}'))
+    if len(pipe_description) < 1:
+        return {
+            'newStage': 'error',
+            'newMessage': f"{pipe} doesn't exist; please reach out to Snowflake Security for assistance."
+        }
+    else:
+        sqs_arn = pipe_description[0]['notification_channel']
+
+    return {
+        'newStage': 'finalized',
+        'newMessage': (
+            f"Please add this SQS Queue ARN to the bucket event notification"
+            f"channel for all object create events: {sqs_arn}"
+        )
+    }
+
+
+def test(base_name):
+    yield db.fetch(f'ls @DATA.{base_name}_STAGE')
+    yield db.fetch(f'DESC TABLE DATA.{base_name}_STAGING')
+    yield db.fetch(f'DESC STREAM DATA.{base_name}_STREAM')
+    yield db.fetch(f'DESC PIPE DATA.{base_name}_PIPE')
+    yield db.fetch(f'DESC TABLE DATA.{base_name}_CONNECTION')
+    yield db.fetch(f'DESC TASK DATA.{base_name}_TASK')

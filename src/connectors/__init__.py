@@ -1,14 +1,16 @@
 from . import cloudtrail
 from . import okta
 from . import azure
+from . import aws_asset_ingest
 from . import aws_config
 
-__all__ = ['cloudtrail', 'okta', 'azure', 'aws_config']
+__all__ = ['cloudtrail', 'okta', 'azure', 'aws_asset_ingest', 'aws_config']
 
 connectors = {
     'cloudtrail': cloudtrail,
     'okta': okta,
     'azure': azure,
+    'aws_asset_ingest': aws_asset_ingest,
     'aws_config': aws_config
 }
 
