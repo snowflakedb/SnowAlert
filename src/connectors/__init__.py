@@ -10,6 +10,8 @@ connectors = {
     'cloudtrail': cloudtrail,
     'okta': okta,
     'azure': azure,
+    'aws_config': aws_config,
+    'aws_asset_ingest': aws_asset_ingest
 }
 
 CONNECTION_OPTIONS = [

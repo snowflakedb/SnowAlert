@@ -36,7 +36,7 @@ CONNECTION_OPTIONS = [
 
 # Define the columns for the EC2 Instances Landing Table
 AWS_EC2_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
+    ('RAW', 'VARIANT'),
     ('INSTANCE_ID', 'STRING(30)'),
     ('ARCHITECTURE', 'STRING(16)'),
     ('MONITORED_TIME_UTC', 'TIMESTAMP_TZ'),
@@ -50,7 +50,7 @@ AWS_EC2_LANDING_TABLE_COLUMNS = [
 
 # Define the columns for the Security Group Landing table
 AWS_SG_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
+    ('RAW', 'VARIANT'),
     ('DESCRIPTION', 'STRING(256)'),
     ('MONITORED_TIME', 'TIMESTAMP_TZ'),
     ('GROUP_ID', 'STRING(30)'),
@@ -62,7 +62,7 @@ AWS_SG_LANDING_TABLE_COLUMNS = [
 
 # Define the columns for the Elastic Load Balancer landing table
 AWS_ELB_LANDING_TABLE_COLUMNS = [
-    ('RAW_DATA', 'VARIANT'),
+    ('RAW', 'VARIANT'),
     ('MONITORED_TIME', 'TIMESTAMP_TZ'),
     ('HOSTED_ZONE_NAME', 'STRING(256)'),
     ('HOSTED_ZONE_NAME_ID', 'STRING(30)'),
@@ -80,11 +80,11 @@ def connect(connection_name, options):
     result = ''
 
     if options["Asset_Source"] == 'EC2':
-        result = create_config_table(connection_name, 'EC2', AWS_EC2_LANDING_TABLE_COLUMNS, options)
+        result = create_asset_table(connection_name, 'EC2', AWS_EC2_LANDING_TABLE_COLUMNS, options)
     elif options["Asset_Source"] == 'SG':
-        result = create_config_table(connection_name, 'SG', AWS_SG_LANDING_TABLE_COLUMNS, options)
+        result = create_asset_table(connection_name, 'SG', AWS_SG_LANDING_TABLE_COLUMNS, options)
     elif options["Asset_Source"] == 'ELB':
-        result = create_config_table(connection_name, 'ELB', AWS_ELB_LANDING_TABLE_COLUMNS, options)
+        result = create_asset_table(connection_name, 'ELB', AWS_ELB_LANDING_TABLE_COLUMNS, options)
 
     return {
         'newStage': 'finalized',
@@ -92,9 +92,9 @@ def connect(connection_name, options):
     }
 
 
-def create_config_table(connection_name, config_type, columns, options):
+def create_asset_table(connection_name, asset_type, columns, options):
     # create the tables, based on the config type (i.e. SG, EC2, ELB)
-    table_name = f'aws_asset_inv_{config_type}_{connection_name}_connection'
+    table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
     landing_table = f'data.{table_name}'
     client_id = options["Client_ID"]
     secret_key = options["Secret_Key"]
@@ -109,7 +109,7 @@ secret_key: {secret_key}
     db.create_table(name=landing_table, cols=columns, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
-    return f'AWS {config_type} asset ingestion table created!'
+    return f'AWS {asset_type} asset ingestion table created!'
 
 
 def ingest(table_name, options):

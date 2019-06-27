@@ -48,9 +48,9 @@ FILE_FORMAT = """
 """
 
 CONFIG_LANDING_TABLE_COLUMNS = [
-    ('raw', 'VARIANT'),
+    ('v', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
-    ('config_capture_time', 'TIMESTAMP_LTZ(9)'),
+    ('event_time', 'TIMESTAMP_LTZ(9)'),
     ('account_id', 'STRING'),
     ('aws_region', 'STRING'),
     ('arn', 'STRING'),
