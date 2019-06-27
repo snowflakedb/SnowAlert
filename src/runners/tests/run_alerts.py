@@ -212,15 +212,16 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert len(query_rule_run_record) == 7  # 3 from samples + 4 test alert queries
 
     assert query_rule_run_record[0]['QUERY_NAME'] == 'ACTIVITY_BY_ADMIN_ALERT_QUERY'
-    assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == 49
+    queries_by_admin = 50
+    assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == queries_by_admin
 
     assert query_rule_run_record[1]['QUERY_NAME'] == 'SNOWFLAKE_LOGIN_WITHOUT_MFA_ALERT_QUERY'
     assert query_rule_run_record[1]['NUM_ALERTS_CREATED'] == 1
 
     assert query_rule_run_record[2]['QUERY_NAME'] == 'SNOWFLAKE_RESOURCE_CREATION_ALERT_QUERY'
     # unclear why this value is non-deterministic in test suite
-    resource_creation_alerts = query_rule_run_record[2]['NUM_ALERTS_CREATED']
-    assert resource_creation_alerts >= 40
+    resource_creations = query_rule_run_record[2]['NUM_ALERTS_CREATED']
+    assert resource_creations >= 40
 
     assert query_rule_run_record[-4]['QUERY_NAME'] == '_TEST1_ALERT_QUERY'
     assert query_rule_run_record[-4]['NUM_ALERTS_CREATED'] == 1
@@ -238,7 +239,7 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
 
     queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
     assert len(queries_run_records) == 1
-    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == resource_creation_alerts + 54
+    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == resource_creations + queries_by_admin + 5
     assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
     # TODO: errors
@@ -272,13 +273,13 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert suppression_rule_run_records[1]['NUM_ALERTS_SUPPRESSED'] == 1
     assert suppression_rule_run_records[2]['RUN_ID'] == RUN_ID
     assert suppression_rule_run_records[2]['RULE_NAME'] == '__SUPPRESS_SAMPLE_ALERTS_ALERT_SUPPRESSION'
-    assert suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED'] == resource_creation_alerts + 50
+    assert suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED'] == resource_creations + queries_by_admin + 1
 
     suppression_run_records = list(db.fetch('SELECT * FROM data.alert_suppressions_runs'))
     assert len(suppression_run_records) == 1
     assert_dict_has_subset(suppression_run_records[0], {
         'RUN_ID': RUN_ID,
-        'NUM_ALERTS_SUPPRESSED': resource_creation_alerts + 51,
+        'NUM_ALERTS_SUPPRESSED': resource_creations + queries_by_admin + 2,
         'NUM_ALERTS_PASSED': 3,
     })
 
