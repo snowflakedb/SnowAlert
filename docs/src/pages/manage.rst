@@ -1,9 +1,9 @@
 Managing Alerts
 ***************
 
-SnowAlert Rules are a set of views defined in your Snowflake account that manage the lifecycle of Alerts. Query Rules create alerts and Suppression Rules automatically handle alerts. The Docker containers published under `snowsec/snowalert` use run these rules to create alerts. Since these rules are Snowflake views, they can be managed using snowsql command line client or your Snowflake Web UI.
+SnowAlert Rules are a set of views defined in your Snowflake account that manage the lifecycle of Alerts. Query Rules create alerts and Suppression Rules automatically handle alerts. The containers published `on DockerHub`_ use these rules to create alerts. Since these rules are Snowflake views, they can be managed using snowsql command line client or your Snowflake Web UI.
 
-We are also actively working on a `snowsec/snowalert-webui` service container which will help you manage your rules in SnowAlert.
+We are also actively working on a ``snowsec/snowalert-webui`` service container which will help you manage your rules in SnowAlert.
 
 Query Rules
 ===========
@@ -61,3 +61,5 @@ SnowAlert Violations
 Sometimes there are events you want to track and resolve, but which don't require immediate action; for example, if you want all of your Snowflake users to require MFA before authenticating, you want to know about a user who doesn't have that turned on, but it's not something that requires your Security team to track down the offending user that instant.
 
 For cases like this, SnowAlert can manage violations, which are similar to alerts but can run less often (for example. daily instead of hourly). Violation queries are managed and suppressed identically to to Alert queries (so you might have ``USER_NO_MFA_VIOLATION_QUERY`` and ``USER_NO_MFA_VIOLATION_SUPPRESSION``), but the results are stored in a Violations table, which you can visualize and process using a BI tool like Sigma, Looker, or Superset.
+
+.. _on DockerHub: https://hub.docker.com/r/snowsec/snowalert
