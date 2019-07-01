@@ -348,10 +348,3 @@ def datetime_serializer(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()
     raise TypeError(f"Type {type(obj)} not serializable")
-
-
-def test(name):
-    yield {
-        'check': 'everything works',
-        'success': True,
-    }
