@@ -1,19 +1,18 @@
 """AWS Config
 collects Config logs from S3 into a columnar table
 """
-
 from json import dumps
+from time import sleep
 
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
-from time import sleep
 
 CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'bucket_name',
         'title': 'Config Bucket',
-        'prompt': 'where Config puts your logs',
+        'prompt': 'The S3 bucket Config puts your logs',
         'prefix': 's3://',
         'placeholder': 'my-test-s3-bucket',
         'required': True,
@@ -22,7 +21,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'filter',
         'title': 'Prefix Filter',
-        'prompt': 'folder in S3 bucket where Config puts logs',
+        'prompt': 'The folder in S3 bucket where Config puts logs',
         'default': 'AWSLogs/',
         'required': True,
     },
@@ -47,8 +46,8 @@ FILE_FORMAT = """
     SKIP_BYTE_ORDER_MARK = TRUE
 """
 
-CONFIG_LANDING_TABLE_COLUMNS = [
-    ('v', 'VARIANT'),
+LANDING_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
     ('event_time', 'TIMESTAMP_LTZ(9)'),
     ('account_id', 'STRING'),
@@ -108,7 +107,7 @@ module: aws_config
 
     db.create_table(
         name=landing_table,
-        cols=CONFIG_LANDING_TABLE_COLUMNS,
+        cols=LANDING_TABLE_COLUMNS,
         comment=comment
     )
 
@@ -174,10 +173,9 @@ def finalize(connection_name):
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
-    # Step two: Configure the remainder once the role is properly configured.
-    config_ingest_task = f"""
+    config_ingest_task = f'''
 INSERT INTO {landing_table} (
-  raw, hash_raw, config_capture_time, account_id, aws_region, resource_type, arn, availability_zone, 
+  raw, hash_raw, config_capture_time, account_id, aws_region, resource_type, arn, availability_zone,
   resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
 )
 SELECT value raw
@@ -194,9 +192,9 @@ SELECT value raw
     , value:relationships::VARIANT relationships
     , value:configuration::VARIANT configuration
     , value:tags::VARIANT tags
-FROM data.{base_name}_STREAM, lateral flatten(input => v:configurationItems)
+FROM data.{base_name}_stream, LATERAL FLATTEN(input => v:configurationItems)
 WHERE ARRAY_SIZE(v:configurationItems) > 0
-"""
+'''
 
     db.create_stream(
         name=f'data.{base_name}_STREAM',
@@ -208,7 +206,7 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     db.retry(
         lambda: db.create_pipe(
             name=pipe,
-            sql=f"COPY INTO data.{base_name}_STAGING(v) FROM @data.{base_name}_STAGE/",
+            sql=f"COPY INTO data.{base_name}_staging(v) FROM @data.{base_name}_stage/",
             replace=True,
             autoingest=True
         ),

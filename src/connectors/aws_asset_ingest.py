@@ -1,9 +1,8 @@
 """AWS Asset Inventory
 Collects AWS EC2, SG, ELB details into a columnar table
 """
-import datetime
-import json
 from datetime import datetime
+import json
 
 import boto3
 
@@ -14,81 +13,75 @@ CONNECTION_OPTIONS = [
     {
         'type': 'select',
         'options': ['EC2', 'SG', 'ELB'],
-        'name': 'Asset_Source',
-        'title': 'Asset Type',
-        'prompt': 'The type of AWS asset information you are ingesting to Snowflake.',
+        'name': 'connection_type',
+        'title': "Asset Type",
+        'prompt': "The type of AWS asset information you are ingesting to Snowflake.",
         'required': True
     },
     {
         # The AWS Client ID. The account ID is not necessary as Client ID's are globally unique
-        'name': 'Client_ID',
+        'name': 'client_id',
         'type': 'str',
         'required': True
     },
     {
         # The AWS Secret Key
-        'name': 'Secret_Key',
+        'name': 'secret_key',
         'type': 'str',
         'secret': True,
         'required': True
     }
 ]
 
-# Define the columns for the EC2 Instances Landing Table
-AWS_EC2_LANDING_TABLE_COLUMNS = [
-    ('RAW', 'VARIANT'),
-    ('INSTANCE_ID', 'STRING(30)'),
-    ('ARCHITECTURE', 'STRING(16)'),
-    ('MONITORED_TIME_UTC', 'TIMESTAMP_TZ'),
-    ('INSTANCE_TYPE', 'STRING(256)'),
-    ('KEY_NAME', 'STRING(256)'),
-    ('LAUNCH_TIME', 'TIMESTAMP_TZ'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('INSTANCE_STATE', 'STRING(16)'),
-    ('INSTANCE_NAME', 'STRING(256)')
-]
-
-# Define the columns for the Security Group Landing table
-AWS_SG_LANDING_TABLE_COLUMNS = [
-    ('RAW', 'VARIANT'),
-    ('DESCRIPTION', 'STRING(256)'),
-    ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-    ('GROUP_ID', 'STRING(30)'),
-    ('GROUP_NAME', 'STRING(255)'),
-    ('ACCOUNT_ID', 'STRING(30)'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('VPC_ID', 'STRING(30)')
-]
-
-# Define the columns for the Elastic Load Balancer landing table
-AWS_ELB_LANDING_TABLE_COLUMNS = [
-    ('RAW', 'VARIANT'),
-    ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-    ('HOSTED_ZONE_NAME', 'STRING(256)'),
-    ('HOSTED_ZONE_NAME_ID', 'STRING(30)'),
-    ('CREATED_TIME', 'TIMESTAMP_TZ'),
-    ('DNS_NAME', 'STRING(512)'),
-    ('LOAD_BALANCER_NAME', 'STRING(256)'),
-    ('REGION_NAME', 'STRING(16)'),
-    ('SCHEME', 'STRING(30)'),
-    ('VPC_ID', 'STRING(30)')
-]
+LANDING_TABLES_COLUMNS = {
+    # EC2 Instances Landing Table
+    'EC2': [
+        ('RAW', 'VARIANT'),
+        ('INSTANCE_ID', 'STRING(30)'),
+        ('ARCHITECTURE', 'STRING(16)'),
+        ('MONITORED_TIME_UTC', 'TIMESTAMP_TZ'),
+        ('INSTANCE_TYPE', 'STRING(256)'),
+        ('KEY_NAME', 'STRING(256)'),
+        ('LAUNCH_TIME', 'TIMESTAMP_TZ'),
+        ('REGION_NAME', 'STRING(16)'),
+        ('INSTANCE_STATE', 'STRING(16)'),
+        ('INSTANCE_NAME', 'STRING(256)')
+    ],
+    # Security Group Landing table
+    'SG': [
+        ('RAW', 'VARIANT'),
+        ('DESCRIPTION', 'STRING(256)'),
+        ('MONITORED_TIME', 'TIMESTAMP_TZ'),
+        ('GROUP_ID', 'STRING(30)'),
+        ('GROUP_NAME', 'STRING(255)'),
+        ('ACCOUNT_ID', 'STRING(30)'),
+        ('REGION_NAME', 'STRING(16)'),
+        ('VPC_ID', 'STRING(30)')
+    ],
+    # Elastic Load Balancer landing table
+    'ELB': [
+        ('RAW', 'VARIANT'),
+        ('MONITORED_TIME', 'TIMESTAMP_TZ'),
+        ('HOSTED_ZONE_NAME', 'STRING(256)'),
+        ('HOSTED_ZONE_NAME_ID', 'STRING(30)'),
+        ('CREATED_TIME', 'TIMESTAMP_TZ'),
+        ('DNS_NAME', 'STRING(512)'),
+        ('LOAD_BALANCER_NAME', 'STRING(256)'),
+        ('REGION_NAME', 'STRING(16)'),
+        ('SCHEME', 'STRING(30)'),
+        ('VPC_ID', 'STRING(30)')
+    ]
+}
 
 
 def connect(connection_name, options):
-
-    result = ''
-
-    if options["Asset_Source"] == 'EC2':
-        result = create_asset_table(connection_name, 'EC2', AWS_EC2_LANDING_TABLE_COLUMNS, options)
-    elif options["Asset_Source"] == 'SG':
-        result = create_asset_table(connection_name, 'SG', AWS_SG_LANDING_TABLE_COLUMNS, options)
-    elif options["Asset_Source"] == 'ELB':
-        result = create_asset_table(connection_name, 'ELB', AWS_ELB_LANDING_TABLE_COLUMNS, options)
+    connection_type = options['connection_type']
+    columns = LANDING_TABLES_COLUMNS[connection_type]
+    msg = create_asset_table(connection_name, connection_type, columns, options)
 
     return {
         'newStage': 'finalized',
-        'newMessage': f"{result}",
+        'newMessage': msg,
     }
 
 
@@ -96,41 +89,41 @@ def create_asset_table(connection_name, asset_type, columns, options):
     # create the tables, based on the config type (i.e. SG, EC2, ELB)
     table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    client_id = options["Client_ID"]
-    secret_key = options["Secret_Key"]
+    client_id = options['client_id']
+    secret_key = options['secret_key']
 
-    comment = f"""
+    comment = f'''
 ---
 module: aws_asset_ingest
 client_id: {client_id}
 secret_key: {secret_key}
-"""
+'''
 
     db.create_table(name=landing_table, cols=columns, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
-    return f'AWS {asset_type} asset ingestion table created!'
+    return f"AWS {asset_type} asset ingestion table created!"
 
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    client_id = options["client_id"]
-    secret_key = options["secret_key"]
+    client_id = options['client_id']
+    secret_key = options['secret_key']
+    connection_type = options['connection_type']
 
     regions = boto3.client(
-            'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key
+        'ec2',
+        aws_access_key_id=client_id,
+        aws_secret_access_key=secret_key
     ).describe_regions()['Regions']
 
-    count = 0
-    if 'EC2' in table_name:
-        count = ingest_ec2(client_id, secret_key, landing_table, regions)
-    if 'SG' in table_name:
-        count = ingest_sg(client_id, secret_key, landing_table, regions)
-    if 'ELB' in table_name:
-        count = ingest_elb(client_id, secret_key, landing_table, regions)
+    ingest_of_type = {
+        'EC2': ingest_ec2,
+        'SG': ingest_sg,
+        'ELB': ingest_elb,
+    }[connection_type]
 
+    count = ingest_of_type(client_id, secret_key, landing_table, regions)
     log.info(f'Inserted {count} rows.')
     yield count
 
