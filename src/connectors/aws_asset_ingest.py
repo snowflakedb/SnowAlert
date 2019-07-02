@@ -20,13 +20,17 @@ CONNECTION_OPTIONS = [
     },
     {
         # The AWS Client ID. The account ID is not necessary as Client ID's are globally unique
-        'name': 'client_id',
+        'name': 'aws_access_key',
+        'title': "AWS Access Key",
+        'prompt': "This key id will be used to authenticate to AWS.",
         'type': 'str',
         'required': True
     },
     {
         # The AWS Secret Key
-        'name': 'secret_key',
+        'name': 'aws_secret_key',
+        'title': "AWS Secret Key",
+        'prompt': "This secret key will be used to authenticate to AWS.",
         'type': 'str',
         'secret': True,
         'required': True
@@ -89,14 +93,14 @@ def create_asset_table(connection_name, asset_type, columns, options):
     # create the tables, based on the config type (i.e. SG, EC2, ELB)
     table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    client_id = options['client_id']
-    secret_key = options['secret_key']
+    aws_access_key = options['aws_access_key']
+    aws_secret_key = options['aws_secret_key']
 
     comment = f'''
 ---
 module: aws_asset_ingest
-client_id: {client_id}
-secret_key: {secret_key}
+aws_access_key: {aws_access_key}
+aws_secret_key: {aws_secret_key}
 '''
 
     db.create_table(name=landing_table, cols=columns, comment=comment)
@@ -107,14 +111,14 @@ secret_key: {secret_key}
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    client_id = options['client_id']
-    secret_key = options['secret_key']
+    aws_access_key = options['aws_access_key']
+    aws_secret_key = options['aws_secret_key']
     connection_type = options['connection_type']
 
     regions = boto3.client(
         'ec2',
-        aws_access_key_id=client_id,
-        aws_secret_access_key=secret_key
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key
     ).describe_regions()['Regions']
 
     ingest_of_type = {
@@ -123,13 +127,13 @@ def ingest(table_name, options):
         'ELB': ingest_elb,
     }[connection_type]
 
-    count = ingest_of_type(client_id, secret_key, landing_table, regions)
+    count = ingest_of_type(aws_access_key, aws_secret_key, landing_table, regions)
     log.info(f'Inserted {count} rows.')
     yield count
 
 
-def ingest_ec2(client_id, secret_key, landing_table, regions):
-    instances = get_ec2_instances(client_id, secret_key, regions)
+def ingest_ec2(aws_access_key, aws_secret_key, landing_table, regions):
+    instances = get_ec2_instances(aws_access_key, aws_secret_key, regions)
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
         landing_table,
@@ -151,8 +155,8 @@ def ingest_ec2(client_id, secret_key, landing_table, regions):
     return len(instances)
 
 
-def ingest_sg(client_id, secret_key, landing_table, regions):
-    groups = get_all_security_groups(client_id, secret_key, regions)
+def ingest_sg(aws_access_key, aws_secret_key, landing_table, regions):
+    groups = get_all_security_groups(aws_access_key, aws_secret_key, regions)
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
         landing_table,
@@ -171,8 +175,8 @@ def ingest_sg(client_id, secret_key, landing_table, regions):
     return len(groups)
 
 
-def ingest_elb(client_id, secret_key, landing_table, regions):
-    elbs = get_all_elbs(client_id, secret_key, regions)
+def ingest_elb(aws_access_key, aws_secret_key, landing_table, regions):
+    elbs = get_all_elbs(aws_access_key, aws_secret_key, regions)
     monitor_time = datetime.utcnow().isoformat()
 
     db.insert(
@@ -195,7 +199,7 @@ def ingest_elb(client_id, secret_key, landing_table, regions):
     return len(elbs)
 
 
-def get_ec2_instances(client_id, secret_key, regions):
+def get_ec2_instances(aws_access_key, aws_secret_key, regions):
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
 
     # get list of all instances in each region
@@ -203,8 +207,8 @@ def get_ec2_instances(client_id, secret_key, regions):
     for region in regions:
         reservations = boto3.client(
             'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
             region_name=region['RegionName']
         ).describe_instances()["Reservations"]
 
@@ -236,7 +240,7 @@ def get_ec2_instance_name(instance=None):
             return tag["Value"]
 
 
-def get_all_security_groups(client_id, secret_key, regions):
+def get_all_security_groups(aws_access_key, aws_secret_key, regions):
     """
     This function grabs each security group from each region and returns
     a list of the security groups.
@@ -250,8 +254,8 @@ def get_all_security_groups(client_id, secret_key, regions):
     for region in regions:
         ec2 = boto3.client(
             'ec2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
             region_name=region['RegionName']
         )
         for group in ec2.describe_security_groups()['SecurityGroups']:
@@ -265,9 +269,9 @@ def get_all_security_groups(client_id, secret_key, regions):
     return security_groups
 
 
-def get_all_elbs(client_id, secret_key, regions):
-    v1_elbs = get_all_v1_elbs(client_id, secret_key, regions)
-    v2_elbs = get_all_v2_elbs(client_id, secret_key, regions)
+def get_all_elbs(aws_access_key, aws_secret_key, regions):
+    v1_elbs = get_all_v1_elbs(aws_access_key, aws_secret_key, regions)
+    v2_elbs = get_all_v2_elbs(aws_access_key, aws_secret_key, regions)
     elbs = v1_elbs + v2_elbs
 
     if len(elbs) is 0:
@@ -277,7 +281,7 @@ def get_all_elbs(client_id, secret_key, regions):
     return elbs
 
 
-def get_all_v1_elbs(client_id, secret_key, regions):
+def get_all_v1_elbs(aws_access_key, aws_secret_key, regions):
     """
     This function grabs each classic elb from each region and returns
     a list of them.
@@ -289,8 +293,8 @@ def get_all_v1_elbs(client_id, secret_key, regions):
     for region in regions:
         elb_client = boto3.client(
             'elb',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
             region_name=region['RegionName'])
         for elb in elb_client.describe_load_balancers()['LoadBalancerDescriptions']:
             # add region before adding elb to list of elbs
@@ -304,7 +308,7 @@ def get_all_v1_elbs(client_id, secret_key, regions):
     return elbs
 
 
-def get_all_v2_elbs(client_id, secret_key, regions):
+def get_all_v2_elbs(aws_access_key, aws_secret_key, regions):
     """
     This function grabs each v2 elb from each region and returns
     a list of them.
@@ -316,8 +320,8 @@ def get_all_v2_elbs(client_id, secret_key, regions):
     for region in regions:
         elb_client = boto3.client(
             'elbv2',
-            aws_access_key_id=client_id,
-            aws_secret_access_key=secret_key,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
             region_name=region['RegionName']
         )
         for elb in elb_client.describe_load_balancers()['LoadBalancers']:
