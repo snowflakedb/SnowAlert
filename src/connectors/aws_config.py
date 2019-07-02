@@ -1,5 +1,5 @@
 """AWS Config
-collects Config logs from S3 into a columnar table
+Collects Config logs from S3 into a columnar table
 """
 from json import dumps
 from time import sleep
@@ -175,12 +175,12 @@ def finalize(connection_name):
 
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
-  raw, hash_raw, config_capture_time, account_id, aws_region, resource_type, arn, availability_zone,
+  raw, hash_raw, event_time, account_id, aws_region, resource_type, arn, availability_zone,
   resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
 )
 SELECT value raw
     , HASH(value) hash_raw
-    , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) config_capture_time
+    , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) event_time
     , value:awsAccountId::STRING account_id
     , value:awsRegion::STRING aws_region
     , value:resourceType::STRING aws_region
