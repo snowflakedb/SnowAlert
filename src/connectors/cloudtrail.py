@@ -217,7 +217,12 @@ INSERT INTO {landing_table} (
 SELECT CURRENT_TIMESTAMP() insert_time
     , value raw
     , HASH(value) hash_raw
-    , value:eventTime::TIMESTAMP_LTZ(9) event_time
+    --- In the rare event of an unparsable timestamp, the following COALESCE keeps the pipeline from failing.
+    --- Compare event_time to TRY_TO_TIMESTAMP(raw:eventTime::STRING) to establish if the timestamp was parsed.
+    , COALESCE(
+        TRY_TO_TIMESTAMP(value:eventTime::STRING)::TIMESTAMP_LTZ(9),
+        CURRENT_TIMESTAMP()
+      ) event_time
     , value:awsRegion::STRING aws_region
     , value:eventID::STRING event_id
     , value:eventName::STRING event_name
