@@ -38,41 +38,25 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-def get_aws_client(table_name, options):
-    sts_client_source = boto3.client('sts')
-    sts_client_source_response = sts_client_source.assume_role(
-        RoleArn=options['source_role_arn'],
-        RoleSessionName=table_name
+def get_org_client(session_name, src_role_arn, dest_role_arn, dest_external_id):
+    src_role = boto3.client('sts').assume_role(
+        RoleArn=src_role_arn,
+        RoleSessionName=session_name
     )
-    sts_client_destination = boto3.Session(
-        aws_access_key_id=sts_client_source_response['Credentials']['AccessKeyId'],
-        aws_secret_access_key=sts_client_source_response['Credentials']['SecretAccessKey'],
-        aws_session_token=sts_client_source_response['Credentials']['SessionToken']
+    dest_role = boto3.Session(
+        aws_access_key_id=src_role['Credentials']['AccessKeyId'],
+        aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
+        aws_session_token=src_role['Credentials']['SessionToken']
+    ).client('sts').assume_role(
+        RoleArn=dest_role_arn,
+        RoleSessionName=session_name,
+        ExternalId=dest_external_id
     )
-    sts = sts_client_destination.client('sts')
-    response = sts.assume_role(
-        RoleArn=options['destination_role_arn'],
-        RoleSessionName=table_name,
-        ExternalId=options['destination_role_external_id']
-    )
-    org_session = boto3.Session(
-        aws_access_key_id=response['Credentials']['AccessKeyId'],
-        aws_secret_access_key=response['Credentials']['SecretAccessKey'],
-        aws_session_token=response['Credentials']['SessionToken']
-    )
-    org_client = org_session.client('organizations')
-    return org_client
-
-
-def get_accounts_list(client):
-    accounts = []
-    paginator = client.get_paginator('list_accounts')
-    page_iterator = paginator.paginate()
-    for page in page_iterator:
-        accounts.extend(page['Accounts'])
-
-    accounts_list = [account for account in accounts]
-    return accounts_list
+    return boto3.Session(
+        aws_access_key_id=dest_role['Credentials']['AccessKeyId'],
+        aws_secret_access_key=dest_role['Credentials']['SecretAccessKey'],
+        aws_session_token=dest_role['Credentials']['SessionToken']
+    ).client('organizations')
 
 
 def connect(connection_name, options):
@@ -94,17 +78,23 @@ destination_role_external_id: {destination_role_external_id}
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
-        'newMessage': "AWS_Account ingestion table created!",
+        'newMessage': "AWS Account ingestion table created!",
     }
 
 
 def ingest(table_name, options):
     current_time = datetime.datetime.utcnow()
-    account_list = get_accounts_list(get_aws_client(table_name, options))
-    db.insert(table=f'data.{table_name}', values=[
-                    (account,
-                     current_time,
-                     )
-              for account in account_list
-              ],
-              select='PARSE_JSON(column1), column2')
+    org_client = get_org_client(
+        session_name=table_name,
+        src_role_arn=options['source_role_arn'],
+        dest_role_arn=options['destination_role_arn'],
+        dest_external_id=options['destination_role_external_id'],
+    )
+    account_pages = org_client.get_paginator('list_accounts').paginate()
+    db.insert(
+        table=f'data.{table_name}',
+        values=[
+            (a, current_time) for page in account_pages for a in page['Accounts']
+        ],
+        select='PARSE_JSON(column1), column2'
+    )
