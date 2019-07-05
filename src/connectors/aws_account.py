@@ -4,7 +4,7 @@ Collects the AWS Accounts in your Organization
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from utils import sts_assume_role
+from .utils import sts_assume_role
 
 import boto3
 import datetime
