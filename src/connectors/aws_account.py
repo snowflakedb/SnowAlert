@@ -1,9 +1,10 @@
 """AWS Account List
-Lists your AWS Accounts
+Collects the AWS Accounts in your Organization
 """
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+from utils import sts_assume_role
 
 import boto3
 import datetime
@@ -18,15 +19,15 @@ CONNECTION_OPTIONS = [
     },
     {
         'name': 'destination_role_arn',
-        'title': "destination role arn",
-        'prompt': "destination role arn",
+        'title': "Destination Role Arn",
+        'prompt': "The destination role in your AWS Master Account",
         'type': 'str',
         'required': True
     },
     {
         'name': 'destination_role_external_id',
-        'title': 'destination_role_external_id',
-        'prompt': 'destination_role_external_id',
+        'title': "Destination Role External Id",
+        'prompt': "The external id required to assume the destination role.",
         'type': 'str',
         'required': True
     }
@@ -38,24 +39,11 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-def get_org_client(session_name, src_role_arn, dest_role_arn, dest_external_id):
-    src_role = boto3.client('sts').assume_role(
-        RoleArn=src_role_arn,
-        RoleSessionName=session_name
-    )
-    dest_role = boto3.Session(
-        aws_access_key_id=src_role['Credentials']['AccessKeyId'],
-        aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
-        aws_session_token=src_role['Credentials']['SessionToken']
-    ).client('sts').assume_role(
-        RoleArn=dest_role_arn,
-        RoleSessionName=session_name,
-        ExternalId=dest_external_id
-    )
+def get_org_client(sts_client):
     return boto3.Session(
-        aws_access_key_id=dest_role['Credentials']['AccessKeyId'],
-        aws_secret_access_key=dest_role['Credentials']['SecretAccessKey'],
-        aws_session_token=dest_role['Credentials']['SessionToken']
+        aws_access_key_id=sts_client['Credentials']['AccessKeyId'],
+        aws_secret_access_key=sts_client['Credentials']['SecretAccessKey'],
+        aws_session_token=sts_client['Credentials']['SessionToken']
     ).client('organizations')
 
 
@@ -85,10 +73,11 @@ destination_role_external_id: {destination_role_external_id}
 def ingest(table_name, options):
     current_time = datetime.datetime.utcnow()
     org_client = get_org_client(
-        session_name=table_name,
-        src_role_arn=options['source_role_arn'],
-        dest_role_arn=options['destination_role_arn'],
-        dest_external_id=options['destination_role_external_id'],
+        sts_assume_role(
+            src_role_arn=options['source_role_arn'],
+            dest_role_arn=options['destination_role_arn'],
+            dest_external_id=options['destination_role_external_id']
+        )
     )
     account_pages = org_client.get_paginator('list_accounts').paginate()
     db.insert(
