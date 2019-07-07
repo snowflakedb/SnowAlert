@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-DEBUG = (os.getenv('MICHELIN_DEBUG') or '1') == '1'
+DEBUG = os.getenv('SNOWALERT_DEBUG') in ('1', 'true', 'yes')
 
 PROJECT_FOLDER = Path(__file__).parent.parent.parent
 FRONTEND_FOLDER = PROJECT_FOLDER.joinpath('frontend')
