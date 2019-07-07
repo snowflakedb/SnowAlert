@@ -37,7 +37,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     };
   }
 
-  login = (e: React.FormEvent<HTMLButtonElement>) => {
+  login = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     this.props.form.validateFields((err: string, values: FormProps) => {
       if (!err) {
