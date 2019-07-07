@@ -80,10 +80,10 @@ def ingest(table_name, options):
         )
     )
     account_pages = org_client.get_paginator('list_accounts').paginate()
+    accounts = [a for page in account_pages for a in page['Accounts']]
     db.insert(
         table=f'data.{table_name}',
-        values=[
-            (a, current_time) for page in account_pages for a in page['Accounts']
-        ],
+        values=[(a, current_time) for a in accounts],
         select='PARSE_JSON(column1), column2'
     )
+    return len(accounts)
