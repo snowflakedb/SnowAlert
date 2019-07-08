@@ -22,6 +22,7 @@ SA_USER_PK = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY']
 SA_USER_PK_PASSWORD = os.environ['INGEST_SNOWFLAKE_USER_PRIVATE_KEY_PASSWORD']
 CACHED_AWS_CLIENT = None
 
+
 def get_snowflake_client():
     kms = boto3.client('kms')
     password = kms.decrypt(CiphertextBlob=base64.b64decode(SA_USER_PK_PASSWORD))['Plaintext'].decode()
@@ -103,7 +104,9 @@ def get_data_worker(account):
         ec2_session = get_aws_client(account)
         instances = []
         try:
-            ec2_regions = [region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']]
+            ec2_regions = [
+                region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']
+            ]
         except Exception as e:
             print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
             return None
@@ -112,7 +115,11 @@ def get_data_worker(account):
                 client = ec2_session.client('ec2', region_name=region)
                 paginator = client.get_paginator('describe_instances')
                 page_iterator = paginator.paginate()
-                region = [instance for page in page_iterator for instance_array in page['Reservations'] for instance in instance_array['Instances']]
+                region = [
+                    instance for page in page_iterator
+                    for instance_array in page['Reservations']
+                    for instance in instance_array['Instances']
+                ]
                 instances.extend(region)
             except Exception as e:
                 print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
@@ -126,7 +133,10 @@ def get_data_worker(account):
                     )]
                 )
                 return None
-        instance_list = [json.dumps({**instance,"AccountId":account[0]}, default=str) for instance in instances]
+        instance_list = [
+            json.dumps({**instance, "AccountId": account[0]}, default=str)
+            for instance in instances
+        ]
         try:
             db.insert(
                 AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
@@ -154,13 +164,14 @@ def get_data_worker(account):
         )
         return None
 
+
 def get_data(accounts_list):
     start = datetime.datetime.now()
     instance_list_list = Pool(4).map(get_data_worker, accounts_list)
     instance_list = [x for l in instance_list_list if l for x in l]
     if instance_list:
         sf_client = get_snowflake_client()
-        instance_groups = groups_of(15000,instance_list)
+        instance_groups = groups_of(15000, instance_list)
         snapshot_time = datetime.datetime.utcnow().isoformat()
         for group in instance_groups:
             query = LOAD_INSTANCE_LIST_QUERY.format(
@@ -169,6 +180,7 @@ def get_data(accounts_list):
             sf_client.cursor().execute(query, group)
     end = datetime.datetime.now()
     print(f"start: {start} end: {end} total: {(end - start).total_seconds()}")
+
 
 def main():
     sf_client = get_snowflake_client()
