@@ -57,7 +57,10 @@ def read_queries(file, tmpl_vars=None):
 
 VERBOSE = False
 
-GRANT_PRIVILEGES_QUERIES = [
+GRANT_OBJECT_PRIVILEGES_QUERIES = [
+    # account
+    f'GRANT EXECUTE TASK ON ACCOUNT TO ROLE {ROLE}',
+
     # data
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
@@ -85,7 +88,7 @@ WAREHOUSE_QUERIES = [
 DATABASE_QUERIES = [
     f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
 ]
-GRANT_PRIV_TO_ROLE = [
+GRANT_ACCOUNT_PRIVILEGES_TO_ROLE = [
     f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
 ]
@@ -274,7 +277,7 @@ def setup_user_and_role(do_attempt):
         f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
     ])
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
-    do_attempt("Granting privileges to role", GRANT_PRIV_TO_ROLE)
+    do_attempt("Granting account level privileges to SA role", GRANT_ACCOUNT_PRIVILEGES_TO_ROLE)
 
 
 def find_share_db_name(do_attempt):
@@ -301,7 +304,7 @@ def find_share_db_name(do_attempt):
 def setup_samples(do_attempt, share_db_name):
     tmpl_var = {"SNOWFLAKE_SAMPLE_DATA": share_db_name}
     VERBOSE and print(f"Using SAMPLE DATA share with name {share_db_name}")
-    do_attempt("Creating data view", read_queries('sample-data-queries', tmpl_var))
+    do_attempt("Creating sample data view", read_queries('sample-data-queries', tmpl_var))
 
     do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
     do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
@@ -477,7 +480,7 @@ def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=N
         else:
             print("No share db found, skipping samples.")
 
-    do_attempt("Granting privileges to role", GRANT_PRIVILEGES_QUERIES)
+    do_attempt("Granting object level privileges to SA role", GRANT_OBJECT_PRIVILEGES_QUERIES)
 
     jira_user, jira_password, jira_url, jira_project = jira_integration(jira)
 

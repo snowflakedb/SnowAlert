@@ -37,7 +37,7 @@ Requirements
 To use SnowAlert, you will need
 
 1. Administrator access to a Snowflake account
-    - the SnowAlert installer needs Snowflake account administrator (ACCOUNTADMIN) privileges.
+    - the SnowAlert installer needs Snowflake account administrator (``ACCOUNTADMIN``) privileges.
     - after installation is complete, SnowAlert accesses Snowflake using a dedicated, non-admin user.
 
 2. Docker container orchestration in the cloud, e.g. —
@@ -87,7 +87,7 @@ Installing
 
 Snowflake provides an installer script in the home dir of the docker container, as well as the git repository, which will configure your Snowflake workspace and use KMS to encrypt secrets in the runner's environment:
 
-If you have `~/.aws` and `~/.snowsql` credentials in your environment, you can run it with:
+If you have ``~/.aws`` and ``~/.snowsql`` credentials in your environment, you can run it with:
 
 .. code::
 

@@ -44,45 +44,6 @@ interface StateProps {
 type GlobalHeaderProps = OwnProps & DispatchProps & StateProps;
 
 class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
-  // componentDidMount() {
-  //   this.props.loadNotificationsIfNeeded(this.props.auth.token);
-  // }
-
-  // getNotificationsData() {
-  //   const {notifications} = this.props;
-  //   if (notifications.notifications.length === 0) {
-  //     return [];
-  //   }
-
-  //   return notifications.notifications.map(notice => {
-  //     const newNotice: NotificationDetails = {
-  //       datetime: notice.timestamp,
-  //       key: notice.id.toString(),
-  //       title: notice.title,
-  //       description: notice.description,
-  //       read: false,
-  //     };
-  //     if (newNotice.datetime) {
-  //       newNotice.datetime = moment(notice.timestamp).fromNow();
-  //     }
-
-  //     if (newNotice.extra && newNotice.title) {
-  //       const color = {
-  //         todo: '',
-  //         processing: 'blue',
-  //         urgent: 'red',
-  //         doing: 'gold',
-  //       }[newNotice.title];
-  //       newNotice.extra = (
-  //         <Tag color={color} style={{marginRight: 0}}>
-  //           {newNotice.extra}
-  //         </Tag>
-  //       );
-  //     }
-  //     return newNotice;
-  //   });
-  // }
-
   toggle = () => {
     const {menuCollapsed, onMenuCollapse} = this.props;
     onMenuCollapse(!menuCollapsed);
@@ -108,43 +69,49 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 
   render() {
     const account = localStorage.getItem('account') || '';
-    const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
-
-    const menu = (
-      <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
-        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
-          User {auth.username}
-        </Menu.Item>
-        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
-          Role {auth.scope.replace(/^refresh_token session:role:/, '')}
-        </Menu.Item>
-        <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
-          Account {auth.account}
-        </Menu.Item>
-        <Menu.Divider />
-        <Menu.Item>
-          <a href="https://snowalert.readthedocs.io/en/latest/">Documentation</a>
-        </Menu.Item>
-        <Menu.Item>
-          <a href="https://community.snowflake.com/s/article/How-To-Submit-a-Support-Case-in-Snowflake-Lodge">
-            Support
-          </a>
-        </Menu.Item>
-        <Menu.Item>
-          <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.8.0</a>
-        </Menu.Item>
-        <Menu.Divider />
-        <Menu.Item key="logout">
-          <Icon type="logout" /> Sign out
-        </Menu.Item>
-      </Menu>
-    );
+    type Auth = {
+      username: string;
+      account: string;
+      scope: string;
+    };
+    const auth: Auth | undefined = JSON.parse(localStorage.getItem('auth') || '{}')[account];
 
     return (
       <Header className={'header'}>
         <div className={'right'}>
           {auth && auth.username ? (
-            <Dropdown overlay={menu} trigger={['click']}>
+            <Dropdown
+              overlay={
+                <Menu className={'menu'} selectedKeys={[]} onClick={this.handleMenuClick}>
+                  <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+                    User {auth.username}
+                  </Menu.Item>
+                  <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+                    Role {auth.scope.replace(/^refresh_token session:role:/, '')}
+                  </Menu.Item>
+                  <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
+                    Account {auth.account}
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item>
+                    <a href="https://snowalert.readthedocs.io/en/latest/">Documentation</a>
+                  </Menu.Item>
+                  <Menu.Item>
+                    <a href="https://community.snowflake.com/s/article/How-To-Submit-a-Support-Case-in-Snowflake-Lodge">
+                      Support
+                    </a>
+                  </Menu.Item>
+                  <Menu.Item>
+                    <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.8.1</a>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item key="logout">
+                    <Icon type="logout" /> Sign out
+                  </Menu.Item>
+                </Menu>
+              }
+              trigger={['click']}
+            >
               <span className={'action account'} style={{width: 64, padding: '0 16px'}}>
                 <span className={'name'}>
                   <Avatar size={32} icon="user" />
@@ -154,31 +121,6 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
           ) : (
             <Button href="/login">Sign in</Button>
           )}
-
-          {/*
-          <HeaderSearch
-            className={'action search'}
-            placeholder="Search..."
-            onPressEnter={value => {
-              console.log('enter', value); // eslint-disable-line
-            }}
-          />
-          <Tooltip title="AntPro Docs">
-            <a
-              target="_blank"
-              href="http://pro.ant.design/docs/getting-started"
-              rel="noopener noreferrer"
-              className={'action'}
-            >
-              <Icon type="question-circle-o" />
-            </a>
-          </Tooltip>
-          {auth.email ? (
-
-          ) : (
-            <Spin size="small" style={{marginLeft: 8}} />
-          )}
-        */}
         </div>
       </Header>
     );

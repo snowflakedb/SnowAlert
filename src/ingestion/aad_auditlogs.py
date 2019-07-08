@@ -67,14 +67,14 @@ def save_aad_auditlogs(auditlog_type, tenant_id, client_id, client_secret,
         datetime_record_name = "activityDateTime"
         graph_uri = (
             GRAPH_ENDPOINT_URI
-            + 'beta/auditLogs/directoryAudits?$top=500&$filter=' + datetime_record_name
+            + 'v1.0/auditLogs/directoryAudits?$top=500&$filter=' + datetime_record_name
             + ' gt ' + last_datetime
         )
     elif auditlog_type == "signIns":
         datetime_record_name = "createdDateTime"
         graph_uri = (
             GRAPH_ENDPOINT_URI
-            + 'beta/auditLogs/signIns?$top=500&$filter=' + datetime_record_name
+            + 'v1.0/auditLogs/signIns?$top=500&$filter=' + datetime_record_name
             + ' gt ' + last_datetime
         )
     else:

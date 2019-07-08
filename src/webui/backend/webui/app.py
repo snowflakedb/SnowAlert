@@ -12,7 +12,7 @@ from webui.views import app_views
 from runners.utils import json_dumps
 
 
-URL_EXTENSIONS_CACHED = ('js', 'woff2')
+URL_EXTENSIONS_CACHED = ('js', 'woff2', 'css')
 
 
 class SAJSONEncoder(json.JSONEncoder):

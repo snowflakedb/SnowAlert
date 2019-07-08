@@ -1,13 +1,23 @@
-from . import cloudtrail
+from . import aws_cloudtrail
 from . import okta
-from . import azure
+from . import azure_log
+from . import aws_config
+from . import aws_asset_ingest
 
-__all__ = ['cloudtrail', 'okta', 'azure']
+__all__ = [
+    'aws_asset_ingest',
+    'aws_cloudtrail',
+    'aws_config',
+    'azure_log',
+    'okta',
+]
 
 connectors = {
-    'cloudtrail': cloudtrail,
+    'aws_asset_ingest': aws_asset_ingest,
+    'aws_cloudtrail': aws_cloudtrail,
+    'aws_config': aws_config,
+    'azure_log': azure_log,
     'okta': okta,
-    'azure': azure,
 }
 
 CONNECTION_OPTIONS = [
