@@ -27,6 +27,9 @@ def main(target="all", rule_name=None):
     elif target == "dispatcher":
         alert_dispatcher.main()
 
+    elif rule_name and target == "ingest":
+        ingest_runner.main(rule_name)
+
     elif rule_name:
         if rule_name.endswith("_ALERT_QUERY"):
             alert_queries_runner.main(rule_name.upper())

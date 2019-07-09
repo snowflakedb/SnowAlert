@@ -1,6 +1,6 @@
 import boto3
 import base64
-import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -8,7 +8,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from multiprocessing import Pool
 from runners.utils import groups_of
-from runners.helpers import db
+from runners.helpers import db, log
 
 import snowflake.connector
 
@@ -60,11 +60,11 @@ def get_cached_aws_client():
     return sts_client
 
 
-def get_aws_client(account):
+def get_aws_client(account_id):
     global CACHED_AWS_CLIENT
     if CACHED_AWS_CLIENT is None:
         CACHED_AWS_CLIENT = get_cached_aws_client()
-    target_role = f'arn:aws:iam::{account[0]}:role/{AWS_AUDIT_ROLE_NAME}'
+    target_role = f'arn:aws:iam::{account_id}:role/{AWS_AUDIT_ROLE_NAME}'
     dest_role = CACHED_AWS_CLIENT.assume_role(
         RoleArn=target_role,
         RoleSessionName=os.environ['EC2_INSTANCE_LIST_AWS_AUDIT_DESTINATION_ROLE_SESSION_NAME'],
@@ -79,7 +79,7 @@ def get_aws_client(account):
 
 
 GET_ACCOUNTS_QUERY = f"""
-SELECT account:Id::string, account:Name
+SELECT account:Id::STRING, account:Name::STRING
 FROM {AWS_ACCOUNTS_TABLE}
 WHERE timestamp = (
   SELECT MAX(timestamp) FROM {AWS_ACCOUNTS_TABLE}
@@ -99,16 +99,16 @@ FROM VALUES {{format_string}}
 """
 
 
-def get_data_worker(account):
+def get_data_worker(account_id, account_name):
     try:
-        ec2_session = get_aws_client(account)
+        ec2_session = get_aws_client(account_id)
         instances = []
         try:
             ec2_regions = [
                 region['RegionName'] for region in ec2_session.client('ec2').describe_regions()['Regions']
             ]
         except Exception as e:
-            print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
+            log.info(f"ec2_describe_instances account [{account_id}] {account_name} exception", e)
             return None
         for region in ec2_regions:
             try:
@@ -122,42 +122,42 @@ def get_data_worker(account):
                 ]
                 instances.extend(region)
             except Exception as e:
-                print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
+                log.info(f"ec2_describe_instances: account [{account_id}] {account_name} exception", e)
                 db.insert(
                     AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
-                        datetime.datetime.utcnow(),
-                        account[0],
-                        account[1],
+                        datetime.utcnow(),
+                        account_id,
+                        account_name,
                         None,
                         e
                     )]
                 )
                 return None
         instance_list = [
-            json.dumps({**instance, "AccountId": account[0]}, default=str)
+            json.dumps({**instance, "AccountId": account_id}, default=str)
             for instance in instances
         ]
         try:
             db.insert(
                 AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
-                    datetime.datetime.utcnow(),
-                    account[0],
-                    account[1],
+                    datetime.utcnow(),
+                    account_id,
+                    account_name,
                     len(instance_list),
                     None
                 )]
             )
         except Exception:
             print('Failed to insert into AWS_ACCOUNT_INFORMATION table.')
-        print(f"ec2_describe_instances: account: {account[1]} instances: {len(instance_list)}")
+        print(f"ec2_describe_instances: account: {account_name} instances: {len(instance_list)}")
         return instance_list
     except Exception as e:
-        print(f"ec2_describe_instances: account: {account[1]} exception: {e}")
+        print(f"ec2_describe_instances: account: {account_name} exception: {e}")
         db.insert(
             AWS_ACCOUNTS_INFORMATION_TABLE, values=[(
-                datetime.datetime.utcnow(),
-                account[0],
-                account[1],
+                datetime.utcnow(),
+                account_id,
+                account_name,
                 None,
                 e
             )]
@@ -166,25 +166,25 @@ def get_data_worker(account):
 
 
 def get_data(accounts_list):
-    start = datetime.datetime.now()
-    instance_list_list = Pool(4).map(get_data_worker, accounts_list)
+    start = datetime.now()
+    instance_list_list = Pool(4).starmap(get_data_worker, accounts_list)
     instance_list = [x for l in instance_list_list if l for x in l]
     if instance_list:
         sf_client = get_snowflake_client()
         instance_groups = groups_of(15000, instance_list)
-        snapshot_time = datetime.datetime.utcnow().isoformat()
+        snapshot_time = datetime.utcnow().isoformat()
         for group in instance_groups:
             query = LOAD_INSTANCE_LIST_QUERY.format(
                 snapshotclock=snapshot_time,
                 format_string=", ".join(["(%s)"] * len(group)))
             sf_client.cursor().execute(query, group)
-    end = datetime.datetime.now()
+    end = datetime.now()
     print(f"start: {start} end: {end} total: {(end - start).total_seconds()}")
 
 
 def main():
     sf_client = get_snowflake_client()
-    current_time = datetime.datetime.now(datetime.timezone.utc)
+    current_time = datetime.now(timezone.utc)
     last_time = sf_client.cursor().execute(f'SELECT max(timestamp) FROM {INSTANCES_TABLE}').fetchall()[0][0]
     if last_time is None or (current_time - last_time).total_seconds() > 3600:  # 3600 seconds is one hour
         accounts_list = get_accounts_list(sf_client)
