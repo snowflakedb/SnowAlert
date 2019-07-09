@@ -12,7 +12,11 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 CONNECTION_OPTIONS = [
     {
         'type': 'select',
-        'options': ['EC2', 'SG', 'ELB'],
+        'options': [
+            {'value': 'EC2', 'label': "EC2 Inventory"},
+            {'value': 'SG', 'label': "SG Inventory"},
+            {'value': 'ELB', 'label': "ELB Inventory"},
+        ],
         'name': 'connection_type',
         'title': "Asset Type",
         'prompt': "The type of AWS asset information you are ingesting to Snowflake.",
