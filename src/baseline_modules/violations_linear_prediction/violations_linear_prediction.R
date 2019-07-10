@@ -61,6 +61,7 @@ prediction <-
 
 prediction <- base::merge(prediction, names, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
+return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
 
 
 #END
