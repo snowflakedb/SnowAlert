@@ -2,7 +2,7 @@ FROM python:3.7-slim-stretch
 
 WORKDIR /var/task
 
-RUN pip install --upgrade pip virtualenv pyflakes
+RUN pip install --upgrade pip virtualenv gunicorn
 
 RUN mkdir -p ./snowalert
 RUN virtualenv ./snowalert/venv
@@ -33,4 +33,5 @@ RUN apt-get update \
 # link frontend build into backend venv
 RUN ln -s $PWD/snowalert/src/webui/frontend ./snowalert/venv/lib/python3.7/
 
-CMD python ./snowalert/src/webui/backend/webui/app.py
+WORKDIR /var/task/snowalert/src/webui/backend/
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "webui.app:app"]
