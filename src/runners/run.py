@@ -43,6 +43,9 @@ def main(target="all", rule_name=None):
         if rule_name.endswith("_VIOLATION_SUPPRESSION"):
             violation_suppressions_runner.main(rule_name.upper())
 
+        if rule_name.endswith("_CONNECTION"):
+            connectors_runner.main(rule_name.upper())
+
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
         log.info(f"got command {target}")
