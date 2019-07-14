@@ -1,6 +1,10 @@
 import * as roles from '../constants/roles';
 import * as stateTypes from '../reducers/types';
 
+function isNotNull<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 const menuData: stateTypes.MenuData = [
   {
     name: 'Data Connectors',
@@ -20,12 +24,14 @@ const menuData: stateTypes.MenuData = [
     path: 'dashboard/violations',
     roles: [roles.ADMIN, roles.USER],
   },
-  {
-    name: 'Policies',
-    icon: 'file-done',
-    path: 'dashboard/policies',
-    roles: [roles.ADMIN, roles.USER],
-  },
+  localStorage.getItem('enable_policies')
+    ? {
+        name: 'Policies',
+        icon: 'file-done',
+        path: 'dashboard/policies',
+        roles: [roles.ADMIN, roles.USER],
+      }
+    : null,
   {
     name: 'User',
     icon: 'user',
@@ -58,7 +64,7 @@ const menuData: stateTypes.MenuData = [
       },
     ],
   },
-];
+].filter(isNotNull);
 
 function isUrl(path: string) {
   // tslint:disable
