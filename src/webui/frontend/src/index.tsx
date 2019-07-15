@@ -6,7 +6,7 @@ import {Provider} from 'react-redux';
 import {ConnectedRouter} from 'react-router-redux';
 import SamuiApp from './App';
 import './index.css';
-import registerServiceWorker from './registerServiceWorker';
+import {unregister} from './registerServiceWorker';
 import {store} from './store';
 import {history} from './store/history';
 
@@ -24,7 +24,7 @@ const render = () =>
 
 // We first render the application
 render();
-registerServiceWorker();
+unregister();
 
 if (process.env.NODE_ENV !== 'production') {
   // If webpack's HMR detects a change in the App, we reload it

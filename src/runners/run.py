@@ -27,6 +27,9 @@ def main(target="all", rule_name=None):
     elif target == "dispatcher":
         alert_dispatcher.main()
 
+    elif rule_name and target == "ingest":
+        ingest_runner.main(rule_name)
+
     elif rule_name:
         if rule_name.endswith("_ALERT_QUERY"):
             alert_queries_runner.main(rule_name.upper())
@@ -39,6 +42,9 @@ def main(target="all", rule_name=None):
 
         if rule_name.endswith("_VIOLATION_SUPPRESSION"):
             violation_suppressions_runner.main(rule_name.upper())
+
+        if rule_name.endswith("_CONNECTION"):
+            connectors_runner.main(rule_name.upper())
 
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
