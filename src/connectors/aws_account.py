@@ -6,7 +6,6 @@ from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from .utils import sts_assume_role
 
-import boto3
 import datetime
 
 CONNECTION_OPTIONS = [
@@ -39,14 +38,6 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-def get_org_client(sts_client):
-    return boto3.Session(
-        aws_access_key_id=sts_client['Credentials']['AccessKeyId'],
-        aws_secret_access_key=sts_client['Credentials']['SecretAccessKey'],
-        aws_session_token=sts_client['Credentials']['SessionToken']
-    ).client('organizations')
-
-
 def connect(connection_name, options):
     table_name = f'aws_account_{connection_name}_connection'
     landing_table = f'data.{table_name}'
@@ -72,14 +63,12 @@ destination_role_external_id: {destination_role_external_id}
 
 def ingest(table_name, options):
     current_time = datetime.datetime.utcnow()
-    org_client = get_org_client(
-        sts_assume_role(
-            src_role_arn=options['source_role_arn'],
-            dest_role_arn=options['destination_role_arn'],
-            dest_external_id=options['destination_role_external_id']
-        )
-    )
-    account_pages = org_client.get_paginator('list_accounts').paginate()
+    org = sts_assume_role(
+        src_role_arn=options['source_role_arn'],
+        dest_role_arn=options['destination_role_arn'],
+        dest_external_id=options['destination_role_external_id']
+    ).client['organizations']
+    account_pages = org.get_paginator('list_accounts').paginate()
     accounts = [a for page in account_pages for a in page['Accounts']]
     db.insert(
         table=f'data.{table_name}',
