@@ -227,7 +227,7 @@ def insert(table, values, overwrite=False, select=""):
         f";"
     )
 
-    jsony = (dict, list, tuple)
+    jsony = (dict, list, tuple, Exception, datetime)
     params_with_json = [
         [
             v.isoformat() if isinstance(v, datetime) else
