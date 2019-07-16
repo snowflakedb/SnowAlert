@@ -20,7 +20,7 @@ suppressWarnings(
 )
 
 a <- input
-
+rm(input)
 #Cleaning
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
@@ -32,14 +32,14 @@ colnames(a) <- make.unique(names(a))
 #Group for counts
 b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>%
   dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
-
+names <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
+rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
-
+rm(b)
 #Group for name
-names <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
 c <- base::merge(c, names, by = "QUERY_ID", all.x=TRUE)
 
 #Do the prediction analysis
