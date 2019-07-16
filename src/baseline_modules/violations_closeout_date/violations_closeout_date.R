@@ -38,7 +38,7 @@ rm(a)
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
-rm(a)
+rm(b)
 #Group for name
 c <- base::merge(c, names, by = "QUERY_ID", all.x=TRUE)
 
