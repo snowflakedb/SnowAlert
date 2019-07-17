@@ -8,37 +8,34 @@
 #QUERY_ID
 #UNIQUE_KEYS
 
-suppressWarnings(
-  suppressMessages(
-    c(
-      require(dplyr),
-      require(tidyverse),
-      require(broom),
-      require(MASS)
-    )
-  )
-)
 
+      require(dplyr)
+      require(tidyverse)
+      require(broom)
+      require(MASS)
+ 
 a <- input
 rm(input)
 #Cleaning
+print('Input in a')
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
 a$PROD <- as.logical(a$PROD)
 colnames(a) <- make.unique(names(a))
-
+print('data cleaning done')
 #Group for counts
 b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>%
   dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
 names <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
-
+print('b is created, a is deleted')
 rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
 rm(b)
+print('completed dates for c')
 #Group for name
 c <- base::merge(c, names, by = "QUERY_ID", all.x=TRUE)
 
@@ -46,7 +43,7 @@ c <- base::merge(c, names, by = "QUERY_ID", all.x=TRUE)
 model <- c %>% nest(-QUERY_ID) %>% 
   mutate(
     fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
-
+print('model_complete')
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
@@ -58,12 +55,12 @@ prediction <-
   inner_join(nested, by = "QUERY_ID") %>% 
   mutate(results=map2(.x = model$fit, .y = nested$data, .f = ~augment(.x, newdata = .y), .id=.x), model2=model$fit) %>% 
   unnest(c(results))
-
+print('prediction complete')
 prediction <- base::merge(prediction, names, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 
 prediction$near_zero <- abs(prediction$.fitted)
-
+print('ready to return')
 return_value <- prediction %>% group_by(QUERY_ID) %>% summarise(last_day=max(CURRENT_DAY), x_intercept=CURRENT_DAY[which.min(near_zero)] , unknown=x_intercept==last_day, value=min(near_zero), TITLE=first(TITLE.y)) %>% dplyr::select(QUERY_ID, TITLE, unknown, x_intercept)
 
 #END
