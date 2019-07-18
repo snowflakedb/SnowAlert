@@ -211,7 +211,7 @@ def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
 
 
-def insert(table, values, overwrite=False, select="", columns=None):
+def insert(table, values, overwrite=False, select="", columns=[]):
     if len(values) == 0:
         return
 
