@@ -1,8 +1,6 @@
-"""Azure Subscriptions List
-Collect Azure Subscriptions List
+"""Azure Subscription Inventory
+Collect a list of accessible Azure subscriptions
 """
-
-from datetime import datetime
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -16,7 +14,7 @@ CONNECTION_OPTIONS = [
         'name': 'tenant_id',
         'title': "Tenant ID",
         'type': 'str',
-        'prompt': "Identifies the client's tenancy",
+        'prompt': "Identifies the Client's Azure Tenant",
         'placeholder': "48bbefee-7db1-4459-8f83-085fddf063b",
         'required': True
     },
@@ -31,7 +29,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'client_secret',
         'title': "Client Secret",
-        'prompt': "Shared secret password authenticating the client",
+        'prompt': "Secret access key authenticating the client",
         'type': 'str',
         'secret': 'true',
         'required': True
