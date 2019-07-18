@@ -187,7 +187,7 @@ def main(rule_name=None):
         'START_TIME': datetime.datetime.utcnow(),
     }
     if rule_name:
-        create_alerts(rule_name)
+        metadata = [create_alerts(rule_name)]
     else:
         rules = list(db.load_rules(ALERT_QUERY_POSTFIX))
         metadata = Pool(POOLSIZE).map(create_alerts, rules)
