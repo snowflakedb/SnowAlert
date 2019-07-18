@@ -121,6 +121,11 @@ subscription_table: {subscription_table}
     ]
     create_metadata_table(METADATA_TABLE, cols, cols[2])
 
+    return {
+        'newStage': 'finalized',
+        'newMessage': 'Landing table created for collectors to populate.'
+    }
+
 
 def ingest(table_name, options):
     table_name = f'data.{table_name}'
