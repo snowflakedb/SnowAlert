@@ -211,7 +211,7 @@ def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
 
 
-def insert(table, values, overwrite=False, select=""):
+def insert(table, values, overwrite=False, select="", columns=None):
     if len(values) == 0:
         return
 
@@ -220,9 +220,11 @@ def insert(table, values, overwrite=False, select=""):
 
     overwrite = ' OVERWRITE' if overwrite else ''
 
+    columns = f' ({", ".join(columns)})' if columns else ''
+
     sql = (
         f"INSERT{overwrite}\n"
-        f"  INTO {table}\n"
+        f"  INTO {table}{columns}\n"
         f"  {select}VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
@@ -380,14 +382,15 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace=Fal
     execute(query, fix_errors=False)
 
 
-def create_table(name, cols, replace=False, comment=''):
+def create_table(name, cols, replace=False, comment='', exists=''):
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment}' " if comment else ''
+    exists = 'IF NOT EXISTS ' if exists else ''
     columns = '('
     for pair in cols:
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
-    query = f"CREATE {replace}TABLE {name}{columns}{comment}"
+    query = f"CREATE {replace}TABLE {exists}{name}{columns}{comment}"
     execute(query, fix_errors=False)
 
 
