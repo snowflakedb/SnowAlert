@@ -145,6 +145,7 @@ def bail_out(alert_id):
 
 
 def handle(alert, correlation_id):
+    globals()['PROJECT'] = alert['HANDLER'].get('PROJECT', environ.get('JIRA_PROJECT', ''))
     if PROJECT == '':
         log.error("No Jira project defined")
         return "No Jira Project defined"
