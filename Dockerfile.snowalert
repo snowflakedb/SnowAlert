@@ -4,7 +4,7 @@ WORKDIR /var/task
 
 RUN apt-get update
 RUN apt-get install -y r-base
-RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr'), repos = 'https://cloud.r-project.org')"
+RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom'), repos = 'https://cloud.r-project.org')"
 
 RUN pip install --upgrade pip virtualenv pyflakes
 
