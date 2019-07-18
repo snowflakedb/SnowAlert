@@ -185,3 +185,5 @@ def ingest(table_name, options):
                             column13,
                             column14
                   """)
+
+    yield len(virtual_machines)
