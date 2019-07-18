@@ -42,7 +42,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'subscription_table',
         'title': 'Azure Subscription Table Designator',
-        'prompt': 'The optional designator you provided when setting up the Azure Subscription Connector',
+        'prompt': 'The optional custom name you provided when setting up the Azure Subscription Connector',
         'type': 'str',
         'required': True,
         'default': 'default'
