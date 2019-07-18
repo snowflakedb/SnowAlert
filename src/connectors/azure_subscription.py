@@ -2,6 +2,8 @@
 Collect Azure Subscriptions List
 """
 
+from datetime import datetime
+
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -37,8 +39,9 @@ CONNECTION_OPTIONS = [
 ]
 
 LANDING_TABLE_COLUMNS = [
+    ('created_at', 'TIMESTAMP_LTZ'),
     ('raw', 'VARIANT'),
-    ('id', 'VARCHAR(50)'),
+    ('id', 'VARCHAR(100)'),
     ('subscription_id', 'VARCHAR(50)'),
     ('display_name', 'VARCHAR(500)'),
     ('state', 'VARCHAR(50)'),
@@ -103,7 +106,7 @@ def ingest(table_name, options):
             row['authorization_source'],
         ) for row in subscriptions],
         select=(
-            'PARSE_JSON(column1), column2, column3,'
+            'CURRENT_TIMESTAMP, PARSE_JSON(column1), column2, column3,'
             'column4, column5, PARSE_JSON(column6), column7'
         )
     )
