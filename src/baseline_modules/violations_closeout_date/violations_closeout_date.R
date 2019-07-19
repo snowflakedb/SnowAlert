@@ -36,7 +36,7 @@ suppressWarnings(
 a <- input_table
 rm(input_table)
 
-
+print('a')
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
@@ -50,12 +50,15 @@ rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
-c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
+c$age = as.integer(Sys.Date() - c$CURRENT_DAY+2)
 rm(b)
-
+print(c)
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
-
+print(unique(c$QUERY_ID))
+print(unique(c$CURRENT_DAY))
+print(unique(c$age))
+print(unique(c$counts))
 #Do the prediction analysis
 model <- c %>% nest(-QUERY_ID) %>% 
   mutate(
