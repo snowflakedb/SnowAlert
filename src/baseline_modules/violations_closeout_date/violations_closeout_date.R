@@ -22,17 +22,12 @@
 # filter: 30
 # '
 
-suppressWarnings(
-  suppressMessages(
-    c(
-    require(dplyr),
-    require(tidyverse),
-    require(broom),
+
+    require(dplyr)
+    require(tidyverse)
+    require(broom)
     require(MASS)
-    )
-    )
-)
- 
+
 a <- input_table
 rm(input_table)
 
