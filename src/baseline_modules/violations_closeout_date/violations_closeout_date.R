@@ -36,6 +36,7 @@ suppressWarnings(
 a <- input_table
 rm(input_table)
 
+
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
@@ -59,7 +60,7 @@ c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 model <- c %>% nest(-QUERY_ID) %>% 
   mutate(
     fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
-
+print('model_complete')
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
@@ -73,7 +74,9 @@ prediction <-
   unnest(c(results))
 
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
+
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 prediction$near_zero <- abs(prediction$.fitted)
 
 return_value <- prediction %>% group_by(QUERY_ID) %>% summarise(last_day=max(CURRENT_DAY), x_intercept=as.character(CURRENT_DAY[which.min(near_zero)]) , unknown=as.character(x_intercept==last_day), value=min(near_zero), TITLE=first(TITLE.y)) %>% dplyr::select(QUERY_ID, TITLE, unknown, x_intercept) 
+
