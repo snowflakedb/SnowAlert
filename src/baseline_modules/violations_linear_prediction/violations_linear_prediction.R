@@ -51,7 +51,7 @@ rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
-c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
+c$age = as.integer(Sys.Date() - c$CURRENT_DAY+2)
 rm(b)
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
