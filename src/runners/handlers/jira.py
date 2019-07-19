@@ -144,8 +144,9 @@ def bail_out(alert_id):
         log.error(e, f"Failed to update alert {alert_id} with handler status")
 
 
-def handle(alert, correlation_id):
-    globals()['PROJECT'] = alert['HANDLER'].get('PROJECT', environ.get('JIRA_PROJECT', ''))
+def handle(alert, correlation_id, project=PROJECT):
+    global PROJECT
+    PROJECT = project
     if PROJECT == '':
         log.error("No Jira project defined")
         return "No Jira Project defined"
