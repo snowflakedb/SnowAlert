@@ -7,6 +7,20 @@
 #PROD
 #QUERY_ID
 #UNIQUE_KEYS
+#CREATE TABLE SNOWALERT.DATA.PREDICT_VIOLATION_QUERY_ID_BASELINE (QUERY_ID VARCHAR, TITLE VARCHAR, CURRENT_DAY VARCHAR, ACTUAL_COUNTS VARCHAR, FITTED_COUNTS VARCHAR, FIT VARCHAR, MODEL VARCHAR) comment = '---
+# log source: SNOWALERT.DATA.VIOLATIONS_PREDICTION_SUBSET
+# required values:
+  # NEW: NEW
+  # FINAL: FINAL
+  # CURRENT_DAY: CURRENT_DAY
+  # PROD: PROD
+  # QUERY_ID: QUERY_ID
+  # UNIQUE_KEYS: UNIQUE_KEYS
+  # TITLE: TITLE
+# module name: violations_linear_prediction
+# history: CURRENT_DAY
+# filter: 30
+# '
 
 suppressWarnings(
   suppressMessages(
@@ -19,8 +33,8 @@ suppressWarnings(
     )
 )
 
-a <- input
-rm(input)
+a <- input_table
+rm(input_table)
 #Cleaning
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
@@ -32,7 +46,7 @@ colnames(a) <- make.unique(names(a))
 #Group for counts
 b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>%
   dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
-names <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
+namessss <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
 rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
@@ -40,7 +54,7 @@ c <- b %>%
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+1)
 rm(b)
 #Group for name
-c <- base::merge(c, names, by = "QUERY_ID", all.x=TRUE)
+c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 
 #Do the prediction analysis
 model <- c %>% nest(-QUERY_ID) %>% 
@@ -59,9 +73,9 @@ prediction <-
   mutate(results=map2(.x = model$fit, .y = nested$data, .f = ~augment(.x, newdata = .y), .id=.x), model2=model$fit) %>% 
   unnest(c(results))
 
-prediction <- base::merge(prediction, names, by = "QUERY_ID", all.x=TRUE)
+prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
 
-
+return_value
 #END
