@@ -25,9 +25,11 @@ if ENV == 'test':
 else:
     tail = ''
 
-# database & account properties
+# this region is used for KMS encryption.
 REGION = environ.get('REGION', "us-west-2")
-REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
+# database & account properties
+REGION_SUBDOMAIN_POSTFIX = environ.get('REGION_SUBDOMAIN_POSTFIX', "")
+REGION_SUBDOMAIN_POSTFIX = '' if REGION_SUBDOMAIN_POSTFIX == 'us-west-2' else f'.{REGION_SUBDOMAIN_POSTFIX}'
 ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
 
 USER = environ.get('SA_USER', "snowalert") + tail
