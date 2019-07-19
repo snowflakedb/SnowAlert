@@ -22,16 +22,10 @@
 # filter: 30
 # '
 
-suppressWarnings(
-  suppressMessages(
-    c(
-    require(dplyr),
-    require(tidyverse),
-    require(broom),
+require(dplyr)
+    require(tidyverse)
+    require(broom)
     require(MASS)
-    )
-    )
-)
 
 a <- input_table
 rm(input_table)
@@ -75,6 +69,7 @@ prediction <-
 
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
+prediction$fit <- toString(prediction$fit)
 return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
 
 return_value
