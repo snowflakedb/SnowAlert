@@ -25,6 +25,8 @@ if ENV == 'test':
 else:
     tail = ''
 
+SA_KMS_REGION = environ.get('SA_KMS_REGION', "us-west-2")
+
 # database & account properties
 REGION = environ.get('REGION', "us-west-2")
 REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
