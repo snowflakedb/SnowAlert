@@ -29,6 +29,7 @@ require(tidyr)
 require(purrr)
 
 
+
 a <- input_table
 rm(input_table)
 
@@ -39,7 +40,7 @@ a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
 a$PROD <- as.logical(a$PROD)
 colnames(a) <- make.unique(names(a))
-<<<<<<< HEAD
+
 #Group for counts
 b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>% dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
 namessss <- a %>% group_by(QUERY_ID) %>% dplyr::summarize(TITLE=first(TITLE))
@@ -70,6 +71,7 @@ e <- c %>%
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
 nested <- e %>% tidyr::nest(-QUERY_ID)
+
 
 prediction <- 
   model %>%
