@@ -5,12 +5,12 @@ from typing import Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from .dbconfig import REGION
+from .dbconfig import SA_KMS_REGION
 
 KMS_KEY = environ.get('SA_KMS_KEY')
 ENABLED = bool(KMS_KEY)
 
-kms = boto3.client('kms', region_name=REGION)
+kms = boto3.client('kms', region_name=SA_KMS_REGION)
 
 
 def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) -> Optional[str]:
