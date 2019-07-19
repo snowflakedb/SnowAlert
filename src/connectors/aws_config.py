@@ -49,7 +49,7 @@ FILE_FORMAT = """
 LANDING_TABLE_COLUMNS = [
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
-    ('insertion_time', 'TIMESTAMP_LTZ(9)'),
+    ('event_time', 'TIMESTAMP_LTZ(9)'),
     ('configuration_item_capture_time', 'TIMESTAMP_LTZ(9)'),
     ('account_id', 'STRING'),
     ('aws_region', 'STRING'),
@@ -103,7 +103,7 @@ module: aws_config
 
     db.create_table(
         name=staging_table,
-        cols=[('v', 'variant')]
+        cols=[('v', 'variant'), ('filename', 'string(200)')]
     )
 
     db.create_table(
@@ -176,12 +176,12 @@ def finalize(connection_name):
 
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
-  raw, hash_raw, insertion_time, configuration_item_capture_time, account_id, aws_region, resource_type, arn,
+  raw, hash_raw, event_time, configuration_item_capture_time, account_id, aws_region, resource_type, arn,
   availability_zone, resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
 )
 SELECT value raw
     , HASH(value) hash_raw
-    , current_timestamp() insertion_time
+    , REGEXP_REPLACE(filename, '.+(\\\\d{{4}})(\\\\d{{2}})(\\\\d{{2}})T(\\\\d{{2}})(\\\\d{{2}})(\\\\d{{2}})Z.*', '\\\\1-\\\\2-\\\\3T\\\\4:\\\\5:\\\\6Z')::timestamp_ltz event_time
     , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) configuration_item_capture_time
     , value:awsAccountId::STRING account_id
     , value:awsRegion::STRING aws_region
@@ -208,7 +208,7 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     db.retry(
         lambda: db.create_pipe(
             name=pipe,
-            sql=f"COPY INTO data.{base_name}_staging(v) FROM @data.{base_name}_stage/",
+            sql=f"COPY INTO data.{base_name}_staging(v, filename) FROM (select $1, metadata$filename from @data.{base_name}_stage/)",
             replace=True,
             autoingest=True
         ),
