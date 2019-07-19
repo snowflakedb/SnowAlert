@@ -28,6 +28,7 @@
     require(tidyverse)
     require(broom)
     require(MASS)
+    require(tidyr)
 
 print('a')
  
@@ -66,14 +67,14 @@ c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 
 
 #Do the prediction analysis
-model <- c %>% nest(-QUERY_ID) %>% 
+model <- c %>% tidyr::nest(-QUERY_ID) %>% 
   mutate(
     fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
 print('model_complete')
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
-nested <- e %>% nest(-QUERY_ID)
+nested <- e %>% tidyr::nest(-QUERY_ID)
 
 
 prediction <- 
