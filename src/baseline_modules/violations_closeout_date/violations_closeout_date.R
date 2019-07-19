@@ -22,16 +22,15 @@
 # filter: 30
 # '
 
-
-    require(dplyr)
+ require(dplyr)
     require(tidyverse)
     require(broom)
     require(MASS)
+    require(tidyr)
 
 a <- input_table
 rm(input_table)
 
-print('a')
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
@@ -47,6 +46,7 @@ c <- b %>%
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+2)
 rm(b)
+
 print(c)
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
@@ -54,16 +54,19 @@ print(unique(c$QUERY_ID))
 print(unique(c$CURRENT_DAY))
 print(unique(c$age))
 print(unique(c$counts))
+
+#Group for name
+c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
+
 #Do the prediction analysis
-model <- c %>% nest(-QUERY_ID) %>% 
+model <- c %>% tidyr::nest(-QUERY_ID) %>% 
   mutate(
     fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
 print('model_complete')
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
-nested <- e %>% nest(-QUERY_ID)
-
+nested <- e %>% tidyr::nest(-QUERY_ID)
 
 prediction <- 
   model %>%
