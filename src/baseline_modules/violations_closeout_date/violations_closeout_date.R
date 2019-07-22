@@ -22,21 +22,15 @@
 # filter: 30
 # '
 
-
-
-    require(dplyr)
+ require(dplyr)
     require(tidyverse)
     require(broom)
     require(MASS)
     require(tidyr)
     require(purrr)
 
-print('a')
- 
 a <- input_table
 rm(input_table)
-
-
 
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
@@ -62,10 +56,8 @@ print(unique(c$CURRENT_DAY))
 print(unique(c$age))
 print(unique(c$counts))
 
-
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
-
 
 #Do the prediction analysis
 model <- c %>% tidyr::nest(-QUERY_ID) %>% 
@@ -76,7 +68,6 @@ e <- c %>%
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
 nested <- e %>% tidyr::nest(-QUERY_ID)
-
 
 prediction <- 
   model %>%
