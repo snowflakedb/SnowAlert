@@ -81,6 +81,7 @@ prediction <-
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 prediction$fit <- toString(prediction$fit)
+prediction<- prediction %>% replace(., is.na(.), "")
 return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
 
 return_value

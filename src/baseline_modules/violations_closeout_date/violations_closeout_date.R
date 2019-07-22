@@ -82,6 +82,6 @@ prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 prediction$near_zero <- abs(prediction$.fitted)
-
+prediction<- prediction %>% replace(., is.na(.), "")
 return_value <- prediction %>% group_by(QUERY_ID) %>% summarise(last_day=max(CURRENT_DAY), x_intercept=as.character(CURRENT_DAY[which.min(near_zero)]) , unknown=as.character(x_intercept==last_day), value=min(near_zero), TITLE=first(TITLE.y)) %>% dplyr::select(QUERY_ID, TITLE, unknown, x_intercept) 
 
