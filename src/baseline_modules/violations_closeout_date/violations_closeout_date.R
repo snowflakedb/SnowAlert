@@ -29,6 +29,7 @@
     require(broom)
     require(MASS)
     require(tidyr)
+    require(purrr)
 
 print('a')
  
