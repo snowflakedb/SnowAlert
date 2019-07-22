@@ -55,7 +55,7 @@ LANDING_TABLE_COLUMNS = [
     ('aws_region', 'STRING'),
     ('arn', 'STRING'),
     ('availability_zone', 'STRING'),
-    ('resource_creation_time', 'TIMESTAMP_LTZ(9)'),
+    ('resource_modification_time', 'TIMESTAMP_LTZ(9)'),
     ('resource_name', 'STRING'),
     ('resource_Id', 'STRING'),
     ('resource_type', 'STRING'),
@@ -177,7 +177,7 @@ def finalize(connection_name):
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
   raw, hash_raw, event_time, configuration_item_capture_time, account_id, aws_region, resource_type, arn,
-  availability_zone, resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
+  availability_zone, resource_modification_time, resource_name, resource_Id, relationships, configuration, tags
 )
 SELECT value raw
     , HASH(value) hash_raw
@@ -188,7 +188,7 @@ SELECT value raw
     , value:resourceType::STRING aws_region
     , value:ARN::STRING arn
     , value:availabilityZone::STRING availability_zone
-    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_creation_time
+    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_modification_time
     , value:resourceName::STRING resource_name
     , value:resourceId::STRING resource_Id
     , value:relationships::VARIANT relationships
