@@ -22,14 +22,18 @@
 # filter: 30
 # '
 
- require(dplyr)
-    require(tidyverse)
-    require(broom)
-    require(MASS)
-    require(tidyr)
+require(dplyr)
+require(broom)
+require(MASS)
+require(tidyr)
+require(purrr)
 
+
+print('a')
+ 
 a <- input_table
 rm(input_table)
+
 
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
