@@ -2,6 +2,8 @@
 Collect a list of accessible Azure subscriptions
 """
 
+from dateutil.parser import parse
+
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -38,6 +40,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_TABLE_COLUMNS = [
     ('created_at', 'TIMESTAMP_LTZ'),
+    ('event_time', 'TIMESTAMP_LTZ'),
     ('raw', 'VARIANT'),
     ('id', 'VARCHAR(100)'),
     ('subscription_id', 'VARCHAR(50)'),
@@ -90,11 +93,13 @@ def ingest(table_name, options):
         "managementEndpointUrl": "https://management.core.windows.net/",
     }).subscriptions
 
-    subscriptions = [s.as_dict() for s in subscriptions_service.list()]
+    subscription_list = subscriptions_service.list()
+    subscriptions = [s.as_dict() for s in subscription_list]
 
     db.insert(
         f'data.{table_name}',
         values=[(
+            parse(subscription_list.raw.response.headers['Date']).isoformat(),
             row,
             row['id'],
             row['subscription_id'],
@@ -104,8 +109,8 @@ def ingest(table_name, options):
             row['authorization_source'],
         ) for row in subscriptions],
         select=(
-            'CURRENT_TIMESTAMP, PARSE_JSON(column1), column2, column3,'
-            'column4, column5, PARSE_JSON(column6), column7'
+            'CURRENT_TIMESTAMP, column1, PARSE_JSON(column2), column3,'
+            'column4, column5, column6, PARSE_JSON(column7), column8'
         )
     )
 
