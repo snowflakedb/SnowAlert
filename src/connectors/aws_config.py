@@ -55,7 +55,7 @@ LANDING_TABLE_COLUMNS = [
     ('aws_region', 'STRING'),
     ('arn', 'STRING'),
     ('availability_zone', 'STRING'),
-    ('resource_modification_time', 'TIMESTAMP_LTZ(9)'),
+    ('resource_creation_time', 'TIMESTAMP_LTZ(9)'),
     ('resource_name', 'STRING'),
     ('resource_Id', 'STRING'),
     ('resource_type', 'STRING'),
@@ -78,7 +78,7 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'CONFIG_{connection_name}_EVENTS'.upper()
+    base_name = f'AWS_CONFIG_{connection_name}_EVENTS'.upper()
     stage = f'data.{base_name}_STAGE'
     staging_table = f'data.{base_name}_STAGING'
     landing_table = f'data.{base_name}_CONNECTION'
@@ -103,7 +103,10 @@ module: aws_config
 
     db.create_table(
         name=staging_table,
-        cols=[('v', 'variant'), ('filename', 'string(200)')]
+        cols=[
+            ('v', 'VARIANT'),
+            ('filename', 'STRING(200)')
+        ]
     )
 
     db.create_table(
@@ -170,25 +173,28 @@ module: aws_config
 
 
 def finalize(connection_name):
-    base_name = f'CONFIG_{connection_name}_EVENTS'.upper()
+    base_name = f'AWS_CONFIG_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
+
+    DATE_REGEXP = r'.+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z.*'.replace("\\", "\\\\")
+    DATE_ISO8601_BACKREFERENCES = r'\1-\2-\3T\4:\5:\6Z'.replace("\\", "\\\\")
 
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
   raw, hash_raw, event_time, configuration_item_capture_time, account_id, aws_region, resource_type, arn,
-  availability_zone, resource_modification_time, resource_name, resource_Id, relationships, configuration, tags
+  availability_zone, resource_creation_time, resource_name, resource_Id, relationships, configuration, tags
 )
 SELECT value raw
     , HASH(value) hash_raw
-    , REGEXP_REPLACE(filename, '.+(\\\\d{{4}})(\\\\d{{2}})(\\\\d{{2}})T(\\\\d{{2}})(\\\\d{{2}})(\\\\d{{2}})Z.*', '\\\\1-\\\\2-\\\\3T\\\\4:\\\\5:\\\\6Z')::timestamp_ltz event_time
+    , REGEXP_REPLACE(filename, '{DATE_REGEXP}', '{DATE_ISO8601_BACKREFERENCES}')::TIMESTAMP_LTZ event_time
     , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) configuration_item_capture_time
     , value:awsAccountId::STRING account_id
     , value:awsRegion::STRING aws_region
     , value:resourceType::STRING aws_region
     , value:ARN::STRING arn
     , value:availabilityZone::STRING availability_zone
-    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_modification_time
+    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_creation_time
     , value:resourceName::STRING resource_name
     , value:resourceId::STRING resource_Id
     , value:relationships::VARIANT relationships
@@ -199,8 +205,8 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
 '''
 
     db.create_stream(
-        name=f'data.{base_name}_STREAM',
-        target=f'data.{base_name}_STAGING'
+        name=f'data.{base_name}_stream',
+        target=f'data.{base_name}_staging'
     )
 
     # IAM change takes 5-15 seconds to take effect
@@ -208,9 +214,12 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     db.retry(
         lambda: db.create_pipe(
             name=pipe,
-            sql=f"COPY INTO data.{base_name}_staging(v, filename) FROM (select $1, metadata$filename from @data.{base_name}_stage/)",
+            sql=(
+                f"COPY INTO data.{base_name}_staging(v, filename) "
+                f"FROM (SELECT $1, metadata$filename FROM @data.{base_name}_stage/)"
+            ),
             replace=True,
-            autoingest=True
+            autoingest=True,
         ),
         n=10,
         sleep_seconds_btw_retry=1
