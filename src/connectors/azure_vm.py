@@ -152,8 +152,8 @@ def ingest(table_name, options):
         virtual_machines.append(vms)
 
     virtual_machines = [(
-        elem,
         now,
+        elem,
         elem.get('hardware_profile'),
         elem.get('id'),
         elem.get('location'),
