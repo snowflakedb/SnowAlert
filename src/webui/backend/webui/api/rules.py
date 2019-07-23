@@ -74,7 +74,8 @@ def create_rule():
     rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
-    rule_body = rule_body.format(**dict(CONFIG_VARS))
+    for name, value in CONFIG_VARS:
+        rule_body = rule_body.replace(f'{name}', value)
 
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
