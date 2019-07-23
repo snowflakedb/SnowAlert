@@ -1,6 +1,7 @@
 from . import aws_cloudtrail
 from . import okta
 from . import azure_log
+from . import azure_subscription
 from . import aws_config
 from . import aws_asset_ingest
 
@@ -9,6 +10,7 @@ __all__ = [
     'aws_cloudtrail',
     'aws_config',
     'azure_log',
+    'azure_subscription',
     'okta',
 ]
 
@@ -17,6 +19,7 @@ connectors = {
     'aws_cloudtrail': aws_cloudtrail,
     'aws_config': aws_config,
     'azure_log': azure_log,
+    'azure_subscription': azure_subscription,
     'okta': okta,
 }
 

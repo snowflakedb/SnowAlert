@@ -19,6 +19,7 @@ setup(
         'snowflake-ingest==0.9.1',
         'azure-common==1.1.20',
         'azure-mgmt-storage==3.3.0',
+        'azure-mgmt-subscription==0.4.1',
         'azure-storage-blob==1.5.0',
         'azure-storage-common==1.4.0',
         'boto3'
