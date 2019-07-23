@@ -57,17 +57,17 @@ LANDING_TABLE_COLUMNS = [
     ('EVENT_TIME', 'TIMESTAMP_LTZ'),
     ('RAW', 'VARIANT'),
     ('HARDWARE_PROFILE', 'VARIANT'),
-    ('ID', 'VARCHAR(100)'),
+    ('ID', 'VARCHAR(500)'),
     ('LOCATION', 'VARCHAR(100)'),
-    ('NAME', 'VARCHAR(100)'),
+    ('NAME', 'VARCHAR(200)'),
     ('NETWORK_PROFILE', 'VARIANT'),
     ('OS_PROFILE', 'VARIANT'),
     ('PROVISIONING_STATE', 'VARCHAR(100)'),
     ('STORAGE_PROFILE', 'VARIANT'),
-    ('SUBSCRIPTION_ID', 'VARCHAR(100)'),
+    ('SUBSCRIPTION_ID', 'VARCHAR(500)'),
     ('TAGS', 'VARIANT'),
     ('TYPE', 'VARCHAR(100)'),
-    ('VM_ID', 'VARCHAR(100)'),
+    ('VM_ID', 'VARCHAR(200)'),
 ]
 
 
@@ -82,13 +82,12 @@ def get_nics(creds, sub):
     return [nic.as_dict() for nic in NetworkManagementClient(creds, sub).network_interfaces.list_all()]
 
 
-def enrich_vms_with_nic(vms, nic):
-    for vm in vms:
+def enrich_vms_with_nic(vm, nics):
+    for nic in nics:
         for vm_int in vm['network_profile']['network_interfaces']:
             if nic['id'] == vm_int['id']:
                 vm_int['details'] = nic
                 break
-    return vms
 
 
 def connect(connection_name, options):
@@ -147,8 +146,9 @@ def ingest(table_name, options):
             values=[(now, RUN_ID, sub_id, len(vms))],
             columns=['SNAPSHOT_AT', 'RUN_ID', 'SUBSCRIPTION_ID', 'VM_INSTANCE_COUNT'],
         )
-        for nic in get_nics(creds, sub_id):
-            enrich_vms_with_nic(vms, nic)
+        nics = get_nics(creds, sub_id)
+        for vm in vms:
+            enrich_vms_with_nic(vm, nics)
         virtual_machines.append(vms)
 
     virtual_machines = [(
@@ -173,8 +173,8 @@ def ingest(table_name, options):
             table_name,
             group,
             select=(
-                'PARSE_JSON(column1)',
-                'column2',
+                'column1',
+                'PARSE_JSON(column2)',
                 'PARSE_JSON(column3)',
                 'column4',
                 'column5',
