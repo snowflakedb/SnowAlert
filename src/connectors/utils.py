@@ -3,6 +3,7 @@ import boto3
 from os import urandom
 
 from runners.helpers import db
+from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
 def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
@@ -24,6 +25,7 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 def create_metadata_table(table, cols, addition):
     db.create_table(table, cols, ifnotexists=True)
+    db.execute(f"GRANT INSERT, SELECT ON {table} TO ROLE {SA_ROLE}")
     result = db.fetch(f'desc table {table}')
     if any(row['name'] == addition[0] for row in result):
         return
