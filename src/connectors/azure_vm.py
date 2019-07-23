@@ -82,7 +82,7 @@ def get_nics(creds, sub):
     return [nic.as_dict() for nic in NetworkManagementClient(creds, sub).network_interfaces.list_all()]
 
 
-def enrich_vms_with_nic(vm, nics):
+def enrich_vm_with_nics(vm, nics):
     for nic in nics:
         for vm_int in vm['network_profile']['network_interfaces']:
             if nic['id'] == vm_int['id']:
@@ -148,7 +148,7 @@ def ingest(table_name, options):
         )
         nics = get_nics(creds, sub_id)
         for vm in vms:
-            enrich_vms_with_nic(vm, nics)
+            enrich_vm_with_nics(vm, nics)
         virtual_machines.append(vms)
 
     virtual_machines = [(
