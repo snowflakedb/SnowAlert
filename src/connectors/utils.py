@@ -23,11 +23,8 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 def create_metadata_table(table, cols, addition):
-    db.create_table(table, cols, exists=True)
-    rows = db.fetch(f'desc table {table}')
-    for row in rows:
-        if row['name'] == addition[0]:
-            return
-
-    sql = f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}'
-    db.execute(sql)
+    db.create_table(table, cols, ifnotexists=True)
+    result = db.fetch(f'desc table {table}')
+    if any(row['name'] == addition[0] for row in result):
+        return
+    db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')

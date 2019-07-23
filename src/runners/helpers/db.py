@@ -215,6 +215,9 @@ def insert(table, values, overwrite=False, select="", columns=[]):
     if len(values) == 0:
         return
 
+    if type(select) is tuple:
+        select = ', '.join(select)
+
     if select:
         select = f'SELECT {select} FROM '
 
@@ -382,15 +385,18 @@ def create_stage(name, url, prefix, cloud, credentials, file_format, replace=Fal
     execute(query, fix_errors=False)
 
 
-def create_table(name, cols, replace=False, comment='', exists=''):
+def create_table(name, cols, replace=False, comment='', ifnotexists=False):
+    if type(comment) is tuple:
+        comment = '\n'.join(comment)
+
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment}' " if comment else ''
-    exists = 'IF NOT EXISTS ' if exists else ''
+    ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
     columns = '('
     for pair in cols:
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
-    query = f"CREATE {replace}TABLE {exists}{name}{columns}{comment}"
+    query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
     execute(query, fix_errors=False)
 
 
