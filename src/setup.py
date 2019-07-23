@@ -18,6 +18,8 @@ setup(
         'tzlocal==1.5.1',
         'snowflake-ingest==0.9.1',
         'azure-common==1.1.20',
+        'azure-mgmt-compute==4.6.2',
+        'azure-mgmt-network==2.7.0',
         'azure-mgmt-storage==3.3.0',
         'azure-mgmt-subscription==0.4.1',
         'azure-storage-blob==1.5.0',
