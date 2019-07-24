@@ -48,6 +48,7 @@ LANDING_TABLE_COLUMNS = [
     ('state', 'VARCHAR(50)'),
     ('subscription_policies', 'VARIANT'),
     ('authorization_source', 'VARCHAR(50)'),
+    ('tenant_id', 'VARCHAR(50)'),
 ]
 
 
@@ -107,10 +108,11 @@ def ingest(table_name, options):
             row['state'],
             row['subscription_policies'],
             row['authorization_source'],
+            tenant_id,
         ) for row in subscriptions],
         select=(
             'CURRENT_TIMESTAMP, column1, PARSE_JSON(column2), column3,'
-            'column4, column5, column6, PARSE_JSON(column7), column8'
+            'column4, column5, column6, PARSE_JSON(column7), column8, column9'
         )
     )
 
