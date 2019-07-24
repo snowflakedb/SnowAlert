@@ -4,12 +4,14 @@ from . import azure_log
 from . import azure_subscription
 from . import azure_vm
 from . import aws_config
+from . import aws_account
 from . import aws_asset_ingest
 
 __all__ = [
     'aws_asset_ingest',
     'aws_cloudtrail',
     'aws_config',
+    'aws_account',
     'azure_log',
     'azure_subscription',
     'azure_vm',
@@ -20,6 +22,7 @@ connectors = {
     'aws_asset_ingest': aws_asset_ingest,
     'aws_cloudtrail': aws_cloudtrail,
     'aws_config': aws_config,
+    'aws_account': aws_account,
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
