@@ -39,7 +39,6 @@ CONNECTION_OPTIONS = [
 ]
 
 LANDING_TABLE_COLUMNS = [
-    ('created_at', 'TIMESTAMP_LTZ'),
     ('event_time', 'TIMESTAMP_LTZ'),
     ('tenant_id', 'VARCHAR(50)'),
     ('raw', 'VARIANT'),
@@ -111,8 +110,16 @@ def ingest(table_name, options):
             row['authorization_source'],
         ) for row in subscriptions],
         select=(
-            'CURRENT_TIMESTAMP, column1, column2, PARSE_JSON(column3), column4,'
-            'column5, column6, column7, PARSE_JSON(column8), column9'
+            'column1',
+            'column2',
+            'PARSE_JSON(column3)',
+            'column4',
+            'column5',
+            'column5',
+            'column6',
+            'column7',
+            'PARSE_JSON(column8)',
+            'column9',
         )
     )
 
