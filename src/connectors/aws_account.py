@@ -11,14 +11,14 @@ import datetime
 CONNECTION_OPTIONS = [
     {
         'name': 'source_role_arn',
-        'title': "source role arn",
-        'prompt': "assumer role arn",
+        'title': "Source Role ARN",
+        'prompt': "Assumer Role ARN",
         'type': 'str',
         'required': True
     },
     {
         'name': 'destination_role_arn',
-        'title': "Destination Role Arn",
+        'title': "Destination Role ARN",
         'prompt': "The destination role in your AWS Master Account",
         'type': 'str',
         'required': True
