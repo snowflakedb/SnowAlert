@@ -105,7 +105,7 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'CLOUDTRAIL_{connection_name}_EVENTS'.upper()
+    base_name = f'AWS_CLOUDTRAIL_{connection_name}_EVENTS'.upper()
     stage = f'data.{base_name}_STAGE'
     staging_table = f'data.{base_name}_STAGING'
     landing_table = f'data.{base_name}_CONNECTION'
@@ -197,7 +197,7 @@ module: cloudtrail
 
 
 def finalize(connection_name):
-    base_name = f'CLOUDTRAIL_{connection_name}_EVENTS'.upper()
+    base_name = f'AWS_CLOUDTRAIL_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
