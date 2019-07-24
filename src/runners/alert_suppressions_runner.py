@@ -133,14 +133,15 @@ def run_suppressions(squelch_name):
     log.info(f"{squelch_name} done.")
 
 
-def main():
+def main(squelch_name=None):
     RUN_METADATA = {
         'RUN_TYPE': 'ALERT SUPPRESSION',
         'START_TIME': datetime.datetime.utcnow(),
         'RUN_ID': RUN_ID,
     }
 
-    for squelch_name in db.load_rules(ALERT_SQUELCH_POSTFIX):
+    rules = db.load_rules(ALERT_SQUELCH_POSTFIX) if squelch_name is None else [squelch_name]
+    for squelch_name in rules:
         run_suppressions(squelch_name)
 
     num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
