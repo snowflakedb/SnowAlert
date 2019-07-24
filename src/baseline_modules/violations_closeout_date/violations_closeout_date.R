@@ -27,9 +27,6 @@ require(broom)
 require(MASS)
 require(tidyr)
 require(purrr)
-
-
-print('a')
  
 a <- input_table
 rm(input_table)
@@ -51,14 +48,6 @@ c <- b %>%
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+2)
 rm(b)
 
-print(c)
-#Group for name
-c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
-print(unique(c$QUERY_ID))
-print(unique(c$CURRENT_DAY))
-print(unique(c$age))
-print(unique(c$counts))
-
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 
@@ -66,7 +55,7 @@ c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 model <- c %>% tidyr::nest(-QUERY_ID) %>% 
   mutate(
     fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
-print('model_complete')
+
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
@@ -84,4 +73,3 @@ prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = 
 prediction$near_zero <- abs(prediction$.fitted)
 prediction<- prediction %>% replace(., is.na(.), "")
 return_value <- prediction %>% group_by(QUERY_ID) %>% summarise(last_day=max(CURRENT_DAY), x_intercept=as.character(CURRENT_DAY[which.min(near_zero)]) , unknown=as.character(x_intercept==last_day), value=min(near_zero), TITLE=first(TITLE.y)) %>% dplyr::select(QUERY_ID, TITLE, unknown, x_intercept) 
-

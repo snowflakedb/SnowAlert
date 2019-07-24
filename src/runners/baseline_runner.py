@@ -1,4 +1,5 @@
 from typing import List, Dict, Any
+import subprocess
 
 from runners.config import (
     DATA_SCHEMA,
@@ -36,7 +37,6 @@ def query_log_source(source, time_filter, time_column):
         data = list(db.fetch(query))
     except Exception as e:
         log.error("Failed to query log source: ", e)
-
     f = pack(data)
     frame = pandas.DataFrame(f)
     pandas2ri.activate()
@@ -61,11 +61,9 @@ def run_baseline(name, comment):
 
     with open(f"../baseline_modules/{code_location}/{code_location}.R") as f:
         r_code = f.read()
-
     r_code = format_code(r_code, required_values)
     frame = query_log_source(source, time_filter, time_column)
     ro.globalenv['input_table'] = frame
-
     output = ro.r(r_code)
     output = output.to_dict()
 
@@ -77,11 +75,15 @@ def run_baseline(name, comment):
         log.error("Failed to insert the results into the target table", e)
 
 
-def main():
+def main(baseline='%_BASELINE'):
     db.connect()
-    for table in db.fetch(f"show tables like '%_BASELINE' in {DATA_SCHEMA}"):
+    baseline_tables = list(db.fetch(f"show tables like '{baseline}' in {DATA_SCHEMA}"))
+    for table in baseline_tables:
         name = table['name']
         comment = table['comment']
         log.info(f'{name} started...')
-        run_baseline(name, comment)
+        if len(baseline_tables) > 1:
+            subprocess.call(f"python ./run.py baseline {name}", shell=True)
+        else:
+            run_baseline(name, comment)
         log.info(f'{name} done.')
