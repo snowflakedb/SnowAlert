@@ -186,7 +186,7 @@ LANDING_TABLES_COLUMNS = {
 def connect(connection_name, options):
     connection_type = options['connection_type']
 
-    base_name = f"azure_{connection_name}_{connection_type}"
+    base_name = f"azure_log_{connection_name}_{connection_type}"
     account_name = options['account_name']
     container_name = options['container_name']
     suffix = options['suffix']
@@ -195,7 +195,7 @@ def connect(connection_name, options):
 
     comment = f'''
 ---
-module: azure
+module: azure_log
 storage_account: {account_name}
 container_name: {container_name}
 suffix: {suffix}
