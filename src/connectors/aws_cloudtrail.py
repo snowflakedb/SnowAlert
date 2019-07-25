@@ -1,5 +1,5 @@
 """AWS CloudTrail
-Collects AWS logs from an S3 bucket using AssumeRole Grants
+Collects AWS logs from an S3 bucket using AssumeRole
 """
 
 from json import dumps
@@ -21,9 +21,9 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': "AWS Role",
-        'prompt': "The full ARN of an IAM role with permissions to read from the bucket",
-        'placeholder': "arn:aws:iam::012345678987:role/s3-read-role",
+        'title': "CloudTrail Bucket Reader Role",
+        'prompt': "Role to be assumed for access to CloudTrail files in S3",
+        'placeholder': "arn:aws:iam::012345678987:role/my-cloudtrail-read-role",
         'required': True,
     },
     {
