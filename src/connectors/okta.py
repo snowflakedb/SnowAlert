@@ -1,5 +1,5 @@
 """Okta System Log
-Collect Okta activity logs
+Collect Okta activity logs using an API Token
 """
 
 from runners.helpers import db, log

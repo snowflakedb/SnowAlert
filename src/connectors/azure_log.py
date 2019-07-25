@@ -1,5 +1,5 @@
-"""Azure Activity Logs
-Collect Active Directory (AD) Sign-ins, Audit, or Operation Logs
+"""Azure Active Directory Logs
+Collect AD Signin, Audit, or Operation Logs using an SAS Token
 """
 
 import re
