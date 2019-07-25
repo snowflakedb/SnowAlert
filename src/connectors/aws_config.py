@@ -1,5 +1,5 @@
 """AWS Config
-Collects Config logs from S3 using AssumeRole Grants
+Collects Config logs from S3 using AssumeRole
 """
 from json import dumps
 from time import sleep
@@ -28,8 +28,8 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': 'AWS Role',
-        'prompt': "ARN of Role we'll grant access to bucket",
+        'title': 'Config Bucket Reader Role',
+        'prompt': "Role to be assumed for access to Config files in S3",
         'placeholder': 'arn:aws:iam::012345678987:role/my-config-reader-role',
         'required': True,
     }
