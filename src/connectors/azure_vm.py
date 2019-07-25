@@ -1,5 +1,5 @@
 """Azure VM Inventory
-Collect Azure VM inventory from Subscriptions
+Collect Azure VM Inventory using an SP and Subscription Inventory
 """
 
 from azure.common.credentials import ServicePrincipalCredentials

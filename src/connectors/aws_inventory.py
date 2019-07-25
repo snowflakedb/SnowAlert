@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collects AWS EC2, SG, ELB details into a columnar table
+Collects AWS EC2, SG, ELB details using an Access Key
 """
 from datetime import datetime
 import json
@@ -102,7 +102,7 @@ def create_asset_table(connection_name, asset_type, columns, options):
 
     comment = f'''
 ---
-module: aws_asset_ingest
+module: aws_inventory
 aws_access_key: {aws_access_key}
 aws_secret_key: {aws_secret_key}
 '''
