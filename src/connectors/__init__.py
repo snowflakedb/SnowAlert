@@ -5,6 +5,7 @@ from . import azure_subscription
 from . import azure_vm
 from . import aws_config
 from . import aws_inventory
+from . import tenable
 
 __all__ = [
     'aws_inventory',
@@ -14,6 +15,7 @@ __all__ = [
     'azure_subscription',
     'azure_vm',
     'okta',
+    'tenable',
 ]
 
 connectors = {
@@ -24,6 +26,7 @@ connectors = {
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
     'okta': okta,
+    'tenable': tenable,
 }
 
 CONNECTION_OPTIONS = [
