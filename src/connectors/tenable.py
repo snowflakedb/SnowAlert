@@ -1,0 +1,129 @@
+"""Tenable
+Collects a variety of Tenable logs into tables
+"""
+from tenable.io import TenableIO
+from datetime import datetime
+
+from runners.helpers import db
+from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+CONNECTION_OPTIONS = [
+    {
+        'type': 'str',
+        'name': 'token',
+        'title': 'Tenable API Token',
+        'prompt': 'The Tenable API Token',
+        'placeholder': 'sample-token',
+        'required': True,
+    },
+    {
+        'type': 'str',
+        'name': 'secret',
+        'title': 'Tenable API Secret',
+        'prompt': 'The Secret Token for the Tenable API.',
+        'required': True,
+        'secret': True,
+    },
+]
+
+FILE_FORMAT = """
+    TYPE = "JSON",
+    COMPRESSION = "AUTO",
+    ENABLE_OCTAL = FALSE,
+    ALLOW_DUPLICATE = FALSE,
+    STRIP_OUTER_ARRAY = TRUE,
+    STRIP_NULL_VALUES = FALSE,
+    IGNORE_UTF8_ERRORS = FALSE,
+    SKIP_BYTE_ORDER_MARK = TRUE
+"""
+
+USER_LANDING_TABLE = [
+    ('USERNAME', 'STRING (250)'),
+    ('ROLE', 'STRING(100)'),
+    ('RAW', 'VARIANT'),
+    ('EVENT_TIME', 'TIMESTAMP_LTZ'),
+    ('UUID', 'STRING(100)'),
+    ('ID', 'STRING(100)'),
+    ('USER_NAME', 'STRING(250)'),
+    ('EMAIL', 'STRING(250)'),
+    ('TYPE', 'STRING(100)'),
+    ('PERMISSION', 'NUMBER'),
+    ('LAST_LOGIN_ATTEMPT', 'TIMESTAMP_LTZ'),
+    ('LOGIN_FAIL_COUNT', 'NUMBER'),
+    ('LOGIN_FAIL_TOTAL', 'NUMBER'),
+    ('ENABLED', 'BOOLEAN'),
+    ('TWO_FACTOR', 'VARIANT'),
+    ('LAST_LOGIN', 'TIMESTAMP_LTZ'),
+    ('UUID_ID', 'STRING(100)'),
+]
+
+
+def ingest_users(tio, table_name):
+    users = tio.users.list()
+    timestamp = datetime.utcnow()
+
+    for user in users:
+        if user['permissions'] == 16:
+            user['role'] = 'Basic'
+        elif user['permissions'] == 24:
+            user['role'] = 'Scan Operator'
+        elif user['permissions'] == 32:
+            user['role'] = 'Standard'
+        elif user['permissions'] == 40:
+            user['role'] = 'Scan Manager'
+        elif user['permissions'] == 64:
+            user['role'] = 'Administrator'
+        else:
+            user['role'] = 'Role unclear; please check Tenable Documentation.'
+
+    db.insert(table=f'data.{table_name}',
+              values=[(user.get('username', None),
+                      user.get('role', None),
+                      user,
+                      timestamp,
+                      user.get('uuid', None),
+                      user.get('id', None),
+                      user.get('user_name', None),
+                      user.get('email', None),
+                      user.get('type', None),
+                      user.get('permissions', None),
+                      user.get('last_login_attempt', None),
+                      user.get('login_fail_count', None),
+                      user.get('login_fail_total', None),
+                      user.get('enabled', None),
+                      user.get('two_factor', None),
+                      user.get('lastlogin', None),
+                      user.get('uuid_id', None)) for user in users],
+              select="""column1, column2, PARSE_JSON(column3), column4, column5, column6, column7, column8,
+                        column9, column10, to_timestamp(column11, 3)::timestamp_ltz, column12, column13,
+                        column14, PARSE_JSON(column15), to_timestamp(column16, 3)::timestamp_ltz, column17""")
+
+
+def create_user_table(connection_name, options):
+    table_name = f'data.TENABLE_USER_{connection_name}_CONNECTION'
+    token = options['token']
+    secret = options['secret']
+    comment = f"""
+---
+module: tenable
+token: {token}
+secret: {secret}
+"""
+
+    db.create_table(table_name, cols=USER_LANDING_TABLE, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
+
+
+def connect(connection_name, options):
+    create_user_table(connection_name, options)
+
+    return {
+        'newStage': 'finalized',
+        'newMessage': 'Landing table created for collectors to populate.'
+    }
+
+
+def ingest(table_name, options):
+    tio = TenableIO(options['token'], options['secret'])
+    if table_name.startswith('TENABLE_USER'):
+        ingest_users(tio, table_name)
