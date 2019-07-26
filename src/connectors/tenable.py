@@ -30,7 +30,7 @@ USER_LANDING_TABLE = [
     ('USERNAME', 'STRING (250)'),
     ('ROLE', 'STRING(100)'),
     ('RAW', 'VARIANT'),
-    ('EVENT_TIME', 'TIMESTAMP_LTZ'),
+    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ'),
     ('UUID', 'STRING(100)'),
     ('ID', 'STRING(100)'),
     ('USER_NAME', 'STRING(250)'),
