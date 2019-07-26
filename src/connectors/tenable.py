@@ -1,5 +1,5 @@
-"""Tenable
-Collects a variety of Tenable logs into tables
+"""Tenable Settings
+Collects Tenable Settings using a Service User’s API Key
 """
 from tenable.io import TenableIO
 from datetime import datetime
@@ -9,25 +9,35 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 CONNECTION_OPTIONS = [
     {
+        'type': 'select',
+        'options': [
+            {'value': 'user', 'label': "Tenable Users"},
+        ],
+        'name': 'connection_type',
+        'title': "Settings Type",
+        'prompt': "The type of Tenable Settings information you are ingesting to Snowflake.",
+        'required': True
+    },
+    {
         'type': 'str',
         'name': 'token',
-        'title': 'Tenable API Token',
-        'prompt': 'The Tenable API Token',
-        'placeholder': 'sample-token',
+        'title': "Tenable API Token",
+        'prompt': "The Tenable API Token",
+        'placeholder': 'f1234764cd987654we543nt1x456b65a098a1df1233c2986c07efa700f9d2187',
         'required': True,
     },
     {
         'type': 'str',
         'name': 'secret',
-        'title': 'Tenable API Secret',
-        'prompt': 'The Secret Token for the Tenable API.',
+        'title': "Tenable API Secret",
+        'prompt': "The Secret Token for the Tenable API.",
         'required': True,
         'secret': True,
     },
 ]
 
 USER_LANDING_TABLE = [
-    ('USERNAME', 'STRING (250)'),
+    ('USERNAME', 'STRING(250)'),
     ('ROLE', 'STRING(100)'),
     ('RAW', 'VARIANT'),
     ('SNAPSHOT_AT', 'TIMESTAMP_LTZ'),
@@ -52,18 +62,13 @@ def ingest_users(tio, table_name):
     timestamp = datetime.utcnow()
 
     for user in users:
-        if user['permissions'] == 16:
-            user['role'] = 'Basic'
-        elif user['permissions'] == 24:
-            user['role'] = 'Scan Operator'
-        elif user['permissions'] == 32:
-            user['role'] = 'Standard'
-        elif user['permissions'] == 40:
-            user['role'] = 'Scan Manager'
-        elif user['permissions'] == 64:
-            user['role'] = 'Administrator'
-        else:
-            user['role'] = 'Role unclear; please check Tenable Documentation.'
+        user['role'] = {
+            16: 'Basic',
+            24: 'Scan Operator',
+            32: 'Standard',
+            40: 'Scan Manager',
+            64: 'Administrator',
+        }.get(user['permissions'], 'unknown permissions {permissions}')
 
     db.insert(table=f'data.{table_name}',
               values=[(user.get('username', None),
@@ -89,7 +94,7 @@ def ingest_users(tio, table_name):
 
 
 def create_user_table(connection_name, options):
-    table_name = f'data.TENABLE_USER_{connection_name}_CONNECTION'
+    table_name = f'data.TENABLE_SETTINGS_{connection_name}_USER_CONNECTION'
     token = options['token']
     secret = options['secret']
     comment = f"""
@@ -104,7 +109,8 @@ secret: {secret}
 
 
 def connect(connection_name, options):
-    create_user_table(connection_name, options)
+    if options['connection_type'] == 'user':
+        create_user_table(connection_name, options)
 
     return {
         'newStage': 'finalized',
@@ -114,5 +120,5 @@ def connect(connection_name, options):
 
 def ingest(table_name, options):
     tio = TenableIO(options['token'], options['secret'])
-    if table_name.startswith('TENABLE_USER'):
+    if table_name.endswith('USER_CONNECTION'):
         ingest_users(tio, table_name)
