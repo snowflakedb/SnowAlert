@@ -13,6 +13,7 @@ CONNECTION_OPTIONS = [
         'options': [
             {'value': 'user', 'label': "Tenable Users"},
         ],
+        'default': 'user',
         'name': 'connection_type',
         'title': "Settings Type",
         'prompt': "The type of Tenable Settings information you are ingesting to Snowflake.",
@@ -87,7 +88,8 @@ def ingest_users(tio, table_name):
                       user.get('enabled', None),
                       user.get('two_factor', None),
                       user.get('lastlogin', None),
-                      user.get('uuid_id', None)) for user in users],
+                      user.get('uuid_id', None)
+                       ) for user in users],
               select="""column1, column2, PARSE_JSON(column3), column4, column5, column6, column7, column8,
                         column9, column10, to_timestamp(column11, 3)::timestamp_ltz, column12, column13,
                         column14, PARSE_JSON(column15), to_timestamp(column16, 3)::timestamp_ltz, column17""")
