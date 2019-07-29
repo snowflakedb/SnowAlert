@@ -318,7 +318,7 @@ def value_to_sql(v):
              .replace("\\t", "\\\\t")
              .replace("\\\"", "\\\\\"")
         )
-        return f"parse_json('${obj}')"
+        return f"parse_json('{obj}')"
 
     return str(v)
 
