@@ -359,8 +359,7 @@ def record_metadata(metadata, table, e=None):
     sql = f'''
     INSERT INTO {table}(event_time, v)
     SELECT '{metadata['START_TIME']}'
-         , column1
-    FROM VALUES({metadata_json_sql})
+         , {metadata_json_sql}
     '''
 
     try:
