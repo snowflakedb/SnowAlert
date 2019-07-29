@@ -1,5 +1,5 @@
 """AWS CloudTrail
-Collects AWS logs from an S3 bucket using AssumeRole
+Collects AWS CloudTrail logs from S3 using a privileged Role
 """
 
 from json import dumps

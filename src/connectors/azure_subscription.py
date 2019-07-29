@@ -115,7 +115,6 @@ def ingest(table_name, options):
             'PARSE_JSON(column3)',
             'column4',
             'column5',
-            'column5',
             'column6',
             'column7',
             'PARSE_JSON(column8)',
