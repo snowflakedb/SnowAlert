@@ -5,11 +5,13 @@ from . import azure_subscription
 from . import azure_vm
 from . import aws_config
 from . import aws_inventory
+from . import aws_flow_log
 
 __all__ = [
     'aws_inventory',
     'aws_cloudtrail',
     'aws_config',
+    'aws_flow_log',
     'azure_log',
     'azure_subscription',
     'azure_vm',
@@ -20,6 +22,7 @@ connectors = {
     'aws_inventory': aws_inventory,
     'aws_cloudtrail': aws_cloudtrail,
     'aws_config': aws_config,
+    'aws_flow_log': aws_flow_log,
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
