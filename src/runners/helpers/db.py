@@ -309,6 +309,17 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 def value_to_sql(v):
     if type(v) is str:
         return f"'{v}'"
+
+    if type(v) is dict:
+        v = json.dumps(v)
+        obj = (
+            v.replace("'", "\\'")
+             .replace("\\n", "\\\\n")
+             .replace("\\t", "\\\\t")
+             .replace("\\\"", "\\\\\"")
+        )
+        return f"parse_json('${obj}')"
+
     return str(v)
 
 
@@ -343,12 +354,12 @@ def record_metadata(metadata, table, e=None):
 
     record_type = metadata.get('QUERY_NAME', 'RUN')
 
-    metadata_json_sql = "'" + json.dumps(metadata).replace('\\', '\\\\').replace("'", "\\'") + "'"
+    metadata_json_sql = value_to_sql(metadata)
 
     sql = f'''
     INSERT INTO {table}(event_time, v)
     SELECT '{metadata['START_TIME']}'
-         , PARSE_JSON(column1)
+         , column1
     FROM VALUES({metadata_json_sql})
     '''
 
