@@ -374,14 +374,27 @@ def get_pipes(schema):
     return fetch(f"SHOW PIPES IN {schema}")
 
 
-def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
+def create_table_from_csv(name, columns, file_path, file_format, ifnotexists=False):
+    create_table(f"{name}", columns, ifnotexists=ifnotexists)
+    create_stage(f"{name}_stage", file_format=file_format, temporary=False)
+    execute(f"PUT file://{file_path} @{name}_stage")
+    execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
+
+
+def create_stage(name, url='', prefix='', cloud='', credentials='', file_format='', replace=False, comment='', temporary=False):
     replace = 'OR REPLACE ' if replace else ''
-    query = f"CREATE {replace}STAGE {name} \nURL='{url}/{prefix}' "
+    temporary = 'TEMPORARY ' if temporary else ''
+    query = f"CREATE {replace}{temporary}STAGE {name} "
+    if url:
+        query += f"\nURL='{url}/{prefix}' "
     if cloud == 'aws':
         query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
     elif cloud == 'azure':
         query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
-    query += f"\nFILE_FORMAT=({file_format}) \nCOMMENT='{comment}'"
+    if file_format:
+        query += f"\nFILE_FORMAT=({file_format})"
+    if comment:
+        query += f"\nCOMMENT='{comment}'"
     execute(query, fix_errors=False)
 
 
