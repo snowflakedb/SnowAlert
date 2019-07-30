@@ -91,7 +91,7 @@ def link_search_todos(description=None):
     return f'{URL}/issues/?jql={quote(q)}'
 
 
-def create_jira_ticket(alert, assignee=None, area=None):
+def create_jira_ticket(alert, assignee=None, custom_field=None):
     if not user:
         return
 
@@ -107,9 +107,10 @@ def create_jira_ticket(alert, assignee=None, area=None):
                                   issuetype={'name': 'Story'},
                                   summary=alert['TITLE'],
                                   description=body,)
+    if custom_field:
+        new_issue.update(fields={custom_field['id']: {'value': custom_field['value']}})
     if assignee:
-        import pdb; pdb.set_trace()
-    jira.assign_issue(new_issue, assignee)
+        jira.assign_issue(new_issue, assignee)
 
     return new_issue
 
@@ -148,7 +149,7 @@ def bail_out(alert_id):
         log.error(e, f"Failed to update alert {alert_id} with handler status")
 
 
-def handle(alert, correlation_id, project=PROJECT, assignee=None, area=None):
+def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=None):
     global PROJECT
     PROJECT = project
     if PROJECT == '':
@@ -195,7 +196,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, area=None):
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert, assignee, area)
+            ticket_id = create_jira_ticket(alert, assignee, custom_field)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             return e
