@@ -1,5 +1,5 @@
 """AWS Config
-Collects Config logs from S3 using AssumeRole
+Collects Config logs from S3 using a privileged Role
 """
 from json import dumps
 from time import sleep
