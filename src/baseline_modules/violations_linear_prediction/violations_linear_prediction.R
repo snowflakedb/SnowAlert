@@ -29,8 +29,10 @@ require(tidyr)
 require(purrr)
 
 a <- input_table
-rm(input_table)
 
+print(colnames(input_table))
+print(input_table)
+rm(input_table)
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
@@ -69,11 +71,13 @@ prediction <-
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 
-prediction$fit <- toString(prediction$fit)
+prediction$fit <- as.character(prediction$fit)
 
 
-return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit)
-return_value$fit <- 'This is my fit, iti s a random string for now'
+return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
+return_value$CURRENT_DAY <- as.character(return_value$CURRENT_DAY)
+#return_value$fit <- 'This is my fit, iti s a random string for now'
+return_value <- return_value %>% replace(., is.na(.), "")
 colnames(return_value) <- c('QUERY_ID', 'TITLE', 'CURRENT_DAY', 'COUNTS', 'FITTED', 'SEFIT', 'FIT')
 
 return_value
