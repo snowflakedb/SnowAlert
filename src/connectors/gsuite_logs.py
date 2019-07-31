@@ -41,7 +41,7 @@ CONNECTION_OPTIONS = [
         'name': 'subjects_list',
         'title': "List of Subjects (optional)",
         'prompt': "Comma-separated list credentials delegated to Service Account",
-        'placeholder': "90d501a2-7c37-4036-af29-1e7e087437",
+        'placeholder': "auditor@first-gcp-project.company.com,auditor@second-gcp-project.company.com",
     },
 ]
 
