@@ -10,6 +10,7 @@ from runners.helpers import db, log
 from rpy2 import robjects as ro
 from rpy2.robjects import pandas2ri
 
+import math
 import pandas
 import yaml
 
@@ -25,8 +26,14 @@ def pack(data: List[Dict[Any, Any]]) -> Dict[Any, List[Any]]:
     return {k: [d.get(k) for d in data] for k in keys}
 
 
+def nanToNone(x):
+    if type(x) is float and math.isnan(x):
+        return None
+    return x
+
+
 def unpack(data):
-    b = [[data[k][i] for i in data[k]] for k in data]
+    b = [[nanToNone(x) for x in v.values()] for v in data.values()]
     return list(zip(*b))
 
 
