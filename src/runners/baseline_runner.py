@@ -26,8 +26,14 @@ def pack(data: List[Dict[Any, Any]]) -> Dict[Any, List[Any]]:
     return {k: [d.get(k) for d in data] for k in keys}
 
 
+def nanToNone(x):
+    if type(x) is float and math.isnan(x):
+        return None
+    return x
+
+
 def unpack(data):
-    b = [[None if type(data[k][i]) is float and math.isnan(data[k][i]) else data[k][i] for i in data[k]] for k in data]
+    b = [[nanToNone(x) for x in v.values()] for v in data.values()]
     return list(zip(*b))
 
 
