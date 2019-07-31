@@ -4,16 +4,14 @@
 
 """
 
-import importlib
 from datetime import datetime
+import importlib
+import json
 from types import GeneratorType
-from runners.helpers import log
-from runners.helpers import db
-from runners.helpers import vault
-from runners.config import RUN_ID
-from runners.config import DC_METADATA_TABLE
-
 import yaml
+
+from runners.helpers import db, log, vault
+from runners.config import RUN_ID, DC_METADATA_TABLE
 
 
 def main(connection_table="%_CONNECTION"):
@@ -42,6 +40,8 @@ def main(connection_table="%_CONNECTION"):
                     name = module_option['name']
                     if module_option.get('secret') and name in options:
                         options[name] = vault.decrypt_if_encrypted(options[name])
+                        if module_option.get('type') == 'json':
+                            options[name] = json.loads(options[name])
 
                 if callable(getattr(connector, 'ingest', None)):
                     ingested = connector.ingest(table_name, options)
