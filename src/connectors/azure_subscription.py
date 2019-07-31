@@ -1,5 +1,5 @@
 """Azure Subscription Inventory
-Collects Azure Subscriptions using a Service Principal (SP)
+Collect Azure Subscriptions using a Service Principal (SP)
 """
 
 from dateutil.parser import parse

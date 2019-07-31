@@ -50,7 +50,6 @@ CONNECTION_OPTIONS = [
         'required': True,
         'default': 'default'
     }
-
 ]
 
 LANDING_TABLE_COLUMNS = [
@@ -121,7 +120,7 @@ def connect(connection_name, options):
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'Landing and subscription data tables created for collectors to populate.'
+        'newMessage': 'Landing and metadata tables created for collectors to populate.'
     }
 
 

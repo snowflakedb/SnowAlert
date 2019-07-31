@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collects AWS EC2, SG, ELB details using an Access Key
+Collect AWS EC2, SG, ELB details using an Access Key
 """
 from datetime import datetime
 import json
