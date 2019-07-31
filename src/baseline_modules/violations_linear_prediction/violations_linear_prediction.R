@@ -29,9 +29,6 @@ require(tidyr)
 require(purrr)
 
 a <- input_table
-
-print(colnames(input_table))
-print(input_table)
 rm(input_table)
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
