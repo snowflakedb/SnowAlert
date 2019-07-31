@@ -155,9 +155,18 @@ def parse_snowflake_url(url):
     if len(c) == 1:
         account = c[0]
     else:
+        try:
+            c.remove('snowflakecomputing')
+        except ValueError:
+            pass
+        try:
+            c.remove('com')
+        except ValueError:
+            pass
+
         if path.endswith("snowflakecomputing.com"):
-            account = c[0]
-            region = c[1] if len(c) == 4 else 'us-west-2'
+            account = c.pop(0)
+            region = '.'.join(c) if len(c) > 0 else 'us-west-2'
 
     return account, region
 
