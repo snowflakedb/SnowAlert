@@ -1,6 +1,7 @@
 """Tenable Settings
-Collects Tenable Settings using a Service User’s API Key
+Collect Tenable Settings using a Service User’s API Key
 """
+
 from tenable.io import TenableIO
 from datetime import datetime
 
@@ -69,30 +70,40 @@ def ingest_users(tio, table_name):
             32: 'Standard',
             40: 'Scan Manager',
             64: 'Administrator',
-        }.get(user['permissions'], 'unknown permissions {permissions}')
+        }.get(
+            user['permissions'],
+            'unknown permissions {permissions}'
+        )
 
-    db.insert(table=f'data.{table_name}',
-              values=[(user.get('username', None),
-                      user.get('role', None),
-                      user,
-                      timestamp,
-                      user.get('uuid', None),
-                      user.get('id', None),
-                      user.get('user_name', None),
-                      user.get('email', None),
-                      user.get('type', None),
-                      user.get('permissions', None),
-                      user.get('last_login_attempt', None),
-                      user.get('login_fail_count', None),
-                      user.get('login_fail_total', None),
-                      user.get('enabled', None),
-                      user.get('two_factor', None),
-                      user.get('lastlogin', None),
-                      user.get('uuid_id', None)
-                       ) for user in users],
-              select="""column1, column2, PARSE_JSON(column3), column4, column5, column6, column7, column8,
-                        column9, column10, to_timestamp(column11, 3)::timestamp_ltz, column12, column13,
-                        column14, PARSE_JSON(column15), to_timestamp(column16, 3)::timestamp_ltz, column17""")
+    db.insert(
+        table=f'data.{table_name}',
+        values=[(
+            user.get('username', None),
+            user.get('role', None),
+            user,
+            timestamp,
+            user.get('uuid', None),
+            user.get('id', None),
+            user.get('user_name', None),
+            user.get('email', None),
+            user.get('type', None),
+            user.get('permissions', None),
+            user.get('last_login_attempt', None),
+            user.get('login_fail_count', None),
+            user.get('login_fail_total', None),
+            user.get('enabled', None),
+            user.get('two_factor', None),
+            user.get('lastlogin', None),
+            user.get('uuid_id', None)
+        ) for user in users],
+        select="""
+            column1, column2, PARSE_JSON(column3), column4, column5, column6,
+            column7, column8, column9, column10,
+            to_timestamp(column11, 3)::timestamp_ltz, column12, column13,
+            column14, PARSE_JSON(column15),
+            to_timestamp(column16, 3)::timestamp_ltz, column17
+        """
+    )
 
 
 def create_user_table(connection_name, options):
@@ -101,7 +112,7 @@ def create_user_table(connection_name, options):
     secret = options['secret']
     comment = f"""
 ---
-module: tenable
+module: tenable_settings
 token: {token}
 secret: {secret}
 """
