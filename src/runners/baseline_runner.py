@@ -10,6 +10,7 @@ from runners.helpers import db, log
 from rpy2 import robjects as ro
 from rpy2.robjects import pandas2ri
 
+import math
 import pandas
 import yaml
 
@@ -27,7 +28,8 @@ def pack(data: List[Dict[Any, Any]]) -> Dict[Any, List[Any]]:
 
 def unpack(data):
     b = [[data[k][i] for i in data[k]] for k in data]
-    return list(zip(*b))
+    c = [[None if type(elem) is float and math.isnan(elem) else elem for elem in row] for row in b]
+    return list(zip(*c))
 
 
 def query_log_source(source, time_filter, time_column):
@@ -42,6 +44,15 @@ def query_log_source(source, time_filter, time_column):
     pandas2ri.activate()
     r_dataframe = pandas2ri.py2rpy(frame)
     return r_dataframe
+
+
+def clean(data):
+    for row in data:
+        for elem in row:
+            if math.isnan(elem):
+                elem = None
+
+    return data
 
 
 def run_baseline(name, comment):
