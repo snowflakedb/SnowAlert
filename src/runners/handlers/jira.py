@@ -153,10 +153,8 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
     global PROJECT
     PROJECT = project
     if PROJECT == '':
-        log.error("No Jira project defined")
         return "No Jira Project defined"
     if URL == '':
-        log.error("No Jira URL defined.")
         return "No Jira URL defined."
 
     CORRELATION_QUERY = f"""
