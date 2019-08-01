@@ -7,15 +7,15 @@ from scripts.install import parse_snowflake_url
 
 
 TEST_URLS = {
-    "https://account.snowflakecomputing.com": ['account', 'us-west-2'],
-    "account.snowflakecomputing.com": ['account', 'us-west-2'],
     "account": ['account', None],
-    "https://account.region.snowflakecomputing.com": ['account', 'region'],
-    "account.region.snowflakecomputing.com": ['account', 'region'],
+    "account.snowflakecomputing.com": ['account', 'us-west-2'],
     "account.region": ['account', 'region'],
-    "https://azure_account.azure_region.azure.snowflakecomputing.com": ['azure_account', 'azure_region.azure'],
-    "azure_account.azure_region.azure.snowflakecomputing.com": ['azure_account', 'azure_region.azure'],
+    "account.region.snowflakecomputing.com": ['account', 'region'],
     "azure_account.azure_region.azure": ['azure_account', 'azure_region.azure'],
+    "azure_account.azure_region.azure.snowflakecomputing.com": ['azure_account', 'azure_region.azure'],
+    "https://account.snowflakecomputing.com": ['account', 'us-west-2'],
+    "https://account.region.snowflakecomputing.com": ['account', 'region'],
+    "https://azure_account.azure_region.azure.snowflakecomputing.com/console": ['azure_account', 'azure_region.azure'],
 }
 
 
