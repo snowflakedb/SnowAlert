@@ -164,9 +164,8 @@ def parse_snowflake_url(url):
         except ValueError:
             pass
 
-        if path.endswith("snowflakecomputing.com"):
-            account = c.pop(0)
-            region = '.'.join(c) if len(c) > 0 else 'us-west-2'
+        account = c.pop(0)
+        region = '.'.join(c) if len(c) > 0 else 'us-west-2'
 
     return account, region
 
@@ -207,6 +206,9 @@ def login(configuration=None):
     else:
         print(f"Loaded account: '{account}'")
 
+    if not region:
+        region = input("Region of your Snowflake account [blank for us-west-2]: ")
+
     if not username:
         print("Next, authenticate installer --")
         username = input("Snowflake username: ")
@@ -217,9 +219,6 @@ def login(configuration=None):
         password = getpass("Password [leave blank for SSO for authentication]: ")
     else:
         print(f"Loaded password: {'*' * len(password)}")
-
-    if not region:
-        region = input("Region of your Snowflake account [blank for us-west-2]: ")
 
     connect_kwargs = {'user': username, 'account': account}
     if password == '':
