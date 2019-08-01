@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import json
-import uuid
 import datetime
 from typing import List
 
@@ -41,64 +39,6 @@ WHERE suppressed IS NULL;
 METADATA_HISTORY: List = []
 
 
-def log_alerts(ctx, alerts):
-    """We don't usually log alerts in the suppression runner, but we want the runner to create an alert if a
-    suppression fails to execute.
-    """
-    if len(alerts):
-        print("Recording alerts.")
-        format_string = ", ".join(["(%s)"] * len(alerts))
-        try:
-            ctx.cursor().execute(
-                f'''
-                INSERT INTO results.alerts (alert_time, alert)
-                SELECT PARSE_JSON(column1):ALERT_TIME,
-                       PARSE_JSON(column1)
-                FROM VALUES {format_string};
-                ''',
-                alerts
-            )
-        except Exception as e:
-            log.error("Failed to log alert", e)
-    else:
-        print("No alerts to log.")
-
-
-def log_failure(suppression_name, e, event_data=None, description=None):
-    if event_data is None:
-        event_data = f"The suppression '{suppression_name}' failed to execute with error: {e}"
-
-    if description is None:
-        description = f"The suppression '{suppression_name}' failed to execute with error: {e}"
-
-    ctx = db.connect()
-
-    alerts = [json.dumps({
-        'ALERT_ID': uuid.uuid4().hex,
-        'QUERY_ID': 'b1d02051dd2c4d62bb75274f2ee5996a',
-        'QUERY_NAME': 'Suppression Runner Failure',
-        'ENVIRONMENT': 'Suppressions',
-        'SOURCES': ['Suppression Runner'],
-        'ACTOR': 'Suppression Runner',
-        'OBJECT': suppression_name,
-        'ACTION': 'Suppression Execution',
-        'TITLE': 'Suppression Runner Failure',
-        'EVENT_TIME': str(datetime.datetime.utcnow()),
-        'ALERT_TIME': str(datetime.datetime.utcnow()),
-        'DESCRIPTION': description,
-        'DETECTOR': 'Suppression Runner',
-        'EVENT_DATA': event_data,
-        'SEVERITY': 'High',
-    })]
-
-    try:
-        log_alerts(ctx, alerts)
-        log.error(f"{suppression_name} failure successfully logged", e)
-
-    except Exception as e:
-        log.error("Failed to log suppression failure", e)
-
-
 def run_suppression_query(squelch_name):
     try:
         query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
@@ -125,7 +65,6 @@ def run_suppressions(squelch_name):
         db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
 
     except Exception as e:
-        log_failure(squelch_name, e)
         metadata['ROW_COUNT'] = {'SUPPRESSED': 0}
         db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
 

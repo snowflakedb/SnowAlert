@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import json
-import uuid
 import datetime
 from multiprocessing import Pool
 from typing import Any, Dict
@@ -15,58 +13,9 @@ from runners.config import (
     CLOUDWATCH_METRICS,
 )
 from runners.helpers import db, log
-from runners.utils import groups_of
 
 
 GROUPING_CUTOFF = f"DATEADD(minute, -90, CURRENT_TIMESTAMP())"
-
-
-def log_alerts(alerts):
-    if len(alerts):
-        print("Recording alerts.")
-        try:
-            VALUES_INSERT_LIMIT = 16384
-            for alert_group in groups_of(VALUES_INSERT_LIMIT, alerts):
-                db.insert_alerts(list(alert_group))
-
-        except Exception as e:
-            log.error("Failed to log alert", e)
-
-    else:
-        print("No alerts to log.")
-
-
-def log_failure(query_name, e, event_data=None, description=None):
-    if event_data is None:
-        event_data = f"The query '{query_name}' failed to execute with error: {e!r}"
-
-    if description is None:
-        description = f"The query '{query_name}' failed to execute with error: {e!r}"
-
-    alerts = [json.dumps({
-        'ALERT_ID': uuid.uuid4().hex,
-        'QUERY_ID': '3a3d173a64ca4fcab2d13ac3e6d08522',
-        'QUERY_NAME': 'Failure caught in AQR',
-        'ENVIRONMENT': 'Queries',
-        'SOURCES': ['Query Runner'],
-        'ACTOR': 'Query Runner',
-        'OBJECT': query_name,
-        'ACTION': 'Query Execution',
-        'TITLE': f'Error in {query_name}',
-        'ALERT_TIME': str(datetime.datetime.utcnow()),
-        'EVENT_TIME': str(datetime.datetime.utcnow()),
-        'EVENT_DATA': event_data,
-        'DESCRIPTION': description,
-        'DETECTOR': 'Query Runner',
-        'SEVERITY': 'High'
-    })]
-    try:
-        log_alerts(alerts)
-        log.info("Query failure logged.", e)
-
-    except Exception as e:
-        log.error("Failed to log query failure", e)
-
 
 RUN_ALERT_QUERY = f"""
 CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
@@ -169,7 +118,6 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
         db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 
     except Exception as e:
-        log_failure(rule_name, e)
         db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
         return metadata
 
