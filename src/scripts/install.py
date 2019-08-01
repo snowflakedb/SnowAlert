@@ -155,14 +155,9 @@ def parse_snowflake_url(url):
     if len(c) == 1:
         account = c[0]
     else:
-        try:
-            c.remove('snowflakecomputing')
-        except ValueError:
-            pass
-        try:
-            c.remove('com')
-        except ValueError:
-            pass
+        if c[-2:] == ['snowflakecomputing', 'com']:
+            c.pop(-1)
+            c.pop(-1)
 
         account = c.pop(0)
         region = '.'.join(c) if len(c) > 0 else 'us-west-2'
