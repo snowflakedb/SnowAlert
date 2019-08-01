@@ -3,8 +3,6 @@ The installer doesn't handle snowflake URLs with a region split by .,
 such as azure_account.azure_region.azure.snowflakecomputing.com
 """
 
-import pytest
-
 from scripts.install import parse_snowflake_url
 
 
