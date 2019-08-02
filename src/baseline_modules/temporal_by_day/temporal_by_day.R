@@ -2,9 +2,11 @@ require('dplyr')
 require(tidyr)
 require(purrr)
 #input_table
-#EVENT_TIME
+#EVENT_TIME OR DAY
+#NUM_EVENTS -> OPTIONAL 
 #PIVOT
 #ID
+
 get_percentiles <- function(dataframe, column_name, exit_name, column_names_summarize_by ){
   p <- c(.1, .25,.75,.95,.5)
   p_names <- map_chr(p, ~paste0(.x*100, exit_name))
@@ -19,23 +21,43 @@ get_percentiles <- function(dataframe, column_name, exit_name, column_names_summ
   return(dataframe %>% group_by_(column_name) %>% summarize_at(vars(column_names_summarize_by), full_funs))
 }
 
+
 results <- input_table
-results$EVENT_TIME <- as.POSIXct(results$EVENT_TIME)
-results$DAY <-  as.Date(results$EVENT_TIME, na.rm=TRUE)
+print(colnames(results))
+if('EVENT_TIME' %in% colnames(results)) {
+	print('Event time case triggered')
+  results$EVENT_TIME <- as.POSIXct(results$EVENT_TIME) 
+  results$DAY <-  as.Date(results$EVENT_TIME, na.rm=TRUE)
+}else{
+   print('No event time going to day')
+  results$EVENT_TIME <- NA
+  results$DAY <-  as.Date(INPUT_TABLE$DAY,"%Y-%m-%d", tz="GMT")
 
-earliest_time <- min(results$DAY, na.rm=TRUE)
-latest_time <- max(results$DAY, na.rm=TRUE)
-num_days <- latest_time - earliest_time
+}
 
+if(!('ID' %in% colnames(results))){
+	print('No id in input')
+  results$ID <- NA
+}
 
-
+if('NUM_EVENTS' %in% colnames(results)){
+	print('Num events found')
+  by_day_when_present <- results %>% 
+    group_by(PIVOT, DAY)%>% 
+    summarise(num_events=sum(NUM_EVENTS), num_ids=sum(ID))
+}else{
+	print('num events not found')
 by_day_when_present <- results %>% 
   group_by(PIVOT, DAY) %>%
   summarise(num_events=n(),
             num_ids=length(unique(ID))
   )
-
-expand_days <- by_day_when_present %>% tidyr::complete(DAY=seq.Date(min(DAY, na.rm=TRUE), max(DAY, na.rm=TRUE), by="day"), PIVOT, fill = list(num_events = 0, num_ids=0))
+}
+print(by_day_when_present)
+earliest_time <- min(results$DAY, na.rm=TRUE)
+latest_time <- max(results$DAY, na.rm=TRUE)
+num_days <- latest_time - earliest_time
+expand_days <- by_day_when_present %>% tidyr::complete(DAY=seq.Date(min(DAY, na.rm=TRUE), max(DAY, na.rm=TRUE), by="day"), PIVOT, fill = list(num_events = 0, if('ID' %in% colnames(results)) num_ids=0 else num_ids=NA))
 
 when_present_numeric<- get_percentiles(by_day_when_present, 'PIVOT', 'when_present', c('num_ids', 'num_events'))
 expand_days_numeric <- get_percentiles(expand_days, 'PIVOT', 'overall', c('num_ids', 'num_events'))
