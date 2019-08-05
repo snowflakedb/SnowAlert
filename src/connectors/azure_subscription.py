@@ -1,5 +1,5 @@
 """Azure Subscription Inventory
-Collects Azure Subscriptions using a Service Principal (SP)
+Collect Azure Subscriptions using a Service Principal (SP)
 """
 
 from dateutil.parser import parse
@@ -114,7 +114,6 @@ def ingest(table_name, options):
             'column2',
             'PARSE_JSON(column3)',
             'column4',
-            'column5',
             'column5',
             'column6',
             'column7',

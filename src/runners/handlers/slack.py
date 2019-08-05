@@ -20,7 +20,7 @@ def message_template(vars):
     try:
         # retrieve Slack message structure from javascript UDF
         rows = db.connect_and_fetchall(
-            "select " + vars['template'] + "(parse_json('" + json.dumps(params) + "'))")
+            "select " + vars['template'] + "(" + db.value_to_sql(params) + ")")
         row = rows[1]
 
         if len(row) > 0:

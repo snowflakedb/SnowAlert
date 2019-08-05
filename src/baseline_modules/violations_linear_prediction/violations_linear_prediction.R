@@ -23,43 +23,41 @@
 # '
 
 require(dplyr)
-    require(tidyverse)
-    require(broom)
-    require(MASS)
+require(broom)
+require(MASS)
+require(tidyr)
+require(purrr)
 
 a <- input_table
 rm(input_table)
-#Cleaning
 a$CURRENT_DAY <- a$CURRENT_DAY <- as.Date(as.POSIXct(a$CURRENT_DAY), format='%Y-%m-%d')
 a$FINAL <- as.logical(a$FINAL)
 a$NEW <- as.logical(a$NEW)
 a$PROD <- as.logical(a$PROD)
 colnames(a) <- make.unique(names(a))
-
-
 #Group for counts
-b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>%
-  dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
-namessss <- a %>% group_by(QUERY_ID) %>% dplyr::summarise(TITLE=first(TITLE))
+b <- a %>% group_by(QUERY_ID, CURRENT_DAY) %>% dplyr::summarize(counts=n_distinct(UNIQUE_KEYS))
+namessss <- a %>% group_by(QUERY_ID) %>% dplyr::summarize(TITLE=first(TITLE))
+
 rm(a)
 #Complete the missing values with zero -> no violations
 c <- b %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(b$CURRENT_DAY), max(b$CURRENT_DAY), by="day"),QUERY_ID, fill=list(counts = 0))
 c$age = as.integer(Sys.Date() - c$CURRENT_DAY+2)
 rm(b)
+
 #Group for name
 c <- base::merge(c, namessss, by = "QUERY_ID", all.x=TRUE)
 
 #Do the prediction analysis
-model <- c %>% nest(-QUERY_ID) %>% 
+model <- c %>% tidyr::nest(-QUERY_ID) %>% 
   mutate(
-  fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
-         
+    fit=map(data, ~ rlm(counts ~ CURRENT_DAY, weights=1/age^2, data = ., na.action = 'na.omit', maxit=100)) ) 
+
 e <- c %>% 
   tidyr::complete(CURRENT_DAY=seq.Date(min(c$CURRENT_DAY), max(c$CURRENT_DAY)+100, by="day"),QUERY_ID)
 e$age = as.integer(max(e$CURRENT_DAY) - e$CURRENT_DAY+1)
-nested <- e %>% nest(-QUERY_ID)
-
+nested <- e %>% tidyr::nest(-QUERY_ID)
 
 prediction <- 
   model %>%
@@ -69,8 +67,15 @@ prediction <-
 
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
-prediction$fit <- toString(prediction$fit)
+
+prediction$fit <- as.character(prediction$fit)
+
+
 return_value <- dplyr::select(prediction, QUERY_ID, TITLE.y, CURRENT_DAY, counts, .fitted, .se.fit, fit)
+return_value$CURRENT_DAY <- as.character(return_value$CURRENT_DAY)
+#return_value$fit <- 'This is my fit, iti s a random string for now'
+return_value <- return_value %>% replace(., is.na(.), "")
+colnames(return_value) <- c('QUERY_ID', 'TITLE', 'CURRENT_DAY', 'COUNTS', 'FITTED', 'SEFIT', 'FIT')
 
 return_value
 #END

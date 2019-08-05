@@ -139,6 +139,7 @@ SELECT V:RUN_ID::VARCHAR AS run_id
   , V:START_TIME::TIMESTAMP AS start_time
   , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_alerts_suppressed
+  , V:ERROR AS error
 FROM results.query_metadata
 WHERE V:QUERY_NAME ILIKE '%_ALERT_SUPPRESSION'
 ;
@@ -190,6 +191,81 @@ SELECT V:RUN_ID::VARCHAR AS run_id
   , V:START_TIME::TIMESTAMP AS start_time
   , V:END_TIME::TIMESTAMP AS end_time
   , V:ROW_COUNT.SUPPRESSED::INTEGER AS num_violations_suppressed
+  , V:ERROR AS error
 FROM results.query_metadata
 WHERE V:QUERY_NAME ILIKE '%_VIOLATION_SUPPRESSION'
+;
+
+CREATE OR REPLACE VIEW data.rule_views_to_titles_map COPY GRANTS
+  COMMENT='Maps rules views to their titles for easy joining'
+AS
+SELECT table_name AS view_name
+     , REGEXP_SUBSTR(comment, '^[^\\n]*', 1, 1,  'e') AS title_from_comment
+     , REGEXP_SUBSTR(view_definition, ', \'(.*\)\' AS title', 1, 1,  'e') AS title_field
+FROM information_schema.views
+WHERE table_schema='RULES'
+;
+
+CREATE OR REPLACE VIEW data.alert_query_rule_run_errors COPY GRANTS
+  COMMENT='Alert Query rule runs joined on errors'
+AS
+SELECT start_time
+     , run_id
+     , title_field
+     , title_from_comment
+     , query_name
+     , REGEXP_REPLACE(error:EXCEPTION_ONLY::STRING, '\\n', ' ') AS exception
+FROM data.alert_query_rule_runs runs
+LEFT JOIN data.rule_views_to_titles_map map
+ON runs.query_name=map.view_name
+WHERE error IS NOT NULL
+ORDER BY start_time DESC
+;
+
+CREATE OR REPLACE VIEW data.alert_suppression_rule_run_errors COPY GRANTS
+  COMMENT='Alert Query rule runs joined on errors'
+AS
+SELECT start_time
+     , run_id
+     , title_field
+     , title_from_comment
+     , rule_name
+     , REGEXP_REPLACE(error:EXCEPTION_ONLY::STRING, '\\n', ' ') AS exception
+FROM data.alert_suppression_rule_runs runs
+LEFT JOIN data.rule_views_to_titles_map map
+ON runs.rule_name=map.view_name
+WHERE error IS NOT NULL
+ORDER BY start_time DESC
+;
+
+CREATE OR REPLACE VIEW data.violation_query_rule_run_errors COPY GRANTS
+  COMMENT='Violation Query rule runs joined on errors'
+AS
+SELECT start_time
+     , run_id
+     , title_field
+     , title_from_comment
+     , query_name
+     , REGEXP_REPLACE(error:EXCEPTION_ONLY::STRING, '\\n', ' ') AS exception
+FROM data.violation_query_rule_runs runs
+LEFT JOIN data.rule_views_to_titles_map map
+ON runs.query_name=map.view_name
+WHERE error IS NOT NULL
+ORDER BY start_time DESC
+;
+
+CREATE OR REPLACE VIEW data.violation_suppression_rule_run_errors COPY GRANTS
+  COMMENT='Violation Query rule runs joined on errors'
+AS
+SELECT start_time
+     , run_id
+     , title_field
+     , title_from_comment
+     , rule_name
+     , REGEXP_REPLACE(error:EXCEPTION_ONLY::STRING, '\\n', ' ') AS exception
+FROM data.violation_suppression_rule_runs runs
+LEFT JOIN data.rule_views_to_titles_map map
+ON runs.rule_name=map.view_name
+WHERE error IS NOT NULL
+ORDER BY start_time DESC
 ;
