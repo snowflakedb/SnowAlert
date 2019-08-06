@@ -11,16 +11,24 @@ from runners.helpers import vault
 def message_template(vars):
     payload = None
 
+    # remove handlers data, it might contain JSON incompatible strucutres
+    vars['alert'].pop('HANDLERS')
+
+    # remove file content data, it might contain JSON incompatible strucutres
+    # vars['properties'].pop('file_content')
+
+
     # if we have Slack user data, send it to template
     if 'user' in vars:
         params = {'alert': vars['alert'], 'properties': vars['properties'], 'user': vars['user']}
     else:
         params = {'alert': vars['alert'], 'properties': vars['properties']}
 
+    log.debug(f"Javascript template parameters",params)    
     try:
         # retrieve Slack message structure from javascript UDF
         rows = db.connect_and_fetchall(
-            "select " + vars['template'] + "(" + db.value_to_sql(params) + ")")
+            "select " + vars['template'] + "(parse_json('" + json.dumps(params) + "'))")
         row = rows[1]
 
         if len(row) > 0:
@@ -36,7 +44,7 @@ def message_template(vars):
     return payload
 
 
-def handle(alert, recipient_email=None, channel=None, template=None, message=None):
+def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None, file_name=None):
     if 'SLACK_API_TOKEN' not in os.environ:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
@@ -103,21 +111,43 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
         if message is not None:
             text = message
 
-    response = sc.api_call(
-        "chat.postMessage",
-        channel=channel,
-        text=text,
-        blocks=blocks,
-        attachments=attachments
-    )
+    response = None
 
-    log.debug(f'Slack response', response)
+    if file_content is not None:
+        if template is not None:
+            response = sc.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=text,
+            blocks=blocks,
+            attachments=attachments
+            )
+        
+        file_descriptor = sc.api_call("files.upload", content=file_content, title=text, channels=channel, filetype=file_type, filename=file_name)
 
-    if response['ok'] is False:
-        log.error(f"Slack handler error", response['error'])
-        return None
+        if file_descriptor['ok'] is True:
+            file = file_descriptor["file"]
+            file_url = file["url_private"]
+        else:
+            log.error(f"Slack file upload error",file_descriptor['error'])
 
-    if 'message' in response:
-        del response['message']
+    else:
+        response = sc.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=text,
+            blocks=blocks,
+            attachments=attachments
+        )
+
+    if response is not None:
+        log.debug(f'Slack response', response)
+
+        if response['ok'] is False:
+            log.error(f"Slack handler error", response['error'])
+            return None
+
+        if 'message' in response:
+            del response['message']
 
     return response
