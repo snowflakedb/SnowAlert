@@ -400,19 +400,50 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False):
         comment = '\n'.join(comment)
 
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment}' " if comment else ''
+    comment = f"\nCOMMENT='{comment}' "
     ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
     columns = '('
     for pair in cols:
         columns += f'{pair[0]} {pair[1]}, '
     columns = columns[:-2] + ')'
+
     query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
+    execute(query, fix_errors=False)
+
+
+def create_external_table(name,
+                          location,
+                          cols=None,
+                          partition='',
+                          refresh=False,
+                          replace=False,
+                          file_format='',
+                          comment='',
+                          ifnotexists=False,
+                          copygrants=''):
+    partition = f'\nPARTITION BY ({partition})' if partition else ''
+    refresh = '\nAUTO_REFRESH=TRUE ' if refresh else '\nAUTO_REFRESH=FALSE '
+    replace = 'OR REPLACE ' if replace else ''
+    file_format = f'\nFILE_FORMAT=({file_format}) ' if file_format else ''
+    comment = f"\nCOMMENT='{comment}' "
+    ifnotexists = f'IF NOT EXISTS ' if ifnotexists else ''
+    copygrants = '\nCOPY GRANTS ' if copygrants else ''
+
+    location = f'\nLOCATION={location}'
+
+    columns = '('
+    for trio in cols:
+        columns += f'{trio[0]} {trio[1]} AS {trio[2]}, '
+    columns = columns[:-2] + ')'
+
+    query = f"CREATE {replace}EXTERNAL TABLE {ifnotexists}{name}\n{columns}"\
+            f"{partition}{location}{refresh}{file_format}{copygrants}{comment}"
     execute(query, fix_errors=False)
 
 
 def create_stream(name, target, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment}' " if comment else ''
     query = f"CREATE {replace}STREAM {name} {comment}\nON TABLE {target}"
     execute(query, fix_errors=False)
 
@@ -427,9 +458,24 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
 
 def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    schedule = f"SCHEDULE='{schedule}'\n"
+    if not schedule.startswith('AFTER'):
+        schedule = f"SCHEDULE='{schedule}'\n"
     warehouse = f"WAREHOUSE={warehouse}\n"
     comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}TASK {name} {schedule} {warehouse} {comment} AS \n{sql}"
+    query = f"CREATE {replace}TASK {name} {warehouse}{schedule} {comment} AS \n{sql}"
     execute(query, fix_errors=False)
     execute(f"ALTER TASK {name} RESUME")
+
+
+def create_stored_procedure(name, args, return_type, executor, definition, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment - f"\nCOMMENT='{comment}'" if comment else ''
+    arguments = '('
+    for pair in args:
+        arguments += f'{pair[0]}, {pair[1]}, '
+    arguments = arguments[:-2] + ')'
+    if len(arguments) == 1:
+        arguments = '()'
+    query = f"CREATE {replace}PROCEDURE {name} {arguments}\nRETURNS {return_type}\nLANGUAGE JAVASCRIPT\n"
+    query += f"EXECUTE AS {executor} AS\n$$\n{definition}\n$$"
+    execute(query, fix_errors=False)

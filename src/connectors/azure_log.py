@@ -2,17 +2,8 @@
 Collect AD Signin, Audit, or Operation Logs using an SAS Token
 """
 
-import re
-
-from runners.helpers.auth import load_pkb_rsa
-from runners.helpers.dbconfig import PRIVATE_KEY, PRIVATE_KEY_PASSWORD, DATABASE, USER, ACCOUNT
-from runners.helpers.dbconfig import ROLE as SA_ROLE
-from runners.helpers import db, log, vault
-from runners.utils import groups_of
-
-from azure.storage.blob import BlockBlobService
-from snowflake.ingest import SimpleIngestManager
-from snowflake.ingest import StagedFile
+from runners.helpers.dbconfig import ROLE as SA_ROLE, WAREHOUSE
+from runners.helpers import db
 
 
 CONNECTION_OPTIONS = [
@@ -96,7 +87,7 @@ LANDING_TABLES_COLUMNS = {
         ('PROPERTIES_ANCESTORS', 'VARCHAR'),
         ('PROPERTIES_IS_COMPLIANCE_CHECK', 'VARCHAR'),
         ('PROPERTIES_POLICIES', 'VARIANT'),
-        ('PROPERTIES_RESOURCE_LOCAATION', 'VARCHAR'),
+        ('PROPERTIES_RESOURCE_LOCATION', 'VARCHAR'),
         ('RESOURCE_ID', 'VARCHAR'),
         ('RESULT_SIGNATURE', 'VARCHAR'),
         ('RESULT_TYPE', 'VARCHAR'),
@@ -182,6 +173,22 @@ LANDING_TABLES_COLUMNS = {
     ]
 }
 
+EXTERNAL_TABLE_COLUMNS = [
+    ('timestamp_part',
+     'timestamp_ltz',
+     '''to_timestamp_ltz(
+substring(metadata$filename::string, 79, 4)
+||'-'||
+substring(metadata$filename::string, 86, 2)
+||'-'||
+substring(metadata$filename::string, 91, 2)
+||'T'||
+substring(metadata$filename::string, 96, 2)
+||':'||
+substring(metadata$filename::string, 101, 2)
+)''')
+]
+
 
 def connect(connection_name, options):
     connection_type = options['connection_type']
@@ -191,18 +198,10 @@ def connect(connection_name, options):
     container_name = options['container_name']
     suffix = options['suffix']
     sas_token = options['sas_token']
-    sas_token_ct = vault.encrypt(sas_token)
 
     comment = f'''
 ---
 module: azure_log
-storage_account: {account_name}
-container_name: {container_name}
-suffix: {suffix}
-sas_token: {sas_token_ct}
-sa_user: {USER}
-snowflake_account: {ACCOUNT}
-database: {DATABASE}
 '''
 
     db.create_stage(
@@ -219,49 +218,99 @@ database: {DATABASE}
     db.create_table(
         name=f'data.{base_name}_CONNECTION',
         cols=LANDING_TABLES_COLUMNS[connection_type],
-        comment=comment
+        comment=comment,
+        ifnotexists=True
     )
 
     db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
-    pipe_sql = {
-        'operation': f'''
-COPY INTO DATA.{base_name}_CONNECTION(RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
-                                 IDENTITY, IDENTITY_AUTHORIZATION, IDENTITY_CLAIMS, LEVEL, LOCATION,
-                                 OPERATION_NAME, PROPERTIES, PROPERTIES_ANCESTORS, PROPERTIES_IS_COMPLIANCE_CHECK,
-                                 PROPERTIES_POLICIES, PROPERTIES_RESOURCE_LOCAATION, RESOURCE_ID, RESULT_SIGNATURE,
-                                 RESULT_TYPE, EVENT_TIME, LOADED_ON)
-FROM (
-    SELECT $1, HASH($1), $1:callerIpAddress::STRING, $1:category::STRING, $1:correlationId::STRING,
-        $1:durationMs::NUMBER, $1:identity::VARIANT, $1:identity.authorization::VARIANT, $1:identity.claims::VARIANT,
-        $1:level::STRING, $1:location::STRING, $1:operationName::STRING, $1:properties::VARIANT,
-        $1:properties.ancestors::STRING, $1:properties.isComplianceCheck::STRING, PARSE_JSON($1:properties.policies),
-        $1:properties.resourceLocation::STRING, $1:resourceId::STRING, $1:resultSignature::STRING,
-        $1:resultType::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
-    FROM @DATA.{base_name}_STAGE)
-''',
-        'audit': f'''
-COPY INTO data.{base_name}_CONNECTION (RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
-                                  DURATION_MS, LEVEL, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
-                                  PROPERTIES_ACTIVITY_DATE_TIME, PROPERTIES_ACTIVITY_DISPLAY_NAME,
-                                  PROPERTIES_ADDITIONAL_DETAILS, PROPERTIES_CATEGORY, PROPERTIES_ID,
-                                  PROPERTIES_INITIATED_BY, PROPERTIES_LOGGED_BY_SERVICE, PROPERTIES_OPERATION_TYPE,
-                                  PROPERTIES_RESULT, PROPERTIES_RESULT_REASON, PROPERTIES_TARGET_RESOURCES,
-                                  RESOURCE_ID, RESULT_SIGNATURE, TENANT_ID, EVENT_TIME, LOADED_ON)
-FROM (
-    SELECT $1, HASH($1), $1:callerIpAddress::STRING, $1:category::STRING, $1:correlationId::STRING,
-        $1:durationMs::NUMBER, $1:level::STRING, $1:operationName::STRING, $1:operationVersion::STRING,
-        $1:properties::VARIANT, $1:properties.activityDateTime::TIMESTAMP_LTZ,
-        $1:properties.activityDisplayName::STRING, $1:properties.additionalDetails::VARIANT,
-        $1:properties.category::STRING, $1:properties.id::STRING, $1:properties.initiatedBy::VARIANT,
-        $1:properties.loggedByService::STRING, $1:properties.operationType::STRING, $1:properties.result::STRING,
-        $1:resultReason::STRING, $1:properties.targetResources::VARIANT, $1:resourceId::STRING,
-        $1:resultSignature::STRING, $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
-  FROM @data.{base_name}_STAGE
+    db.create_external_table(name=f'data.{base_name}_EXTERNAL',
+                             location=f'@data.{base_name}_STAGE',
+                             cols=EXTERNAL_TABLE_COLUMNS,
+                             partition='timestamp_part',
+                             file_format='TYPE=JSON')
+
+    db.execute(f'GRANT SELECT ON data.{base_name}_EXTERNAL TO ROLE {SA_ROLE}')
+
+    stored_proc_def = f"""
+var sql_command =
+ "alter external table data.{base_name}_EXTERNAL REFRESH";
+try {{
+    snowflake.execute (
+        {{sqlText: sql_command}}
+        );
+    return "Succeeded.";   // Return a success/error indicator.
+    }}
+catch (err)  {{
+    return "Failed: " + err;   // Return a success/error indicator.
+    }}
+"""
+
+    db.create_stored_procedure(name=f'data.{base_name}_PROCEDURE', args=[], return_type='string', executor='OWNER', definition=stored_proc_def)
+
+    refresh_task_sql = f'CALL data.{base_name}_PROCEDURE()'
+    db.create_task(name=f'data.{base_name}_REFRESH_TASK',
+                   warehouse=WAREHOUSE,
+                   schedule='5 minutes',
+                   sql=refresh_task_sql)
+
+    ingest_task_sql = {
+        'operation': f"""
+MERGE INTO data.{base_name}_CONNECTION A
+USING (
+  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
+) B
+ON A.RAW = B.VALUE
+WHEN NOT MATCHED THEN
+INSERT (
+    RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
+    IDENTITY, IDENTITY_AUTHORIZATION, IDENTITY_CLAIMS, LEVEL, LOCATION,
+    OPERATION_NAME, PROPERTIES, PROPERTIES_ANCESTORS, PROPERTIES_IS_COMPLIANCE_CHECK,
+    PROPERTIES_POLICIES, PROPERTIES_RESOURCE_LOCATION, RESOURCE_ID, RESULT_SIGNATURE,
+    RESULT_TYPE, EVENT_TIME, LOADED_ON
+) VALUES (
+    VALUE, HASH(VALUE), VALUE:callerIpAddress::STRING, VALUE:category::STRING, VALUE:correlationId::STRING,
+    VALUE:durationMs::NUMBER, VALUE:identity::VARIANT, VALUE:identity.authorization::VARIANT,
+    VALUE:identity.claims::VARIANT, VALUE:level::STRING, VALUE:location::STRING, VALUE:operationName::STRING,
+    VALUE:properties::VARIANT, VALUE:properties.ancestors::STRING, VALUE:properties.isComplianceCheck::STRING,
+    PARSE_JSON(VALUE:properties.policies),VALUE:properties.resourceLocation::STRING, VALUE:resourceId::STRING,
+    VALUE:resultSignature::STRING,VALUE:resultType::STRING, value:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
 )
-''',
-        'signin': f'''
-COPY INTO DATA.{base_name}_CONNECTION (
+""",
+        'audit': f"""
+MERGE INTO data.{base_name}_CONNECTION A
+USING (
+  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
+) B
+ON A.RAW = B.VALUE
+WHEN NOT MATCHED THEN
+INSERT (
+    RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
+    DURATION_MS, LEVEL, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
+    PROPERTIES_ACTIVITY_DATE_TIME, PROPERTIES_ACTIVITY_DISPLAY_NAME,
+    PROPERTIES_ADDITIONAL_DETAILS, PROPERTIES_CATEGORY, PROPERTIES_ID,
+    PROPERTIES_INITIATED_BY, PROPERTIES_LOGGED_BY_SERVICE, PROPERTIES_OPERATION_TYPE,
+    PROPERTIES_RESULT, PROPERTIES_RESULT_REASON, PROPERTIES_TARGET_RESOURCES,
+    RESOURCE_ID, RESULT_SIGNATURE, TENANT_ID, EVENT_TIME, LOADED_ON
+) VALUES (
+    VALUE, HASH(VALUE), VALUE:callerIpAddress::STRING, VALUE:category::STRING, VALUE:correlationId::STRING,
+    VALUE:durationMs::NUMBER, VALUE:level::STRING, VALUE:operationName::STRING, VALUE:operationVersion::STRING,
+    VALUE:properties::VARIANT, VALUE:properties.activityDateTime::TIMESTAMP_LTZ,
+    VALUE:properties.activityDisplayName::STRING, VALUE:properties.additionalDetails::VARIANT,
+    VALUE:properties.category::STRING, VALUE:properties.id::STRING, VALUE:properties.initiatedBy::VARIANT,
+    VALUE:properties.loggedByService::STRING, VALUE:properties.operationType::STRING, VALUE:properties.result::STRING,
+    VALUE:resultReason::STRING, VALUE:properties.targetResources::VARIANT, VALUE:resourceId::STRING,
+    VALUE:resultSignature::STRING, VALUE:tenantId::STRING, VALUE:time::TIMESTAMP_LTZ, CURRENT_TIMESTAMP()
+)
+""",
+        'signin': f"""
+MERGE INTO data.{base_name}_CONNECTION A
+USING (
+  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
+) B
+ON A.RAW = B.VALUE
+WHEN NOT MATCHED THEN
+INSERT (
     RAW, HASH_RAW, LEVEL, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
     IDENTITY, LOCATION, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
     PROPERTIES_APP_DISPLAY_NAME, PROPERTIES_APP_ID,
@@ -275,84 +324,33 @@ COPY INTO DATA.{base_name}_CONNECTION (
     PROPERTIES_RISK_STATE, PROPERTIES_STATUS, PROPERTIES_TOKEN_ISSUER_TYPE, PROPERTIES_USER_DISPLAY_NAME,
     PROPERTIES_USER_ID, PROPERTIES_USER_PRINCIPAL_NAME, RESOURCE_ID, RESULT_DESCRIPTION, RESULT_SIGNATURE,
     RESULT_TYPE, TENANT_ID, EVENT_TIME, LOADED_ON
+) VALUES (
+    VALUES, HASH(VALUES), VALUES:Level::NUMBER, VALUES:callerIpAddress::STRING, VALUES:category::STRING,
+    VALUES:correlationId::STRING, VALUES:durationMs, VALUES:identity::STRING, VALUES:location::STRING,
+    VALUES:operationName::STRING, VALUES:operationVersion::STRING, VALUES:properties::VARIANT,
+    VALUES:properties.appDisplayName::STRING, VALUES:properties.appId::STRING,
+    VALUES:properties.appliedConditionalAccessPolicies::VARIANT, VALUES:properties.authenticationMethodsUsed::VARIANT,
+    VALUES:properties.authenticationProcessingDetails::VARIANT, VALUES:properties.clientAppUsed::STRING,
+    VALUES:properties.conditionalAccessStatus::STRING, VALUES:properties.createdDateTime::TIMESTAMP_LTZ,
+    VALUES:properties.deviceDetail::VARIANT, VALUES:properties.id::STRING, VALUES:properties.ipAddress::STRING,
+    VALUES:properties.isInteractive::BOOLEAN, VALUES:properties.location::VARIANT,
+    VALUES:properties.mfaDetail::VARIANT, VALUES:properties.networkLocationDetails::VARIANT,
+    VALUES:properties.processingTimeInMilliseconds::NUMBER, VALUES:properties.resourceDisplayName::STRING,
+    VALUES:properties.resourceId::STRING, VALUES:properties.riskDetail::STRING,
+    VALUES:properties.riskEventTypes::VARIANT, VALUES:properties.riskLevelAggregated::STRING,
+    VALUES:properties.riskLevelDuringSignIn::STRING, VALUES:properties.riskState::VARIANT,
+    VALUES:properties.status::VARIANT, VALUES:properties.tokenIssuerType::STRING,
+    VALUES:properties.userDisplayName::STRING, VALUES:properties.userId::STRING,
+    VALUES:properties.userPrincipalName::STRING, VALUES:resourceId::STRING, VALUES:resultDescription::STRING,
+    VALUES:resultSignature::STRING, VALUES:resultType::STRING, VALUES:tenantId::STRING, VALUES:time::TIMESTAMP_LTZ,
+    CURRENT_TIMESTAMP()
 )
-FROM (
-    SELECT $1, HASH($1), $1:Level::NUMBER, $1:callerIpAddress::STRING, $1:category::STRING, $1:correlationId::STRING,
-        $1:durationMs, $1:identity::STRING, $1:location::STRING, $1:operationName::STRING,
-        $1:operationVersion::STRING, $1:properties::VARIANT, $1:properties.appDisplayName::STRING,
-        $1:properties.appId::STRING, $1:properties.appliedConditionalAccessPolicies::VARIANT,
-        $1:properties.authenticationMethodsUsed::VARIANT, $1:properties.authenticationProcessingDetails::VARIANT,
-        $1:properties.clientAppUsed::STRING, $1:properties.conditionalAccessStatus::STRING,
-        $1:properties.createdDateTime::TIMESTAMP_LTZ, $1:properties.deviceDetail::VARIANT, $1:properties.id::STRING,
-        $1:properties.ipAddress::STRING, $1:properties.isInteractive::BOOLEAN, $1:properties.location::VARIANT,
-        $1:properties.mfaDetail::VARIANT, $1:properties.networkLocationDetails::VARIANT,
-        $1:properties.processingTimeInMilliseconds::NUMBER, $1:properties.resourceDisplayName::STRING,
-        $1:properties.resourceId::STRING, $1:properties.riskDetail::STRING, $1:properties.riskEventTypes::VARIANT,
-        $1:properties.riskLevelAggregated::STRING, $1:properties.riskLevelDuringSignIn::STRING,
-        $1:properties.riskState::VARIANT, $1:properties.status::VARIANT, $1:properties.tokenIssuerType::STRING,
-        $1:properties.userDisplayName::STRING, $1:properties.userId::STRING, $1:properties.userPrincipalName::STRING,
-        $1:resourceId::STRING, $1:resultDescription::STRING, $1:resultSignature::STRING, $1:resultType::STRING,
-        $1:tenantId::STRING, $1:time::TIMESTAMP_LTZ,
-        CURRENT_TIMESTAMP()
-    FROM @DATA.{base_name}_STAGE
-)
-'''
+""",
     }
 
-    db.create_pipe(
-        name=f"data.{base_name}_PIPE",
-        sql=pipe_sql[options['connection_type']],
-        replace=True
-    )
+    db.create_task(name=f'data.{base_name}_INGEST_TASK',
+                   warehouse=WAREHOUSE,
+                   schedule=f'AFTER DATA.{base_name}_REFRESH_TASK',
+                   sql=ingest_task_sql[connection_type])
 
-    db.execute(f'ALTER PIPE data.{base_name}_PIPE SET PIPE_EXECUTION_PAUSED=true')
-    db.execute(f'GRANT OWNERSHIP ON PIPE data.{base_name}_PIPE TO ROLE {SA_ROLE}')
-
-    return {'newStage': 'finalized', 'newMessage': 'Table, Stage, and Pipe created'}
-
-
-def ingest(table_name, options):
-    base_name = re.sub(r'_CONNECTION$', '', table_name)
-    storage_account = options['storage_account']
-    sas_token = vault.decrypt_if_encrypted(options['sas_token'])
-    suffix = options['suffix']
-    container_name = options['container_name']
-    snowflake_account = options['snowflake_account']
-    sa_user = options['sa_user']
-    database = options['database']
-
-    block_blob_service = BlockBlobService(
-        account_name=storage_account,
-        sas_token=sas_token,
-        endpoint_suffix=suffix
-    )
-
-    db.execute(f"select SYSTEM$PIPE_FORCE_RESUME('DATA.{base_name}_PIPE');")
-
-    last_loaded = db.fetch_latest(f'data.{table_name}', 'loaded_on')
-
-    log.info(f"Last loaded time is {last_loaded}")
-
-    blobs = block_blob_service.list_blobs(container_name)
-    new_files = [
-        StagedFile(b.name, None) for b in blobs if (
-            last_loaded is None or b.properties.creation_time > last_loaded
-        )
-    ]
-
-    log.info(f"Found {len(new_files)} files to ingest")
-
-    # Proxy object that abstracts the Snowpipe REST API
-    ingest_manager = SimpleIngestManager(
-        account=snowflake_account,
-        host=f'{snowflake_account}.snowflakecomputing.com',
-        user=sa_user,
-        pipe=f'{database}.data.{base_name}_PIPE',
-        private_key=load_pkb_rsa(PRIVATE_KEY, PRIVATE_KEY_PASSWORD)
-    )
-
-    if len(new_files) > 0:
-        for file_group in groups_of(4999, new_files):
-            response = ingest_manager.ingest_files(file_group)
-            log.info(response)
-            yield len(file_group)
+    return {'newStage': 'finalized', 'newMessage': 'Table, Stage, External Table, Stored Procedure, and Tasks created.'}
