@@ -26,15 +26,7 @@ def handle(alert, type='sns', topic=None, target=None, recipient_phone=None, sub
     if message_structure is not None:
         params['MessageStructure'] = message_structure
         if message_structure == 'json':
-            message = json.dumps(message)
-            #for key,value in message:
-            #    if not isinstance(value, str):
-            #        message[key] = json.dumps(value)
-            #message = json.dumps(message)  
-            #if not isinstance(message, str):  
-            #    message = json.dumps({"default":json.dumps(message)})
-            #else :
-            #    message = json.dumps({"default":message})    
+            message = json.dumps(message)    
 
     if topic is not None:
         params['TopicArn'] = topic       
