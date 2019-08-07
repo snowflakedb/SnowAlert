@@ -70,6 +70,16 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
+GET_SUBSCRIPTION_IDS_SQL = """
+SELECT DISTINCT subscription_id
+FROM data.azure_subscription_{0}_connection
+WHERE event_time
+  BETWEEN DATEADD(minute, -15, CURRENT_TIMESTAMP)
+      AND CURRENT_TIMESTAMP
+;
+"""
+
+
 def get_vms(creds, sub):
     vms = [vm.as_dict() for vm in ComputeManagementClient(creds, sub).virtual_machines.list_all()]
     for vm in vms:
@@ -134,10 +144,8 @@ def ingest(table_name, options):
 
     creds = ServicePrincipalCredentials(client_id=client_id, secret=secret, tenant=tenant)
 
-    subscription_table = f'AZURE_SUBSCRIPTION_{subscription_connection_name}_CONNECTION'
-
     virtual_machines = []
-    for sub in db.fetch(f"SELECT * FROM data.{subscription_table}"):
+    for sub in db.fetch(GET_SUBSCRIPTION_IDS_SQL.format(subscription_connection_name)):
         sub_id = sub['SUBSCRIPTION_ID']
         vms = get_vms(creds, sub_id)
         db.insert(
