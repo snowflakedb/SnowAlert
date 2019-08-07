@@ -25,7 +25,7 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 def yaml_dump(**kwargs):
-    return yaml.dump(kwargs, default_flow_style=True, explicit_start=True)
+    return yaml.dump(kwargs, default_flow_style=False, explicit_start=True)
 
 
 def create_metadata_table(table, cols, addition):

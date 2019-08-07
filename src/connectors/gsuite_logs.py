@@ -1,5 +1,5 @@
 """G Suite Admin Logs
-Collect G Suite API logs using a Service Account or Delegated Credentials
+Collect G Suite API logs using a Service Account
 """
 
 from googleapiclient.discovery import build
@@ -15,6 +15,7 @@ CONNECTION_OPTIONS = [
         'name': 'connection_type',
         'type': 'select',
         'options': [
+            # https://developers.google.com/admin-sdk/reports/v1/appendix/activity/login
             {'value': 'login', 'label': "Logins"},
         ],
         'title': "Admin Logs Type",
@@ -49,13 +50,15 @@ LANDING_TABLES_COLUMNS = {
     'login': [
         ('created_on', 'TIMESTAMP_LTZ'),
         ('event_time', 'TIMESTAMP_LTZ'),
-        ('raw', 'VARIANT'),
-        ('delegating_subject', 'STRING(500)'),
         ('etag', 'STRING(100)'),
+        ('delegating_subject', 'STRING(500)'),
+        ('event_name', 'STRING(50)'),
+        ('event_params', 'VARIANT'),
         ('customer_id', 'STRING(100)'),
         ('actor_email', 'STRING(1000)'),
         ('actor_profile_id', 'STRING(1000)'),
         ('ip_address', 'STRING(100)'),
+        ('raw', 'VARIANT'),
     ],
 }
 
@@ -81,7 +84,7 @@ def connect(connection_name, options):
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'Landing table created for collectors to populate.'
+        'newMessage': 'View details & landing table created for collectors to populate.'
     }
 
 
@@ -116,24 +119,35 @@ def ingest(table_name, options):
                 landing_table,
                 values=[(
                     item['id']['time'],
-                    item,
-                    subject,
                     item['etag'].strip('"'),
+                    subject,
+                    item.get('events', [{}])[0].get('name'),
+                    {
+                        p['name']: (
+                            p.get('value')
+                            or p.get('boolValue')
+                            or p.get('multiValue')
+                        )
+                        for p in item.get('events', [{}])[0].get('parameters', [])
+                    },
                     item['id']['customerId'],
                     item['actor'].get('email'),
                     item['actor'].get('profileId'),
                     item.get('ipAddress'),
+                    item,
                 ) for item in items],
                 select=(
                     'CURRENT_TIMESTAMP()',
                     'column1',
-                    'PARSE_JSON(column2)',
+                    'column2',
                     'column3',
                     'column4',
-                    'column5',
+                    'PARSE_JSON(column5)',
                     'column6',
                     'column7',
                     'column8',
+                    'column9',
+                    'PARSE_JSON(column10)',
                 )
             )
             yield len(items)
