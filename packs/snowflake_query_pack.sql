@@ -3,6 +3,7 @@ SELECT
       OBJECT_CONSTRUCT('cloud', 'Snowflake', 'account', current_account()) AS environment
     , ARRAY_CONSTRUCT('snowflake') AS sources
     , REGEXP_SUBSTR(query_text, '\\s([^\\s]+)\\sto\\s',1,1,'ie') AS object
+    , 'Snowflake ADMIN Role Granted' AS title
     , 'Snowflake - Admin role granted' AS alerttype
     , start_time AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
