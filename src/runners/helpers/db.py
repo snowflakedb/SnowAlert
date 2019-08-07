@@ -149,7 +149,7 @@ def connect_and_fetchall(query):
     return ctx, execute(query).fetchall()
 
 
-def fetch_latest(table, col):
+def fetch_latest(table, col='event_time'):
     ts = next(fetch(f'SELECT {col} FROM {table} ORDER BY {col} DESC LIMIT 1'), None)
     return ts[col.upper()] if ts else None
 
