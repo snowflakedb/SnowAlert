@@ -23,18 +23,18 @@ def main(connection_table="%_CONNECTION"):
 
         log.info(f"-- START DC {table_name} --")
         try:
+            metadata = {'START_TIME': datetime.utcnow()}
             options = yaml.load(table_comment) or {}
 
             if 'module' in options:
                 module = options['module']
 
-                metadata = {
+                metadata.update({
                     'RUN_ID': RUN_ID,
                     'TYPE': module,
-                    'START_TIME': datetime.utcnow(),
                     'LANDING_TABLE': table_name,
                     'INGEST_COUNT': 0
-                }
+                })
 
                 connector = importlib.import_module(f"connectors.{module}")
 
