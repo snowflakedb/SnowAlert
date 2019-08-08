@@ -37,6 +37,18 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
+        'name': 'cloud_type',
+        'options': [
+            {'value': 'reg', 'label': "Azure Cloud"},
+            {'value': 'gov', 'label': "Azure Gov Cloud"}
+        ],
+        'title': "Cloud Type",
+        'placeholder': "Choose Cloud Type",
+        'prompt': "Azure provides two types of clouds: regular and government",
+        'required': True
+    },
+    {
+        'type': 'str',
         'name': 'connection_type',
         'options': [
             {'value': 'signin', 'label': "Active Directory (AD) Sign-in Logs"},
@@ -176,17 +188,9 @@ LANDING_TABLES_COLUMNS = {
 EXTERNAL_TABLE_COLUMNS = [
     ('timestamp_part',
      'timestamp_ltz',
-     '''to_timestamp_ltz(
-substring(metadata$filename::string, 79, 4)
-||'-'||
-substring(metadata$filename::string, 86, 2)
-||'-'||
-substring(metadata$filename::string, 91, 2)
-||'T'||
-substring(metadata$filename::string, 96, 2)
-||':'||
-substring(metadata$filename::string, 101, 2)
-)''')
+     '''to_timestamp_ltz(regexp_replace(
+  metadata$filename,
+  '.*y=(\\d*).m=(\\d*).d=(\\d*).h=(\\d*).m=(\\d*).*json$', '\\1-\\2-\\3T\\4:\\5', 1,1,'e'))''')
 ]
 
 
@@ -197,6 +201,7 @@ def connect(connection_name, options):
     account_name = options['account_name']
     container_name = options['container_name']
     suffix = options['suffix']
+    cloud_type = options['cloud_type']
     sas_token = options['sas_token']
 
     comment = f'''
@@ -254,14 +259,12 @@ catch (err)  {{
                    schedule='5 minutes',
                    sql=refresh_task_sql)
 
-    ingest_task_sql = {
+    select_statement_sql = {'reg': f"SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())",
+                            'gov': f"SELECT VALUE FROM (SELECT VALUE AS A FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())), LATERAL FLATTEN (INPUT => A:records)"
+                            }
+
+    insert_task_sql = {
         'operation': f"""
-MERGE INTO data.{base_name}_CONNECTION A
-USING (
-  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
-) B
-ON A.RAW = B.VALUE
-WHEN NOT MATCHED THEN
 INSERT (
     RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
     IDENTITY, IDENTITY_AUTHORIZATION, IDENTITY_CLAIMS, LEVEL, LOCATION,
@@ -278,12 +281,6 @@ INSERT (
 )
 """,
         'audit': f"""
-MERGE INTO data.{base_name}_CONNECTION A
-USING (
-  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
-) B
-ON A.RAW = B.VALUE
-WHEN NOT MATCHED THEN
 INSERT (
     RAW, HASH_RAW, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID,
     DURATION_MS, LEVEL, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
@@ -304,12 +301,6 @@ INSERT (
 )
 """,
         'signin': f"""
-MERGE INTO data.{base_name}_CONNECTION A
-USING (
-  SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())
-) B
-ON A.RAW = B.VALUE
-WHEN NOT MATCHED THEN
 INSERT (
     RAW, HASH_RAW, LEVEL, CALLER_IP_ADDRESS, CATEGORY, CORRELATION_ID, DURATION_MS,
     IDENTITY, LOCATION, OPERATION_NAME, OPERATION_VERSION, PROPERTIES,
@@ -325,32 +316,42 @@ INSERT (
     PROPERTIES_USER_ID, PROPERTIES_USER_PRINCIPAL_NAME, RESOURCE_ID, RESULT_DESCRIPTION, RESULT_SIGNATURE,
     RESULT_TYPE, TENANT_ID, EVENT_TIME, LOADED_ON
 ) VALUES (
-    VALUES, HASH(VALUES), VALUES:Level::NUMBER, VALUES:callerIpAddress::STRING, VALUES:category::STRING,
-    VALUES:correlationId::STRING, VALUES:durationMs, VALUES:identity::STRING, VALUES:location::STRING,
-    VALUES:operationName::STRING, VALUES:operationVersion::STRING, VALUES:properties::VARIANT,
-    VALUES:properties.appDisplayName::STRING, VALUES:properties.appId::STRING,
-    VALUES:properties.appliedConditionalAccessPolicies::VARIANT, VALUES:properties.authenticationMethodsUsed::VARIANT,
-    VALUES:properties.authenticationProcessingDetails::VARIANT, VALUES:properties.clientAppUsed::STRING,
-    VALUES:properties.conditionalAccessStatus::STRING, VALUES:properties.createdDateTime::TIMESTAMP_LTZ,
-    VALUES:properties.deviceDetail::VARIANT, VALUES:properties.id::STRING, VALUES:properties.ipAddress::STRING,
-    VALUES:properties.isInteractive::BOOLEAN, VALUES:properties.location::VARIANT,
-    VALUES:properties.mfaDetail::VARIANT, VALUES:properties.networkLocationDetails::VARIANT,
-    VALUES:properties.processingTimeInMilliseconds::NUMBER, VALUES:properties.resourceDisplayName::STRING,
-    VALUES:properties.resourceId::STRING, VALUES:properties.riskDetail::STRING,
-    VALUES:properties.riskEventTypes::VARIANT, VALUES:properties.riskLevelAggregated::STRING,
-    VALUES:properties.riskLevelDuringSignIn::STRING, VALUES:properties.riskState::VARIANT,
-    VALUES:properties.status::VARIANT, VALUES:properties.tokenIssuerType::STRING,
-    VALUES:properties.userDisplayName::STRING, VALUES:properties.userId::STRING,
-    VALUES:properties.userPrincipalName::STRING, VALUES:resourceId::STRING, VALUES:resultDescription::STRING,
-    VALUES:resultSignature::STRING, VALUES:resultType::STRING, VALUES:tenantId::STRING, VALUES:time::TIMESTAMP_LTZ,
+    VALUE, HASH(VALUE), VALUE:Level::NUMBER, VALUE:callerIpAddress::STRING, VALUE:category::STRING,
+    VALUE:correlationId::STRING, VALUE:durationMs, VALUE:identity::STRING, VALUE:location::STRING,
+    VALUE:operationName::STRING, VALUE:operationVersion::STRING, VALUE:properties::VARIANT,
+    VALUE:properties.appDisplayName::STRING, VALUE:properties.appId::STRING,
+    VALUE:properties.appliedConditionalAccessPolicies::VARIANT, VALUE:properties.authenticationMethodsUsed::VARIANT,
+    VALUE:properties.authenticationProcessingDetails::VARIANT, VALUE:properties.clientAppUsed::STRING,
+    VALUE:properties.conditionalAccessStatus::STRING, VALUE:properties.createdDateTime::TIMESTAMP_LTZ,
+    VALUE:properties.deviceDetail::VARIANT, VALUE:properties.id::STRING, VALUE:properties.ipAddress::STRING,
+    VALUE:properties.isInteractive::BOOLEAN, VALUE:properties.location::VARIANT,
+    VALUE:properties.mfaDetail::VARIANT, VALUE:properties.networkLocationDetails::VARIANT,
+    VALUE:properties.processingTimeInMilliseconds::NUMBER, VALUE:properties.resourceDisplayName::STRING,
+    VALUE:properties.resourceId::STRING, VALUE:properties.riskDetail::STRING,
+    VALUE:properties.riskEventTypes::VARIANT, VALUE:properties.riskLevelAggregated::STRING,
+    VALUE:properties.riskLevelDuringSignIn::STRING, VALUE:properties.riskState::VARIANT,
+    VALUE:properties.status::VARIANT, VALUE:properties.tokenIssuerType::STRING,
+    VALUE:properties.userDisplayName::STRING, VALUE:properties.userId::STRING,
+    VALUE:properties.userPrincipalName::STRING, VALUE:resourceId::STRING, VALUE:resultDescription::STRING,
+    VALUE:resultSignature::STRING, VALUE:resultType::STRING, VALUE:tenantId::STRING, VALUE:time::TIMESTAMP_LTZ,
     CURRENT_TIMESTAMP()
 )
 """,
     }
 
+    ingest_task_sql = f"""
+MERGE INTO data.{base_name}_CONNECTION A
+USING (
+  {select_statement_sql[cloud_type]}
+) B
+on A.RAW = B.VALUE
+WHEN NOT MATCHED THEN
+{insert_task_sql[connection_type]}
+"""
+
     db.create_task(name=f'data.{base_name}_INGEST_TASK',
                    warehouse=WAREHOUSE,
                    schedule=f'AFTER DATA.{base_name}_REFRESH_TASK',
-                   sql=ingest_task_sql[connection_type])
+                   sql=ingest_task_sql)
 
     return {'newStage': 'finalized', 'newMessage': 'Table, Stage, External Table, Stored Procedure, and Tasks created.'}
