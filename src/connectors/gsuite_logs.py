@@ -84,7 +84,7 @@ def connect(connection_name, options):
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'View details & landing table created for collectors to populate.'
+        'newMessage': 'Landing table created for collectors to populate.'
     }
 
 
