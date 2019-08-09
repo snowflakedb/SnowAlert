@@ -1,0 +1,148 @@
+Decimal,Keyword,Protocol,IPv6 Extension Header
+0,HOPOPT,IPv6 Hop-by-Hop Option,Y
+1,ICMP,Internet Control Message,N
+2,IGMP,Internet Group Management,N
+3,GGP,Gateway-to-Gateway,N
+4,IPv4,IPv4 encapsulation,N
+5,ST,Stream,N
+6,TCP,Transmission Control,N
+7,CBT,CBT,N
+8,EGP,Exterior Gateway Protocol,N
+9,IGP,"any private interior gateway (used by Cisco for their IGRP)",N
+10,BBN-RCC-MON,BBN RCC Monitoring,N
+11,NVP-II,Network Voice Protocol,N
+12,PUP,PUP,N
+13,ARGUS (deprecated),ARGUS,N
+14,EMCON,EMCON,N
+15,XNET,Cross Net Debugger,N
+16,CHAOS,Chaos,N
+17,UDP,User Datagram,N
+18,MUX,Multiplexing,N
+19,DCN-MEAS,DCN Measurement Subsystems,N
+20,HMP,Host Monitoring,N
+21,PRM,Packet Radio Measurement,N
+22,XNS-IDP,XEROX NS IDP,N
+23,TRUNK-1,Trunk-1,N
+24,TRUNK-2,Trunk-2,N
+25,LEAF-1,Leaf-1,N
+26,LEAF-2,Leaf-2,N
+27,RDP,Reliable Data Protocol,N
+28,IRTP,Internet Reliable Transaction,N
+29,ISO-TP4,ISO Transport Protocol Class 4,N
+30,NETBLT,Bulk Data Transfer Protocol,N
+31,MFE-NSP,MFE Network Services Protocol,N
+32,MERIT-INP,MERIT Internodal Protocol,N
+33,DCCP,Datagram Congestion Control Protocol,N
+34,3PC,Third Party Connect Protocol,N
+35,IDPR,Inter-Domain Policy Routing Protocol,N
+36,XTP,XTP,N
+37,DDP,Datagram Delivery Protocol,N
+38,IDPR-CMTP,IDPR Control Message Transport Proto,N
+39,TP++,TP++ Transport Protocol,N
+40,IL,IL Transport Protocol,N
+41,IPv6,IPv6 encapsulation,N
+42,SDRP,Source Demand Routing Protocol,N
+43,IPv6-Route,Routing Header for IPv6,Y
+44,IPv6-Frag,Fragment Header for IPv6,Y
+45,IDRP,Inter-Domain Routing Protocol,N
+46,RSVP,Reservation Protocol,N
+47,GRE,Generic Routing Encapsulation,N
+48,DSR,Dynamic Source Routing Protocol,N
+49,BNA,BNA,N
+50,ESP,Encap Security Payload,Y
+51,AH,Authentication Header,Y
+52,I-NLSP,Integrated Net Layer Security  TUBA,N
+53,SWIPE (deprecated),IP with Encryption,N
+54,NARP,NBMA Address Resolution Protocol,N
+55,MOBILE,IP Mobility,N
+56,TLSP,"Transport Layer Security Protocol using Kryptonet key management",N
+57,SKIP,SKIP,N
+58,IPv6-ICMP,ICMP for IPv6,N
+59,IPv6-NoNxt,No Next Header for IPv6,N
+60,IPv6-Opts,Destination Options for IPv6,Y
+61,,any host internal protocol,N
+62,CFTP,CFTP,N
+63,,any local network,N
+64,SAT-EXPAK,SATNET and Backroom EXPAK,N
+65,KRYPTOLAN,Kryptolan,N
+66,RVD,MIT Remote Virtual Disk Protocol,N
+67,IPPC,Internet Pluribus Packet Core,N
+68,,any distributed file system,N
+69,SAT-MON,SATNET Monitoring,N
+70,VISA,VISA Protocol,N
+71,IPCV,Internet Packet Core Utility,N
+72,CPNX,Computer Protocol Network Executive,N
+73,CPHB,Computer Protocol Heart Beat,N
+74,WSN,Wang Span Network,N
+75,PVP,Packet Video Protocol,N
+76,BR-SAT-MON,Backroom SATNET Monitoring,N
+77,SUN-ND,SUN ND PROTOCOL-Temporary,N
+78,WB-MON,WIDEBAND Monitoring,N
+79,WB-EXPAK,WIDEBAND EXPAK,N
+80,ISO-IP,ISO Internet Protocol,N
+81,VMTP,VMTP,N
+82,SECURE-VMTP,SECURE-VMTP,N
+83,VINES,VINES,N
+84,TTP,Transaction Transport Protocol,N
+84,IPTM,Internet Protocol Traffic Manager,N
+85,NSFNET-IGP,NSFNET-IGP,N
+86,DGP,Dissimilar Gateway Protocol,N
+87,TCF,TCF,N
+88,EIGRP,EIGRP,N
+89,OSPFIGP,OSPFIGP,N
+90,Sprite-RPC,Sprite RPC Protocol,N
+91,LARP,Locus Address Resolution Protocol,N
+92,MTP,Multicast Transport Protocol,N
+93,AX.25,AX.25 Frames,N
+94,IPIP,IP-within-IP Encapsulation Protocol,N
+95,MICP (deprecated),Mobile Internetworking Control Pro.,N
+96,SCC-SP,Semaphore Communications Sec. Pro.,N
+97,ETHERIP,Ethernet-within-IP Encapsulation,N
+98,ENCAP,Encapsulation Header,N
+99,,any private encryption scheme,N
+100,GMTP,GMTP,N
+101,IFMP,Ipsilon Flow Management Protocol,N
+102,PNNI,PNNI over IP,N
+103,PIM,Protocol Independent Multicast,N
+104,ARIS,ARIS,N
+105,SCPS,SCPS,N
+106,QNX,QNX,N
+107,A/N,Active Networks,N
+108,IPComp,IP Payload Compression Protocol,N
+109,SNP,Sitara Networks Protocol,N
+110,Compaq-Peer,Compaq Peer Protocol,N
+111,IPX-in-IP,IPX in IP,N
+112,VRRP,Virtual Router Redundancy Protocol,N
+113,PGM,PGM Reliable Transport Protocol,N
+114,N,any 0-hop protocol,N
+115,L2TP,Layer Two Tunneling Protocol,N
+116,DDX,D-II Data Exchange (DDX),N
+117,IATP,Interactive Agent Transfer Protocol,N
+118,STP,Schedule Transfer Protocol,N
+119,SRP,SpectraLink Radio Protocol,N
+120,UTI,UTI,N
+121,SMP,Simple Message Protocol,N
+122,SM (deprecated),Simple Multicast Protocol,N
+123,PTP,Performance Transparency Protocol,N
+124,ISIS over IPv4,,N
+125,FIRE,,N
+126,CRTP,Combat Radio Transport Protocol,N
+127,CRUDP,Combat Radio User Datagram,N
+128,SSCOPMCE,,N
+129,IPLT,,N
+130,SPS,Secure Packet Shield,N
+131,PIPE,Private IP Encapsulation within IP,N
+132,SCTP,Stream Control Transmission Protocol,N
+133,FC,Fibre Channel,N
+134,RSVP-E2E-IGNORE,,N
+135,Mobility Header,N,Y
+136,UDPLite,,N
+137,MPLS-in-IP,,N
+138,manet,MANET Protocols,N
+139,HIP,Host Identity Protocol,Y
+140,Shim6,Shim6 Protocol,Y
+141,WESP,Wrapped Encapsulating Security Payload,N
+142,ROHC,Robust Header Compression,N
+253,,Use for experimentation and testing,Y
+254,,Use for experimentation and testing,Y
+255,Reserved,,N

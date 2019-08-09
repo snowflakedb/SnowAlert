@@ -1,30 +1,36 @@
 from . import aws_cloudtrail
-from . import okta
+from . import aws_config
+from . import aws_flow_log
+from . import aws_inventory
 from . import azure_log
 from . import azure_subscription
 from . import azure_vm
-from . import aws_config
-from . import aws_inventory
+from . import gsuite_logs
+from . import okta
 from . import tenable_settings
 
 __all__ = [
     'aws_inventory',
     'aws_cloudtrail',
     'aws_config',
+    'aws_flow_log',
     'azure_log',
     'azure_subscription',
     'azure_vm',
+    'gsuite_logs',
     'okta',
     'tenable_settings',
 ]
 
 connectors = {
-    'aws_inventory': aws_inventory,
     'aws_cloudtrail': aws_cloudtrail,
     'aws_config': aws_config,
+    'aws_flow_log': aws_flow_log,
+    'aws_inventory': aws_inventory,
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
+    'gsuite_logs': gsuite_logs,
     'okta': okta,
     'tenable_settings': tenable_settings,
 }
