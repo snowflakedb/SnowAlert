@@ -112,7 +112,13 @@ def ingest(table_name, options):
                 service_user_creds,
                 with_subject=subject,
                 event_name=event,
-                start_time=db.fetch_latest(landing_table)
+                start_time=db.fetch_latest(
+                    landing_table,
+                    where=(
+                        f"delegating_subject='{subject}' AND "
+                        f"event_name='{event}'"
+                    )
+                )
             ).get('items', [])
 
             db.insert(
