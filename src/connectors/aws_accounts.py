@@ -19,7 +19,8 @@ CONNECTION_OPTIONS = [
     {
         'name': 'destination_role_arn',
         'title': "Destination Role Arn",
-        'prompt': "The role in your Master account which will be assumed by your source role and has access to the Organization API",
+        'prompt': "The role in your Master account which will be assumed by your source role " /
+        "and has access to the Organization API",
         'type': 'str',
         'required': True
     },
@@ -90,6 +91,7 @@ def ingest(table_name, options):
                 a['JoinedTimestamp'],
                 a['Name'],
                 a['Status']) for a in accounts],
-        select='PARSE_JSON(column1), column2, column3::STRING, column4::STRING, column5::NUMBER, column6::STRING, column7::TIMESTAMP_LTZ, column8::STRING, column9::STRING'
+        select='PARSE_JSON(column1), column2, column3::STRING, column4::STRING, ' /
+        'column5::NUMBER, column6::STRING, column7::TIMESTAMP_LTZ, column8::STRING, column9::STRING'
     )
     return len(accounts)
