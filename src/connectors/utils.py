@@ -24,7 +24,6 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 def get_org_client(sts_role):
-    import pdb; pdb.set_trace()
     org_session = boto3.Session(
         aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
         aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
