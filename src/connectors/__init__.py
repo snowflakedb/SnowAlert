@@ -1,3 +1,4 @@
+from . import aws_accounts
 from . import aws_cloudtrail
 from . import aws_config
 from . import aws_flow_log
@@ -13,6 +14,7 @@ __all__ = [
     'aws_inventory',
     'aws_cloudtrail',
     'aws_config',
+    'aws_accounts',
     'aws_flow_log',
     'azure_log',
     'azure_subscription',
@@ -23,6 +25,7 @@ __all__ = [
 ]
 
 connectors = {
+    'aws_accounts': aws_accounts,
     'aws_cloudtrail': aws_cloudtrail,
     'aws_config': aws_config,
     'aws_flow_log': aws_flow_log,
