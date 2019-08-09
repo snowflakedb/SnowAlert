@@ -440,39 +440,24 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False):
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
-    columns = '('
-    for pair in cols:
-        columns += f'{pair[0]} {pair[1]}, '
-    columns = columns[:-2] + ')'
+    columns = '(' + ', '.join(f'{a} {b}' for a, b in cols) + ')'
 
     query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
     execute(query, fix_errors=False)
 
 
-def create_external_table(name,
-                          location,
-                          cols=None,
-                          partition='',
-                          refresh=False,
-                          replace=False,
-                          file_format='',
-                          comment='',
-                          ifnotexists=False,
-                          copygrants=''):
+def create_external_table(name, location, cols=None, partition='',
+                          refresh=False, replace=False, file_format='',
+                          comment='', ifnotexists=False, copygrants=''):
     partition = f'\nPARTITION BY ({partition})' if partition else ''
-    refresh = '\nAUTO_REFRESH=TRUE ' if refresh else '\nAUTO_REFRESH=FALSE '
+    refresh = '\nAUTO_REFRESH={refresh} '
     replace = 'OR REPLACE ' if replace else ''
-    file_format = f'\nFILE_FORMAT=({file_format}) ' if file_format else ''
+    file_format = f'\nFILE_FORMAT={file_format} '
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = f'IF NOT EXISTS ' if ifnotexists else ''
     copygrants = '\nCOPY GRANTS ' if copygrants else ''
-
     location = f'\nLOCATION={location}'
-
-    columns = '('
-    for trio in cols:
-        columns += f'{trio[0]} {trio[1]} AS {trio[2]}, '
-    columns = columns[:-2] + ')'
+    columns = '(' + ', '.join(f'{a} {b} AS {c}' for a, b, c in cols) + ')'
 
     query = f"CREATE {replace}EXTERNAL TABLE {ifnotexists}{name}\n{columns}"\
             f"{partition}{location}{refresh}{file_format}{copygrants}{comment}"
@@ -507,13 +492,8 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
 
 def create_stored_procedure(name, args, return_type, executor, definition, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment - f"\nCOMMENT='{comment}'" if comment else ''
-    arguments = '('
-    for pair in args:
-        arguments += f'{pair[0]}, {pair[1]}, '
-    arguments = arguments[:-2] + ')'
-    if len(arguments) == 1:
-        arguments = '()'
+    comment = f"\nCOMMENT='{comment}'" if comment else ''
+    arguments = '(' + ', '.join(f'{a}, {b}' for a, b in args) + ')'
     query = f"CREATE {replace}PROCEDURE {name} {arguments}\nRETURNS {return_type}\nLANGUAGE JAVASCRIPT\n"
     query += f"EXECUTE AS {executor} AS\n$$\n{definition}\n$$"
     execute(query, fix_errors=False)
