@@ -228,21 +228,20 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=config_ingest_task)
 
-    db.execute(f"ALTER PIPE {pipe} REFRESH")
-
-    pipe_description = list(db.fetch(f'DESC PIPE {pipe}'))
-    if len(pipe_description) < 1:
+    pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
+    if pipe_description is None:
         return {
             'newStage': 'error',
             'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
         }
     else:
-        sqs_arn = pipe_description[0]['notification_channel']
+        sqs_arn = pipe_description['notification_channel']
 
     return {
         'newStage': 'finalized',
         'newMessage': (
             f"Please add this SQS Queue ARN to the bucket event notification "
-            f"channel for all object create events: {sqs_arn}"
+            f"channel for all object create events:\n\n  {sqs_arn}\n\n"
+            f"To backfill the landing table with existing data, please run:\n\n  ALTER PIPE {pipe} REFRESH;\n\n"
         )
     }
