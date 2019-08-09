@@ -5,6 +5,7 @@ Collect AD Signin, Audit, or Operation Logs using an SAS Token
 from runners.helpers.dbconfig import ROLE as SA_ROLE, WAREHOUSE
 from runners.helpers import db
 
+from .utils import yaml_dump
 
 CONNECTION_OPTIONS = [
     {
@@ -70,127 +71,134 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-FILE_FORMAT = '''
-    TYPE = "JSON",
-    COMPRESSION = "AUTO",
-    ENABLE_OCTAL = FALSE,
-    ALLOW_DUPLICATE = FALSE,
-    STRIP_OUTER_ARRAY = FALSE,
-    STRIP_NULL_VALUES = FALSE,
-    IGNORE_UTF8_ERRORS = FALSE,
-    SKIP_BYTE_ORDER_MARK = TRUE
-'''
+FILE_FORMAT = db.TypeOptions(
+    type='JSON',
+    compression='AUTO',
+    enable_oktal=False,
+    allow_duplicate=False,
+    strip_outer_array=False,
+    strip_null_values=False,
+    ignore_utf8_errors=False,
+    skip_byte_order_mark=True,
+)
 
 LANDING_TABLES_COLUMNS = {
     'operation': [
-        ('RAW', 'VARIANT'),
-        ('HASH_RAW', 'NUMBER'),
-        ('CALLER_IP_ADDRESS', 'VARCHAR'),
-        ('CATEGORY', 'VARCHAR'),
-        ('CORRELATION_ID', 'VARCHAR'),
-        ('DURATION_MS', 'NUMBER'),
-        ('IDENTITY', 'VARIANT'),
-        ('IDENTITY_AUTHORIZATION', 'VARIANT'),
-        ('IDENTITY_CLAIMS', 'VARIANT'),
-        ('LEVEL', 'VARCHAR'),
-        ('LOCATION', 'VARCHAR'),
-        ('OPERATION_NAME', 'VARCHAR'),
-        ('PROPERTIES', 'VARIANT'),
-        ('PROPERTIES_ANCESTORS', 'VARCHAR'),
-        ('PROPERTIES_IS_COMPLIANCE_CHECK', 'VARCHAR'),
-        ('PROPERTIES_POLICIES', 'VARIANT'),
-        ('PROPERTIES_RESOURCE_LOCATION', 'VARCHAR'),
-        ('RESOURCE_ID', 'VARCHAR'),
-        ('RESULT_SIGNATURE', 'VARCHAR'),
-        ('RESULT_TYPE', 'VARCHAR'),
-        ('EVENT_TIME', 'TIMESTAMP_LTZ'),
-        ('LOADED_ON', 'TIMESTAMP_LTZ')
+        ('raw', 'VARIANT'),
+        ('hash_raw', 'NUMBER'),
+        ('caller_ip_address', 'VARCHAR'),
+        ('category', 'VARCHAR'),
+        ('correlation_id', 'VARCHAR'),
+        ('duration_ms', 'NUMBER'),
+        ('identity', 'VARIANT'),
+        ('identity_authorization', 'VARIANT'),
+        ('identity_claims', 'VARIANT'),
+        ('level', 'VARCHAR'),
+        ('location', 'VARCHAR'),
+        ('operation_name', 'VARCHAR'),
+        ('properties', 'VARIANT'),
+        ('properties_ancestors', 'VARCHAR'),
+        ('properties_is_compliance_check', 'VARCHAR'),
+        ('properties_policies', 'VARIANT'),
+        ('properties_resource_location', 'VARCHAR'),
+        ('resource_id', 'VARCHAR'),
+        ('result_signature', 'VARCHAR'),
+        ('result_type', 'VARCHAR'),
+        ('event_time', 'TIMESTAMP_LTZ'),
+        ('loaded_on', 'TIMESTAMP_LTZ')
     ],
     'audit': [
-        ('RAW', 'VARIANT'),
-        ('HASH_RAW', 'NUMBER(38,0)'),
-        ('CALLER_IP_ADDRESS', 'VARCHAR'),
-        ('CATEGORY', 'VARCHAR'),
-        ('CORRELATION_ID', 'VARCHAR'),
-        ('DURATION_MS', 'NUMBER'),
-        ('LEVEL', 'VARCHAR'),
-        ('OPERATION_NAME', 'VARCHAR'),
-        ('OPERATION_VERSION', 'VARCHAR'),
-        ('PROPERTIES', 'VARIANT'),
-        ('PROPERTIES_ACTIVITY_DATE_TIME', 'TIMESTAMP_LTZ(9)'),
-        ('PROPERTIES_ACTIVITY_DISPLAY_NAME', 'VARCHAR'),
-        ('PROPERTIES_ADDITIONAL_DETAILS', 'VARIANT'),
-        ('PROPERTIES_CATEGORY', 'VARCHAR'),
-        ('PROPERTIES_ID', 'VARCHAR'),
-        ('PROPERTIES_INITIATED_BY', 'VARIANT'),
-        ('PROPERTIES_LOGGED_BY_SERVICE', 'VARCHAR'),
-        ('PROPERTIES_OPERATION_TYPE', 'VARCHAR'),
-        ('PROPERTIES_RESULT', 'VARCHAR'),
-        ('PROPERTIES_RESULT_REASON', 'VARCHAR'),
-        ('PROPERTIES_TARGET_RESOURCES', 'VARIANT'),
-        ('RESOURCE_ID', 'VARCHAR'),
-        ('RESULT_SIGNATURE', 'VARCHAR'),
-        ('TENANT_ID', 'VARCHAR'),
-        ('EVENT_TIME', 'TIMESTAMP_LTZ(9)'),
-        ('LOADED_ON', 'TIMESTAMP_LTZ(9)')
+        ('raw', 'VARIANT'),
+        ('hash_raw', 'NUMBER(38,0)'),
+        ('caller_ip_address', 'VARCHAR'),
+        ('category', 'VARCHAR'),
+        ('correlation_id', 'VARCHAR'),
+        ('duration_ms', 'NUMBER'),
+        ('level', 'VARCHAR'),
+        ('operation_name', 'VARCHAR'),
+        ('operation_version', 'VARCHAR'),
+        ('properties', 'VARIANT'),
+        ('properties_activity_date_time', 'TIMESTAMP_LTZ(9)'),
+        ('properties_activity_display_name', 'VARCHAR'),
+        ('properties_additional_details', 'VARIANT'),
+        ('properties_category', 'VARCHAR'),
+        ('properties_id', 'VARCHAR'),
+        ('properties_initiated_by', 'VARIANT'),
+        ('properties_logged_by_service', 'VARCHAR'),
+        ('properties_operation_type', 'VARCHAR'),
+        ('properties_result', 'VARCHAR'),
+        ('properties_result_reason', 'VARCHAR'),
+        ('properties_target_resources', 'VARIANT'),
+        ('resource_id', 'VARCHAR'),
+        ('result_signature', 'VARCHAR'),
+        ('tenant_id', 'VARCHAR'),
+        ('event_time', 'TIMESTAMP_LTZ(9)'),
+        ('loaded_on', 'TIMESTAMP_LTZ(9)')
     ],
     'signin': [
-        ('RAW', 'VARIANT'),
-        ('HASH_RAW', 'NUMBER'),
-        ('LEVEL', 'NUMBER'),
-        ('CALLER_IP_ADDRESS', 'VARCHAR'),
-        ('CATEGORY', 'VARCHAR'),
-        ('CORRELATION_ID', 'VARCHAR'),
-        ('DURATION_MS', 'NUMBER'),
-        ('IDENTITY', 'VARCHAR'),
-        ('LOCATION', 'VARCHAR'),
-        ('OPERATION_NAME', 'VARCHAR'),
-        ('OPERATION_VERSION', 'VARCHAR'),
-        ('PROPERTIES', 'VARIANT'),
-        ('PROPERTIES_APP_DISPLAY_NAME', 'VARCHAR'),
-        ('PROPERTIES_APP_ID', 'VARCHAR'),
-        ('PROPERTIES_APPLIED_CONDITIONAL_ACESS_POLICIES', 'VARIANT'),
-        ('PROPERTIES_AUTHENTICATION_METHODS_USED', 'VARIANT'),
-        ('PROPERTIES_AUTHENTICATION_PROCESSING_DETAILS', 'VARIANT'),
-        ('PROPERTIES_CLIENT_APP_USED', 'VARCHAR'),
-        ('PROPERTIES_CONDITIONAL_ACCESS_STATUS', 'VARCHAR'),
-        ('PROPERTIES_CREATED_DATE_TIME', 'TIMESTAMP_LTZ'),
-        ('PROPERTIES_DEVICE_DETAIL', 'VARIANT'),
-        ('PROPERTIES_ID', 'VARCHAR'),
-        ('PROPERTIES_IP_ADDRESS', 'VARCHAR'),
-        ('PROPERTIES_IS_INTERACTIVE', 'BOOLEAN'),
-        ('PROPERTIES_LOCATION', 'VARIANT'),
-        ('PROPERTIES_MFA_DETAIL', 'VARIANT'),
-        ('PROPERTIES_NETWORK_LOCATION', 'VARIANT'),
-        ('PROPERTIES_PROCESSING_TIME_IN_MILLISECONDS', 'NUMBER'),
-        ('PROPERTIES_RESOURCE_DISPLAY_NAME', 'VARCHAR'),
-        ('PROPERTIES_RESOURCE_ID', 'VARCHAR'),
-        ('PROPERTIES_RISK_DETAIL', 'VARCHAR'),
-        ('PROPERTIES_RISK_EVENT_TYPES', 'VARIANT'),
-        ('PROPERTIES_RISK_LEVEL_AGGREGATED', 'VARCHAR'),
-        ('PROPERTIES_RISK_LEVEL_DURING_SIGNIN', 'VARCHAR'),
-        ('PROPERTIES_RISK_STATE', 'VARCHAR'),
-        ('PROPERTIES_STATUS', 'VARIANT'),
-        ('PROPERTIES_TOKEN_ISSUER_TYPE', 'VARCHAR'),
-        ('PROPERTIES_USER_DISPLAY_NAME', 'VARCHAR'),
-        ('PROPERTIES_USER_ID', 'VARCHAR'),
-        ('PROPERTIES_USER_PRINCIPAL_NAME', 'VARCHAR'),
-        ('RESOURCE_ID', 'VARCHAR'),
-        ('RESULT_DESCRIPTION', 'VARCHAR'),
-        ('RESULT_SIGNATURE', 'VARCHAR'),
-        ('RESULT_TYPE', 'VARCHAR'),
-        ('TENANT_ID', 'VARCHAR'),
-        ('EVENT_TIME', 'TIMESTAMP_LTZ'),
-        ('LOADED_ON', 'TIMESTAMP_LTZ')
+        ('raw', 'VARIANT'),
+        ('hash_raw', 'NUMBER'),
+        ('level', 'NUMBER'),
+        ('caller_ip_address', 'VARCHAR'),
+        ('category', 'VARCHAR'),
+        ('correlation_id', 'VARCHAR'),
+        ('duration_ms', 'NUMBER'),
+        ('identity', 'VARCHAR'),
+        ('location', 'VARCHAR'),
+        ('operation_name', 'VARCHAR'),
+        ('operation_version', 'VARCHAR'),
+        ('properties', 'VARIANT'),
+        ('properties_app_display_name', 'VARCHAR'),
+        ('properties_app_id', 'VARCHAR'),
+        ('properties_applied_conditional_acess_policies', 'VARIANT'),
+        ('properties_authentication_methods_used', 'VARIANT'),
+        ('properties_authentication_processing_details', 'VARIANT'),
+        ('properties_client_app_used', 'VARCHAR'),
+        ('properties_conditional_access_status', 'VARCHAR'),
+        ('properties_created_date_time', 'TIMESTAMP_LTZ'),
+        ('properties_device_detail', 'VARIANT'),
+        ('properties_id', 'VARCHAR'),
+        ('properties_ip_address', 'VARCHAR'),
+        ('properties_is_interactive', 'BOOLEAN'),
+        ('properties_location', 'VARIANT'),
+        ('properties_mfa_detail', 'VARIANT'),
+        ('properties_network_location', 'VARIANT'),
+        ('properties_processing_time_in_milliseconds', 'NUMBER'),
+        ('properties_resource_display_name', 'VARCHAR'),
+        ('properties_resource_id', 'VARCHAR'),
+        ('properties_risk_detail', 'VARCHAR'),
+        ('properties_risk_event_types', 'VARIANT'),
+        ('properties_risk_level_aggregated', 'VARCHAR'),
+        ('properties_risk_level_during_signin', 'VARCHAR'),
+        ('properties_risk_state', 'VARCHAR'),
+        ('properties_status', 'VARIANT'),
+        ('properties_token_issuer_type', 'VARCHAR'),
+        ('properties_user_display_name', 'VARCHAR'),
+        ('properties_user_id', 'VARCHAR'),
+        ('properties_user_principal_name', 'VARCHAR'),
+        ('resource_id', 'VARCHAR'),
+        ('result_description', 'VARCHAR'),
+        ('result_signature', 'VARCHAR'),
+        ('result_type', 'VARCHAR'),
+        ('tenant_id', 'VARCHAR'),
+        ('event_time', 'TIMESTAMP_LTZ'),
+        ('loaded_on', 'TIMESTAMP_LTZ')
     ]
 }
 
+GET_TIMESTAMP_FROM_FILENAME_SQL = r'''TO_TIMESTAMP_LTZ(REGEXP_REPLACE(
+  METADATA$FILENAME,
+  '.*y=(\d*).m=(\d*).d=(\d*).h=(\d*).m=(\d*).*json$',
+  '\1-\2-\3T\4:\5',
+  1, 1, 'e'
+))'''
+
 EXTERNAL_TABLE_COLUMNS = [
-    ('timestamp_part',
-     'timestamp_ltz',
-     '''to_timestamp_ltz(regexp_replace(
-  metadata$filename,
-  '.*y=(\\d*).m=(\\d*).d=(\\d*).h=(\\d*).m=(\\d*).*json$', '\\1-\\2-\\3T\\4:\\5', 1,1,'e'))''')
+    (
+        'timestamp_part',
+        'TIMESTAMP_LTZ',
+        GET_TIMESTAMP_FROM_FILENAME_SQL,
+    )
 ]
 
 
@@ -204,64 +212,78 @@ def connect(connection_name, options):
     cloud_type = options['cloud_type']
     sas_token = options['sas_token']
 
-    comment = f'''
----
-module: azure_log
-'''
+    comment = yaml_dump(module='azure_log')
 
     db.create_stage(
-        name=f'data.{base_name}_STAGE',
+        name=f'data.{base_name}_stage',
         url=f"azure://{account_name}.blob.{suffix}/{container_name}",
         cloud='azure',
         prefix='',
         credentials=sas_token,
-        file_format=FILE_FORMAT
+        file_format=FILE_FORMAT,
     )
 
-    db.execute(f'GRANT USAGE ON STAGE data.{base_name}_STAGE TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT USAGE ON STAGE data.{base_name}_stage TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=f'data.{base_name}_CONNECTION',
+        name=f'data.{base_name}_connection',
         cols=LANDING_TABLES_COLUMNS[connection_type],
         comment=comment,
-        ifnotexists=True
+        ifnotexists=True,
     )
 
-    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
 
-    db.create_external_table(name=f'data.{base_name}_EXTERNAL',
-                             location=f'@data.{base_name}_STAGE',
-                             cols=EXTERNAL_TABLE_COLUMNS,
-                             partition='timestamp_part',
-                             file_format='TYPE=JSON')
+    db.create_external_table(
+        name=f'data.{base_name}_external',
+        location=f'@data.{base_name}_stage',
+        cols=EXTERNAL_TABLE_COLUMNS,
+        partition='timestamp_part',
+        file_format=db.TypeOptions(type='JSON'),
+    )
 
-    db.execute(f'GRANT SELECT ON data.{base_name}_EXTERNAL TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT SELECT ON data.{base_name}_external TO ROLE {SA_ROLE}')
 
     stored_proc_def = f"""
-var sql_command =
- "alter external table data.{base_name}_EXTERNAL REFRESH";
+var sql_command = "ALTER EXTERNAL TABLE data.{base_name}_external REFRESH";
 try {{
-    snowflake.execute (
-        {{sqlText: sql_command}}
-        );
-    return "Succeeded.";   // Return a success/error indicator.
-    }}
-catch (err)  {{
-    return "Failed: " + err;   // Return a success/error indicator.
-    }}
+    snowflake.execute ({{sqlText: sql_command}});
+    return "Succeeded.";
+}} catch (err)  {{
+    return "Failed: " + err;
+}}
 """
 
-    db.create_stored_procedure(name=f'data.{base_name}_PROCEDURE', args=[], return_type='string', executor='OWNER', definition=stored_proc_def)
+    db.create_stored_procedure(
+        name=f'data.{base_name}_procedure',
+        args=[],
+        return_type='string',
+        executor='OWNER',
+        definition=stored_proc_def,
+    )
 
-    refresh_task_sql = f'CALL data.{base_name}_PROCEDURE()'
-    db.create_task(name=f'data.{base_name}_REFRESH_TASK',
-                   warehouse=WAREHOUSE,
-                   schedule='5 minutes',
-                   sql=refresh_task_sql)
+    refresh_task_sql = f'CALL data.{base_name}_procedure()'
+    db.create_task(
+        name=f'data.{base_name}_refresh_task',
+        warehouse=WAREHOUSE,
+        schedule='5 minutes',
+        sql=refresh_task_sql,
+    )
 
-    select_statement_sql = {'reg': f"SELECT VALUE FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())",
-                            'gov': f"SELECT VALUE FROM (SELECT VALUE AS A FROM DATA.{base_name}_EXTERNAL WHERE TIMESTAMP_PART >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())), LATERAL FLATTEN (INPUT => A:records)"
-                            }
+    select_statement_sql = {
+        'reg': (
+            f"SELECT value "
+            f"FROM data.{base_name}_external "
+            f"WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
+        ),
+        'gov': (
+            f"SELECT value FROM ("
+            f"  SELECT value AS a "
+            f"  FROM data.{base_name}_external"
+            f"  WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
+            f"), LATERAL FLATTEN (INPUT => a:records)"
+        )
+    }
 
     insert_task_sql = {
         'operation': f"""
@@ -340,18 +362,23 @@ INSERT (
     }
 
     ingest_task_sql = f"""
-MERGE INTO data.{base_name}_CONNECTION A
+MERGE INTO data.{base_name}_connection a
 USING (
   {select_statement_sql[cloud_type]}
-) B
-on A.RAW = B.VALUE
+) b
+ON a.raw = b.value
 WHEN NOT MATCHED THEN
 {insert_task_sql[connection_type]}
 """
 
-    db.create_task(name=f'data.{base_name}_INGEST_TASK',
-                   warehouse=WAREHOUSE,
-                   schedule=f'AFTER DATA.{base_name}_REFRESH_TASK',
-                   sql=ingest_task_sql)
+    db.create_task(
+        name=f'data.{base_name}_ingest_task',
+        warehouse=WAREHOUSE,
+        schedule=f'AFTER data.{base_name}_refresh_task',
+        sql=ingest_task_sql
+    )
 
-    return {'newStage': 'finalized', 'newMessage': 'Table, Stage, External Table, Stored Procedure, and Tasks created.'}
+    return {
+        'newStage': 'finalized',
+        'newMessage': 'Created Stage, Tables, Stored Procedure, and Tasks.'
+    }
