@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union
 from os import getpid
 from re import match
 
@@ -166,6 +166,21 @@ def fetch_props(sql, filter=None):
 ###
 # SnowAlert specific helpers, similar to ORM
 ###
+
+
+class TypeOptions(object):
+    type_options: List[Tuple[str, Union[int, str, bool]]]
+
+    def __init__(self, **kwargs):
+        self.type_options = kwargs.items()
+
+    def __str__(self):
+        values = ', '.join([
+            f'{k}={v}' if isinstance(v, (int, bool)) else f"{k}='{v}'"
+            for k, v in self.type_options
+        ])
+        return f'({values})'
+
 
 def is_valid_rule_name(rule_name):
     valid_ending = (
@@ -384,14 +399,37 @@ def get_pipes(schema):
     return fetch(f"SHOW PIPES IN {schema}")
 
 
-def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
+def create_table_and_upload_csv(name, columns, file_path, file_format, ifnotexists=False):
+    create_table(f"{name}", columns, ifnotexists=ifnotexists)
+    create_stage(f"{name}_stage", file_format=file_format, temporary=True)
+    execute(f"PUT file://{file_path} @{name}_stage")
+    execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
+
+
+def create_stage(name, url='', prefix='', cloud='', credentials='',
+                 file_format: Optional[TypeOptions]=None, replace=False,
+                 comment='', temporary=False):
+
     replace = 'OR REPLACE ' if replace else ''
-    query = f"CREATE {replace}STAGE {name} \nURL='{url}/{prefix}' "
-    if cloud == 'aws':
-        query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
-    elif cloud == 'azure':
-        query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
-    query += f"\nFILE_FORMAT=({file_format}) \nCOMMENT='{comment}'"
+    temporary = 'TEMPORARY ' if temporary else ''
+    query = f"CREATE {replace}{temporary}STAGE {name} "
+
+    if url:
+        query += f"\nURL='{url}/{prefix}' "
+
+    credentials_type = (
+        'aws_role' if cloud == 'aws' else
+        'azure_sas_token' if cloud == 'azure' else
+        None
+    )
+    if credentials_type is not None:
+        query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
+
+    if file_format:
+        query += f"\nFILE_FORMAT={file_format}"
+
+    query += f"\nCOMMENT='{comment}'"
+
     execute(query, fix_errors=False)
 
 
