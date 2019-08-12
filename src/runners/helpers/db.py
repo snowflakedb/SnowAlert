@@ -427,7 +427,7 @@ def create_stage(name, url='', prefix='', cloud='', credentials='',
         query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
 
     if file_format:
-        query += f"\nFILE_FORMAT={file_format}"
+        query += f"\nFILE_FORMAT=({file_format})"
 
     query += f"\nCOMMENT='{comment}'"
 
