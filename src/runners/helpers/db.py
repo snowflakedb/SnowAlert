@@ -175,11 +175,10 @@ class TypeOptions(object):
         self.type_options = kwargs.items()
 
     def __str__(self):
-        values = ', '.join([
+        return ', '.join([
             f'{k}={v}' if isinstance(v, (int, bool)) else f"{k}='{v}'"
             for k, v in self.type_options
         ])
-        return f'({values})'
 
 
 def is_valid_rule_name(rule_name):
@@ -426,7 +425,7 @@ def create_stage(name, url='', prefix='', cloud='', credentials='',
         query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
 
     if file_format:
-        query += f"\nFILE_FORMAT={file_format}"
+        query += f"\nFILE_FORMAT=({file_format})"
 
     query += f"\nCOMMENT='{comment}'"
 
@@ -450,9 +449,9 @@ def create_external_table(name, location, cols=None, partition='',
                           refresh=False, replace=False, file_format='',
                           comment='', ifnotexists=False, copygrants=''):
     partition = f'\nPARTITION BY ({partition})' if partition else ''
-    refresh = '\nAUTO_REFRESH={refresh} '
+    refresh = f'\nAUTO_REFRESH={refresh} '
     replace = 'OR REPLACE ' if replace else ''
-    file_format = f'\nFILE_FORMAT={file_format} '
+    file_format = f'\nFILE_FORMAT=({file_format}) '
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = f'IF NOT EXISTS ' if ifnotexists else ''
     copygrants = '\nCOPY GRANTS ' if copygrants else ''

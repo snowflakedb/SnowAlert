@@ -74,7 +74,7 @@ CONNECTION_OPTIONS = [
 FILE_FORMAT = db.TypeOptions(
     type='JSON',
     compression='AUTO',
-    enable_oktal=False,
+    enable_octal=False,
     allow_duplicate=False,
     strip_outer_array=False,
     strip_null_values=False,
@@ -192,6 +192,7 @@ GET_TIMESTAMP_FROM_FILENAME_SQL = r'''TO_TIMESTAMP_LTZ(REGEXP_REPLACE(
   '\1-\2-\3T\4:\5',
   1, 1, 'e'
 ))'''
+
 
 EXTERNAL_TABLE_COLUMNS = [
     (
