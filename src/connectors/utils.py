@@ -12,7 +12,7 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
         RoleArn=src_role_arn,
         RoleSessionName=session_name
     )
-    return boto3.Session(
+    sts_role = boto3.Session(
         aws_access_key_id=src_role['Credentials']['AccessKeyId'],
         aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
         aws_session_token=src_role['Credentials']['SessionToken']
@@ -21,15 +21,11 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
         RoleSessionName=session_name,
         ExternalId=dest_external_id
     )
-
-
-def get_org_client(sts_role):
-    org_session = boto3.Session(
+    return boto3.Session(
         aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
         aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
         aws_session_token=sts_role['Credentials']['SessionToken']
     )
-    return org_session.client('organizations')
 
 
 def yaml_dump(**kwargs):
