@@ -451,7 +451,7 @@ def create_external_table(name, location, cols=None, partition='',
     partition = f'\nPARTITION BY ({partition})' if partition else ''
     refresh = f'\nAUTO_REFRESH={refresh} '
     replace = 'OR REPLACE ' if replace else ''
-    file_format = f'\nFILE_FORMAT=({file_format}) '
+    file_format = f'\nFILE_FORMAT=({file_format}) ' if file_format else ''
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = f'IF NOT EXISTS ' if ifnotexists else ''
     copygrants = '\nCOPY GRANTS ' if copygrants else ''
