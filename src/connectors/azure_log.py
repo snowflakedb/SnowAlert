@@ -242,7 +242,7 @@ def connect(connection_name, options):
         file_format=db.TypeOptions(type='JSON'),
     )
 
-    db.execute(f'GRANT SELECT ON data.{base_name}_EXTERNAL TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT SELECT ON data.{base_name}_external TO ROLE {SA_ROLE}')
 
     stored_proc_def = f"""
 var sql_command = "ALTER EXTERNAL TABLE data.{base_name}_external REFRESH";
@@ -277,7 +277,7 @@ try {{
             f"WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
         ),
         'gov': (
-            f"SELECT VALUE FROM ("
+            f"SELECT value FROM ("
             f"  SELECT value AS a "
             f"  FROM data.{base_name}_external"
             f"  WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
