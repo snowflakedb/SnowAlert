@@ -40,7 +40,7 @@ def main():
         results = []
 
         handlers = alert.get('HANDLERS')
-        for handler in ['jira'] if handlers is None else handlers:
+        for handler in ['jira'] if (handlers is None or len(handlers) == 0) else handlers:
             if handler is None:
                 results.append(None)
 
