@@ -3,6 +3,7 @@ import csv
 import sys
 import logging
 import os
+import re
 from runners.helpers import db
 import multiprocessing
 from queue import Queue
@@ -28,6 +29,20 @@ def pull_aws_data():
             if num_results < limit:
                 finished = True
             offset += limit
+
+def grab_osquery_details(deployments):
+    print("Inside function")
+    conn = db.connect()
+    cur = conn.cursor()
+    osquery_query = db.fetch(conn, "SHOW VIEWS LIKE 'osquery_v' IN SECURITY.PROD")
+    query_text = None
+    print(type(osquery_query))
+    for row in osquery_query:
+        query_text = row["text"]
+    query_text = query_text.split('union all')
+    for query in query_text:
+        deployments.append(re.findall('from (.*)', query)[0])
+
 
 
 def query_snowflake(query):
@@ -56,25 +71,13 @@ def query_snowflake(query):
 
 pull_aws_data()
 
+deployments = []
+grab_osquery_details(deployments)
+
 queries = []
-
-
-deployments=[]
-deployments.append("awsuseast1citadel")
-deployments.append("awsuseast1goldman")
-deployments.append("awsuseast1att")
-deployments.append("azwesteurope")
-deployments.append("prod1_capone")
-deployments.append("va_capone")
-deployments.append("prod1")
-deployments.append("dev")
-deployments.append("au")
-deployments.append("eu")
-deployments.append("ie")
-deployments.append("va")
-
 for i in deployments:
-    queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from SNOWALERT.DATA.{} order by DAY, PROCESS, INSTANCE_ID".format(i))
+    queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as num_starts from {} where event_time >= dateadd(day,-35,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
+    #queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from {} order by DAY, PROCESS, INSTANCE_ID".format(i))
 
 
 
