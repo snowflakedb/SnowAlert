@@ -205,7 +205,7 @@ substr(metadata$filename, 56, 2)
 || '-' ||
 substr(metadata$filename, 61, 2)
 || 'T' ||
-substr(metadat$filename, 66, 2)
+substr(metadata$filename, 66, 2)
 || ':' ||
 substr(metadata$filename, 71, 2))
     ''',
@@ -216,7 +216,7 @@ substr(metadata$filename, 56, 2)
 || '-' ||
 substr(metadata$filename, 61, 2)
 || 'T' ||
-substr(metadat$filename, 66, 2)
+substr(metadata$filename, 66, 2)
 || ':' ||
 substr(metadata$filename, 71, 2))
 '''
