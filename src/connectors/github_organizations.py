@@ -51,7 +51,6 @@ LANDING_TABLE_COLUMNS = [
     ('insert_time', 'TIMESTAMP_LTZ(9)'),
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
-    ('_modified', 'TIMESTAMP_LTZ(9)'),
     ('ref', 'VARCHAR(256)'),
     ('before', 'VARCHAR(256)'),
     ('after', 'VARCHAR(256)'),
@@ -238,7 +237,6 @@ INSERT INTO {landing_table} (
 SELECT CURRENT_TIMESTAMP() insert_time
     , value raw
     , HASH(value) hash_raw
-    , value:modified::TIMESTAMP_LTZ(9) _modified
     , value:ref::VARCHAR(256) ref
     , value:before::VARCHAR(256) before
     , value:after::VARCHAR(256) after
