@@ -47,8 +47,10 @@ FILE_FORMAT = """
 """
 
 LANDING_TABLE_COLUMNS = [
-    ('_file', 'VARCHAR(256)'),
-    ('_line', 'NUMBER(38,0)'),
+    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('insert_time', 'TIMESTAMP_LTZ(9)'),
+    ('raw', 'VARIANT'),
+    ('hash_raw', 'NUMBER'),
     ('_modified', 'TIMESTAMP_LTZ(9)'),
     ('ref', 'VARCHAR(256)'),
     ('before', 'VARCHAR(256)'),
@@ -63,7 +65,6 @@ LANDING_TABLE_COLUMNS = [
     ('repository', 'VARIANT'),
     ('organization', 'VARIANT'),
     ('sender', 'VARIANT'),
-    ('_fivetran_synced', 'TIMESTAMP_LTZ(9)'),
     ('action', 'VARCHAR(256)'),
     ('check_run', 'VARIANT'),
     ('check_suite', 'VARIANT'),
@@ -234,8 +235,9 @@ INSERT INTO {landing_table} (
     context, state, commit, branches, created_at, updated_at, assignee, release, membership, alert, scope, member, requested_reviewer, team,
     starred_at, pages, project_card, build, deployment_status, deployment, forkee, milestone, key, project_column, status, avatar_url
 )
-SELECT value _file
-    , value _line
+SELECT CURRENT_TIMESTAMP() insert_time
+    , value raw
+    , HASH(value) hash_raw
     , value:modified::TIMESTAMP_LTZ(9) _modified
     , value:ref::VARCHAR(256) ref
     , value:before::VARCHAR(256) before
@@ -250,7 +252,6 @@ SELECT value _file
     , value:repository::VARIANT repository
     , value:organization::VARIANT organization
     , value:sender::VARIANT sender
-    , value:FILL IN FIVETRANSYNCED
     , value:action::VARCHAR(256) action
     , value:check_run::VARIANT check_run
     , value:check_suite::VARIANT check_suite
