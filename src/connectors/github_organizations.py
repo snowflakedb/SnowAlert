@@ -234,21 +234,66 @@ INSERT INTO {landing_table} (
     context, state, commit, branches, created_at, updated_at, assignee, release, membership, alert, scope, member, requested_reviewer, team,
     starred_at, pages, project_card, build, deployment_status, deployment, forkee, milestone, key, project_column, status, avatar_url
 )
-SELECT value raw
-    , HASH(value) hash_raw
-    , REGEXP_REPLACE(filename, '{DATE_REGEXP}', '{DATE_ISO8601_BACKREFERENCES}')::TIMESTAMP_LTZ event_time
-    , value:configurationItemCaptureTime::TIMESTAMP_LTZ(9) configuration_item_capture_time
-    , value:awsAccountId::STRING account_id
-    , value:awsRegion::STRING aws_region
-    , value:resourceType::STRING aws_region
-    , value:ARN::STRING arn
-    , value:availabilityZone::STRING availability_zone
-    , value:resourceCreationTime::TIMESTAMP_LTZ(9) resource_creation_time
-    , value:resourceName::STRING resource_name
-    , value:resourceId::STRING resource_Id
-    , value:relationships::VARIANT relationships
-    , value:configuration::VARIANT configuration
-    , value:tags::VARIANT tags
+SELECT value _file
+    , value _line
+    , value:modified::TIMESTAMP_LTZ(9) _modified
+    , value:ref::VARCHAR(256) ref
+    , value:before::VARCHAR(256) before
+    , value:after::VARCHAR(256) after
+    , value:created::BOOLEAN created
+    , value:deleted::BOOLEAN deleted
+    , value:forced::BOOLEAN forced
+    , value:base_ref::VARCHAR(256) base_ref
+    , value:compare::VARCHAR(256) compare
+    , value:commits::VARIANT commits
+    , value:head_commit::VARIANT head_commit
+    , value:repository::VARIANT repository
+    , value:organization::VARIANT organization
+    , value:sender::VARIANT sender
+    , value:FILL IN FIVETRANSYNCED
+    , value:action::VARCHAR(256) action
+    , value:check_run::VARIANT check_run
+    , value:check_suite::VARIANT check_suite
+    , value:FILL IN NUMBER
+    , value:pull_requests::VARIANT pull_request
+    , value:labels_url::VARIANT label
+    , value:requested_teams::VARIANT requested_team
+    , value:ref_type::VARCHAR(256) ref_type
+    , value:master_branch::VARCHAR(256) master_branch
+    , value:description::VARCHAR(256) description
+    , value:pusher_type::VARCHAR(256) pusher_type
+    , value:review_comments::VARIANT review
+    , value:changed_files::VARIANT changes
+    , value:comments_url::VARIANT comment
+    , value:issues_url::VARIANT issue
+    , value:id::NUMBER(38,0) id
+    , value:head_sha::VARCHAR(256) sha
+    , value:name::VARCHAR(256) name
+    , value:FILL IN TARGET
+    , value:FILL IN CONTEXT
+    , value:FILL IN STATE
+    , value:commits_url::VARIANT commit
+    , value:branches_url:VARIANT branches
+    , value:created_at::TIMESTAMP_LTZ(9) created_at
+    , value:updated_at::TIMESTAMP_LTZ(9) updated_at
+    , value:assignees_url::VARIANT assignee
+    , value:releases_url::VARIANT release
+    , value:members_url::VARIANT membership
+    , value:FILL IN ALERT
+    , value:FILL IN SCOPE
+    , value:members:VARIANT member
+    , value:requested_reviewers::VARIANT requested_reviewer
+    , value:requested_teams::VARIANT team
+    , value:starred_url::TIMESTAMP_LTZ(9) starred_at
+    , value:has_pages::VARIANT pages
+    , value:has_project::VARIANT project_card
+    , value:deployments_url::VARIANT deployment_status
+    , value:forks::VARIANT forkee
+    , value:milestones_url::VARIANT milestone
+    , value:keys_url::VARIANT key
+    , value:has_projects::VARIANT project_column
+    , value:statuses::VARCHAR(256) status
+    , value:avatar_url::VARCHAR(256) avatar_url
 FROM data.{base_name}_stream, LATERAL FLATTEN(input => v:configurationItems)
 WHERE ARRAY_SIZE(v:configurationItems) > 0
 '''
