@@ -254,7 +254,7 @@ SELECT value _file
     , value:action::VARCHAR(256) action
     , value:check_run::VARIANT check_run
     , value:check_suite::VARIANT check_suite
-    , value:FILL IN NUMBER
+    , value:number::'NUMBER(38,0)' number
     , value:pull_requests::VARIANT pull_request
     , value:labels_url::VARIANT label
     , value:requested_teams::VARIANT requested_team
@@ -269,9 +269,9 @@ SELECT value _file
     , value:id::NUMBER(38,0) id
     , value:head_sha::VARCHAR(256) sha
     , value:name::VARCHAR(256) name
-    , value:FILL IN TARGET
-    , value:FILL IN CONTEXT
-    , value:FILL IN STATE
+    , value:target_url::VARCHAR(8192) target_url
+    , value:context:: VARCHAR(256) context
+    , value:state:: VARCHAR(256) state
     , value:commits_url::VARIANT commit
     , value:branches_url:VARIANT branches
     , value:created_at::TIMESTAMP_LTZ(9) created_at
