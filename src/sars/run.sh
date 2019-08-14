@@ -1,2 +1,2 @@
 #!/bin/bash
-./snowalert/src/sars/run.py | ./snowalert/src/sars/temp.R | ./snowalert/src/sars/writeBack.py
+./snowalert/src/sars/run.py | ../sars/temp.R | ../sars/writeBack.py
