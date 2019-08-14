@@ -8,6 +8,7 @@ from runners.helpers import db
 import multiprocessing
 from queue import Queue
 
+print("Starting")
 def pull_aws_data():
     conn = db.connect()
     cur = conn.cursor()
@@ -76,7 +77,7 @@ grab_osquery_details(deployments)
 
 queries = []
 for i in deployments:
-    queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as num_starts from {} where event_time >= dateadd(day,-35,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
+    queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as num_starts from {} where event_time >= dateadd(day,-1,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
     #queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from {} order by DAY, PROCESS, INSTANCE_ID".format(i))
 
 
