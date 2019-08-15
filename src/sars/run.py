@@ -32,14 +32,12 @@ def pull_aws_data():
             offset += limit
 
 def grab_osquery_details(deployments):
-    print("Inside function")
     conn = db.connect()
     cur = conn.cursor()
     osquery_query = db.fetch(conn, "SHOW VIEWS LIKE 'osquery_v' IN SECURITY.PROD")
     query_text = None
-    print(type(osquery_query))
     for row in osquery_query:
-        query_text = row["text"]
+        query_text= row["text"]
     query_text = query_text.split('union all')
     for query in query_text:
         deployments.append(re.findall('from (.*)', query)[0])
@@ -69,17 +67,14 @@ def query_snowflake(query):
         offset += limit
             
         
-
 pull_aws_data()
-
 deployments = []
 grab_osquery_details(deployments)
 
 queries = []
 for i in deployments:
-    queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as num_starts from {} where event_time >= dateadd(day,-1,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
+    queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as hits from {} where event_time >= dateadd(day,-35,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
     #queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from {} order by DAY, PROCESS, INSTANCE_ID".format(i))
-
 
 
 
@@ -96,4 +91,3 @@ def init(l):
 writer = None
 for query in queries:
     query_snowflake(query)
-
