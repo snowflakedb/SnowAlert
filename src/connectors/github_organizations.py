@@ -1,6 +1,3 @@
-"""AWS Config
-Collect Config logs from S3 using a privileged Role
-"""
 from json import dumps
 from time import sleep
 
@@ -22,7 +19,7 @@ CONNECTION_OPTIONS = [
         'name': 'filter',
         'title': 'Prefix Filter',
         'prompt': 'The folder in S3 bucket where Github Organizations puts logs',
-        'default': 'AWSLogs/',
+        'default': 'AWSLogs',
         'required': True,
     },
     {
@@ -124,7 +121,7 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'AWS_CONFIG_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_ORGANIZATIONS_{connection_name}_EVENTS'.upper()
     stage = f'data.{base_name}_STAGE'
     staging_table = f'data.{base_name}_STAGING'
     landing_table = f'data.{base_name}_CONNECTION'
@@ -228,7 +225,7 @@ def finalize(connection_name):
 
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
-    _file, _line, _modified, ref, before, after, created, deleted, forced, base_ref, compare, commits, head_commit,
+    insert_time, raw, hash_raw, ref, before, after, created, deleted, forced, base_ref, compare, commits, head_commit,
     repository, pusher, organization, sender, _fivetran_synced, action, check_run, check_suite, number, pull_request,
     label, requested_team, ref_type, master_branch, description, pusher_type, review, changes, comment, issue, id, sha, name, target_url,
     context, state, commit, branches, created_at, updated_at, assignee, release, membership, alert, scope, member, requested_reviewer, team,
@@ -321,21 +318,20 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
     db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
                    warehouse=WAREHOUSE, sql=config_ingest_task)
 
-    db.execute(f"ALTER PIPE {pipe} REFRESH")
-
-    pipe_description = list(db.fetch(f'DESC PIPE {pipe}'))
-    if len(pipe_description) < 1:
+    pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
+    if len(pipe_description) is None:
         return {
             'newStage': 'error',
             'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
         }
     else:
-        sqs_arn = pipe_description[0]['notification_channel']
+        sqs_arn = pipe_description['notification_channel']
 
     return {
         'newStage': 'finalized',
         'newMessage': (
             f"Please add this SQS Queue ARN to the bucket event notification "
-            f"channel for all object create events: {sqs_arn}"
+            f"channel for all object create events:\n\n  {sqs_arn}\n\n"
+            f"To backfill the landing table with existing data, please run:\n\n  ALTER PIPE {pipe} REFRESH;\n\n"
         )
     }
