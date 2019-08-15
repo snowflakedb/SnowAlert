@@ -70,7 +70,7 @@ def connect(connection_name, options):
     connection_type = options['connection_type']
     base_name = f'gsuite_logs_{connection_name}_{connection_type}'
     landing_table = f'data.{base_name}_connection'
-    options['subjects_list'] = options['subjects_list'].split(',')
+    options['subjects_list'] = options.get('subjects_list', '').split(',')
     comment = yaml_dump(
         module='gsuite_logs',
         **options
@@ -106,7 +106,7 @@ def get_logs(service_account_info, with_subject=None, event_name='', start_time=
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     service_user_creds = options['service_user_creds']
-    for subject in options.get('subjects_list') or [None]:
+    for subject in options.get('subjects_list') or ['']:
         for event in LOGIN_EVENTS:
             items = get_logs(
                 service_user_creds,
