@@ -226,7 +226,7 @@ def finalize(connection_name):
     config_ingest_task = f'''
 INSERT INTO {landing_table} (
     insert_time, raw, hash_raw, ref, before, after, created, deleted, forced, base_ref, compare, commits, head_commit,
-    repository, pusher, organization, sender, _fivetran_synced, action, check_run, check_suite, number, pull_request,
+    repository, pusher, organization, sender, action, check_run, check_suite, number, pull_request,
     label, requested_team, ref_type, master_branch, description, pusher_type, review, changes, comment, issue, id, sha, name, target_url,
     context, state, commit, branches, created_at, updated_at, assignee, release, membership, alert, scope, member, requested_reviewer, team,
     starred_at, pages, project_card, build, deployment_status, deployment, forkee, milestone, key, project_column, status, avatar_url
