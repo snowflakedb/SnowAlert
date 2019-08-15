@@ -1,12 +1,13 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
+print("RUN.PY")
 import csv
 import sys
 import logging
 import os
 import re
-from runners.helpers import db
 import multiprocessing
 from queue import Queue
+from runners.helpers import db
 
 print("Starting")
 def pull_aws_data():

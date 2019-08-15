@@ -1,7 +1,11 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
+print("WRITE BACK")
 import csv
 import sys
 writer=None
+
+from queue import Queue
+
 from runners.helpers import db
 print("Starting")
 reader = csv.reader(sys.stdin)
