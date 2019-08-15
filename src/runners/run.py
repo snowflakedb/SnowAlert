@@ -15,8 +15,6 @@ from runners import violation_suppressions_runner
 
 from runners.config import RUN_ID
 from runners.helpers import log
-import os
-print(os.getcwd())
 
 def main(target="all", rule_name=None):
     if target == "connector" and rule_name:
