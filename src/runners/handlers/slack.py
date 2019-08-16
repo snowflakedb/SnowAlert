@@ -14,10 +14,6 @@ def message_template(vars):
     # remove handlers data, it might contain JSON incompatible strucutres
     vars['alert'].pop('HANDLERS')
 
-    # remove file content data, it might contain JSON incompatible strucutres
-    # vars['properties'].pop('file_content')
-
-
     # if we have Slack user data, send it to template
     if 'user' in vars:
         params = {'alert': vars['alert'], 'properties': vars['properties'], 'user': vars['user']}
@@ -41,6 +37,7 @@ def message_template(vars):
         log.error(f"Error loading javascript template", e)
         raise
 
+    log.debug(f"Template payload",payload)
     return payload
 
 
