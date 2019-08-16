@@ -5,7 +5,9 @@ import logging
 import os
 import re
 import multiprocessing
+from os import envriron
 from queue import Queue
+
 from runners.helpers import db
 
 
@@ -17,7 +19,13 @@ def pull_aws_data():
     aws_writer=None
     with open('aws_inventory.csv','w') as fou:
         while(not finished):
-            data = db.fetch("SELECT distinct instance_id::string as instance_id, min(distinct case when value:\"Key\"='SFROLE' then value:\"Value\" else NULL end ) as role FROM (SELECT instance_id,role FROM (SELECT distinct data:InstanceId as instance_id,  data:\"Tags\" as role, DATA:NetworkInterfaces as networkinterfaces FROM (SELECT distinct data FROM AWS_INVENTORY.SNAPSHOTS.INSTANCES where snapshot_at > dateadd(day,-30,current_timestamp)), lateral flatten(input => DATA:BlockDeviceMappings) WHERE DATA:\"Tags\" not like '%%{\"Key\":\"SFROLE\",\"Value\":\"XP\"}%%' and DATA:\"Tags\" not like '%%{\"Key\":\"SFROLE\",\"Value\":\"IMS_PENDING_SHUTDOWN\"}%%'),lateral flatten(input => NETWORKINTERFACES)), lateral flatten(input => role) group by instance_id  limit %s offset %s" % (limit,offset))
+            data = db.fetch("""SELECT distinct INSTANCE:InstanceId::string as instance_id
+                , min(distinct case when value:"Key"='SFROLE' then value:"Value" else NULL end ) as role FROM (
+    SELECT distinct INSTANCE FROM SNOWALERT.BASE_DATA.EC2_INSTANCE_SNAPSHOTS_T where timestamp > dateadd(day,-30,current_timestamp)
+  and INSTANCE:"Tags" not like '%%{"Key":"SFROLE","Value":"XP"}%%' 
+  and INSTANCE:"Tags" not like '%%{"Key":"SFROLE","Value":"IMS_PENDING_SHUTDOWN"}%%'
+    ), lateral flatten(input=>INSTANCE:"Tags")
+    group by instance_id  limit {} offset {}""".format(limit,offset))
             num_results=0
             for row in data:
                 num_results+=1
@@ -30,7 +38,8 @@ def pull_aws_data():
             offset += limit
 
 def grab_osquery_details(deployments):
-    osquery_query = db.fetch("SHOW VIEWS LIKE 'osquery_v' IN SECURITY.PROD")
+    osquery_schema = environ.get('SECURITY_SCHEMA')
+    osquery_query = db.fetch("SHOW VIEWS LIKE 'osquery_v' IN {}".format(osquery_schema))
     query_text = None
     for row in osquery_query:
         query_text= row["text"]
@@ -47,7 +56,6 @@ def query_snowflake(query):
     limit = 10000000
     while(not finished):
         num_results = 0
-        #db.execute("USE WAREHOUSE SNOWHOUSE;")
         query_with_limit = query + " limit %s offset %s" % (limit, offset)
         data = db.fetch(query_with_limit)
         for row in data:
@@ -69,7 +77,6 @@ grab_osquery_details(deployments)
 queries = []
 for i in deployments:
     queries.append("select raw:\"columns\":\"path\"::string as process, date_trunc(day, event_time) as day, raw:\"instance_id\" as instance_id, count(*) as hits from {} where event_time >= dateadd(day,-1,current_timestamp) AND event_time < dateadd(minute,-60,current_timestamp) AND NAME like 'process_events' group by 1,2,3 order by DAY, PROCESS, INSTANCE_ID".format(i))
-    #queries.append("select DAY, PROCESS::string as PROCESS, INSTANCE_ID::string as INSTANCE_ID, NUM_STARTS AS HITS from {} order by DAY, PROCESS, INSTANCE_ID".format(i))
 
 
 
