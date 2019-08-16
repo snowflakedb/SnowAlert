@@ -3,6 +3,7 @@ from . import okta
 from . import azure_log
 from . import azure_subscription
 from . import azure_vm
+from . import github_organizations
 from . import aws_config
 from . import aws_inventory
 from . import tenable_settings
@@ -14,6 +15,7 @@ __all__ = [
     'azure_log',
     'azure_subscription',
     'azure_vm',
+    'github_organizations',
     'okta',
     'tenable_settings',
 ]
@@ -25,6 +27,7 @@ connectors = {
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
+    'github_organizations': github_organizations,
     'okta': okta,
     'tenable_settings': tenable_settings,
 }
@@ -36,7 +39,7 @@ CONNECTION_OPTIONS = [
         'docstring': connector.__doc__,
         'finalize': callable(getattr(connector, 'finalize', None)),
     } for name, connector in connectors.items() if (
-        getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
-        and callable(getattr(connector, 'connect', None))
+            getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
+            and callable(getattr(connector, 'connect', None))
     )
 ]

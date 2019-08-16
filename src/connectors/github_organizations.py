@@ -4,6 +4,8 @@ from time import sleep
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
 
+S3_BUCKET_DEFAULT_PREFIX = ""
+
 CONNECTION_OPTIONS = [
     {
         'type': 'str',
@@ -19,7 +21,7 @@ CONNECTION_OPTIONS = [
         'name': 'filter',
         'title': 'Prefix Filter',
         'prompt': 'The folder in S3 bucket where Github Organizations puts logs',
-        'default': 'AWSLogs',
+        'default': S3_BUCKET_DEFAULT_PREFIX,
         'required': True,
     },
     {
@@ -44,7 +46,6 @@ FILE_FORMAT = """
 """
 
 LANDING_TABLE_COLUMNS = [
-    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
     ('insert_time', 'TIMESTAMP_LTZ(9)'),
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER'),
@@ -59,6 +60,7 @@ LANDING_TABLE_COLUMNS = [
     ('commits', 'VARIANT'),
     ('head_commit', 'VARIANT'),
     ('repository', 'VARIANT'),
+    ('pusher', 'VARIANT'),
     ('organization', 'VARIANT'),
     ('sender', 'VARIANT'),
     ('action', 'VARCHAR(256)'),
@@ -127,7 +129,7 @@ def connect(connection_name, options):
     landing_table = f'data.{base_name}_CONNECTION'
 
     bucket = options['bucket_name']
-    prefix = options.get('filter', 'AWSLogs/')
+    prefix = options.get('filter', S3_BUCKET_DEFAULT_PREFIX)
     role = options['aws_role']
 
     comment = f"""
@@ -216,7 +218,7 @@ module: github_organizations
 
 
 def finalize(connection_name):
-    base_name = f'AWS_CONFIG_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_ORGANIZATIONS_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
@@ -227,9 +229,10 @@ def finalize(connection_name):
 INSERT INTO {landing_table} (
     insert_time, raw, hash_raw, ref, before, after, created, deleted, forced, base_ref, compare, commits, head_commit,
     repository, pusher, organization, sender, action, check_run, check_suite, number, pull_request,
-    label, requested_team, ref_type, master_branch, description, pusher_type, review, changes, comment, issue, id, sha, name, target_url,
-    context, state, commit, branches, created_at, updated_at, assignee, release, membership, alert, scope, member, requested_reviewer, team,
-    starred_at, pages, project_card, build, deployment_status, deployment, forkee, milestone, key, project_column, status, avatar_url
+    label, requested_team, ref_type, master_branch, description, pusher_type, review, changes, comment, 
+    issue, id, sha, name, target_url, context, state, commit, branches, created_at, updated_at, assignee, 
+    release, membership, alert, scope, member, requested_reviewer, team, starred_at, pages, project_card, 
+    build, deployment_status, deployment, forkee, milestone, key, project_column, status, avatar_url
 )
 SELECT CURRENT_TIMESTAMP() insert_time
     , value raw
@@ -245,50 +248,53 @@ SELECT CURRENT_TIMESTAMP() insert_time
     , value:commits::VARIANT commits
     , value:head_commit::VARIANT head_commit
     , value:repository::VARIANT repository
+    , value:pusher::VARIANT pusher
     , value:organization::VARIANT organization
     , value:sender::VARIANT sender
     , value:action::VARCHAR(256) action
     , value:check_run::VARIANT check_run
     , value:check_suite::VARIANT check_suite
-    , value:number::'NUMBER(38,0)' number
-    , value:pull_requests::VARIANT pull_request
-    , value:labels_url::VARIANT label
-    , value:requested_teams::VARIANT requested_team
+    , value:number::NUMBER(38,0) number
+    , value:pull_request::VARIANT pull_request
+    , value:label::VARIANT label
+    , value:requested_team::VARIANT requested_team
     , value:ref_type::VARCHAR(256) ref_type
     , value:master_branch::VARCHAR(256) master_branch
     , value:description::VARCHAR(256) description
     , value:pusher_type::VARCHAR(256) pusher_type
-    , value:review_comments::VARIANT review
-    , value:changed_files::VARIANT changes
-    , value:comments_url::VARIANT comment
-    , value:issues_url::VARIANT issue
+    , value:review::VARIANT review
+    , value:changes::VARIANT changes
+    , value:comment::VARIANT comment
+    , value:issue::VARIANT issue
     , value:id::NUMBER(38,0) id
-    , value:head_sha::VARCHAR(256) sha
+    , value:sha::VARCHAR(256) sha
     , value:name::VARCHAR(256) name
     , value:target_url::VARCHAR(8192) target_url
     , value:context:: VARCHAR(256) context
     , value:state:: VARCHAR(256) state
-    , value:commits_url::VARIANT commit
-    , value:branches_url:VARIANT branches
+    , value:commit::VARIANT commit
+    , value:branches:VARIANT branches
     , value:created_at::TIMESTAMP_LTZ(9) created_at
     , value:updated_at::TIMESTAMP_LTZ(9) updated_at
-    , value:assignees_url::VARIANT assignee
-    , value:releases_url::VARIANT release
-    , value:members_url::VARIANT membership
-    , value:FILL IN ALERT
-    , value:FILL IN SCOPE
-    , value:members:VARIANT member
-    , value:requested_reviewers::VARIANT requested_reviewer
-    , value:requested_teams::VARIANT team
-    , value:starred_url::TIMESTAMP_LTZ(9) starred_at
-    , value:has_pages::VARIANT pages
-    , value:has_project::VARIANT project_card
-    , value:deployments_url::VARIANT deployment_status
-    , value:forks::VARIANT forkee
-    , value:milestones_url::VARIANT milestone
-    , value:keys_url::VARIANT key
-    , value:has_projects::VARIANT project_column
-    , value:statuses::VARCHAR(256) status
+    , value:assignee::VARIANT assignee
+    , value:release::VARIANT release
+    , value:membership::VARIANT membership
+    , value:alert::VARIANT alert
+    , value:scope::VARCHAR(256) scope
+    , value:member:VARIANT member
+    , value:requested_reviewer::VARIANT requested_reviewer
+    , value:team::VARIANT team
+    , value:starred_at::TIMESTAMP_LTZ(9) starred_at
+    , value:pages::VARIANT pages
+    , value:project_card::VARIANT project_card
+    , value:build::VARIANT build
+    , value:deployment_status::VARIANT deployment_status
+    , value:deployment::VARIANT deployment
+    , value:forkee::VARIANT forkee
+    , value:milestone::VARIANT milestone
+    , value:key::VARIANT key
+    , value:project_column::VARIANT project_column
+    , value:status::VARCHAR(256) status
     , value:avatar_url::VARCHAR(256) avatar_url
 FROM data.{base_name}_stream, LATERAL FLATTEN(input => v:configurationItems)
 WHERE ARRAY_SIZE(v:configurationItems) > 0
