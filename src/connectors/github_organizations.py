@@ -149,7 +149,7 @@ module: github_organizations
     db.create_table(
         name=staging_table,
         cols=[
-            ('v', 'VARIANT'),
+            ('value', 'VARIANT'),
             ('filename', 'STRING(200)')
         ]
     )
@@ -296,8 +296,7 @@ SELECT CURRENT_TIMESTAMP() insert_time
     , value:project_column::VARIANT project_column
     , value:status::VARCHAR(256) status
     , value:avatar_url::VARCHAR(256) avatar_url
-FROM data.{base_name}_stream, LATERAL FLATTEN(input => v:configurationItems)
-WHERE ARRAY_SIZE(v:configurationItems) > 0
+FROM data.{base_name}_stream
 '''
 
     db.create_stream(
@@ -311,7 +310,7 @@ WHERE ARRAY_SIZE(v:configurationItems) > 0
         lambda: db.create_pipe(
             name=pipe,
             sql=(
-                f"COPY INTO data.{base_name}_staging(v, filename) "
+                f"COPY INTO data.{base_name}_staging(value, filename) "
                 f"FROM (SELECT $1, metadata$filename FROM @data.{base_name}_stage/)"
             ),
             replace=True,
