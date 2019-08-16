@@ -32,14 +32,14 @@ important_length <- merged %>%
   )
 
 full_length = merge(important_length, overall_length, by='PROCESS', all.x=TRUE, all.y=TRUE)
-full_length$hits = coalesce(full_length$hits, as.numeric(0))
-full_length$hits_overall = coalesce(full_length$hits_overall, as.numeric(0))
-full_length$num_days = coalesce(full_length$num_days, as.numeric(0))
-full_length$num_days_overall = coalesce(full_length$num_days_overall,as.numeric(0))
-full_length$num_instances = coalesce(full_length$num_instances, as.numeric(0))
-full_length$num_instances_overall = coalesce(full_length$num_instances_overall, as.numeric(0))
-full_length$percentage_of_hits = full_length$hits_overall/all_matrix_size
-full_length$percentage_of_important_hits = full_length$hits/matrix_size
+full_length$hits = coalesce(as.integer(full_length$hits), as.integer(0))
+full_length$hits_overall = coalesce(as.integer(full_length$hits_overall), as.integer(0))
+full_length$num_days = coalesce(as.integer(full_length$num_days), as.integer(0))
+full_length$num_days_overall = coalesce(as.integer(full_length$num_days_overall),as.integer(0))
+full_length$num_instances = coalesce(as.integer(full_length$num_instances), as.integer(0))
+full_length$num_instances_overall = coalesce(as.integer(full_length$num_instances_overall), as.integer(0))
+full_length$percentage_of_hits = as.double(full_length$hits_overall)/as.double(all_matrix_size)
+full_length$percentage_of_important_hits = as.double(full_length$hits)/as.double(matrix_size)
 full_length$matrix_size = matrix_size
 full_length$overall_matrix_size = all_matrix_size
 write.csv(full_length)
