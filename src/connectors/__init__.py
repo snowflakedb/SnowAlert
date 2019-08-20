@@ -15,7 +15,7 @@ __all__ = [
     'azure_log',
     'azure_subscription',
     'azure_vm',
-    'github_organization.py',
+    'github_organization',
     'okta',
     'tenable_settings',
 ]
