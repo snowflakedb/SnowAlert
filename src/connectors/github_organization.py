@@ -28,7 +28,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'aws_role',
         'title': 'Github Organizations Bucket Reader Role',
-        'prompt': "Role to be assumed for access to Github Organizations files in S3",
+        'prompt': "Role to be assumed for access to Github Organization files in S3",
         'placeholder': 'arn:aws:iam::012345678987:role/my-github-reader-role',
         'required': True,
     }
