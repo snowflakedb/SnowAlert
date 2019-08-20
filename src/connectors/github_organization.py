@@ -222,9 +222,7 @@ def finalize(connection_name):
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
-    DATE_ISO8601_BACKREFERENCES = r'\1-\2-\3T\4:\5:\6Z'.replace("\\", "\\\\")
-
-    config_ingest_task = f'''
+    github_organization_ingest_task = f'''
 INSERT INTO {landing_table} (
     insert_time, raw, hash_raw, ref, before, after, created, deleted, forced, base_ref, compare, commits, head_commit,
     repository, pusher, organization, sender, action, check_run, check_suite, number, pull_request,
@@ -320,7 +318,7 @@ FROM data.{base_name}_stream
     )
 
     db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
-                   warehouse=WAREHOUSE, sql=config_ingest_task)
+                   warehouse=WAREHOUSE, sql=github_organization_ingest_task)
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
     if pipe_description is None:
