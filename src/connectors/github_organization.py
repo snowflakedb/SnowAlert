@@ -218,7 +218,7 @@ module: github_organizations
 
 
 def finalize(connection_name):
-    base_name = f'GITHUB_ORGANIZATIONS_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
