@@ -134,7 +134,7 @@ def connect(connection_name, options):
 
     comment = f"""
 ---
-module: github_organizations
+module: github_organization
 """
 
     db.create_stage(
