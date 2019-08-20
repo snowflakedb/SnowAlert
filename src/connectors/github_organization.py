@@ -20,7 +20,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'filter',
         'title': 'Prefix Filter',
-        'prompt': 'The folder in S3 bucket where Github Organizations puts logs',
+        'prompt': 'The folder in S3 bucket where Github Organization puts logs',
         'default': S3_BUCKET_DEFAULT_PREFIX,
         'required': True,
     },
