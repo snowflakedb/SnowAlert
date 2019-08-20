@@ -29,7 +29,7 @@ CONNECTION_OPTIONS = [
         'name': 'aws_role',
         'title': 'Github Organizations Bucket Reader Role',
         'prompt': "Role to be assumed for access to Github Organizations files in S3",
-        'placeholder': 'arn:aws:iam::012345678987:role/my-config-reader-role',
+        'placeholder': 'arn:aws:iam::012345678987:role/my-github-reader-role',
         'required': True,
     }
 ]
@@ -222,7 +222,6 @@ def finalize(connection_name):
     pipe = f'data.{base_name}_PIPE'
     landing_table = f'data.{base_name}_CONNECTION'
 
-    DATE_REGEXP = r'.+(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z.*'.replace("\\", "\\\\")
     DATE_ISO8601_BACKREFERENCES = r'\1-\2-\3T\4:\5:\6Z'.replace("\\", "\\\\")
 
     config_ingest_task = f'''
@@ -324,7 +323,7 @@ FROM data.{base_name}_stream
                    warehouse=WAREHOUSE, sql=config_ingest_task)
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
-    if len(pipe_description) is None:
+    if pipe_description is None:
         return {
             'newStage': 'error',
             'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."

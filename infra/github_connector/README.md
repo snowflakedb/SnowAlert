@@ -18,9 +18,6 @@ ALTER PIPE data.GITHUB_ORGANIZATIONS_DEFAULT_EVENTS_PIPE REFRESH;
 ```
 in SnowFlake.
 
-To do this in cmd, run `python` and `import github_organizations`. Then to call these functions, just use:
-`github_organizations.connect(...,...)` and `github_organizations.finalize(...)`
-
 ## GitHub Webhooks to S3
 
 One way to aggregate POST requests in GitHub is using the below archiver that sends these requests to an AWS
@@ -29,7 +26,7 @@ formatted to be put into S3. You can find the Webhooks code here: https://github
 
 ```
 module "archiver" {
-  source = "cztack/github-webhooks-to-s3"
+  source = "github.com/chanzuckerberg/cztack/github-webhooks-to-s3"
 
   env     = "${var.env}"
   project = "${var.project}"
