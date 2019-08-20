@@ -11,7 +11,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'bucket_name',
         'title': 'Github Organization Bucket',
-        'prompt': 'The S3 bucket Github Organizations puts your logs',
+        'prompt': 'The S3 bucket Github Organization puts your logs',
         'prefix': 's3://',
         'placeholder': 'my-test-s3-bucket',
         'required': True,
