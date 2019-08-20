@@ -123,7 +123,7 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'GITHUB_ORGANIZATIONS_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
     stage = f'data.{base_name}_STAGE'
     staging_table = f'data.{base_name}_STAGING'
     landing_table = f'data.{base_name}_CONNECTION'
