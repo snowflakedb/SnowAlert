@@ -3,7 +3,7 @@ from . import okta
 from . import azure_log
 from . import azure_subscription
 from . import azure_vm
-from . import github_organizations
+from . import github_organization
 from . import aws_config
 from . import aws_inventory
 from . import tenable_settings
@@ -15,7 +15,7 @@ __all__ = [
     'azure_log',
     'azure_subscription',
     'azure_vm',
-    'github_organizations',
+    'github_organization.py',
     'okta',
     'tenable_settings',
 ]
@@ -27,7 +27,7 @@ connectors = {
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
-    'github_organizations': github_organizations,
+    'github_organizations': github_organization,
     'okta': okta,
     'tenable_settings': tenable_settings,
 }
