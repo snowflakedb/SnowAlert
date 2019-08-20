@@ -27,7 +27,7 @@ connectors = {
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
-    'github_organizations': github_organization,
+    'github_organization': github_organization,
     'okta': okta,
     'tenable_settings': tenable_settings,
 }
