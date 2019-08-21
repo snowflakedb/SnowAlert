@@ -116,6 +116,7 @@ LANDING_TABLE_COLUMNS = [
 CONNECT_RESPONSE_MESSAGE = """
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
 {role_trust_relationship}
+
 STEP 2: For Role "{role}", add the following inline policy:
 {role_policy}
 """

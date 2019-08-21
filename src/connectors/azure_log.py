@@ -186,7 +186,6 @@ LANDING_TABLES_COLUMNS = {
     ]
 }
 
-
 GET_TIMESTAMP_FROM_FILENAME_SQL = {
     'operation': r'''to_timestamp_ltz(
 substr(metadata$filename, 79, 4)
