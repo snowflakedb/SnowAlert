@@ -1,12 +1,11 @@
 """GitHub Webhooks Connector from S3
-Already collected Webhooks in S3 being placed in Snowflake
+Collect GitHub Webhooks from S3 bucket using a privileged Role
 """
 
 from json import dumps
 from time import sleep
 from .utils import yaml_dump
-from runners.helpers import db
-from runners.helpers.dbconfig import WAREHOUSE
+from ..runners.helpers import db
 
 S3_BUCKET_DEFAULT_PREFIX = ""
 
