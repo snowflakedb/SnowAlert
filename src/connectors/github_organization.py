@@ -5,7 +5,7 @@ Collect GitHub Webhooks from S3 bucket using a privileged Role
 from json import dumps
 from time import sleep
 from .utils import yaml_dump
-from ..runners.helpers import db
+from runners.helpers import db
 
 S3_BUCKET_DEFAULT_PREFIX = ""
 
@@ -37,16 +37,16 @@ CONNECTION_OPTIONS = [
     }
 ]
 
-FILE_FORMAT = """
-    TYPE = "JSON",
-    COMPRESSION = "AUTO",
-    ENABLE_OCTAL = FALSE,
-    ALLOW_DUPLICATE = FALSE,
-    STRIP_OUTER_ARRAY = TRUE,
-    STRIP_NULL_VALUES = FALSE,
-    IGNORE_UTF8_ERRORS = FALSE,
-    SKIP_BYTE_ORDER_MARK = TRUE
-"""
+FILE_FORMAT = db.TypeOptions(
+    type='JSON',
+    compression='AUTO',
+    enable_octal=False,
+    allow_duplicate=False,
+    strip_outer_array=True,
+    strip_null_values=False,
+    ignore_utf8_errors=False,
+    skip_byte_order_mark=True,
+)
 
 LANDING_TABLE_COLUMNS = [
     ('insert_time', 'TIMESTAMP_LTZ(9)'),
@@ -116,6 +116,7 @@ LANDING_TABLE_COLUMNS = [
 CONNECT_RESPONSE_MESSAGE = """
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
 {role_trust_relationship}
+
 STEP 2: For Role "{role}", add the following inline policy:
 {role_policy}
 """

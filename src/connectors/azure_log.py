@@ -186,21 +186,49 @@ LANDING_TABLES_COLUMNS = {
     ]
 }
 
-GET_TIMESTAMP_FROM_FILENAME_SQL = r'''TO_TIMESTAMP_LTZ(REGEXP_REPLACE(
-  METADATA$FILENAME,
-  '.*y=(\d*).m=(\d*).d=(\d*).h=(\d*).m=(\d*).*json$',
-  '\1-\2-\3T\4:\5',
-  1, 1, 'e'
-))'''
+GET_TIMESTAMP_FROM_FILENAME_SQL = {
+    'operation': r'''to_timestamp_ltz(
+substr(metadata$filename, 79, 4)
+|| '-' ||
+substr(metadata$filename, 86, 2)
+|| '-' ||
+substr(metadata$filename, 91, 2)
+|| 'T' ||
+substr(metadata$filename, 96, 2)
+|| ':' ||
+substr(metadata$filename, 101, 2))
+''',
+    'audit': r'''to_timestamp_ltz(
+substr(metadata$filename, 49, 4)
+|| '-' ||
+substr(metadata$filename, 56, 2)
+|| '-' ||
+substr(metadata$filename, 61, 2)
+|| 'T' ||
+substr(metadata$filename, 66, 2)
+|| ':' ||
+substr(metadata$filename, 71, 2))
+    ''',
+    'signin': r'''to_timestamp_ltz(
+substr(metadata$filename, 49, 4)
+|| '-' ||
+substr(metadata$filename, 56, 2)
+|| '-' ||
+substr(metadata$filename, 61, 2)
+|| 'T' ||
+substr(metadata$filename, 66, 2)
+|| ':' ||
+substr(metadata$filename, 71, 2))
+'''
+}
 
-
-EXTERNAL_TABLE_COLUMNS = [
-    (
-        'timestamp_part',
-        'TIMESTAMP_LTZ',
-        GET_TIMESTAMP_FROM_FILENAME_SQL,
-    )
-]
+# This requires External Tables to support REGEXP_REPLACE, which they currently do not.
+# r'''TO_TIMESTAMP_LTZ(REGEXP_REPLACE(
+#  METADATA$FILENAME,
+#  '.*y=(\d*).m=(\d*).d=(\d*).h=(\d*).m=(\d*).*json$',
+#  '\1-\2-\3T\4:\5',
+#  1, 1, 'e'
+# ))'''
 
 
 def connect(connection_name, options):
@@ -235,10 +263,18 @@ def connect(connection_name, options):
 
     db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
 
+    external_table_columns = [
+        (
+            'timestamp_part',
+            'TIMESTAMP_LTZ',
+            GET_TIMESTAMP_FROM_FILENAME_SQL[connection_type],
+        )
+    ]
+
     db.create_external_table(
         name=f'data.{base_name}_external',
         location=f'@data.{base_name}_stage',
-        cols=EXTERNAL_TABLE_COLUMNS,
+        cols=external_table_columns,
         partition='timestamp_part',
         file_format=db.TypeOptions(type='JSON'),
     )
