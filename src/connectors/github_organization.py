@@ -1,5 +1,5 @@
-"""GitHub Webhooks to S3
-Collecting Webhooks from GitHub to S3 using an API Gateway, a Lambda, and Firehose.
+"""GitHub Webhooks Connector from S3
+Already collected Webhooks in S3 being placed in Snowflake
 """
 
 from json import dumps
