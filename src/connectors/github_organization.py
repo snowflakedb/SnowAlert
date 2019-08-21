@@ -4,12 +4,9 @@ Already collected Webhooks in S3 being placed in Snowflake
 
 from json import dumps
 from time import sleep
-
-from runners.helpers import db
-from runners.helpers.dbconfig import ROLE as SA_ROLE
-
 from .utils import yaml_dump
-import requests
+from runners.helpers import db
+from runners.helpers.dbconfig import WAREHOUSE
 
 S3_BUCKET_DEFAULT_PREFIX = ""
 
@@ -119,22 +116,32 @@ LANDING_TABLE_COLUMNS = [
 
 CONNECT_RESPONSE_MESSAGE = """
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
-
 {role_trust_relationship}
-
-
 STEP 2: For Role "{role}", add the following inline policy:
-
 {role_policy}
 """
 
 
 def connect(connection_name, options):
     base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
+    stage = f'data.{base_name}_STAGE'
     landing_table = f'data.{base_name}_CONNECTION'
+
+    bucket = options['bucket_name']
+    prefix = options.get('filter', S3_BUCKET_DEFAULT_PREFIX)
+    role = options['aws_role']
 
     comment = yaml_dump(
         module='github_organization',
+    )
+
+    db.create_stage(
+        name=stage,
+        url=f's3://{bucket}',
+        prefix=prefix,
+        cloud='aws',
+        credentials=role,
+        file_format=FILE_FORMAT
     )
 
     db.create_table(
@@ -143,93 +150,81 @@ def connect(connection_name, options):
         comment=comment
     )
 
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
+    stage_props = db.fetch_props(
+        f'DESC STAGE {stage}',
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+    )
+
+    prefix = prefix.rstrip('/')
+
     return {
-        'newStage': 'finalized',
-        'newMessage': "GitHub Organization ingestion table created!",
+        'newStage': 'created',
+        'newMessage': CONNECT_RESPONSE_MESSAGE.format(
+            role=role,
+            role_trust_relationship=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+                        },
+                        "Action": "sts:AssumeRole",
+                        "Condition": {
+                            "StringEquals": {
+                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                            }
+                        }
+                    }
+                ]
+            }, indent=4),
+            role_policy=dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:GetObject",
+                            "s3:GetObjectVersion",
+                        ],
+                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": "s3:ListBucket",
+                        "Resource": f"arn:aws:s3:::{bucket}",
+                        "Condition": {
+                            "StringLike": {
+                                "s3:prefix": [
+                                    f"{prefix}/*"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }, indent=4),
+        )
     }
 
 
 def finalize(connection_name):
     base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
-    landing_table = f'data.{base_name}_CONNECTION'
 
-    lambda: db.create_pipe(
-        name=pipe,
-        sql=(
-            f'''
-                SELECT CURRENT_TIMESTAMP() insert_time
-                    , value raw
-                    , HASH(value) hash_raw
-                    , value:ref::VARCHAR(256) ref
-                    , value:before::VARCHAR(256) before
-                    , value:after::VARCHAR(256) after
-                    , value:created::BOOLEAN created
-                    , value:deleted::BOOLEAN deleted
-                    , value:forced::BOOLEAN forced
-                    , value:base_ref::VARCHAR(256) base_ref
-                    , value:compare::VARCHAR(256) compare
-                    , value:commits::VARIANT commits
-                    , value:head_commit::VARIANT head_commit
-                    , value:repository::VARIANT repository
-                    , value:pusher::VARIANT pusher
-                    , value:organization::VARIANT organization
-                    , value:sender::VARIANT sender
-                    , value:action::VARCHAR(256) action
-                    , value:check_run::VARIANT check_run
-                    , value:check_suite::VARIANT check_suite
-                    , value:number::NUMBER(38,0) number
-                    , value:pull_request::VARIANT pull_request
-                    , value:label::VARIANT label
-                    , value:requested_team::VARIANT requested_team
-                    , value:ref_type::VARCHAR(256) ref_type
-                    , value:master_branch::VARCHAR(256) master_branch
-                    , value:description::VARCHAR(256) description
-                    , value:pusher_type::VARCHAR(256) pusher_type
-                    , value:review::VARIANT review
-                    , value:changes::VARIANT changes
-                    , value:comment::VARIANT comment
-                    , value:issue::VARIANT issue
-                    , value:id::NUMBER(38,0) id
-                    , value:sha::VARCHAR(256) sha
-                    , value:name::VARCHAR(256) name
-                    , value:target_url::VARCHAR(8192) target_url
-                    , value:context:: VARCHAR(256) context
-                    , value:state:: VARCHAR(256) state
-                    , value:commit::VARIANT commit
-                    , value:branches:VARIANT branches
-                    , value:created_at::TIMESTAMP_LTZ(9) created_at
-                    , value:updated_at::TIMESTAMP_LTZ(9) updated_at
-                    , value:assignee::VARIANT assignee
-                    , value:release::VARIANT release
-                    , value:membership::VARIANT membership
-                    , value:alert::VARIANT alert
-                    , value:scope::VARCHAR(256) scope
-                    , value:member:VARIANT member
-                    , value:requested_reviewer::VARIANT requested_reviewer
-                    , value:team::VARIANT team
-                    , value:starred_at::TIMESTAMP_LTZ(9) starred_at
-                    , value:pages::VARIANT pages
-                    , value:project_card::VARIANT project_card
-                    , value:build::VARIANT build
-                    , value:deployment_status::VARIANT deployment_status
-                    , value:deployment::VARIANT deployment
-                    , value:forkee::VARIANT forkee
-                    , value:milestone::VARIANT milestone
-                    , value:key::VARIANT key
-                    , value:project_column::VARIANT project_column
-                    , value:status::VARCHAR(256) status
-                    , value:avatar_url::VARCHAR(256) avatar_url
-                FROM data.{base_name}_stream
-                '''
-        )
-    )
-
-    db.insert(
-        landing_table,
-        values=[(row, row['published']) for row in result],
-        select='PARSE_JSON(column1), column2'
+    # IAM change takes 5-15 seconds to take effect
+    sleep(5)
+    db.retry(
+        lambda: db.create_pipe(
+            name=pipe,
+            sql=(
+                f"COPY INTO data.{base_name}_connection "
+                f"FROM (SELECT $1 FROM @data.{base_name}_stage/)"
+            ),
+            replace=True,
+            autoingest=True,
+        ),
+        n=10,
+        sleep_seconds_btw_retry=1
     )
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
