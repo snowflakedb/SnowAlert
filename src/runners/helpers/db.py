@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union
 from os import getpid
 from re import match
 
@@ -149,8 +149,9 @@ def connect_and_fetchall(query):
     return ctx, execute(query).fetchall()
 
 
-def fetch_latest(table, col):
-    ts = next(fetch(f'SELECT {col} FROM {table} ORDER BY {col} DESC LIMIT 1'), None)
+def fetch_latest(table, col='event_time', where=''):
+    where = f' WHERE {where}' if where else ''
+    ts = next(fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None)
     return ts[col.upper()] if ts else None
 
 
@@ -166,6 +167,20 @@ def fetch_props(sql, filter=None):
 ###
 # SnowAlert specific helpers, similar to ORM
 ###
+
+
+class TypeOptions(object):
+    type_options: List[Tuple[str, Union[int, str, bool]]]
+
+    def __init__(self, **kwargs):
+        self.type_options = kwargs.items()
+
+    def __str__(self):
+        return ', '.join([
+            f'{k}={v}' if isinstance(v, (int, bool)) else f"{k}='{v}'"
+            for k, v in self.type_options
+        ])
+
 
 def is_valid_rule_name(rule_name):
     valid_ending = (
@@ -384,14 +399,37 @@ def get_pipes(schema):
     return fetch(f"SHOW PIPES IN {schema}")
 
 
-def create_stage(name, url, prefix, cloud, credentials, file_format, replace=False, comment=''):
+def create_table_and_upload_csv(name, columns, file_path, file_format, ifnotexists=False):
+    create_table(f"{name}", columns, ifnotexists=ifnotexists)
+    create_stage(f"{name}_stage", file_format=file_format, temporary=True)
+    execute(f"PUT file://{file_path} @{name}_stage")
+    execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
+
+
+def create_stage(name, url='', prefix='', cloud='', credentials='',
+                 file_format: Optional[TypeOptions]=None, replace=False,
+                 comment='', temporary=False):
+
     replace = 'OR REPLACE ' if replace else ''
-    query = f"CREATE {replace}STAGE {name} \nURL='{url}/{prefix}' "
-    if cloud == 'aws':
-        query += f"\nCREDENTIALS=(aws_role = '{credentials}') "
-    elif cloud == 'azure':
-        query += f"\nCREDENTIALS=(azure_sas_token = '{credentials}') "
-    query += f"\nFILE_FORMAT=({file_format}) \nCOMMENT='{comment}'"
+    temporary = 'TEMPORARY ' if temporary else ''
+    query = f"CREATE {replace}{temporary}STAGE {name} "
+
+    if url:
+        query += f"\nURL='{url}/{prefix}' "
+
+    credentials_type = (
+        'aws_role' if cloud == 'aws' else
+        'azure_sas_token' if cloud == 'azure' else
+        None
+    )
+    if credentials_type is not None:
+        query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
+
+    if file_format:
+        query += f"\nFILE_FORMAT=({file_format})"
+
+    query += f"\nCOMMENT='{comment}'"
+
     execute(query, fix_errors=False)
 
 
@@ -400,19 +438,35 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False):
         comment = '\n'.join(comment)
 
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment}' " if comment else ''
+    comment = f"\nCOMMENT='{comment}' "
     ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
-    columns = '('
-    for pair in cols:
-        columns += f'{pair[0]} {pair[1]}, '
-    columns = columns[:-2] + ')'
+    columns = '(' + ', '.join(f'{a} {b}' for a, b in cols) + ')'
+
     query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
+    execute(query, fix_errors=False)
+
+
+def create_external_table(name, location, cols=None, partition='',
+                          refresh=False, replace=False, file_format='',
+                          comment='', ifnotexists=False, copygrants=''):
+    partition = f'\nPARTITION BY ({partition})' if partition else ''
+    refresh = f'\nAUTO_REFRESH={refresh} '
+    replace = 'OR REPLACE ' if replace else ''
+    file_format = f'\nFILE_FORMAT=({file_format}) ' if file_format else ''
+    comment = f"\nCOMMENT='{comment}' "
+    ifnotexists = f'IF NOT EXISTS ' if ifnotexists else ''
+    copygrants = '\nCOPY GRANTS ' if copygrants else ''
+    location = f'\nLOCATION={location}'
+    columns = '(' + ', '.join(f'{a} {b} AS {c}' for a, b, c in cols) + ')'
+
+    query = f"CREATE {replace}EXTERNAL TABLE {ifnotexists}{name}\n{columns}"\
+            f"{partition}{location}{refresh}{file_format}{copygrants}{comment}"
     execute(query, fix_errors=False)
 
 
 def create_stream(name, target, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    comment = f"\nCOMMENT='{comment} '" if comment else ''
+    comment = f"\nCOMMENT='{comment}' " if comment else ''
     query = f"CREATE {replace}STREAM {name} {comment}\nON TABLE {target}"
     execute(query, fix_errors=False)
 
@@ -427,9 +481,19 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
 
 def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     replace = 'OR REPLACE ' if replace else ''
-    schedule = f"SCHEDULE='{schedule}'\n"
+    if not schedule.startswith('AFTER'):
+        schedule = f"SCHEDULE='{schedule}'\n"
     warehouse = f"WAREHOUSE={warehouse}\n"
     comment = f"\nCOMMENT='{comment} '" if comment else ''
-    query = f"CREATE {replace}TASK {name} {schedule} {warehouse} {comment} AS \n{sql}"
+    query = f"CREATE {replace}TASK {name} {warehouse}{schedule} {comment} AS \n{sql}"
     execute(query, fix_errors=False)
     execute(f"ALTER TASK {name} RESUME")
+
+
+def create_stored_procedure(name, args, return_type, executor, definition, replace='', comment=''):
+    replace = 'OR REPLACE ' if replace else ''
+    comment = f"\nCOMMENT='{comment}'" if comment else ''
+    arguments = '(' + ', '.join(f'{a}, {b}' for a, b in args) + ')'
+    query = f"CREATE {replace}PROCEDURE {name} {arguments}\nRETURNS {return_type}\nLANGUAGE JAVASCRIPT\n"
+    query += f"EXECUTE AS {executor} AS\n$$\n{definition}\n$$"
+    execute(query, fix_errors=False)
