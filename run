@@ -8,6 +8,11 @@ if [[ -d "/var/task/snowalert/venv/bin" && -d "/var/task/snowalert/src" ]]; then
     cd /var/task/snowalert/src/webui/backend
     python webui/app.py
 
+  elif [ "$1" == "process-baseline" ];  then
+
+    cd /var/task/snowalert/src/sars
+    ./run.sh
+  
   else
 
     cd /var/task/snowalert/src/runners/
