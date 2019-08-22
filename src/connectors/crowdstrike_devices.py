@@ -227,6 +227,7 @@ def ingest(table_name, options):
         db.insert(
             landing_table,
             values=[(
+                None,
                 timestamp,
                 device,
                 device.get('device_id'),
