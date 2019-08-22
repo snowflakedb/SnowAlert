@@ -11,6 +11,7 @@ from . import gsuite_logs
 from . import okta
 from . import tenable_settings
 from . import crowdstrike_devices
+from . import cisco_umbrella
 
 __all__ = [
     'aws_inventory',
@@ -26,6 +27,7 @@ __all__ = [
     'okta',
     'tenable_settings',
     'crowdstrike_devices',
+    'cisco_umbrella',
 ]
 
 connectors = {
@@ -42,6 +44,7 @@ connectors = {
     'okta': okta,
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
+    'cisco_umbrella': cisco_umbrella
 }
 
 CONNECTION_OPTIONS = [
@@ -51,7 +54,7 @@ CONNECTION_OPTIONS = [
         'docstring': connector.__doc__,
         'finalize': callable(getattr(connector, 'finalize', None)),
     } for name, connector in connectors.items() if (
-            getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
-            and callable(getattr(connector, 'connect', None))
+        getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
+        and callable(getattr(connector, 'connect', None))
     )
 ]
