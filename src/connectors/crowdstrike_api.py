@@ -4,10 +4,11 @@ Collect Crowdstrike device information using an API Client and Secret
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+
 from datetime import datetime
 
 import requests
-# from .utils import yaml_dump
+from .utils import yaml_dump
 
 PAGE_SIZE = 1000
 
@@ -82,6 +83,21 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
+def get_col_transform(idx: int) -> str:
+    column = f'column{idx+1}'
+    if LANDING_TABLE_COLUMNS[idx][1] == "VARIANT":
+        return f'PARSE_JSON({column})'
+    if LANDING_TABLE_COLUMNS[idx][1] == "TIMESTAMP_LTZ(9)":
+        return f'TO_TIMESTAMP({column})'
+    return column
+
+
+SELECT = ",".join(
+    map(get_col_transform, range(1, len(LANDING_TABLE_COLUMNS))))
+
+COLUMNS = [col[0] for col in LANDING_TABLE_COLUMNS[1:]]
+
+
 # Perform the authorization call to create access token for subsequent API calls
 def get_token_basic(client_id: str, client_secret: str) -> str:
     headers: dict = {
@@ -112,7 +128,7 @@ def get_token_basic(client_id: str, client_secret: str) -> str:
     return access_token
 
 
-# Parse out the offset value from the result. If the offset isn't present we need to raise
+# Parse out the offset value from the result.
 def get_offset_from_devices_results(result: dict) -> str:
     if not isinstance(result, dict):
         log.error("the result is not a dict")
@@ -163,7 +179,8 @@ def connect(connection_name, options):
     client_id = options['client_id']
     client_secret = options['client_secret']
 
-    comment = 'crowdstrike_api'  # TODO: yaml_dumps
+    comment = yaml_dump(
+        module='crowdstrike_api')
 
     db.create_table(name=landing_table,
                     cols=LANDING_TABLE_COLUMNS, comment=comment)
@@ -207,8 +224,6 @@ def ingest(table_name, options):
         dict_devices: dict = get_data(token, device_details_url_and_params)
         devices = dict_devices["resources"]
 
-        print(devices[0])
-        return
         db.insert(
             landing_table,
             values=[(
@@ -217,12 +232,6 @@ def ingest(table_name, options):
                 device.get('device_id'),
                 device.get('first_seen', None),
                 device.get('system_manufacturer', None),
-                device.get('config_id_base', None),
-                device.get('last_seen', None),
-                device.get('policies', None),
-                device.get('slow_changing_modified_timestamp', None),
-                device.get('minor_version', None),
-                device.get('system_product_name', None),
                 device.get('config_id_base', None),
                 device.get('last_seen', None),
                 device.get('policies', None),
@@ -261,21 +270,21 @@ def ingest(table_name, options):
                 device.get('site_name', None),
                 device.get('machine_domain', None),
                 device.get('ou', None),
-
             ) for device in devices],
-            select="""
-            column1, PARSE_JSON(column2), column3,  TO_TIMESTAMP(column4),
-            column5,  column6,  column7,  column8,  column9,
-            column10,  column11,  column12,  column13,  column14,
-            column15,  column16,  column17,  column18,  column19,
-            column20,  column21,  column22,  column23,  column24,
-            column25,  column26,  column27,  column28,  column29,
-            column30,  column31,  column32,  column33,  column34,
-            column35,  column36,  column37,  column38,  column39,
-            column40,  column41,  column42,  column43,  column44,
-            column45,  column46,  column47,  column48,  column49,
-            """
+            select=SELECT,
+            columns=COLUMNS
+            # select="""
+            # column0,
+            # column1, PARSE_JSON(column2), column3,  TO_TIMESTAMP(column4),
+            # column5,  column6,  TO_TIMESTAMP(column7),  PARSE_JSON(column8),  TO_TIMESTAMP(column9),
+            # column10,  column11,  column12,  column13,  column14,
+            # column15,  column16,  column17,  column18,  column19,
+            # column20,  PARSE_JSON(column21),  column22,  TO_TIMESTAMP(column23),  column24,
+            # column25,  column26,  PARSE_JSON(column27),  TO_TIMESTAMP(column28),  column29,
+            # column30,  PARSE_JSON(column31),  column32,  column33,  column34,
+            # column35,  column36,  column37,  column38,  column39,
+            # column40,  column41,  column42,  PARSE_JSON(column43)
+            # """
         )
-
         log.info(f'Inserted {len(devices)} rows.')
         yield len(devices)
