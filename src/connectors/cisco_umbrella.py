@@ -112,7 +112,7 @@ def create_url_params_get_devices(url: str, resources: list) -> str:
 def get_offset_from_devices_results(result: dict) -> str:
     if not isinstance(result, dict):
         log.error("the result is not a dict")
-        raise TypeError("the result from Crowdstrike is not a dict")
+        raise TypeError("the result from Cisco Umbrella is not a dict")
     try:
         offset: str = result["meta"]["pagination"]["offset"]
     except BaseException:
