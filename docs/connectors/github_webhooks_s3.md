@@ -3,7 +3,7 @@
 GitHub allows Organization or Repository admins to set up webhooks for delivery to endpoints. [Webhooks](https://developer.github.com/v3/activity/events/types/) can be
 triggered when
 
-- a new commit is pushed
+- a new commit is pushed,
 - a branch is deleted,
 - a deploy key is added/removed from a repository,
 - a new download is created in GitHub,
