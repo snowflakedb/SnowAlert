@@ -273,18 +273,6 @@ def ingest(table_name, options):
             ) for device in devices],
             select=SELECT,
             columns=COLUMNS
-            # select="""
-            # column0,
-            # column1, PARSE_JSON(column2), column3,  TO_TIMESTAMP(column4),
-            # column5,  column6,  TO_TIMESTAMP(column7),  PARSE_JSON(column8),  TO_TIMESTAMP(column9),
-            # column10,  column11,  column12,  column13,  column14,
-            # column15,  column16,  column17,  column18,  column19,
-            # column20,  PARSE_JSON(column21),  column22,  TO_TIMESTAMP(column23),  column24,
-            # column25,  column26,  PARSE_JSON(column27),  TO_TIMESTAMP(column28),  column29,
-            # column30,  PARSE_JSON(column31),  column32,  column33,  column34,
-            # column35,  column36,  column37,  column38,  column39,
-            # column40,  column41,  column42,  PARSE_JSON(column43)
-            # """
         )
         log.info(f'Inserted {len(devices)} rows.')
         yield len(devices)
