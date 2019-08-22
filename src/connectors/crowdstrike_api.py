@@ -1,5 +1,5 @@
 """Crowdstrike API
-Collect Crowdstrike device information using an API Client and Secret
+Collect Crowdstrike Device information using a Client ID and Secret
 """
 
 from runners.helpers import db, log
