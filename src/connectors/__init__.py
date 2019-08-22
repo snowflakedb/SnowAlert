@@ -6,7 +6,7 @@ from . import aws_inventory
 from . import azure_log
 from . import azure_subscription
 from . import azure_vm
-from . import github_organization
+from . import github_webhooks_s3
 from . import gsuite_logs
 from . import okta
 from . import tenable_settings
@@ -20,7 +20,7 @@ __all__ = [
     'azure_log',
     'azure_subscription',
     'azure_vm',
-    'github_organization',
+    'github_webhooks_s3',
     'gsuite_logs',
     'okta',
     'tenable_settings',
@@ -35,7 +35,7 @@ connectors = {
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
-    'github_organization': github_organization,
+    'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
     'okta': okta,
     'tenable_settings': tenable_settings,
@@ -48,7 +48,7 @@ CONNECTION_OPTIONS = [
         'docstring': connector.__doc__,
         'finalize': callable(getattr(connector, 'finalize', None)),
     } for name, connector in connectors.items() if (
-        getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
-        and callable(getattr(connector, 'connect', None))
+            getattr(connector, 'CONNECTION_OPTIONS', [{}])[0].get('name')
+            and callable(getattr(connector, 'connect', None))
     )
 ]
