@@ -207,7 +207,7 @@ def connect(connection_name, options):
 
 
 def finalize(connection_name):
-    base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_WEBHOOKS_S3_{connection_name}_EVENTS'.upper()
     pipe = f'data.{base_name}_PIPE'
 
     # IAM change takes 5-15 seconds to take effect
@@ -217,7 +217,13 @@ def finalize(connection_name):
             name=pipe,
             sql=(
                 f"COPY INTO data.{base_name}_connection "
-                f"FROM (SELECT $1 FROM @data.{base_name}_stage/)"
+                f"FROM (SELECT current_timestamp, $1, HASH($1), $1:ref, $1: before, $1:after, $1:created, $1:deleted,"
+                f"$1:forced, $1:base_ref, $1:compare, $1:commits, $1:head_commit,"
+                f"$1:repository, $1:pusher, $1:organization, $1:sender, $1:action, $1:check_run, $1:check_suite, $1:number, $1:pull_request,"
+                f"$1:label, $1:requested_team, $1:ref_type, $1:master_branch, $1:description, $1:pusher_type, $1:review, $1:changes, $1:comment, "
+                f"$1:issue, $1:id, $1:sha, $1:name, $1:target_url, $1:context, $1:state, $1:commit, $1:branches, $1:created_at, $1:updated_at, $1:assignee, "
+                f"$1:release, $1:membership, $1:alert, $1:scope, $1:member, $1:requested_reviewer, $1:team, $1:starred_at, $1:pages, $1:project_card, "
+                f"$1:build, $1:deployment_status, $1:deployment, $1:forkee, $1:milestone, $1:key, $1:project_column, $1:status, $1:avatar_url FROM @data.{base_name}_stage/)"
             ),
             replace=True,
             autoingest=True,
