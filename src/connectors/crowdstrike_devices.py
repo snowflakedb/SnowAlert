@@ -180,10 +180,11 @@ def connect(connection_name, options):
     client_secret = options['client_secret']
 
     comment = yaml_dump(
-        module='crowdstrike_devices')
+        module='crowdstrike_devices', **options)
 
     db.create_table(name=landing_table,
                     cols=LANDING_TABLE_COLUMNS, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
         'newMessage': "Crowdstrike Devices ingestion table created!",
