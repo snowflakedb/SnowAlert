@@ -122,7 +122,7 @@ STEP 2: For Role "{role}", add the following inline policy:
 
 
 def connect(connection_name, options):
-    base_name = f'GITHUB_ORGANIZATION_{connection_name}_EVENTS'.upper()
+    base_name = f'GITHUB_WEBHOOKS_S3_{connection_name}_EVENTS'.upper()
     stage = f'data.{base_name}_STAGE'
     landing_table = f'data.{base_name}_CONNECTION'
 
@@ -131,7 +131,7 @@ def connect(connection_name, options):
     role = options['aws_role']
 
     comment = yaml_dump(
-        module='github_organization',
+        module='github_webhooks_s3',
     )
 
     db.create_stage(
