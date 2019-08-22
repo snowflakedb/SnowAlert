@@ -1,4 +1,4 @@
-"""Crowdstrike API
+"""Crowdstrike Devices
 Collect Crowdstrike Device information using a Client ID and Secret
 """
 
@@ -173,20 +173,20 @@ def create_url_params_get_devices(url: str, resources: list) -> str:
 
 
 def connect(connection_name, options):
-    table_name = f'crowdstrike_api_{connection_name}_connection'
+    table_name = f'crowdstrike_devices_{connection_name}_connection'
     landing_table = f'data.{table_name}'
 
     client_id = options['client_id']
     client_secret = options['client_secret']
 
     comment = yaml_dump(
-        module='crowdstrike_api')
+        module='crowdstrike_devices')
 
     db.create_table(name=landing_table,
                     cols=LANDING_TABLE_COLUMNS, comment=comment)
     return {
         'newStage': 'finalized',
-        'newMessage': "Crowdstrike API ingestion table created!",
+        'newMessage': "Crowdstrike Devices ingestion table created!",
     }
 
 
