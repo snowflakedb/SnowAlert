@@ -6,6 +6,7 @@ from dateutil.parser import parse
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+from .utils import yaml_dump
 
 from azure.mgmt.subscription.subscription_client import SubscriptionClient
 from azure.common.client_factory import get_client_from_json_dict
@@ -36,6 +37,18 @@ CONNECTION_OPTIONS = [
         'secret': 'true',
         'required': True
     },
+    {
+        'type': 'str',
+        'name': 'cloud_type',
+        'options': [
+            {'value': 'reg', 'label': "Azure Cloud"},
+            {'value': 'gov', 'label': "Azure Gov Cloud"}
+        ],
+        'title': "Cloud Type",
+        'placeholder': "Choose Cloud Type",
+        'prompt': "Azure provides two types of clouds: regular and government",
+        'required': True
+    },
 ]
 
 LANDING_TABLE_COLUMNS = [
@@ -53,17 +66,11 @@ LANDING_TABLE_COLUMNS = [
 
 def connect(connection_name, options):
     base_name = f"azure_subscription_{connection_name}"
-    tenant_id = options['tenant_id']
-    client_id = options['client_id']
-    client_secret = options['client_secret']
 
-    comment = f'''
----
-module: azure_subscription
-client_id: {client_id}
-tenant_id: {tenant_id}
-client_secret: {client_secret}
-'''
+    comment = yaml_dump(
+        module='azure_subscription',
+        **options
+    )
 
     db.create_table(
         name=f'data.{base_name}_connection',
@@ -83,14 +90,30 @@ def ingest(table_name, options):
     tenant_id = options['tenant_id']
     client_id = options['client_id']
     client_secret = options['client_secret']
+    cloud_type = options['cloud_type']
+
+    activeDirectoryEndpoints = {
+        'reg': "https://login.microsoftonline.com",
+        'gov': "https://login.microsoftonline.us"
+    }
+
+    resourceManagerEndpoints = {
+        'reg': "https://management.azure.com/",
+        'gov': "https://management.usgovcloudapi.net"
+    }
+
+    managementEndpoints = {
+        'reg': "https://management.core.windows.net/",
+        'gov': "https://management.core.usgovcloudapi.net"
+    }
 
     subscriptions_service = get_client_from_json_dict(SubscriptionClient, {
         "tenantId": tenant_id,
         "clientId": client_id,
         "clientSecret": client_secret,
-        "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
-        "resourceManagerEndpointUrl": "https://management.azure.com/",
-        "managementEndpointUrl": "https://management.core.windows.net/",
+        "activeDirectoryEndpointUrl": activeDirectoryEndpoints[cloud_type],
+        "resourceManagerEndpointUrl": resourceManagerEndpoints[cloud_type],
+        "managementEndpointUrl": managementEndpoints[cloud_type],
     }).subscriptions
 
     subscription_list = subscriptions_service.list()
