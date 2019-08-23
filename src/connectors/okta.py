@@ -73,13 +73,11 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options):
-    ingest_type = ''
-    if table_name.endswith('_USERS_CONNECTION'):
-        ingest_type = 'users'
-    elif table_name.endswith('_GROUPS_CONNECTION'):
-        ingest_type = 'groups'
-    else:
-        ingest_type = 'logs'
+    ingest_type = (
+        'users' if table_name.endswith('_USERS_CONNECTION') else
+        'groups' if table_name.endswith('_GROUPS_CONNECTION') else
+        'logs'
+    )
 
     landing_table = f'data.{table_name}'
     api_key = options['api_key']
@@ -115,6 +113,7 @@ def ingest(table_name, options):
 
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
+
     elif ingest_type == 'users':
         while 1:
             response = requests.get(url=url[ingest_type], headers=headers)
@@ -150,6 +149,7 @@ def ingest(table_name, options):
 
             if len(url[ingest_type]) == 0:
                 break
+
     else:
         ts = db.fetch_latest(landing_table, 'event_time')
         if ts is None:
