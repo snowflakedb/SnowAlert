@@ -9,7 +9,7 @@ from datetime import datetime
 
 import requests
 
-# from .utils import yaml_dump
+from .utils import yaml_dump
 
 PAGE_SIZE = 500
 
