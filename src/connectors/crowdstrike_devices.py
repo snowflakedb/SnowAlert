@@ -134,7 +134,7 @@ def get_data(token: str, url: str, params: dict = {}) -> dict:
         log.debug(f"Preparing GET: url={url} with params={params}")
         req = requests.get(url, params=params, headers=headers)
         req.raise_for_status()
-    except HTTPError as http_err:
+    except requests.HTTPError as http_err:
         log.error(f"Error GET: url={url}")
         log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
@@ -160,9 +160,6 @@ def create_url_params_get_devices(url: str, resources: list) -> str:
 def connect(connection_name, options):
     table_name = f'crowdstrike_devices_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-
-    client_id = options['client_id']
-    client_secret = options['client_secret']
 
     comment = yaml_dump(
         module='crowdstrike_devices', **options)
