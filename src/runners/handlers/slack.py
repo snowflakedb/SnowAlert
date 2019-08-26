@@ -41,7 +41,8 @@ def message_template(vars):
     return payload
 
 
-def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None, file_name=None, slack_api_token=None):
+def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None,
+           file_name=None, slack_api_token=None):
     if 'SLACK_API_TOKEN' not in os.environ and slack_api_token is None:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
@@ -121,7 +122,14 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
                 attachments=attachments
             )
 
-        file_descriptor = sc.api_call("files.upload", content=file_content, title=text, channels=channel, filetype=file_type, filename=file_name)
+        file_descriptor = sc.api_call(
+            "files.upload",
+            content=file_content,
+            title=text,
+            channels=channel,
+            iletype=file_type,
+            filename=file_name,
+        )
 
         if file_descriptor['ok'] is True:
             file = file_descriptor["file"]
