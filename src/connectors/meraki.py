@@ -22,14 +22,6 @@ CONNECTION_OPTIONS = [
         'required': True,
     },
     {
-        'name': 'network_id',
-        'title': "Meraki Network Id",
-        'prompt': "Your Meraki Network Id",
-        'type': 'str',
-        'secret': True,
-        'required': True,
-    },
-    {
         'name': 'api_token',
         'title': "Meraki API Token",
         'prompt': "Your Meraki API Token",
@@ -38,15 +30,7 @@ CONNECTION_OPTIONS = [
         'required': True,
     },
     {
-        'name': 'serial_device',
-        'title': "Meraki Serial Device",
-        'prompt': "Your Meraki Serial Device",
-        'type': 'str',
-        'secret': True,
-        'required': True,
-    },
-    {
-        'name': 'whitelist',
+        'name': 'network_id_whitelist',
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
         'type': 'str',
