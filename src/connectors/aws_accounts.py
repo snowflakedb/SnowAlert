@@ -62,8 +62,7 @@ def connect(connection_name, options):
         destination_role_external_id=destination_role_external_id,
     )
 
-    db.create_table(name=landing_table,
-                    cols=LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
@@ -94,7 +93,16 @@ def ingest(table_name, options):
             a['Name'],
             a['Status'],
         ) for a in accounts],
-        select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+        select=(
+            'PARSE_JSON(column1)',
+            'column2',
+            'column3::STRING',
+            'column4::STRING',
+            'column5::NUMBER',
+            'column6::STRING',
+            'column7::TIMESTAMP_LTZ',
+            'column8::STRING',
+            'column9::STRING',
+        )
     )
     return len(accounts)

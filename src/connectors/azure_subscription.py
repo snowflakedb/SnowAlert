@@ -71,8 +71,7 @@ client_secret: {client_secret}
         comment=comment
     )
 
-    db.execute(
-        f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
 
     return {
         'newStage': 'finalized',
@@ -110,8 +109,17 @@ def ingest(table_name, options):
             row['subscription_policies'],
             row['authorization_source'],
         ) for row in subscriptions],
-        select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+        select=(
+            'column1',
+            'column2',
+            'PARSE_JSON(column3)',
+            'column4',
+            'column5',
+            'column6',
+            'column7',
+            'PARSE_JSON(column8)',
+            'column9',
+        )
     )
 
     yield len(subscriptions)

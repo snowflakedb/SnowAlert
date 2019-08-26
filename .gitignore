@@ -14,4 +14,3 @@ src/**/lib/
 venv
 *.db
 *.egg-info
-.vscode

@@ -81,8 +81,7 @@ WHERE event_time
 
 
 def get_vms(creds, sub):
-    vms = [vm.as_dict() for vm in ComputeManagementClient(
-        creds, sub).virtual_machines.list_all()]
+    vms = [vm.as_dict() for vm in ComputeManagementClient(creds, sub).virtual_machines.list_all()]
     for vm in vms:
         vm['subscription_id'] = sub
     return vms
@@ -119,8 +118,7 @@ def connect(connection_name, options):
         cols=LANDING_TABLE_COLUMNS,
         comment=comment,
     )
-    db.execute(
-        f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
     cols = [
         ('SNAPSHOT_AT', 'TIMESTAMP_LTZ'),
@@ -144,8 +142,7 @@ def ingest(table_name, options):
     tenant = options['tenant_id']
     subscription_connection_name = options['subscription_connection_name']
 
-    creds = ServicePrincipalCredentials(
-        client_id=client_id, secret=secret, tenant=tenant)
+    creds = ServicePrincipalCredentials(client_id=client_id, secret=secret, tenant=tenant)
 
     virtual_machines = []
     for sub in db.fetch(GET_SUBSCRIPTION_IDS_SQL.format(subscription_connection_name)):
@@ -154,8 +151,7 @@ def ingest(table_name, options):
         db.insert(
             table=AZURE_COLLECTION_METADATA,
             values=[(now, RUN_ID, sub_id, len(vms))],
-            columns=['SNAPSHOT_AT', 'RUN_ID',
-                     'SUBSCRIPTION_ID', 'VM_INSTANCE_COUNT'],
+            columns=['SNAPSHOT_AT', 'RUN_ID', 'SUBSCRIPTION_ID', 'VM_INSTANCE_COUNT'],
         )
         nics = get_nics(creds, sub_id)
         for vm in vms:
@@ -183,9 +179,22 @@ def ingest(table_name, options):
         db.insert(
             table_name,
             group,
-            select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
-
+            select=(
+                'column1',
+                'PARSE_JSON(column2)',
+                'PARSE_JSON(column3)',
+                'column4',
+                'column5',
+                'column6',
+                'PARSE_JSON(column7)',
+                'PARSE_JSON(column8)',
+                'column9',
+                'PARSE_JSON(column10)',
+                'column11',
+                'PARSE_JSON(column12)',
+                'column13',
+                'column14',
+            )
         )
 
     yield len(virtual_machines)

@@ -62,8 +62,7 @@ LANDING_TABLES_COLUMNS = {
     ],
 }
 
-LOGIN_EVENTS = ['logout', 'login_challenge',
-                'login_failure', 'login_verification', 'login_success']
+LOGIN_EVENTS = ['logout', 'login_challenge', 'login_failure', 'login_verification', 'login_success']
 SCOPES = ['https://www.googleapis.com/auth/admin.reports.audit.readonly']
 
 
@@ -81,8 +80,7 @@ def connect(connection_name, options):
         cols=LANDING_TABLES_COLUMNS['login'],
         comment=comment,
     )
-    db.execute(
-        f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_connection TO ROLE {SA_ROLE}')
 
     return {
         'newStage': 'finalized',
@@ -91,8 +89,7 @@ def connect(connection_name, options):
 
 
 def get_logs(service_account_info, with_subject=None, event_name='', start_time=None):
-    creds = service_account.Credentials.from_service_account_info(
-        service_account_info)
+    creds = service_account.Credentials.from_service_account_info(service_account_info)
     if with_subject is not None:
         creds = creds.with_subject(with_subject).with_scopes(SCOPES)
 
@@ -145,7 +142,18 @@ def ingest(table_name, options):
                     item.get('ipAddress'),
                     item,
                 ) for item in items],
-                select=db.derive_insert_select(LANDING_TABLES_COLUMNS),
-                columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS)
+                select=(
+                    'CURRENT_TIMESTAMP()',
+                    'column1',
+                    'column2',
+                    'column3',
+                    'column4',
+                    'PARSE_JSON(column5)',
+                    'column6',
+                    'column7',
+                    'column8',
+                    'column9',
+                    'PARSE_JSON(column10)',
+                )
             )
             yield len(items)
