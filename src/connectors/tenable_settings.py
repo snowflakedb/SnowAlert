@@ -38,7 +38,7 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-USER_LANDING_TABLE = [
+LANDING_TABLE_COLUMNS = [
     ('USERNAME', 'STRING(250)'),
     ('ROLE', 'STRING(100)'),
     ('RAW', 'VARIANT'),
@@ -96,13 +96,8 @@ def ingest_users(tio, table_name):
             user.get('lastlogin', None),
             user.get('uuid_id', None)
         ) for user in users],
-        select="""
-            column1, column2, PARSE_JSON(column3), column4, column5, column6,
-            column7, column8, column9, column10,
-            to_timestamp(column11, 3)::timestamp_ltz, column12, column13,
-            column14, PARSE_JSON(column15),
-            to_timestamp(column16, 3)::timestamp_ltz, column17
-        """
+        select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
     )
 
 
@@ -117,7 +112,7 @@ token: {token}
 secret: {secret}
 """
 
-    db.create_table(table_name, cols=USER_LANDING_TABLE, comment=comment)
+    db.create_table(table_name, cols=LANDING_TABLE_COLUMNS, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
 
 

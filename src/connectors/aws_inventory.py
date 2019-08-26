@@ -85,7 +85,8 @@ LANDING_TABLES_COLUMNS = {
 def connect(connection_name, options):
     connection_type = options['connection_type']
     columns = LANDING_TABLES_COLUMNS[connection_type]
-    msg = create_asset_table(connection_name, connection_type, columns, options)
+    msg = create_asset_table(
+        connection_name, connection_type, columns, options)
 
     return {
         'newStage': 'finalized',
@@ -131,7 +132,8 @@ def ingest(table_name, options):
         'ELB': ingest_elb,
     }[connection_type]
 
-    count = ingest_of_type(aws_access_key, aws_secret_key, landing_table, regions)
+    count = ingest_of_type(
+        aws_access_key, aws_secret_key, landing_table, regions)
     log.info(f'Inserted {count} rows.')
     yield count
 
@@ -147,24 +149,27 @@ def ingest_ec2(aws_access_key, aws_secret_key, landing_table, regions):
             row['Architecture'],
             monitor_time,
             row['InstanceType'],
-            row.get('KeyName', ''),  # can be not present if a managed instance such as EMR
+            # can be not present if a managed instance such as EMR
+            row.get('KeyName', ''),
             row['LaunchTime'],
             row['Region']['RegionName'],
             row['State']['Name'],
             row['InstanceName'])
             for row in instances
         ],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8, column9, column10'
+        select=db.derive_insert_select(LANDING_TABLES_COLUMNS['EC2']),
+        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['EC2'])
+        )
     )
     return len(instances)
 
 
 def ingest_sg(aws_access_key, aws_secret_key, landing_table, regions):
-    groups = get_all_security_groups(aws_access_key, aws_secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
+    groups=get_all_security_groups(aws_access_key, aws_secret_key, regions)
+    monitor_time=datetime.utcnow().isoformat()
     db.insert(
         landing_table,
-        values=[(
+        values = [(
             row,
             row['Description'],
             monitor_time,
@@ -174,18 +179,19 @@ def ingest_sg(aws_access_key, aws_secret_key, landing_table, regions):
             row['Region']['RegionName'],
             row['VpcId'])
             for row in groups],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8'
+        select = db.derive_insert_select(LANDING_TABLES_COLUMNS['SG']),
+        columns = db.derive_insert_columns(LANDING_TABLES_COLUMNS['SG'])
     )
     return len(groups)
 
 
 def ingest_elb(aws_access_key, aws_secret_key, landing_table, regions):
-    elbs = get_all_elbs(aws_access_key, aws_secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
+    elbs=get_all_elbs(aws_access_key, aws_secret_key, regions)
+    monitor_time=datetime.utcnow().isoformat()
 
     db.insert(
         landing_table,
-        values=[(
+        values = [(
             row,
             monitor_time,
             row['CanonicalHostedZoneName'],
@@ -197,8 +203,8 @@ def ingest_elb(aws_access_key, aws_secret_key, landing_table, regions):
             row['Scheme'],
             row['VPCId'])
             for row in elbs],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, '
-               'column7, column8, column9, column10'
+        select = db.derive_insert_select(LANDING_TABLES_COLUMNS['ELB']),
+        columns = db.derive_insert_columns(LANDING_TABLES_COLUMNS['ELB'])
     )
     return len(elbs)
 
@@ -207,13 +213,13 @@ def get_ec2_instances(aws_access_key, aws_secret_key, regions):
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
 
     # get list of all instances in each region
-    instances = []
+    instances=[]
     for region in regions:
-        reservations = boto3.client(
+        reservations=boto3.client(
             'ec2',
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=region['RegionName']
+            aws_access_key_id = aws_access_key,
+            aws_secret_access_key = aws_secret_key,
+            region_name = region['RegionName']
         ).describe_instances()["Reservations"]
 
         for reservation in reservations:
@@ -222,7 +228,8 @@ def get_ec2_instances(aws_access_key, aws_secret_key, regions):
                 instance["Region"] = region
                 instance["InstanceName"] = get_ec2_instance_name(instance)
                 # for the boto3 datetime fix
-                instance_str = json.dumps(instance, default=datetime_serializer).encode("utf-8")
+                instance_str = json.dumps(
+                    instance, default=datetime_serializer).encode("utf-8")
                 instance = json.loads(instance_str)
                 instances.append(instance)
 
@@ -264,12 +271,14 @@ def get_all_security_groups(aws_access_key, aws_secret_key, regions):
         )
         for group in ec2.describe_security_groups()['SecurityGroups']:
             group["Region"] = region
-            group_str = json.dumps(group, default=datetime_serializer).encode("utf-8")  # for the boto3 datetime fix
+            group_str = json.dumps(group, default=datetime_serializer).encode(
+                "utf-8")  # for the boto3 datetime fix
             group = json.loads(group_str)
             security_groups.append(group)
 
     # return list of groups
-    log.info(f"Successfully serialized {len(security_groups)} security group(s).")
+    log.info(
+        f"Successfully serialized {len(security_groups)} security group(s).")
     return security_groups
 
 
@@ -303,12 +312,14 @@ def get_all_v1_elbs(aws_access_key, aws_secret_key, regions):
         for elb in elb_client.describe_load_balancers()['LoadBalancerDescriptions']:
             # add region before adding elb to list of elbs
             elb["Region"] = region
-            elb_str = json.dumps(elb, default=datetime_serializer).encode("utf-8")  # for the datetime ser fix
+            elb_str = json.dumps(elb, default=datetime_serializer).encode(
+                "utf-8")  # for the datetime ser fix
             elb = json.loads(elb_str)
             elbs.append(elb)
 
     # return list of load balancers
-    log.info(f"Successfully serialized {len(elbs)} classic elastic load balancers(s).")
+    log.info(
+        f"Successfully serialized {len(elbs)} classic elastic load balancers(s).")
     return elbs
 
 
@@ -341,7 +352,8 @@ def get_all_v2_elbs(aws_access_key, aws_secret_key, regions):
             elbs.append(elb)
 
     # return list of load balancers
-    log.info(f"Successfully serialized {len(elbs)} modern elastic load balancers(s).")
+    log.info(
+        f"Successfully serialized {len(elbs)} modern elastic load balancers(s).")
     return elbs
 
 

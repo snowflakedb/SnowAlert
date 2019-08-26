@@ -47,7 +47,8 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
 def connect(flush_cache=False, set_cache=False, oauth={}):
     account = oauth.get('account')
     oauth_refresh_token = oauth.get('refresh_token')
-    oauth_access_token = oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
+    oauth_access_token = oauth_refresh(
+        account, oauth_refresh_token) if oauth_refresh_token else None
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
@@ -58,7 +59,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     connect_db, authenticator, pk = \
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None) if oauth_access_token else \
         (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
-        (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
+        (snowflake.connector.connect, None, load_pkb(
+            PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
 
     def connect():
         return connect_db(
@@ -152,7 +154,8 @@ def connect_and_fetchall(query):
 
 def fetch_latest(table, col='event_time', where=''):
     where = f' WHERE {where}' if where else ''
-    ts = next(fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None)
+    ts = next(
+        fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None)
     return ts[col.upper()] if ts else None
 
 
@@ -202,14 +205,17 @@ def load_rules(postfix) -> List[str]:
     try:
         views = sorted(
             (v['name'] for v in fetch(f'SHOW VIEWS IN rules')),
-            key=lambda vn: vn.replace('_', '{{')  # _ after letters, like in Snowflake
+            # _ after letters, like in Snowflake
+            key=lambda vn: vn.replace('_', '{{')
         )
     except Exception as e:
         log.error(e, f"Loading '{postfix}' rules failed.")
         return []
 
-    rules = [vn for vn in views if is_valid_rule_name(vn) and vn.endswith(postfix)]
-    log.info(f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
+    rules = [vn for vn in views if is_valid_rule_name(
+        vn) and vn.endswith(postfix)]
+    log.info(
+        f"Loaded {len(views)} views, {len(rules)} were '{postfix}' rules.")
 
     return rules
 
@@ -306,7 +312,8 @@ def insert_alerts(alerts, ctx=None):
     if ctx is None:
         ctx = connect()
 
-    query = INSERT_ALERTS_QUERY.format(values=sql_value_placeholders(len(alerts)))
+    query = INSERT_ALERTS_QUERY.format(
+        values=sql_value_placeholders(len(alerts)))
     return ctx.cursor().execute(query, alerts)
 
 
@@ -352,10 +359,12 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 
     log.info(f"{query_name} processing...")
     try:
-        result = next(fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False))
+        result = next(fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(
+            **locals()), fix_errors=False))
     except Exception:
         log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
-        result = next(fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False))
+        result = next(fetch(INSERT_VIOLATIONS_QUERY.format(
+            **locals()), fix_errors=False))
 
     num_rows_inserted = result['number of rows inserted']
     log.info(f"{query_name} created {num_rows_inserted} rows.")
@@ -380,7 +389,8 @@ def value_to_sql(v):
 
 
 def get_alerts(**kwargs):
-    predicates = '\n  AND '.join(f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
+    predicates = '\n  AND '.join(
+        f'{k}={value_to_sql(v)}' for k, v in kwargs.items())
     where_clause = f'WHERE {predicates}' if predicates else ''
     return fetch(f"SELECT * FROM data.alerts {where_clause}")
 
@@ -401,7 +411,8 @@ def record_metadata(metadata, table, e=None):
         if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
             metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
 
-    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
+    metadata.setdefault(
+        'ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
 
     metadata['END_TIME'] = datetime.utcnow()
     metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
@@ -448,7 +459,7 @@ def create_table_and_upload_csv(name, columns, file_path, file_format, ifnotexis
 
 
 def create_stage(name, url='', prefix='', cloud='', credentials='',
-                 file_format: Optional[TypeOptions]=None, replace=False,
+                 file_format: Optional[TypeOptions] = None, replace=False,
                  comment='', temporary=False):
 
     replace = 'OR REPLACE ' if replace else ''
