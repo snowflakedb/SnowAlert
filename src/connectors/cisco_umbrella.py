@@ -99,10 +99,9 @@ def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> 
 def connect(connection_name, options):
     table_name = f'cisco_umbrella_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    comment = "umbrella"
-    # comment = yaml_dump(
-    #     module='cisco_umbrella',
-    #     **options)
+    comment = yaml_dump(
+        module='cisco_umbrella',
+        **options)
 
     db.create_table(name=landing_table,
                     cols=LANDING_TABLE_COLUMNS, comment=comment)
