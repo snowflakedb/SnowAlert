@@ -5,10 +5,9 @@ Collect Cisco Umbrella information using a Client ID and Secret
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-from datetime import datetime
-
 import requests
 
+from datetime import datetime
 from .utils import yaml_dump
 
 PAGE_SIZE = 500
@@ -31,9 +30,9 @@ CONNECTION_OPTIONS = [
         'required': True,
     },
     {
-        'name': 'organizations_id',
-        'title': "Cisco Umbrella Organizations Id",
-        'prompt': "Your Cisco Umbrella Organizations Id",
+        'name': 'organization_id',
+        'title': "Cisco Umbrella Organization Id",
+        'prompt': "Your Cisco Umbrella Organization Id",
         'type': 'str',
         'required': True,
     },
@@ -58,28 +57,15 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-def get_col_transform(idx: int) -> str:
-    column = f'column{idx + 1}'
-    if LANDING_TABLE_COLUMNS[idx][1] == "VARIANT":
-        return f'PARSE_JSON({column})'
-    if "TIMESTAMP" in LANDING_TABLE_COLUMNS[idx][1]:
-        return f'TRY_TO_TIMESTAMP({column})'
-    return column
-
-
-SELECT = ",".join(
-    map(get_col_transform, range(1, len(LANDING_TABLE_COLUMNS))))
-
-COLUMNS = [col[0] for col in LANDING_TABLE_COLUMNS[1:]]
-
-
 # Perform a generic API call
 def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> dict:
     url = f"https://management.api.umbrella.com/v1/organizations/{organization_id}/roamingcomputers"
-    headers: dict = {"Content-Type": "application/json", "Accept": "application/json"}
+    headers: dict = {"Content-Type": "application/json",
+                     "Accept": "application/json"}
     try:
         req = requests.get(
-            url, params=params, headers=headers, auth=requests.auth.HTTPBasicAuth(key, secret)
+            url, params=params, headers=headers, auth=requests.auth.HTTPBasicAuth(
+                key, secret)
         )
         req.raise_for_status()
     except requests.HTTPError as http_err:
@@ -118,7 +104,7 @@ def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
 
-    organizations_id = options['organizations_id']
+    organizations_id = options['organization_id']
     api_secret = options['api_secret']
     api_key = options['api_key']
 
@@ -139,7 +125,6 @@ def ingest(table_name, options):
         db.insert(
             landing_table,
             values=[(
-                None,
                 timestamp,
                 device,
                 device.get('deviceId'),
@@ -155,8 +140,8 @@ def ingest(table_name, options):
                 device.get('appliedBundle', None),
                 device.get('hasIpBlocking', None),
             ) for device in devices],
-            select=SELECT,
-            columns=COLUMNS
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
         )
         log.info(f'Inserted {len(devices)} rows.')
         yield len(devices)
