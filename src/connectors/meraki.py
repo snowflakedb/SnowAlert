@@ -8,7 +8,8 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 from datetime import datetime
 
 import requests
-from .utils import yaml_dump
+from urllib.error import HTTPError
+# from .utils import yaml_dump
 
 PAGE_SIZE = 5
 
@@ -55,6 +56,16 @@ LANDING_TABLE_COLUMNS = [
     ('TAGS', 'VARCHAR(256)'),
     ('LNG', 'FLOAT'),
     ('LAT', 'FLOAT'),
+    ('ID', 'VARCHAR(256)'),
+    # ('MAC', 'VARCHAR(256)'),
+    ('DESCRIPTION', 'VARCHAR(256)'),
+    ('MDNS_NAME', 'VARCHAR(256)'),
+    ('DHCP_HOSTNAME', 'VARCHAR(256)'),
+    ('IP', 'VARCHAR(256)'),
+    ('VLAN', 'INT'),
+    ('SWITCHPORT', 'VARCHAR(256)'),
+    ('USAGE_SENT', 'INT'),
+    ('USAGE_RECV', 'INT'),
 ]
 
 
@@ -74,8 +85,8 @@ COLUMNS = [col[0] for col in LANDING_TABLE_COLUMNS[1:]]
 
 
 # Perform a generic API call
-def get_data(organization_id: str, token: str, params: dict = {}) -> dict:
-    url = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
+def get_data(url: str, token: str, params: dict = {}) -> dict:
+    # url = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
     headers: dict = {
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -116,11 +127,11 @@ def connect(connection_name, options):
     table_name = f'meraki_devices_{connection_name}_connection'
     landing_table = f'data.{table_name}'
 
-    comment = yaml_dump(
-        module='meraki_devices', **options)
+    # comment = yaml_dump(
+    #     module='meraki_devices', **options)
 
     db.create_table(name=landing_table,
-                    cols=LANDING_TABLE_COLUMNS, comment=comment)
+                    cols=LANDING_TABLE_COLUMNS, comment="Meraki")
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
@@ -134,12 +145,12 @@ def ingest(table_name, options):
     timestamp = datetime.utcnow()
     organization_id = options['organization_id']
     api_key = options['api_key']
-    serial_device = options['serial_device']
-    network_id = options['network_id']
-    whitelist = options['whitelist']
-    url_network = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
-    url_client = f"https://api.meraki.com/api/v0/devices/{serial_device}/clients"
-    url_device = f"https://api.meraki.com/api/v0/networks/{network_id}/devices"
+    # serial_device = options['serial_device']
+    # network_id = options['network_id'] # decide whether to remove or not
+    whitelist = options['network_id_whitelist']
+    # url_network = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
+    # url_client = f"https://api.meraki.com/api/v0/devices/{serial_device}/clients"
+    # url_device = f"https://api.meraki.com/api/v0/networks/{network_id}/devices"
 
     params: dict = {
         "limit": PAGE_SIZE,
@@ -148,46 +159,60 @@ def ingest(table_name, options):
         "page": 1,
     }
 
-    params.setdefault(
-        "validateWhiteList",
-        is_valid_white_list(url_network, api_key, whitelist),
-    )
+    # params.setdefault(
+    #     "validateWhiteList",
+    #     is_valid_white_list(url_network, api_key, whitelist),
+    # )
 
-    params.setdefault(
-        "networksIdTodo",
-        [{"id": e, "done": False} for e in whitelist],
-    )
+    # params.setdefault(
+    #     "networksIdTodo",
+    #     [{"id": e, "done": False} for e in whitelist],
+    # )
+    
+    for network in whitelist:
+        devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
+        
+        for device in devices:
+            serial_number = device["serial"]
+            clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
+            
+            for client in clients:
+                client.update(device)
+            
+            
 
-    while 1:
-        devices: dict = get_data(
-            organization_id, api_key, params
-        )
-        params["page"] += 1
-
-        if len(devices) == 0:
-            break
-
-        db.insert(
-            landing_table,
-            values=[(
-                None,
-                timestamp,
-                device,
-                device.get('serial'),
-                device.get('address'),
-                device.get('name'),
-                device.get('networkId'),
-                device.get('model'),
-                device.get('mac'),
-                device.get('lanIp'),
-                device.get('wan1Ip'),
-                device.get('wan2Ip'),
-                device.get('tags'),
-                device.get('lng'),
-                device.get('lat'),
-            ) for device in devices],
-            select=SELECT,
-            columns=COLUMNS
-        )
-        log.info(f'Inserted {len(devices)} rows.')
-        yield len(devices)
+            #print("devices: ", devices[:3])
+            db.insert(
+                landing_table,
+                values=[(
+                    None,
+                    timestamp,
+                    client,
+                    client.get('serial_number'),
+                    client.get('address'),
+                    client.get('name'),
+                    client.get('networkId'),
+                    client.get('model'),
+                    client.get('mac'),
+                    client.get('lanIp'),
+                    client.get('wan1Ip'),
+                    client.get('wan2Ip'),
+                    client.get('tags'),
+                    client.get('lng'),
+                    client.get('lat'),
+                    client.get('id'),
+                    # client.get('mac'),
+                    client.get('description'),
+                    client.get('mdnsName'),
+                    client.get('dhcpHostname'),
+                    client.get('ip'),
+                    client.get('vlan'),
+                    client.get('switchport'),
+                    client.get('usage').get('sent'),
+                    client.get('usage').get('recv')
+                ) for client in clients],
+                select=SELECT,
+                columns=COLUMNS
+            )
+            log.info(f'Inserted {len(devices)} rows.')
+            yield len(devices)
