@@ -89,7 +89,7 @@ def get_token_basic(client_id: str, client_secret: str) -> str:
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"}
     try:
         log.debug(f"Preparing POST: url={CROWDSTRIKE_AUTH_TOKEN_URL}")
-        req: dict = requests.post(
+        req = requests.post(
             CROWDSTRIKE_AUTH_TOKEN_URL,
             headers=headers,
             auth=requests.auth.HTTPBasicAuth(client_id, client_secret),
