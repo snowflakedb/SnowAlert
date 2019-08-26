@@ -231,6 +231,7 @@ def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
     skipped = 0
 
     def get_col_transformation(idx: int, col: Tuple[str, str]) -> str:
+        nonlocal skipped
         _, col_type = col
         col_type = col_type.upper()
         col_placeholder = f'column{idx - skipped + 1}'
@@ -256,10 +257,12 @@ def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> List[str]:
     }
 
     def filter_auto_populating_cols(col: Tuple[str, str]) -> List[str]:
+        nonlocal auto_populating
+
         col_name, col_type = col
         col_type = col_type.upper()
 
-        for skippable in skippables:
+        for skippable in auto_populating:
             if skippable in col_type:
                 return False
         return True
