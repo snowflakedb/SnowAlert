@@ -83,21 +83,6 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-def get_col_transform(idx: int) -> str:
-    column = f'column{idx+1}'
-    if LANDING_TABLE_COLUMNS[idx][1] == "VARIANT":
-        return f'PARSE_JSON({column})'
-    if LANDING_TABLE_COLUMNS[idx][1] == "TIMESTAMP_LTZ(9)":
-        return f'TO_TIMESTAMP({column})'
-    return column
-
-
-SELECT = ",".join(
-    map(get_col_transform, range(1, len(LANDING_TABLE_COLUMNS))))
-
-COLUMNS = [col[0] for col in LANDING_TABLE_COLUMNS[1:]]
-
-
 # Perform the authorization call to create access token for subsequent API calls
 def get_token_basic(client_id: str, client_secret: str) -> str:
     headers: dict = {
@@ -228,7 +213,6 @@ def ingest(table_name, options):
         db.insert(
             landing_table,
             values=[(
-                None,
                 timestamp,
                 device,
                 device.get('device_id'),
@@ -273,8 +257,8 @@ def ingest(table_name, options):
                 device.get('machine_domain', None),
                 device.get('ou', None),
             ) for device in devices],
-            select=SELECT,
-            columns=COLUMNS
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
         )
         log.info(f'Inserted {len(devices)} rows.')
         yield len(devices)
