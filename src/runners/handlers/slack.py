@@ -41,12 +41,13 @@ def message_template(vars):
     return payload
 
 
-def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None, file_name=None):
-    if 'SLACK_API_TOKEN' not in os.environ:
+def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None, file_name=None, slack_api_token=None):
+    if 'SLACK_API_TOKEN' not in os.environ and slack_api_token is None:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
 
-    slack_token = vault.decrypt_if_encrypted(os.environ['SLACK_API_TOKEN'])
+    slack_token_ct = slack_api_token or os.environ['SLACK_API_TOKEN']
+    slack_token = vault.decrypt_if_encrypted(slack_token_ct)
 
     sc = SlackClient(slack_token)
 
