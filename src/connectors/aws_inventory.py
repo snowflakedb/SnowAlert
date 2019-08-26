@@ -159,16 +159,17 @@ def ingest_ec2(aws_access_key, aws_secret_key, landing_table, regions):
         ],
         select=db.derive_insert_select(LANDING_TABLES_COLUMNS['EC2']),
         columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['EC2'])
+        )
     )
     return len(instances)
 
 
 def ingest_sg(aws_access_key, aws_secret_key, landing_table, regions):
-    groups = get_all_security_groups(aws_access_key, aws_secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
+    groups=get_all_security_groups(aws_access_key, aws_secret_key, regions)
+    monitor_time=datetime.utcnow().isoformat()
     db.insert(
         landing_table,
-        values=[(
+        values = [(
             row,
             row['Description'],
             monitor_time,
@@ -178,19 +179,19 @@ def ingest_sg(aws_access_key, aws_secret_key, landing_table, regions):
             row['Region']['RegionName'],
             row['VpcId'])
             for row in groups],
-        select=db.derive_insert_select(LANDING_TABLES_COLUMNS['SG']),
-        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['SG'])
+        select = db.derive_insert_select(LANDING_TABLES_COLUMNS['SG']),
+        columns = db.derive_insert_columns(LANDING_TABLES_COLUMNS['SG'])
     )
     return len(groups)
 
 
 def ingest_elb(aws_access_key, aws_secret_key, landing_table, regions):
-    elbs = get_all_elbs(aws_access_key, aws_secret_key, regions)
-    monitor_time = datetime.utcnow().isoformat()
+    elbs=get_all_elbs(aws_access_key, aws_secret_key, regions)
+    monitor_time=datetime.utcnow().isoformat()
 
     db.insert(
         landing_table,
-        values=[(
+        values = [(
             row,
             monitor_time,
             row['CanonicalHostedZoneName'],
@@ -202,8 +203,8 @@ def ingest_elb(aws_access_key, aws_secret_key, landing_table, regions):
             row['Scheme'],
             row['VPCId'])
             for row in elbs],
-        select=db.derive_insert_select(LANDING_TABLES_COLUMNS['ELB']),
-        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['ELB'])
+        select = db.derive_insert_select(LANDING_TABLES_COLUMNS['ELB']),
+        columns = db.derive_insert_columns(LANDING_TABLES_COLUMNS['ELB'])
     )
     return len(elbs)
 
@@ -212,13 +213,13 @@ def get_ec2_instances(aws_access_key, aws_secret_key, regions):
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
 
     # get list of all instances in each region
-    instances = []
+    instances=[]
     for region in regions:
-        reservations = boto3.client(
+        reservations=boto3.client(
             'ec2',
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=region['RegionName']
+            aws_access_key_id = aws_access_key,
+            aws_secret_access_key = aws_secret_key,
+            region_name = region['RegionName']
         ).describe_instances()["Reservations"]
 
         for reservation in reservations:
