@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Iterator, Any
 from os import getpid
 from re import match
 import operator
@@ -237,7 +237,7 @@ def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
         col_placeholder = f'column{idx - skipped + 1}'
         if "AUTOINCREMENT" in col_type or "IDENTITY" in col_type:  # skip since auto populated
             skipped += 1
-            return None
+            return ''
         if "VARIANT" in col_type:
             return f'PARSE_JSON({col_placeholder})'
         if "TIMESTAMP" in col_type:
@@ -250,13 +250,13 @@ def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
     return ",".join(filter(None, cols))
 
 
-def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> List[str]:
+def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[Any]:
     auto_populating = {
         "AUTOINCREMENT",
         "IDENTITY"
     }
 
-    def filter_auto_populating_cols(col: Tuple[str, str]) -> List[str]:
+    def filter_auto_populating_cols(col: Tuple[str, str]) -> bool:
         nonlocal auto_populating
 
         col_name, col_type = col
