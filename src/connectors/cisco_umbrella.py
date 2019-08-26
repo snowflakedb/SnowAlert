@@ -76,7 +76,7 @@ def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> 
         log.debug(req.status_code)
         json = req.json()
     except Exception as json_error:
-        log.debug(f"JSON error occurred: {json_error}")
+        log.error(f"JSON error occurred: {json_error}")
         log.debug(f"requests response {req}")
         raise json_error
     return json
