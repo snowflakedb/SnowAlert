@@ -8,10 +8,10 @@ require(purrr)
 #ID
 
 get_percentiles <- function(dataframe, column_name, exit_name, column_names_summarize_by ){
-  p <- c(.1, .25,.75,.95,.5)
-  p_names <- map_chr(p, ~paste0(.x*100, exit_name))
+  p <- c(.025,.05,.1, .25,.75,.95,.975,.5)
+  p_names <- map_chr(p, ~paste0(ifelse(floor(.x*100)<.x*100, gsub(".*\\.","",toString(.x)),.x*100), exit_name))
   p_funs <- map(p, ~partial(quantile, probs=.x, na.rm=TRUE)) %>%
-    set_names(nm=p_names)
+  set_names(nm=p_names)
   avg_funs <- map(1, ~partial(mean, probs=.x, na.rm=TRUE)) %>% set_names(nm=paste0('avg_', exit_name))
   number_of <- map(1, ~partial(sum, probs=.x, na.rm=TRUE)) %>% set_names(nm=paste0('_', exit_name))
   max_funs <- map(1, ~partial(max, probs=.x, na.rm=TRUE)) %>% set_names(nm=paste0('max_', exit_name))
@@ -21,8 +21,8 @@ get_percentiles <- function(dataframe, column_name, exit_name, column_names_summ
   return(dataframe %>% group_by_(column_name) %>% summarize_at(vars(column_names_summarize_by), full_funs))
 }
 
-
 results <- input_table
+results$PIVOT = results$LANDING_TABLE
 print(colnames(results))
 if('EVENT_TIME' %in% colnames(results)) {
 	print('Event time case triggered')
@@ -42,6 +42,7 @@ if(!('ID' %in% colnames(results))){
 
 if('NUM_EVENTS' %in% colnames(results)){
 	print('Num events found')
+  results$NUM_EVENTS <- as.integer(results$NUM_EVENTS)
   by_day_when_present <- results %>% 
     group_by(PIVOT, DAY)%>% 
     summarise(num_events=sum(NUM_EVENTS), num_ids=sum(ID))
@@ -53,6 +54,7 @@ by_day_when_present <- results %>%
             num_ids=length(unique(ID))
   )
 }
+
 print(by_day_when_present)
 earliest_time <- min(results$DAY, na.rm=TRUE)
 latest_time <- max(results$DAY, na.rm=TRUE)
@@ -66,19 +68,32 @@ expand_days_date <- expand_days %>%group_by(PIVOT)%>%summarise(earliest=min(DAY)
 numerics <- merge(when_present_numeric, expand_days_numeric, by='PIVOT', all.x=TRUE, all.y=TRUE)
 dates <- merge(when_present_date, expand_days_date, by='PIVOT', all.x=TRUE, all.y=TRUE)
 full <- cbind(numerics, dates)
-return_value <- full[c('PIVOT', 'num_ids_10when_present',
-                       'num_events_10when_present', 'num_ids_25when_present', 
-                       'num_events_25when_present', 'num_ids_75when_present', 
-                       'num_events_75when_present','num_ids_95when_present', 
-                       'num_events_95when_present','num_ids_50when_present', 
-                       'num_events_50when_present', 'num_ids_avg_when_present', 
-                       'num_events_avg_when_present',
+
+return_value <- full[c('PIVOT', 'num_ids_025when_present','num_events_025when_present',
+                       'num_ids_5when_present','num_events_5when_present',
+                       'num_ids_10when_present','num_events_10when_present',
+                       'num_ids_25when_present', 'num_events_25when_present', 
+                       'num_ids_75when_present', 'num_events_75when_present',
+                       'num_ids_95when_present', 'num_events_95when_present',
+                       'num_ids_975when_present', 'num_events_975when_present',
+                       'num_ids_50when_present', 'num_events_50when_present', 
+                       'num_ids_avg_when_present', 'num_events_avg_when_present',
                        'num_ids__when_present', 'num_events__when_present',
                        'num_ids_max_when_present', 'num_events_max_when_present',
                        'num_ids_min_when_present', 'num_events_min_when_present',
+                       'num_ids_025overall','num_events_025overall',
+                       'num_ids_5overall','num_events_5overall',
+                       'num_ids_10overall','num_events_10overall',
+                       'num_ids_25overall', 'num_events_25overall',
+                       'num_ids_75overall', 'num_events_75overall',
+                       'num_ids_95overall', 'num_events_95overall',
+                       'num_ids_975overall', 'num_events_975overall',
+                       'num_ids__overall', 'num_events__overall',
+                       'num_ids_max_overall', 'num_events_max_overall',
+                       'num_ids_min_overall', 'num_events_min_overall',
                        'num_ids_50overall', 'num_events_50overall',
                        'num_ids_avg_overall', 'num_events_avg_overall',
                        'earliest_when_present', 'latest_when_present',
                        'num_days', 'num_days_overall'
-                       )
-                     ]
+)
+]
