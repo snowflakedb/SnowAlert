@@ -10,7 +10,7 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-# from .utils import yaml_dump
+from .utils import yaml_dump
 
 PAGE_SIZE = 5
 
@@ -35,7 +35,7 @@ CONNECTION_OPTIONS = [
         'name': 'network_id_whitelist',
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
-        'type': 'str', # Annie wants to change 'str' to 'list', but not sure about implications
+        'type': 'str', 
         'secret': True,
         'required': True,
     },
@@ -100,8 +100,8 @@ def connect(connection_name, options, comment="Meraki"):
     landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
     landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
 
-    # comment = yaml_dump(
-    #     module='meraki_devices', **options)
+    comment = yaml_dump(
+        module='meraki_devices', **options)
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
@@ -130,38 +130,45 @@ def ingest(table_name_client, landing_table_device, options):
     
     
     for network in whitelist:
+        
         try:
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
         except requests.exceptions.HTTPError as e:
-            log.error(f"{network} not accessible, ", e)
+            log.error(f"{network} not accessible, ")
+            log.error(e)
             continue
         
+        network_clients = []
+
+
         for device in devices:
             serial_number = device["serial"]
             clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
-        
-            db.insert(
-                landing_table_client,
-                values=[(
-                    timestamp,
-                    client,
-                    client.get('id'),
-                    client.get('mac'),
-                    client.get('description'),
-                    client.get('mdnsName'),
-                    client.get('dhcpHostname'),
-                    client.get('ip'),
-                    parse_number(client.get('vlan')),
-                    client.get('switchport'),
-                    parse_number(client.get('usage').get('sent')),
-                    parse_number(client.get('usage').get('recv')),
-                    serial_number,
-                ) for client in clients],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
-            )
-            log.info(f'Inserted {len(clients)} rows (clients).')
-            yield len(clients)
+
+            network_clients.extend(clients)
+
+        db.insert(
+            landing_table_client,
+            values=[(
+                timestamp,
+                client,
+                client.get('id'),
+                client.get('mac'),
+                client.get('description'),
+                client.get('mdnsName'),
+                client.get('dhcpHostname'),
+                client.get('ip'),
+                parse_number(client.get('vlan')),
+                client.get('switchport'),
+                parse_number(client.get('usage').get('sent')),
+                parse_number(client.get('usage').get('recv')),
+                serial_number,
+            ) for client in network_clients],
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
+        )
+        log.info(f'Inserted {len(network_clients)} rows (clients).')
+        yield len(clients)
 
         db.insert(
             landing_table_device,
