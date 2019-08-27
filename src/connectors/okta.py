@@ -115,7 +115,7 @@ def ingest(table_name, options):
 
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
-    else:
+    elif ingest_type == 'users':
         while 1:
             response = requests.get(url=url[ingest_type], headers=headers)
             if response.status_code != 200:
@@ -150,3 +150,34 @@ def ingest(table_name, options):
 
             if len(url[ingest_type]) == 0:
                 break
+    else:
+        ts = db.fetch_latest(landing_table, 'event_time')
+        if ts is None:
+            log.error(
+                "Unable to find a timestamp of most recent Okta log, "
+                "defaulting to one hour ago"
+            )
+            ts = datetime.datetime.now() - datetime.timedelta(hours=1)
+
+        params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
+
+        while 1:
+            response = requests.get(url=url, headers=headers, params=params)
+            if response.status_code != 200:
+                log.error('OKTA REQUEST FAILED: ', response.text)
+                return
+
+            result = response.json()
+            if result == []:
+                break
+
+            db.insert(
+                landing_table,
+                values=[(row, row['published']) for row in result],
+                select='PARSE_JSON(column1), column2'
+            )
+
+            log.info(f'Inserted {len(result)} rows.')
+            yield len(result)
+
+            url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
