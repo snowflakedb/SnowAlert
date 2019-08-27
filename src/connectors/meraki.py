@@ -91,21 +91,14 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
         log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
         raise http_err
-    try:
-        log.debug(req.status_code)
-        json = req.json()
-    except Exception as json_error:
-        log.debug(f"JSON error occurred: {json_error}")
-        log.debug(f"requests response {req}")
-        json = {}
+    log.debug(req.status_code)
+    json = req.json()
     return json
 
 
 def connect(connection_name, options, comment="Meraki"):
-    table_name_client = f'meraki_devices_{connection_name}_connection_client'
-    landing_table_client = f'data.{table_name_client}'
-    table_name_device = f'meraki_devices_{connection_name}_connection_device'
-    landing_table_device = f'data.{table_name_device}'
+    landing_table_client = f'data.{'meraki_devices_{connection_name}_connection_client'}'
+    landing_table_device = f'data.{'meraki_devices_{connection_name}_connection_device'}'
 
     # comment = yaml_dump(
     #     module='meraki_devices', **options)
