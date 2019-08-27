@@ -159,10 +159,12 @@ def ingest(table_name, options):
             )
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
 
-        params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")}
+        params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z"), 'limit': 500}
 
+        i = 0
+        print(params['since'])
         while 1:
-            response = requests.get(url=url, headers=headers, params=params)
+            response = requests.get(url=url[ingest_type], headers=headers, params=params)
             if response.status_code != 200:
                 log.error('OKTA REQUEST FAILED: ', response.text)
                 return
@@ -177,7 +179,15 @@ def ingest(table_name, options):
                 select='PARSE_JSON(column1), column2'
             )
 
-            log.info(f'Inserted {len(result)} rows.')
+            log.info(f'Inserted {len(result)} rows. {i}')
+            i += 1
             yield len(result)
 
-            url = response.headers['Link'].split(', ')[1].split(';')[0][1:-1]
+            url[ingest_type] = ''
+            links = requests.utils.parse_header_links(response.headers['Link'])
+            for link in links:
+                if link['rel'] == 'next':
+                    url[ingest_type] = link['url']
+
+            if len(url[ingest_type]) == 0:
+                break
