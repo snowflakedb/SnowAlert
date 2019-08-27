@@ -7,6 +7,7 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from datetime import datetime
 
+import snowflake
 import requests
 from urllib.error import HTTPError
 # from .utils import yaml_dump
@@ -137,28 +138,32 @@ def ingest(table_name_client, landing_table_device, options):
             for client in clients:
                 client['serial'] = serial_number
 
-            db.insert(
-                landing_table_client,
-                values=[(
-                    timestamp,
-                    client,
-                    client.get('id'),
-                    client.get('mac'),
-                    client.get('description'),
-                    client.get('mdnsName'),
-                    client.get('dhcpHostname'),
-                    client.get('ip'),
-                    client.get('vlan'),
-                    client.get('switchport'),
-                    client.get('usage').get('sent'),
-                    client.get('usage').get('recv'),
-                    client.get('serial'),
-                ) for client in clients],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
-            )
-            log.info(f'Inserted {len(clients)} rows (clients).')
-            yield len(clients)
+            try:
+                db.insert(
+                    landing_table_client,
+                    values=[(
+                        timestamp,
+                        client,
+                        client.get('id'),
+                        client.get('mac'),
+                        client.get('description'),
+                        client.get('mdnsName'),
+                        client.get('dhcpHostname'),
+                        client.get('ip'),
+                        client.get('vlan'),
+                        client.get('switchport'),
+                        client.get('usage').get('sent'),
+                        client.get('usage').get('recv'),
+                        client.get('serial'),
+                    ) for client in clients],
+                    select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+                    columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
+                )
+                log.info(f'Inserted {len(clients)} rows (clients).')
+                yield len(clients)
+            except snowflake.connector.errors.ProgrammingError as E:
+                print("ERROR: ", E)
+                print(clients)
 
         db.insert(
             landing_table_device,
