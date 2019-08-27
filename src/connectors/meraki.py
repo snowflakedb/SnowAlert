@@ -170,7 +170,6 @@ def ingest(table_name_client, landing_table_device, options):
             db.insert(
                 landing_table_client,
                 values=[(
-                    None,
                     timestamp,
                     client,
                     client.get('id'),
@@ -194,7 +193,6 @@ def ingest(table_name_client, landing_table_device, options):
         db.insert(
             landing_table_device,
             values=[(
-                None,
                 timestamp,
                 device,
                 device.get('serial_number'),
