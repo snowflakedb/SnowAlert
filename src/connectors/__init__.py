@@ -12,6 +12,7 @@ from . import okta
 from . import tenable_settings
 from . import crowdstrike_devices
 from . import cisco_umbrella
+from . import meraki
 
 __all__ = [
     'aws_inventory',
@@ -24,6 +25,7 @@ __all__ = [
     'azure_vm',
     'github_webhooks_s3',
     'gsuite_logs',
+    'meraki',
     'okta',
     'tenable_settings',
     'crowdstrike_devices',
@@ -41,6 +43,7 @@ connectors = {
     'azure_vm': azure_vm,
     'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
+    'meraki': meraki,
     'okta': okta,
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
