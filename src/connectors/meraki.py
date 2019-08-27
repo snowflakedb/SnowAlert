@@ -97,8 +97,8 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 
 
 def connect(connection_name, options, comment="Meraki"):
-    landing_table_client = f'data.{'meraki_devices_{connection_name}_connection_client'}'
-    landing_table_device = f'data.{'meraki_devices_{connection_name}_connection_device'}'
+    landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
+    landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
 
     # comment = yaml_dump(
     #     module='meraki_devices', **options)
