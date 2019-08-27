@@ -147,8 +147,8 @@ def ingest(table_name, options):
 
     ingest_of_type = {
         'EC2': ec2_dispatch,
-        'SG': ingest_sg,
-        'ELB': ingest_elb,
+        'SG': sg_dispatch,
+        'ELB': elb_dispatch,
     }[connection_type]
 
     if source_role_arn and destination_role_name and external_id and accounts_identifier:
@@ -158,7 +158,6 @@ def ingest(table_name, options):
         count = ingest_of_type(landing_table, accounts=accounts, source_role_arn=source_role_arn, destination_role_name=destination_role_name, external_id=external_id)
 
     elif aws_access_key and aws_secret_key:
-
         count = ingest_of_type(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
         log.info(f'Inserted {count} rows.')
         yield count
@@ -167,26 +166,43 @@ def ingest(table_name, options):
 
 
 def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
-    if aws_access_key:
-        ingest_ec2(landing_table, aws_access_key, aws_secret_key)
-    elif accounts:
+    if accounts:
         for account_id in accounts:
             id = account_id['ACCOUNT_ID']
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             print(target_role)
-            try:
-                session = sts_assume_role(source_role_arn, target_role, external_id)
-                ingest_ec2(landing_table, aws_access_key=session.get_credentials().access_key, aws_secret_key=session.get_credentials().secret_key)
-            except Exception:
-                log.error(f"Failed to assume role {target_role}")
-
+            sts_assume_role(source_role_arn, target_role, external_id)
+            ingest_ec2(landing_table)
     else:
-        log.error(f'No credentials passed in for {landing_table}')
-        return 0
+        ingest_ec2(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
 
-def ingest_ec2(landing_table, aws_access_key, aws_secret_key):
-    instances = get_ec2_instances(aws_access_key, aws_secret_key)
+def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
+    if accounts:
+        for account_id in accounts:
+            id = account_id['ACCOUNT_ID']
+            target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
+            print(target_role)
+            sts_assume_role(source_role_arn, target_role, external_id)
+            ingest_sg(landing_table)
+    else:
+        ingest_sg(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+
+
+def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
+    if accounts:
+        for account_id in accounts:
+            id = account_id['ACCOUNT_ID']
+            target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
+            print(target_role)
+            sts_assume_role(source_role_arn, target_role, external_id)
+            ingest_elb(landing_table)
+    else:
+        ingest_elb(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+
+
+def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None):
+    instances = get_ec2_instances(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
@@ -209,7 +225,7 @@ def ingest_ec2(landing_table, aws_access_key, aws_secret_key):
     return len(instances)
 
 
-def ingest_sg(aws_access_key, aws_secret_key, landing_table):
+def ingest_sg(landing_table, aws_access_key=None, aws_secret_key=None):
     groups = get_all_security_groups(aws_access_key, aws_secret_key)
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
@@ -229,8 +245,8 @@ def ingest_sg(aws_access_key, aws_secret_key, landing_table):
     return len(groups)
 
 
-def ingest_elb(aws_access_key, aws_secret_key, landing_table):
-    elbs = get_all_elbs(aws_access_key, aws_secret_key)
+def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None):
+    elbs = get_all_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
     monitor_time = datetime.utcnow().isoformat()
 
     db.insert(
@@ -253,13 +269,12 @@ def ingest_elb(aws_access_key, aws_secret_key, landing_table):
     return len(elbs)
 
 
-def get_ec2_instances(aws_access_key, aws_secret_key):
+def get_ec2_instances(aws_access_key=None, aws_secret_key=None):
     client = boto3.client(
         'ec2',
         aws_access_key_id=aws_access_key,
         aws_secret_access_key=aws_secret_key
     )
-    import pdb; pdb.set_trace()
     regions = client.describe_regions()['Regions']
 
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
@@ -272,7 +287,8 @@ def get_ec2_instances(aws_access_key, aws_secret_key):
             aws_access_key_id=aws_access_key,
             aws_secret_access_key=aws_secret_key,
             region_name=region['RegionName']
-        ).describe_instances()["Reservations"]
+        )
+        reservations = reservations.describe_instances()["Reservations"]
 
         for reservation in reservations:
 
@@ -302,7 +318,7 @@ def get_ec2_instance_name(instance=None):
             return tag["Value"]
 
 
-def get_all_security_groups(aws_access_key, aws_secret_key):
+def get_all_security_groups(aws_access_key=None, aws_secret_key=None, session=None):
     """
     This function grabs each security group from each region and returns
     a list of the security groups.
@@ -338,9 +354,9 @@ def get_all_security_groups(aws_access_key, aws_secret_key):
     return security_groups
 
 
-def get_all_elbs(aws_access_key, aws_secret_key):
-    v1_elbs = get_all_v1_elbs(aws_access_key, aws_secret_key)
-    v2_elbs = get_all_v2_elbs(aws_access_key, aws_secret_key)
+def get_all_elbs(aws_access_key=None, aws_secret_key=None):
+    v1_elbs = get_all_v1_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+    v2_elbs = get_all_v2_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
     elbs = v1_elbs + v2_elbs
 
     if len(elbs) is 0:
@@ -350,7 +366,7 @@ def get_all_elbs(aws_access_key, aws_secret_key):
     return elbs
 
 
-def get_all_v1_elbs(aws_access_key, aws_secret_key):
+def get_all_v1_elbs(aws_access_key=None, aws_secret_key=None):
     """
     This function grabs each classic elb from each region and returns
     a list of them.
@@ -383,7 +399,7 @@ def get_all_v1_elbs(aws_access_key, aws_secret_key):
     return elbs
 
 
-def get_all_v2_elbs(aws_access_key, aws_secret_key):
+def get_all_v2_elbs(aws_access_key=None, aws_secret_key=None):
     """
     This function grabs each v2 elb from each region and returns
     a list of them.
