@@ -17,13 +17,6 @@ PAGE_SIZE = 5
 
 CONNECTION_OPTIONS = [
     {
-        'name': 'organization_id',
-        'title': "Meraki Organization ID",
-        'prompt': "Your Meraki Organization ID",
-        'type': 'str',
-        'required': True,
-    },
-    {
         'name': 'api_token',
         'title': "Meraki API Token",
         'prompt': "Your Meraki API Token",
@@ -35,7 +28,11 @@ CONNECTION_OPTIONS = [
         'name': 'network_id_whitelist',
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
+<<<<<<< HEAD
         'type': 'str', 
+=======
+        'type': 'list',
+>>>>>>> 54ef8707622704cf6b96d72029996bbd96153185
         'secret': True,
         'required': True,
     },
@@ -99,9 +96,14 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 def connect(connection_name, options, comment="Meraki"):
     landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
     landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
+    options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
+<<<<<<< HEAD
     comment = yaml_dump(
         module='meraki_devices', **options)
+=======
+    comment = yaml_dump(module='meraki_devices', **options)
+>>>>>>> 54ef8707622704cf6b96d72029996bbd96153185
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
@@ -127,8 +129,6 @@ def ingest(table_name_client, landing_table_device, options):
     api_key = options['api_key']
     whitelist = options['network_id_whitelist']
 
-    
-    
     for network in whitelist:
         
         try:
