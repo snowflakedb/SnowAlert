@@ -126,66 +126,65 @@ def ingest(table_name_client, landing_table_device, options):
     timestamp = datetime.utcnow()
     api_key = options['api_key']
     whitelist = options['network_id_whitelist']
+
+    
     
     for network in whitelist:
-
         try:
-
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
-            
-            for device in devices:
-                serial_number = device["serial"]
-                clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
+        except requests.exceptions.HTTPError:
+            continue
+        
+        for device in devices:
+            serial_number = device["serial"]
+            clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
 
-                for client in clients:
-                    client['serial'] = serial_number
-            
-                db.insert(
-                    landing_table_client,
-                    values=[(
-                        timestamp,
-                        client,
-                        client.get('id'),
-                        client.get('mac'),
-                        client.get('description'),
-                        client.get('mdnsName'),
-                        client.get('dhcpHostname'),
-                        client.get('ip'),
-                        parse_number(client.get('vlan')),
-                        client.get('switchport'),
-                        parse_number(client.get('usage').get('sent')),
-                        parse_number(client.get('usage').get('recv')),
-                        client.get('serial'),
-                    ) for client in clients],
-                    select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
-                    columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
-                )
-                log.info(f'Inserted {len(clients)} rows (clients).')
-                yield len(clients)
-
+            for client in clients:
+                client['serial'] = serial_number
+        
             db.insert(
-                landing_table_device,
+                landing_table_client,
                 values=[(
                     timestamp,
-                    device,
-                    device.get('serial'),
-                    device.get('address'),
-                    device.get('name'),
-                    device.get('networkId'),
-                    device.get('model'),
-                    device.get('mac'),
-                    device.get('lanIp'),
-                    device.get('wan1Ip'),
-                    device.get('wan2Ip'),
-                    device.get('tags'),
-                    device.get('lng'),
-                    device.get('lat'),
-                ) for device in devices],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
+                    client,
+                    client.get('id'),
+                    client.get('mac'),
+                    client.get('description'),
+                    client.get('mdnsName'),
+                    client.get('dhcpHostname'),
+                    client.get('ip'),
+                    parse_number(client.get('vlan')),
+                    client.get('switchport'),
+                    parse_number(client.get('usage').get('sent')),
+                    parse_number(client.get('usage').get('recv')),
+                    client.get('serial'),
+                ) for client in clients],
+                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
             )
-            log.info(f'Inserted {len(devices)} rows (devices).')
-            yield len(devices)
-        
-        except requests.exceptions.HTTPError:
-            pass
+            log.info(f'Inserted {len(clients)} rows (clients).')
+            yield len(clients)
+
+        db.insert(
+            landing_table_device,
+            values=[(
+                timestamp,
+                device,
+                device.get('serial'),
+                device.get('address'),
+                device.get('name'),
+                device.get('networkId'),
+                device.get('model'),
+                device.get('mac'),
+                device.get('lanIp'),
+                device.get('wan1Ip'),
+                device.get('wan2Ip'),
+                device.get('tags'),
+                device.get('lng'),
+                device.get('lat'),
+            ) for device in devices],
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
+        )
+        log.info(f'Inserted {len(devices)} rows (devices).')
+        yield len(devices)
