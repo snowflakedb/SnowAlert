@@ -1,5 +1,5 @@
 """Meraki Devices
-Collect Meraki Device information using ___
+Collect Meraki Device information using an API Token
 """
 
 from runners.helpers import db, log
