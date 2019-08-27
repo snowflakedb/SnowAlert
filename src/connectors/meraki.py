@@ -13,7 +13,7 @@ from urllib.error import HTTPError
 
 PAGE_SIZE = 5
 
-# COME BACK TO THIS!
+
 CONNECTION_OPTIONS = [
     {
         'name': 'organization_id',
@@ -74,36 +74,6 @@ LANDING_TABLE_COLUMNS_DEVICE = [
     ('LNG', 'FLOAT'),
     ('LAT', 'FLOAT'),
 ]
-
-
-def get_col_transform_client(idx: int) -> str:
-    column = f'column{idx+1}'
-    if LANDING_TABLE_COLUMNS_CLIENT[idx][1] == "VARIANT":
-        return f'PARSE_JSON({column})'
-    if LANDING_TABLE_COLUMNS_CLIENT[idx][1] == "TIMESTAMP_LTZ(9)":
-        return f'TO_TIMESTAMP({column})'
-    return column
-
-
-def get_col_transform_device(idx: int) -> str:
-    column = f'column{idx+1}'
-    if LANDING_TABLE_COLUMNS_DEVICE[idx][1] == "VARIANT":
-        return f'PARSE_JSON({column})'
-    if LANDING_TABLE_COLUMNS_DEVICE[idx][1] == "TIMESTAMP_LTZ(9)":
-        return f'TO_TIMESTAMP({column})'
-    return column
-
-
-SELECT_CLIENT = ",".join(
-    map(get_col_transform_client, range(1, len(LANDING_TABLE_COLUMNS_CLIENT))))
-
-COLUMNS_CLIENT = [col[0] for col in LANDING_TABLE_COLUMNS_CLIENT[1:]]
-
-SELECT_DEVICE = ",".join(
-    map(get_col_transform_device, range(1, len(LANDING_TABLE_COLUMNS_DEVICE))))
-
-COLUMNS_DEVICE = [col[0] for col in LANDING_TABLE_COLUMNS_DEVICE[1:]]
-
 
 # Perform a generic API call
 def get_data(url: str, token: str, params: dict = {}) -> dict:
@@ -184,8 +154,8 @@ def ingest(table_name_client, landing_table_device, options):
                     client.get('usage').get('recv'),
                     client.get('serial'),
                 ) for client in clients],
-                select=SELECT_CLIENT,
-                columns=COLUMNS_CLIENT
+                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
             )
             log.info(f'Inserted {len(clients)} rows (clients).')
             yield len(clients)
@@ -208,8 +178,8 @@ def ingest(table_name_client, landing_table_device, options):
                 device.get('lng'),
                 device.get('lat'),
             ) for device in devices],
-            select=SELECT_DEVICE,
-            columns=COLUMNS_DEVICE
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
         )
         log.info(f'Inserted {len(devices)} rows (devices).')
         yield len(devices)
