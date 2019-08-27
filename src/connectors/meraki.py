@@ -132,15 +132,13 @@ def ingest(table_name_client, landing_table_device, options):
     for network in whitelist:
         try:
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as e:
+            log.error(f"{network} not accessible, ", e)
             continue
         
         for device in devices:
             serial_number = device["serial"]
             clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
-
-            for client in clients:
-                client['serial'] = serial_number
         
             db.insert(
                 landing_table_client,
@@ -157,7 +155,7 @@ def ingest(table_name_client, landing_table_device, options):
                     client.get('switchport'),
                     parse_number(client.get('usage').get('sent')),
                     parse_number(client.get('usage').get('recv')),
-                    client.get('serial'),
+                    serial_number,
                 ) for client in clients],
                 select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
                 columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
