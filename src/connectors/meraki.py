@@ -40,7 +40,24 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-LANDING_TABLE_COLUMNS = [
+LANDING_TABLE_COLUMNS_CLIENT = [
+    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
+    ('RAW', 'VARIANT'),
+    ('ID', 'VARCHAR(256)'),
+    ('MAC', 'VARCHAR(256)'),
+    ('DESCRIPTION', 'VARCHAR(256)'),
+    ('MDNS_NAME', 'VARCHAR(256)'),
+    ('DHCP_HOSTNAME', 'VARCHAR(256)'),
+    ('IP', 'VARCHAR(256)'),
+    ('VLAN', 'VARCHAR(256)'), #ORIGINALLY INT
+    ('SWITCHPORT', 'VARCHAR(256)'),
+    ('USAGE_SENT', 'VARCHAR(256)'), #ORIGINALLY INT
+    ('USAGE_RECV', 'VARCHAR(256)'), #ORIGINALLY INT
+    ('SERIAL', 'VARCHAR(256)'),
+]
+
+LANDING_TABLE_COLUMNS_DEVICE = [
     ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
     ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
     ('RAW', 'VARIANT'),
@@ -56,37 +73,40 @@ LANDING_TABLE_COLUMNS = [
     ('TAGS', 'VARCHAR(256)'),
     ('LNG', 'FLOAT'),
     ('LAT', 'FLOAT'),
-    ('ID', 'VARCHAR(256)'),
-    # ('MAC', 'VARCHAR(256)'),
-    ('DESCRIPTION', 'VARCHAR(256)'),
-    ('MDNS_NAME', 'VARCHAR(256)'),
-    ('DHCP_HOSTNAME', 'VARCHAR(256)'),
-    ('IP', 'VARCHAR(256)'),
-    ('VLAN', 'INT'),
-    ('SWITCHPORT', 'VARCHAR(256)'),
-    ('USAGE_SENT', 'INT'),
-    ('USAGE_RECV', 'INT'),
 ]
 
 
-def get_col_transform(idx: int) -> str:
+def get_col_transform_client(idx: int) -> str:
     column = f'column{idx+1}'
-    if LANDING_TABLE_COLUMNS[idx][1] == "VARIANT":
+    if LANDING_TABLE_COLUMNS_CLIENT[idx][1] == "VARIANT":
         return f'PARSE_JSON({column})'
-    if LANDING_TABLE_COLUMNS[idx][1] == "TIMESTAMP_LTZ(9)":
+    if LANDING_TABLE_COLUMNS_CLIENT[idx][1] == "TIMESTAMP_LTZ(9)":
         return f'TO_TIMESTAMP({column})'
     return column
 
 
-SELECT = ",".join(
-    map(get_col_transform, range(1, len(LANDING_TABLE_COLUMNS))))
+def get_col_transform_device(idx: int) -> str:
+    column = f'column{idx+1}'
+    if LANDING_TABLE_COLUMNS_DEVICE[idx][1] == "VARIANT":
+        return f'PARSE_JSON({column})'
+    if LANDING_TABLE_COLUMNS_DEVICE[idx][1] == "TIMESTAMP_LTZ(9)":
+        return f'TO_TIMESTAMP({column})'
+    return column
 
-COLUMNS = [col[0] for col in LANDING_TABLE_COLUMNS[1:]]
+
+SELECT_CLIENT = ",".join(
+    map(get_col_transform_client, range(1, len(LANDING_TABLE_COLUMNS_CLIENT))))
+
+COLUMNS_CLIENT = [col[0] for col in LANDING_TABLE_COLUMNS_CLIENT[1:]]
+
+SELECT_DEVICE = ",".join(
+    map(get_col_transform_device, range(1, len(LANDING_TABLE_COLUMNS_DEVICE))))
+
+COLUMNS_DEVICE = [col[0] for col in LANDING_TABLE_COLUMNS_DEVICE[1:]]
 
 
 # Perform a generic API call
 def get_data(url: str, token: str, params: dict = {}) -> dict:
-    # url = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
     headers: dict = {
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -110,64 +130,33 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
     return json
 
 
-def is_valid_white_list(organization_id: str, token: str, whitelist: list) -> bool:
-    url_network = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
-    networks_list: list = get_data(url_network, token)
-    log.info(f"found {len(networks_list)} networks")
-    references_id = [e["id"] for e in networks_list]
-    for e in whitelist:
-        if e not in references_id:
-            log.error(f"{e}:from settings is not present into Meraki Network")
-            raise ValueError(f"{e}:from settings is not present into Meraki Network")
-    return True
-
-
 def connect(connection_name, options):
-    # CHANGE THIS
-    table_name = f'meraki_devices_{connection_name}_connection'
-    landing_table = f'data.{table_name}'
+    table_name_client = f'meraki_devices_{connection_name}_connection_client'
+    landing_table_client = f'data.{table_name_client}'
+    table_name_device = f'meraki_devices_{connection_name}_connection_device'
+    landing_table_device = f'data.{table_name_device}'
 
     # comment = yaml_dump(
     #     module='meraki_devices', **options)
 
-    db.create_table(name=landing_table,
-                    cols=LANDING_TABLE_COLUMNS, comment="Meraki")
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
+    db.create_table(name=landing_table_client,
+                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment="Meraki")
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
+    db.create_table(name=landing_table_device,
+                    cols=LANDING_TABLE_COLUMNS_DEVICE, comment="Meraki")
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
-        'newMessage': "Meraki ingestion table created!",
+        'newMessage': "Meraki ingestion tables created!",
     }
 
 
-def ingest(table_name, options):
-    # CHANGE THIS
-    landing_table = f'data.{table_name}'
+def ingest(table_name_client, landing_table_device, options):
+    landing_table_client = f'data.{table_name_client}'
+    landing_table_device = f'data.{landing_table_device}'
     timestamp = datetime.utcnow()
-    organization_id = options['organization_id']
     api_key = options['api_key']
-    # serial_device = options['serial_device']
-    # network_id = options['network_id'] # decide whether to remove or not
     whitelist = options['network_id_whitelist']
-    # url_network = f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks"
-    # url_client = f"https://api.meraki.com/api/v0/devices/{serial_device}/clients"
-    # url_device = f"https://api.meraki.com/api/v0/networks/{network_id}/devices"
-
-    params: dict = {
-        "limit": PAGE_SIZE,
-        "validateWhiteList": False,
-        "networksIdTodo": [],
-        "page": 1,
-    }
-
-    # params.setdefault(
-    #     "validateWhiteList",
-    #     is_valid_white_list(url_network, api_key, whitelist),
-    # )
-
-    # params.setdefault(
-    #     "networksIdTodo",
-    #     [{"id": e, "done": False} for e in whitelist],
-    # )
     
     for network in whitelist:
         devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
@@ -175,33 +164,17 @@ def ingest(table_name, options):
         for device in devices:
             serial_number = device["serial"]
             clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
-            
             for client in clients:
-                client.update(device)
-            
-            
+                client['serial'] = serial_number
 
-            #print("devices: ", devices[:3])
             db.insert(
-                landing_table,
+                landing_table_client,
                 values=[(
                     None,
                     timestamp,
                     client,
-                    client.get('serial_number'),
-                    client.get('address'),
-                    client.get('name'),
-                    client.get('networkId'),
-                    client.get('model'),
-                    client.get('mac'),
-                    client.get('lanIp'),
-                    client.get('wan1Ip'),
-                    client.get('wan2Ip'),
-                    client.get('tags'),
-                    client.get('lng'),
-                    client.get('lat'),
                     client.get('id'),
-                    # client.get('mac'),
+                    client.get('mac'),
                     client.get('description'),
                     client.get('mdnsName'),
                     client.get('dhcpHostname'),
@@ -209,10 +182,36 @@ def ingest(table_name, options):
                     client.get('vlan'),
                     client.get('switchport'),
                     client.get('usage').get('sent'),
-                    client.get('usage').get('recv')
+                    client.get('usage').get('recv'),
+                    client.get('serial'),
                 ) for client in clients],
-                select=SELECT,
-                columns=COLUMNS
+                select=SELECT_CLIENT,
+                columns=COLUMNS_CLIENT
             )
-            log.info(f'Inserted {len(devices)} rows.')
-            yield len(devices)
+            log.info(f'Inserted {len(clients)} rows (clients).')
+            yield len(clients)
+
+        db.insert(
+            landing_table_device,
+            values=[(
+                None,
+                timestamp,
+                device,
+                device.get('serial_number'),
+                device.get('address'),
+                device.get('name'),
+                device.get('networkId'),
+                device.get('model'),
+                device.get('mac'),
+                device.get('lanIp'),
+                device.get('wan1Ip'),
+                device.get('wan2Ip'),
+                device.get('tags'),
+                device.get('lng'),
+                device.get('lat'),
+            ) for device in devices],
+            select=SELECT_DEVICE,
+            columns=COLUMNS_DEVICE
+        )
+        log.info(f'Inserted {len(devices)} rows (devices).')
+        yield len(devices)
