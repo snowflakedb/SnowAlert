@@ -1,4 +1,4 @@
-"""Meraki Devices
+"""Meraki
 Collect Meraki Device information using an API Token
 """
 
@@ -10,7 +10,7 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-from .utils import yaml_dump
+# from .utils import yaml_dump
 
 PAGE_SIZE = 5
 
@@ -35,7 +35,7 @@ CONNECTION_OPTIONS = [
         'name': 'network_id_whitelist',
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
-        'type': 'str',
+        'type': 'str', # Annie wants to change 'str' to 'list', but not sure about implications
         'secret': True,
         'required': True,
     },
@@ -101,20 +101,20 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
     return json
 
 
-def connect(connection_name, options):
+def connect(connection_name, options, comment="Meraki"):
     table_name_client = f'meraki_devices_{connection_name}_connection_client'
     landing_table_client = f'data.{table_name_client}'
     table_name_device = f'meraki_devices_{connection_name}_connection_device'
     landing_table_device = f'data.{table_name_device}'
 
-    comment = yaml_dump(
-        module='meraki_devices', **options)
+    # comment = yaml_dump(
+    #     module='meraki_devices', **options)
 
     db.create_table(name=landing_table_client,
-                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment="Meraki")
+                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
     db.create_table(name=landing_table_device,
-                    cols=LANDING_TABLE_COLUMNS_DEVICE, comment="Meraki")
+                    cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
@@ -143,6 +143,7 @@ def ingest(table_name_client, landing_table_device, options):
             for device in devices:
                 serial_number = device["serial"]
                 clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
+
                 for client in clients:
                     client['serial'] = serial_number
             
@@ -174,7 +175,7 @@ def ingest(table_name_client, landing_table_device, options):
                 values=[(
                     timestamp,
                     device,
-                    device.get('serial_number'),
+                    device.get('serial'),
                     device.get('address'),
                     device.get('name'),
                     device.get('networkId'),
