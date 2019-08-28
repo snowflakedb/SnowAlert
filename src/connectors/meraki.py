@@ -28,11 +28,7 @@ CONNECTION_OPTIONS = [
         'name': 'network_id_whitelist',
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
-<<<<<<< HEAD
-        'type': 'str', 
-=======
         'type': 'list',
->>>>>>> 54ef8707622704cf6b96d72029996bbd96153185
         'secret': True,
         'required': True,
     },
@@ -98,12 +94,7 @@ def connect(connection_name, options, comment="Meraki"):
     landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
-<<<<<<< HEAD
-    comment = yaml_dump(
-        module='meraki_devices', **options)
-=======
     comment = yaml_dump(module='meraki_devices', **options)
->>>>>>> 54ef8707622704cf6b96d72029996bbd96153185
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
