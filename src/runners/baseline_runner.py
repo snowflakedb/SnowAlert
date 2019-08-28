@@ -11,6 +11,7 @@ from rpy2 import robjects as ro
 from rpy2.robjects import pandas2ri
 
 import math
+import os
 import pandas
 import yaml
 
@@ -66,20 +67,23 @@ def run_baseline(name, comment):
         log.error(e, f"{name} has invalid metadata: >{metadata}<, skipping")
         return
 
-    with open(f"../baseline_modules/{code_location}/{code_location}.R") as f:
-        r_code = f.read()
-    r_code = format_code(r_code, required_values)
-    frame = query_log_source(source, time_filter, time_column)
-    ro.globalenv['input_table'] = frame
-    output = ro.r(r_code)
-    output = output.to_dict()
+    files = os.listdir(f'../baseline_modules/{code_location}')
 
-    results = unpack(output)
-    try:
-        log.info(f"{name} generated {len(results)} rows")
-        db.insert(f"{DATA_SCHEMA}.{name}", results, overwrite=True)
-    except Exception as e:
-        log.error("Failed to insert the results into the target table", e)
+    for file in files:
+        with open(f"../baseline_modules/{code_location}/{file}") as f:
+            r_code = f.read()
+        r_code = format_code(r_code, required_values)
+        frame = query_log_source(source, time_filter, time_column)
+        ro.globalenv['input_table'] = frame
+        output = ro.r(r_code)
+        output = output.to_dict()
+
+        results = unpack(output)
+        try:
+            log.info(f"{name} generated {len(results)} rows")
+            db.insert(f"{DATA_SCHEMA}.{name}", results, overwrite=True)
+        except Exception as e:
+            log.error("Failed to insert the results into the target table", e)
 
 
 def main(baseline='%_BASELINE'):
