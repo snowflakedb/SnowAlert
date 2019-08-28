@@ -137,10 +137,11 @@ def create_asset_table(connection_name, asset_type, columns, options):
         ('snapshot_at', 'TIMESTAMP_LTZ'),
         ('run_id', 'VARCHAR(100)'),
         ('account_id', 'VARCHAR(100)'),
+        ('account_alias', 'VARCHAR(100)'),
         (f'{asset_type}_count', 'NUMBER'),
         ('error', 'VARCHAR')
     ]
-    create_metadata_table(name=AWS_ACCOUNTS_METADATA, cols=metadata_cols, addition=metadata_cols[3])
+    create_metadata_table(table=AWS_ACCOUNTS_METADATA, cols=metadata_cols, addition=metadata_cols[3])
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     return f"AWS {asset_type} asset ingestion table created!"
@@ -184,28 +185,33 @@ def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             log.info(f"Using role {target_role}")
             try:
+                if id == '686874466970':
+                    import pdb; pdb.set_trace()
                 sts_assume_role(source_role_arn, target_role, external_id)
                 results = ingest_ec2(landing_table)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA, values=[(
                         datetime.utcnow(),
+                        RUN_ID,
                         id,
                         name,
-                        results,
-                        None
-                    )]
+                        results
+                    )],
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'ec2_count']
                 )
 
             except Exception as e:
                 db.insert(
                     AWS_ACCOUNTS_METADATA, values=[(
                         datetime.utcnow(),
+                        RUN_ID,
                         id,
                         name,
                         0,
                         e
-                    )]
+                    )],
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'ec2_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
@@ -364,23 +370,15 @@ def get_ec2_instances(aws_access_key=None, aws_secret_key=None):
     # get list of all instances in each region
     instances = []
     for region in regions:
-        reservations = boto3.client(
-            'ec2',
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=region['RegionName']
-        )
-        reservations = reservations.describe_instances()["Reservations"]
-
-        for reservation in reservations:
-
-            for instance in reservation['Instances']:
-                instance["Region"] = region
-                instance["InstanceName"] = get_ec2_instance_name(instance)
-                # for the boto3 datetime fix
-                instance_str = json.dumps(instance, default=datetime_serializer).encode("utf-8")
-                instance = json.loads(instance_str)
-                instances.append(instance)
+        client = boto3.client('ec2', aws_access_key=aws_access_key, aws_secret_access_key=aws_secret_key, region_name=region)
+        paginator = client.get_paginator('describe_instances')
+        page_iterator = paginator.paginate()
+        region = [
+            instance for page in page_iterator
+            for instance_array in page['Reservations']
+            for instance in instance_array['Instances']
+        ]
+        instances.extend(region)
 
     # return list of instances
     log.info(f"Successfully serialized {len(instances)} EC2 instance(s).")
