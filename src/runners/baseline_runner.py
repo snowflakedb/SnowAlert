@@ -15,6 +15,8 @@ import os
 import pandas
 import yaml
 
+FORMATTED_CODE_DIRECTORY = 'formatted_r'
+
 
 def format_code(code, vars):
     for k, v in vars.items():
@@ -67,16 +69,17 @@ def run_baseline(name, comment):
         log.error(e, f"{name} has invalid metadata: >{metadata}<, skipping")
         return
 
+    os.mkdir(FORMATTED_CODE_DIRECTORY)
     files = os.listdir(f'../baseline_modules/{code_location}')
 
     for file in files:
         with open(f"../baseline_modules/{code_location}/{file}", 'r') as f:
             r_code = f.read()
         r_code = format_code(r_code, required_values)
-        with open(f"../baseline_modules/{code_location}/formatted_{file}", 'w') as ff:
+        with open(f"{FORMATTED_CODE_DIRECTORY}/{file}", 'w') as ff:
             ff.write(r_code)
 
-    with open(f"../baseline_modules/{code_location}/formatted_{code_location}", 'r') as fr:
+    with open(f"{FORMATTED_CODE_DIRECTORY}/{code_location}", 'r') as fr:
         r_code = fr.read()
 
     frame = query_log_source(source, time_filter, time_column)
@@ -91,10 +94,7 @@ def run_baseline(name, comment):
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
     finally:
-        files = os.listdir(f'../baseline_modules/{code_location}')
-        for file in files:
-            if file.startswith('formatted_'):
-                os.remove(file)
+        os.rmtree(FORMATTED_CODE_DIRECTORY)
 
 
 def main(baseline='%_BASELINE'):
