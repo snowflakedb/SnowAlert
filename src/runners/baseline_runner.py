@@ -70,20 +70,31 @@ def run_baseline(name, comment):
     files = os.listdir(f'../baseline_modules/{code_location}')
 
     for file in files:
-        with open(f"../baseline_modules/{code_location}/{file}") as f:
+        with open(f"../baseline_modules/{code_location}/{file}", 'r') as f:
             r_code = f.read()
         r_code = format_code(r_code, required_values)
-        frame = query_log_source(source, time_filter, time_column)
-        ro.globalenv['input_table'] = frame
-        output = ro.r(r_code)
-        output = output.to_dict()
+        with open(f"../baseline_modules/{code_location}/formatted_{file}", 'w') as ff:
+            ff.write(r_code)
 
-        results = unpack(output)
-        try:
-            log.info(f"{name} generated {len(results)} rows")
-            db.insert(f"{DATA_SCHEMA}.{name}", results, overwrite=True)
-        except Exception as e:
-            log.error("Failed to insert the results into the target table", e)
+    with open(f"../baseline_modules/{code_location}/formatted_{code_location}", 'r') as fr:
+        r_code = fr.read()
+
+    frame = query_log_source(source, time_filter, time_column)
+    ro.globalenv['input_table'] = frame
+    output = ro.r(r_code)
+    output = output.to_dict()
+
+    results = unpack(output)
+    try:
+        log.info(f"{name} generated {len(results)} rows")
+        db.insert(f"{DATA_SCHEMA}.{name}", results, overwrite=True)
+    except Exception as e:
+        log.error("Failed to insert the results into the target table", e)
+    finally:
+        files = os.listdir(f'../baseline_modules/{code_location}')
+        for file in files:
+            if file.startswith('formatted_'):
+                os.remove(file)
 
 
 def main(baseline='%_BASELINE'):
