@@ -69,7 +69,7 @@ LANDING_TABLE_COLUMNS_DEVICE = [
     ('LAT', 'FLOAT'),
 ]
 
-# Perform a generic API call
+
 def get_data(url: str, token: str, params: dict = {}) -> dict:
     headers: dict = {
         "Content-Type": "application/json",
@@ -85,16 +85,15 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
         log.error(f"HTTP error occurred: {http_err}")
         raise http_err
     log.debug(req.status_code)
-    json = req.json()
-    return json
+    return req.json()
 
 
-def connect(connection_name, options, comment="Meraki"):
-    landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
-    landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
+def connect(connection_name, options):
+    landing_table_client = f'data.meraki_{connection_name}_connection_client'
+    landing_table_device = f'data.meraki_{connection_name}_connection_device'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
-    comment = yaml_dump(module='meraki_devices', **options)
+    comment = yaml_dump(module='meraki', **options)
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
@@ -106,6 +105,7 @@ def connect(connection_name, options, comment="Meraki"):
         'newStage': 'finalized',
         'newMessage': "Meraki ingestion tables created!",
     }
+
 
 def parse_number(value):
     if value:
@@ -131,11 +131,9 @@ def ingest(table_name_client, landing_table_device, options):
         
         network_clients = []
 
-
         for device in devices:
-            serial_number = device["serial"]
+            serial_number = device['serial']
             clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
-
             network_clients.extend(clients)
 
         db.insert(
@@ -153,7 +151,7 @@ def ingest(table_name_client, landing_table_device, options):
                 client.get('switchport'),
                 parse_number(client.get('usage').get('sent')),
                 parse_number(client.get('usage').get('recv')),
-                serial_number,
+                device['serial'],
             ) for client in network_clients],
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
             columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
