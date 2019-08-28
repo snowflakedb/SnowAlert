@@ -15,7 +15,9 @@ import os
 import pandas
 import yaml
 
-FORMATTED_CODE_DIRECTORY = 'formatted_r'
+import random
+
+FORMATTED_CODE_DIRECTORY = ''.join(random.choice('abcdefghijklmnop') for i in range(10))
 
 
 def format_code(code, vars):
@@ -73,13 +75,15 @@ def run_baseline(name, comment):
     files = os.listdir(f'../baseline_modules/{code_location}')
 
     for file in files:
-        with open(f"../baseline_modules/{code_location}/{file}", 'r') as f:
-            r_code = f.read()
-        r_code = format_code(r_code, required_values)
-        with open(f"{FORMATTED_CODE_DIRECTORY}/{file}", 'w') as ff:
-            ff.write(r_code)
+        print(file)
+        if not file.startswith('.'):
+            with open(f"../baseline_modules/{code_location}/{file}") as f:
+                r_code = f.read()
+            r_code = format_code(r_code, required_values)
+            with open(f"{FORMATTED_CODE_DIRECTORY}/{file}", 'w+') as ff:
+                ff.write(r_code)
 
-    with open(f"{FORMATTED_CODE_DIRECTORY}/{code_location}", 'r') as fr:
+    with open(f"{FORMATTED_CODE_DIRECTORY}/{code_location}.R") as fr:
         r_code = fr.read()
 
     frame = query_log_source(source, time_filter, time_column)
