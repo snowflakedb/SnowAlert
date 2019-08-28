@@ -370,7 +370,7 @@ def get_ec2_instances(aws_access_key=None, aws_secret_key=None):
     # get list of all instances in each region
     instances = []
     for region in regions:
-        client = boto3.client('ec2', aws_access_key=aws_access_key, aws_secret_access_key=aws_secret_key, region_name=region)
+        client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, region_name=region)
         paginator = client.get_paginator('describe_instances')
         page_iterator = paginator.paginate()
         region = [
