@@ -8,7 +8,10 @@ import boto3
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from .utils import sts_assume_role, yaml_dump
+from runners.config import RUN_ID
+from .utils import create_metadata_table, sts_assume_role, yaml_dump
+
+AWS_ACCOUNTS_METADATA = 'data.aws_accounts_information'
 
 CONNECTION_OPTIONS = [
     {
@@ -27,40 +30,40 @@ CONNECTION_OPTIONS = [
         # The AWS Client ID. The account ID is not necessary as Client ID's are globally unique
         'name': 'aws_access_key',
         'title': "AWS Access Key",
-        'prompt': "If provided, this key id will be used to authenticate to a single AWS Account.",
+        'prompt': "If provided, this key id will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
     },
     {
         # The AWS Secret Key
         'name': 'aws_secret_key',
         'title': "AWS Secret Key",
-        'prompt': "If provided, this secret key will be used to authenticate to a single AWS Account.",
+        'prompt': "If provided, this secret key will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
         'secret': True,
     },
     {
         'name': 'source_role_arn',
         'title': "Source Role ARN",
-        'prompt': "If provided, this role will be used to STS AssumeRole into accounts from the AWS Accounts Connection Table.",
+        'prompt': "If provided, this role will be used to STS AssumeRole into accounts from the AWS Accounts Connection Table. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
     },
     {
         'name': 'destination_role_name',
         'title': "Destination Role Name",
-        'prompt': "If provided, this role is the target destination role in each account listed by the AWS Accounts Connector."
+        'prompt': "If provided, this role is the target destination role in each account listed by the AWS Accounts Connector. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier."
         "and has access to the Organization API",
         'type': 'str',
     },
     {
         'name': 'external_id',
         'title': "Destination Role External ID",
-        'prompt': "The External ID required for Source Role to assume Destination Role.",
+        'prompt': "The External ID required for Source Role to assume Destination Role. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
     },
     {
         'name': 'accounts_identifier',
         'title': "AWS Accounts Connection Identifier",
-        'prompt': "The custom name for your AWS Accounts Connection, if you provided one.",
+        'prompt': "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
         'default': "default"
     }
@@ -130,6 +133,14 @@ def create_asset_table(connection_name, asset_type, columns, options):
     )
 
     db.create_table(name=landing_table, cols=columns, comment=comment)
+    metadata_cols = [
+        ('snapshot_at', 'TIMESTAMP_LTZ'),
+        ('run_id', 'VARCHAR(100)'),
+        ('account_id', 'VARCHAR(100)'),
+        (f'{asset_type}_count', 'NUMBER'),
+        ('error', 'VARCHAR')
+    ]
+    create_metadata_table(name=AWS_ACCOUNTS_METADATA, cols=metadata_cols, addition=metadata_cols[3])
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     return f"AWS {asset_type} asset ingestion table created!"
@@ -153,7 +164,7 @@ def ingest(table_name, options):
 
     if source_role_arn and destination_role_name and external_id and accounts_identifier:
         # get accounts list, pass list into ingest ec2
-        query = f"SELECT account_id FROM data.aws_accounts_{accounts_identifier}_connection WHERE created_at = (select max(created_at) FROM data.aws_accounts_{accounts_identifier}_connection)"
+        query = f"SELECT account_id, account_alias FROM data.aws_accounts_{accounts_identifier}_connection WHERE created_at = (select max(created_at) FROM data.aws_accounts_{accounts_identifier}_connection)"
         accounts = db.fetch(query)
         count = ingest_of_type(landing_table, accounts=accounts, source_role_arn=source_role_arn, destination_role_name=destination_role_name, external_id=external_id)
 
@@ -167,36 +178,106 @@ def ingest(table_name, options):
 
 def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
     if accounts:
-        for account_id in accounts:
-            id = account_id['ACCOUNT_ID']
+        for account in accounts:
+            id = account['ACCOUNT_ID']
+            name = account['ACCOUNT_ALIAS']
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
-            print(target_role)
-            sts_assume_role(source_role_arn, target_role, external_id)
-            ingest_ec2(landing_table)
+            log.info(f"Using role {target_role}")
+            try:
+                sts_assume_role(source_role_arn, target_role, external_id)
+                results = ingest_ec2(landing_table)
+
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        results,
+                        None
+                    )]
+                )
+
+            except Exception as e:
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        0,
+                        e
+                    )]
+                )
+                log.error(f"Unable to assume role {target_role} with error", e)
     else:
         ingest_ec2(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
 
 def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
     if accounts:
-        for account_id in accounts:
-            id = account_id['ACCOUNT_ID']
+        for account in accounts:
+            id = account['ACCOUNT_ID']
+            name = account['ACCOUNT_ALIAS']
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
-            print(target_role)
-            sts_assume_role(source_role_arn, target_role, external_id)
-            ingest_sg(landing_table)
+            log.info(f"Using role {target_role}")
+            try:
+                sts_assume_role(source_role_arn, target_role, external_id)
+                results = ingest_sg(landing_table)
+
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        results,
+                        None
+                    )]
+                )
+            except Exception as e:
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        0,
+                        e
+                    )]
+                )
+                log.error(f"Unable to assume role {target_role} with error", e)
     else:
         ingest_sg(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
 
 def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
     if accounts:
-        for account_id in accounts:
-            id = account_id['ACCOUNT_ID']
+        for account in accounts:
+            id = account['ACCOUNT_ID']
+            name = account['ACCOUNT_ALIAS']
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
-            print(target_role)
-            sts_assume_role(source_role_arn, target_role, external_id)
-            ingest_elb(landing_table)
+            log.info(f"Using role {target_role}")
+            try:
+                sts_assume_role(source_role_arn, target_role, external_id)
+                results = ingest_elb(landing_table)
+
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        results,
+                        None
+                    )]
+                )
+            except Exception as e:
+                db.insert(
+                    AWS_ACCOUNTS_METADATA, values=[(
+                        datetime.utcnow(),
+                        id,
+                        name,
+                        0,
+                        e
+                    )]
+                )
+                log.error(f"Unable to assume role {target_role} with error", e)
     else:
         ingest_elb(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
@@ -222,6 +303,7 @@ def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None):
         ],
         select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8, column9, column10'
     )
+
     return len(instances)
 
 
