@@ -85,9 +85,9 @@ def run_baseline(name, comment):
 
     with open(f"{FORMATTED_CODE_DIRECTORY}/{code_location}.R") as fr:
         r_code = fr.read()
-
     frame = query_log_source(source, time_filter, time_column)
     ro.globalenv['input_table'] = frame
+    ro.r(f"setwd('./{FORMATTED_CODE_DIRECTORY}')")
     output = ro.r(r_code)
     output = output.to_dict()
 
@@ -99,7 +99,6 @@ def run_baseline(name, comment):
         log.error("Failed to insert the results into the target table", e)
     finally:
         os.rmtree(FORMATTED_CODE_DIRECTORY)
-
 
 def main(baseline='%_BASELINE'):
     db.connect()
