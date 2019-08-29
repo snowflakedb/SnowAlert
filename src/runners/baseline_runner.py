@@ -12,6 +12,7 @@ from rpy2.robjects import pandas2ri
 
 import math
 import os
+import shutil
 import pandas
 import yaml
 
@@ -98,7 +99,7 @@ def run_baseline(name, comment):
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
     finally:
-        os.rmtree(FORMATTED_CODE_DIRECTORY)
+        shutil.rmtree(f"../{FORMATTED_CODE_DIRECTORY}")
 
 def main(baseline='%_BASELINE'):
     db.connect()
