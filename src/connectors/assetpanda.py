@@ -62,7 +62,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_TABLE_COLUMNS = [
     ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
-    ('RAW', 'VARIANT()')
+    ('RAW', 'VARIANT'),
     ('ID', 'VARCHAR(256)'),
     ('IS_LOCKED','BOOLEAN'),
     ('DATE_ADDED', 'TIMESTAMP_TZ(9)'),
@@ -165,95 +165,135 @@ def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
     
-    asset_entity_id = options['asset_entity_id']
-    username = options['username']
-    secret = options['secret']
-    OAuth_client_id = options['OAuth_client_id']
-    OAuth_client_secret = options['OAuth_client_secret']
-
-    options['token'] = secret
-
-    general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
-    fields_url  = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
-
-    params_get_id_devices = {
-        'token': secret,
-        # 'username': username,
-        'limit': PAGE_SIZE,
-    }
-
-    options['limit'] = PAGE_SIZE
-
-    assets = get_data(token='', url= general_url, params= params_get_id_devices)
-    fields = get_data(token='', url=  fields_url, params= params_get_id_devices)
+    ### Finish this later with Eduardo's help! ###
+    # asset_entity_id = options['asset_entity_id']
+    # username = options['username']
+    # secret = options['secret']
+    # OAuth_client_id = options['OAuth_client_id']
+    # OAuth_client_secret = options['OAuth_client_secret']
 
 
+    # general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
+    # fields_url  = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
+
+    # options['limit'] = PAGE_SIZE
+
+    # assets = get_data(token=OAuth_client_secret, url= general_url, params=options)
+    # fields = get_data(token=OAuth_client_secret, url=  fields_url, params=options)
+
+    # delete once actual assets come in
+    test_assets = [{
+        'id':' ', 
+        'is_locked': False, 
+        'date_added': '2019-01-22 10:25:18.686 +0000',
+        'storage_capacity': ' ',
+        'asset_tag_number': ' ',
+        'is_deletable': False,
+        'has_audit_history': False,
+        'purchase_from': ' ',
+        'department': ' ',
+        'display_with_secondary': ' ',
+        'asset_panda_number': 1,
+        'object_appreciation': False,
+        'status': ' ',
+        'purchase_date': '2019-01-22 10:25:18.686 +0000',
+        'yubikey_identifier': 1,
+        'display_name': ' ',
+        'brand': ' ',
+        'assigned_to': ' ',
+        'share_url': ' ',
+        'object_version_ids': 1,
+        'creation_date': '2019-01-22 10:25:18.686 +0000',
+        'created_by': ' ',
+        'purchase_price': 0.01,
+        'next_service': '2019-01-22 10:25:18.686 +0000',
+        'building': ' ',
+        'category': ' ',
+        'description': ' ',
+        'changed_by': ' ',
+        'wireless_status': ' ',
+        'created_at': '2019-01-22 10:25:18.686 +0000',
+        'gps_coordinates': ' ',
+        'updated_at': '2019-01-22 10:25:18.686 +0000',
+        'loaner_pool': False,
+        'default_attachment': ' ',
+        'room': ' ',
+        'notes': ' ',
+        'object_depreciation': False,
+        'is_editable': False,
+        'wifi_mac_address': ' ',
+        'change_date': '2019-01-22 10:25:18.686 +0000',
+        'display_size': ' ',
+        'operating_system': ' ',
+        'serial': ' ',
+        'end_of_life_date': '2019-01-22 10:25:18.686 +0000',
+        'imei_meid': ' ',
+        'model': ' ',
+        'mac_address': ' ',
+        'entity': ' ',
+        'PO': ' '
+    }]
+
+    # tweak to match actual assets
     db.insert(
         landing_table,
         values=[(
-            entry,
-            ____,
-            assets.get('ID'),
-            assets.get('date_added')
-        ) for entry in entries],
-        select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
-        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
+            str(asset),
+            asset.get('ID'),
+            asset.get('is_locked'),
+            asset.get('date_added'),
+            asset.get('storage_capacity'),
+            asset.get('asset_tag_number'),
+            asset.get('is_deletable'),
+            asset.get('has_audit_history'),
+            asset.get('purchase_from'),
+            asset.get('department'),
+            asset.get('display_with_secondary'),
+            asset.get('asset_panda_number'), 
+            asset.get('object_appreciation'),
+            asset.get('status'),
+            asset.get('purchase_date'),
+            asset.get('yubikey_identifier'),
+            asset.get('display_name'),
+            asset.get('brand'),
+            asset.get('assigned_to'),
+            asset.get('share_url'),
+            asset.get('object_version_ids'),
+            asset.get('creation_date'),
+            asset.get('created_by'),
+            asset.get('purchase_price'),
+            asset.get('next_service'),
+            asset.get('building'),
+            asset.get('category'),
+            asset.get('description'),
+            asset.get('changed_by'),
+            asset.get('wireless_status'),
+            asset.get('created_at'),
+            asset.get('gps_coordinates'),
+            asset.get('updated_at'),
+            asset.get('loaner_pool'),
+            asset.get('default_attachment'),
+            asset.get('room'),
+            asset.get('notes'),
+            asset.get('object_depreciation'),
+            asset.get('is_editable'),
+            asset.get('wifi_mac_address'),
+            asset.get('change_date'),
+            asset.get('display_size'),
+            asset.get('operating_system'),
+            asset.get('serial'),
+            asset.get('end_of_life_date'),
+            asset.get('imei_meid'),
+            asset.get('model'),
+            asset.get('mac_address'),
+            asset.get('entity'),
+            asset.get('PO')
+
+        ) for asset in test_assets],
+        select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
     )
-    log.info(f'Inserted {len(entries)} rows ({table_name}).')
-    yield len(entries)
+    
+    log.info(f'Inserted {len(test_assets)} rows ({test_assets}).')
+    yield len(test_assets)
 
-
-
-
-
-
-    #     ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
-    # ('ID', 'VARCHAR(256)'),
-    # ('IS_LOCKED','BOOLEAN'),
-    # ('DATE_ADDED', 'TIMESTAMP_TZ(9)'),
-    # ('STORAGE_CAPACITY', 'VARCHAR(256)'),
-    # ('ASSET_TAG_NUMBER', 'VARCHAR(256)'),
-    # ('IS_DELETABLE', 'BOOLEAN'),
-    # ('HAS_AUDIT_HISTORY', 'BOOLEAN'),
-    # ('PURCHASE_FROM', 'VARCHAR(256)'),
-    # ('DEPARTMENT', 'VARIANT'),
-    # ('DISPLAY_WITH_SECONDARY', 'VARCHAR(256)'),
-    # ('ASSET_PANDA_NUMBER', 'NUMBER(38,0)'),
-    # ('OBJECT_APPRECIATION', 'BOOLEAN'),
-    # ('STATUS', 'VARIANT'),
-    # ('PURCHASE_DATE', 'DATE'),
-    # ('YUBIKEY_IDENTIFIER', 'NUMBER(38,0)'),
-    # ('DISPLAY_NAME', 'VARCHAR(256)'),
-    # ('BRAND', 'VARCHAR(256)'),
-    # ('ASSIGNED_TO', 'VARIANT'),
-    # ('SHARE_URL', 'VARCHAR(256)'),
-    # ('OBJECT_VERSION_IDS', 'NUMBER(38,0)'),
-    # ('CREATION_DATE', 'DATE'),
-    # ('CREATED_BY', 'VARCHAR(256)'),
-    # ('PURCHASE_PRICE', 'FLOAT'),
-    # ('NEXT_SERVICE', 'DATE'),
-    # ('BUILDING', 'VARIANT'),
-    # ('CATEGORY', 'VARIANT'),
-    # ('DESCRIPTION', 'VARCHAR(256)'),
-    # ('CHANGED_BY', 'VARCHAR(256)'),
-    # ('WIRELESS_STATUS', 'VARCHAR(256)'),
-    # ('CREATED_AT', 'TIMESTAMP_TZ(9)'),
-    # ('GPS_COORDINATES', 'VARIANT'),
-    # ('UPDATED_AT', 'TIMESTAMP_TZ(9)'),
-    # ('LOANER_POOL', 'BOOLEAN'),
-    # ('DEFAULT_ATTACHMENT', 'VARIANT'),
-    # ('ROOM', 'VARIANT'),
-    # ('NOTES', 'VARCHAR(256)'),
-    # ('OBJECT_DEPRECIATION', 'BOOLEAN'),
-    # ('IS_EDITABLE', 'BOOLEAN'),
-    # ('WIFI_MAC_ADDRESS', 'VARCHAR(256)'),
-    # ('CHANGE_DATE', 'DATE'),
-    # ('DISPLAY_SIZE', 'VARCHAR(256)'),
-    # ('OPERATING_SYSTEM', 'VARCHAR(256)'),
-    # ('SERIAL', 'VARCHAR(256)'),
-    # ('END_OF_LIFE_DATE', 'DATE'),
-    # ('IMEI_MEID', 'VARCHAR(256)'),
-    # ('MODEL', 'VARCHAR(256)'),
-    # ('MAC_ADDRESS', 'VARCHAR(256)'),
-    # ('ENTITY', 'VARIANT'),
-    # ('PO', 'VARCHAR(256)'),
