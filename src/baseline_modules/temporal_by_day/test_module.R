@@ -26,3 +26,8 @@ test_that('num events is convertable to numeric', {
   expect_silent(as.integer(input_table$NUM_EVENTS)) 
 })
 
+test_that('There is more than 10 days of data and at least 100 lines of entries', {
+  expect_gte(nrow(input_table), 100)
+  expect_gte(as.numeric(latest_time - earliest_time), 10)
+})
+
