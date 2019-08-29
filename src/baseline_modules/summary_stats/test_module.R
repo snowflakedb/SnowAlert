@@ -5,7 +5,7 @@ source('module.R')
 test_that('input_data_sizes_correct', {
   expect_s3_class(input_table, "data.frame")
   expect_true(nrow(input_table)>0)
-  expect_s3_class(PIVOT, "character")
+  expect_true(tolower(pivot_holder) != "pivot")
 })
 
 test_that('expected_columns_present', {
@@ -20,7 +20,7 @@ test_that('day is convertable to date', {
 })
 
 test_that('Pivots all exist', {
-  expect_true(all(strsplit(gsub(', ', ',',PIVOT), ',')[[1]] %in% colnames(input_table)))
+  expect_true(all(strsplit(gsub(', ', ',',pivot_holder), ',')[[1]] %in% colnames(input_table)))
 })
 
 test_that('Hits is numeric', {

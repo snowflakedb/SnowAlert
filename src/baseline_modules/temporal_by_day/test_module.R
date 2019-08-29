@@ -1,5 +1,5 @@
+#Tests for temporal baseline
 source('module.R')
-
 
 test_that('input_data_sizes_correct', {
   expect_s3_class(input_table, "data.frame")
