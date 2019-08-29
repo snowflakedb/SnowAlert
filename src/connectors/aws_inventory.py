@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collect AWS EC2, SG, ELB details using an Access Key
+Collect AWS EC2, SG, ELB details using an Access Key or by assuming a role in multiple accounts.
 """
 from datetime import datetime
 import json
@@ -32,6 +32,7 @@ CONNECTION_OPTIONS = [
         'title': "AWS Access Key",
         'prompt': "If provided, this key id will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
+        'placeholder': 'AKIAQWERTYUIOPASDFGH (NEEDED WITH SECRET KEY)',
     },
     {
         # The AWS Secret Key
@@ -40,12 +41,14 @@ CONNECTION_OPTIONS = [
         'prompt': "If provided, this secret key will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
         'secret': True,
+        'placeholder': 'WGndo5/Flssn3FnsOIuYwiei9NbsemsNLK96sdSF (NEEDED WITH ACCESS KEY)',
     },
     {
         'name': 'source_role_arn',
         'title': "Source Role ARN",
         'prompt': "If provided, this role will be used to STS AssumeRole into accounts from the AWS Accounts Connection Table. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
+        'placeholder': 'arn:aws:iam::1234567890987:role/sample-audit-assumer-role (NEEDED WITH DESTINATION ROLE NAME, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)',
     },
     {
         'name': 'destination_role_name',
@@ -53,19 +56,21 @@ CONNECTION_OPTIONS = [
         'prompt': "If provided, this role is the target destination role in each account listed by the AWS Accounts Connector. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier."
         "and has access to the Organization API",
         'type': 'str',
+        'placeholder': 'sample-audit-role (NEEDED WITH SOURCE ROLE ARN, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)',
     },
     {
         'name': 'external_id',
         'title': "Destination Role External ID",
         'prompt': "The External ID required for Source Role to assume Destination Role. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
+        'placeholder': 'sample_external_id (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE NAME, AND ACCOUNTS CONNECTION IDENTIFIER)',
     },
     {
         'name': 'accounts_identifier',
         'title': "AWS Accounts Connection Identifier",
         'prompt': "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
-        'default': "default"
+        'placeholder': "default (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
     }
 ]
 
