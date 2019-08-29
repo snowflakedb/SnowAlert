@@ -6,8 +6,6 @@ import json
 
 import boto3
 
-import pdb
-
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.config import RUN_ID
@@ -67,7 +65,7 @@ CONNECTION_OPTIONS = [
         'title': "AWS Accounts Connection Identifier",
         'prompt': "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
         'type': 'str',
-        'placeholder': "default"
+        'default': "default"
     }
 ]
 
@@ -128,6 +126,10 @@ def create_asset_table(connection_name, asset_type, columns, options):
     # create the tables, based on the config type (i.e. SG, EC2, ELB)
     table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
     landing_table = f'data.{table_name}'
+
+    print(options)
+    if len(options['accounts_identifier']) == 0:
+        options.pop('accounts_identifier')
 
     comment = yaml_dump(
         module='aws_inventory',
@@ -229,8 +231,8 @@ def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=No
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             log.info(f"Using role {target_role}")
             try:
-                sts_assume_role(source_role_arn, target_role, external_id)
-                results = ingest_sg(landing_table, account=account)
+                session = sts_assume_role(source_role_arn, target_role, external_id)
+                results = ingest_sg(landing_table, session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA, values=[(
@@ -269,8 +271,8 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             log.info(f"Using role {target_role}")
             try:
-                sts_assume_role(source_role_arn, target_role, external_id)
-                results = ingest_elb(landing_table, account=account)
+                session = sts_assume_role(source_role_arn, target_role, external_id)
+                results = ingest_elb(landing_table, session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA, values=[(
@@ -280,7 +282,7 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                         name,
                         results,
                     )],
-                    columns=['snapshot_at', 'run_id', 'account_alias', 'elb_count']
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'elb_count']
                 )
             except Exception as e:
                 db.insert(
@@ -292,7 +294,7 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                         0,
                         e
                     )],
-                    columns=['snapshot_at', 'run_id', 'account_alias', 'elb_count', 'error']
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'elb_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
@@ -349,20 +351,21 @@ def ingest_sg(landing_table, aws_access_key=None, aws_secret_key=None, session=N
 def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
     elbs = get_all_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
     monitor_time = datetime.utcnow().isoformat()
+    #pdb.set_trace()
 
     db.insert(
         landing_table,
         values=[(
             row,
             monitor_time,
-            row['CanonicalHostedZoneName'],
-            row['CanonicalHostedZoneNameID'],
+            row.get('CanonicalHostedZoneName', ''),
+            row.get('CanonicalHostedZoneNameID', ''),
             row['CreatedTime'],
             row['DNSName'],
             row['LoadBalancerName'],
             row['Region']['RegionName'],
             row['Scheme'],
-            row['VPCId'])
+            row.get('VPCId', 'VpcId'))
             for row in elbs],
         select='PARSE_JSON(column1), column2, column3, column4, column5, column6, '
                'column7, column8, column9, column10'
@@ -439,7 +442,7 @@ def get_all_security_groups(aws_access_key=None, aws_secret_key=None, session=No
     security_groups = []
     for region in regions:
         if session:
-            ec2 = session.client('ec2', region=region['RegionName'])
+            ec2 = session.client('ec2', region_name=region['RegionName'])
         else:
             ec2 = boto3.client(
                 'ec2',
@@ -461,13 +464,13 @@ def get_all_security_groups(aws_access_key=None, aws_secret_key=None, session=No
 
 
 def get_all_elbs(aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    v1_elbs = get_all_v1_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, account=account)
-    v2_elbs = get_all_v2_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, account=account)
+    v1_elbs = get_all_v1_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
+    v2_elbs = get_all_v2_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
     elbs = v1_elbs + v2_elbs
 
     if len(elbs) is 0:
         log.info("no elastic load balancers found")
-        return
+        return []
 
     return elbs
 
@@ -488,14 +491,19 @@ def get_all_v1_elbs(aws_access_key=None, aws_secret_key=None, session=None, acco
     # get list of all load balancers in each region
     elbs = []
     for region in regions:
-        elb_client = boto3.client(
-            'elb',
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=region['RegionName'])
+        if session:
+            elb_client = session.client('elb', region_name=region['RegionName'])
+        else:
+            elb_client = boto3.client(
+                'elb',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+                region_name=region['RegionName'])
         for elb in elb_client.describe_load_balancers()['LoadBalancerDescriptions']:
             # add region before adding elb to list of elbs
             elb["Region"] = region
+            if account:
+                elb["Account"] = account
             elb_str = json.dumps(elb, default=datetime_serializer).encode("utf-8")  # for the datetime ser fix
             elb = json.loads(elb_str)
             elbs.append(elb)
@@ -505,7 +513,7 @@ def get_all_v1_elbs(aws_access_key=None, aws_secret_key=None, session=None, acco
     return elbs
 
 
-def get_all_v2_elbs(aws_access_key=None, aws_secret_key=None):
+def get_all_v2_elbs(aws_access_key=None, aws_secret_key=None, session=None, account=None):
     """
     This function grabs each v2 elb from each region and returns
     a list of them.
@@ -521,15 +529,20 @@ def get_all_v2_elbs(aws_access_key=None, aws_secret_key=None):
     # get list of all load balancers in each region
     elbs = []
     for region in regions:
-        elb_client = boto3.client(
-            'elbv2',
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=region['RegionName']
-        )
+        if session:
+            elb_client = session.client('elbv2', region_name=region['RegionName'])
+        else:
+            elb_client = boto3.client(
+                'elbv2',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+                region_name=region['RegionName']
+            )
         for elb in elb_client.describe_load_balancers()['LoadBalancers']:
             # add region
             elb["Region"] = region
+            if account:
+                elb["Account"] = account
 
             # add listeners to see which SSL policies are attached to this elb
             elb_arn = elb['LoadBalancerArn']
