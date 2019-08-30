@@ -3,6 +3,7 @@ Collect osquery from S3 using a Stage or privileged Role
 """
 from json import dumps
 from time import sleep
+import yaml
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -74,11 +75,17 @@ STEP 2: For Role "{role}", ensure the following inline policy:
 def connect(connection_name, options):
     table_name = f'osquery_{connection_name}_connection'
     landing_table = f'data.{table_name}'
+    prefix = ''
+    bucket_name = ''
+
+    for i in options:
+        if i == '':
+            options.pop(i)
 
     db.create_table(
         name=landing_table,
         cols=LANDING_TABLE_COLUMNS,
-        comment=yaml_dump(module='osquery')
+        comment=yaml_dump(module='osquery', **options)
     )
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
@@ -101,8 +108,14 @@ def connect(connection_name, options):
 
     stage_props = db.fetch_props(
         f'DESC STAGE {stage_name}',
-        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE')
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
+
+    if prefix == '':
+        prefix = '/'.join(stage_props['URL'].split('/')[3:-1])
+
+    if bucket_name == '':
+        bucket_name = stage_props['URL'].split('/')[2]
 
     prefix = prefix.rstrip('/')
 
@@ -158,6 +171,8 @@ def connect(connection_name, options):
 
 def finalize(connection_name):
     base_name = f'osquery_{connection_name}'
+    options = yaml.load(next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))['comment'])
+    stage = options.get('existing_stage', f'data.{base_name}_stage')
     pipe = f'data.{base_name}_pipe'
 
     # IAM change takes 5-15 seconds to take effect
@@ -168,7 +183,7 @@ def finalize(connection_name):
             sql=(
                 f'COPY INTO data.{base_name}_connection '
                 f'FROM (SELECT PARSE_JSON($1), HASH($1), $1:unixTime::TIMESTAMP_LTZ(9), $1:action, $1:calendarTime, $1:columns, $1:counter, $1:epoch, $1:hostIdentifier, $1:instance_id, $1:name, $1:unixTime '
-                f'FROM @data.{base_name}_stage/)'
+                f'FROM @{stage}/)'
             ),
             replace=True,
             autoingest=True,
