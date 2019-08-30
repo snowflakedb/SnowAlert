@@ -8,6 +8,7 @@ from . import azure_subscription
 from . import azure_vm
 from . import gsuite_logs
 from . import okta
+from . import osquery
 from . import tenable_settings
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     'azure_vm',
     'gsuite_logs',
     'okta',
+    'osquery',
     'tenable_settings',
 ]
 
@@ -35,6 +37,7 @@ connectors = {
     'azure_vm': azure_vm,
     'gsuite_logs': gsuite_logs,
     'okta': okta,
+    'osquery': osquery,
     'tenable_settings': tenable_settings,
 }
 

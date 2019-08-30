@@ -2,6 +2,7 @@
 Collect osquery from S3 using a Stage or privileged Role
 """
 from json import dumps
+from time import sleep
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -27,7 +28,7 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'filter',
+        'name': 'prefix',
         'title': "Prefix Filter (optional)",
         'prompt': "Folder in S3 bucket where osquery logs are saved",
         'default': "security/",
@@ -41,8 +42,8 @@ CONNECTION_OPTIONS = [
     },
 ]
 
+
 LANDING_TABLE_COLUMNS = [
-    ('deployment', 'VARCHAR(17)'),
     ('raw', 'VARIANT'),
     ('hash_raw', 'NUMBER(19,0)'),
     ('event_time', 'TIMESTAMP_LTZ(9)'),
@@ -156,4 +157,40 @@ def connect(connection_name, options):
 
 
 def finalize(connection_name):
-    pass
+    base_name = f'osquery_{connection_name}'
+    pipe = f'data.{base_name}_pipe'
+
+    # IAM change takes 5-15 seconds to take effect
+    sleep(5)
+    db.retry(
+        lambda: db.create_pipe(
+            name=pipe,
+            sql=(
+                f'COPY INTO data.{base_name}_connection '
+                f'FROM (SELECT PARSE_JSON($1), HASH($1), $1:unixTime::TIMESTAMP_LTZ(9), $1:action, $1:calendarTime, $1:columns, $1:counter, $1:epoch, $1:hostIdentifier, $1:instance_id, $1:name, $1:unixTime '
+                f'FROM @data.{base_name}_stage/)'
+            ),
+            replace=True,
+            autoingest=True,
+        ),
+        n=10,
+        sleep_seconds_btw_retry=1
+    )
+
+    pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
+    if pipe_description is None:
+        return {
+            'newStage': 'error',
+            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
+        }
+
+    else:
+        sqs_arn = pipe_description['notification_channel']
+        return {
+            'newStage': 'finalized',
+            'newMessage': (
+                f"Please add this SQS Queue ARN to the bucket event notification "
+                f"channel for all object create events:\n\n  {sqs_arn}\n\n"
+                f"If you'd like to backfill the table, please run\n\n  ALTER PIPE {pipe} REFRESH;"
+            )
+        }
