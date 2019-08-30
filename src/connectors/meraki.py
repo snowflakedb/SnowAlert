@@ -44,8 +44,8 @@ LANDING_TABLE_COLUMNS_CLIENT = [
     ('MDNS_NAME', 'VARCHAR(256)'),
     ('DHCP_HOSTNAME', 'VARCHAR(256)'),
     ('IP', 'VARCHAR(256)'),
-    ('VLAN', 'INT'), 
     ('SWITCHPORT', 'VARCHAR(256)'),
+    ('VLAN', 'INT'), 
     ('USAGE_SENT', 'INT'),
     ('USAGE_RECV', 'INT'),
     ('SERIAL', 'VARCHAR(256)'),
@@ -69,7 +69,7 @@ LANDING_TABLE_COLUMNS_DEVICE = [
     ('LAT', 'FLOAT'),
 ]
 
-# Perform a generic API call
+
 def get_data(url: str, token: str, params: dict = {}) -> dict:
     headers: dict = {
         "Content-Type": "application/json",
@@ -85,16 +85,15 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
         log.error(f"HTTP error occurred: {http_err}")
         raise http_err
     log.debug(req.status_code)
-    json = req.json()
-    return json
+    return req.json()
 
 
-def connect(connection_name, options, comment="Meraki"):
-    landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
-    landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
+def connect(connection_name, options):
+    landing_table_client = f'data.meraki_{connection_name}_connection_client'
+    landing_table_device = f'data.meraki_{connection_name}_connection_device'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
-    comment = yaml_dump(module='meraki_devices', **options)
+    comment = yaml_dump(module='meraki', **options)
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
@@ -106,6 +105,7 @@ def connect(connection_name, options, comment="Meraki"):
         'newStage': 'finalized',
         'newMessage': "Meraki ingestion tables created!",
     }
+
 
 def parse_number(value):
     if value:
@@ -121,14 +121,16 @@ def ingest(table_name_client, landing_table_device, options):
     whitelist = options['network_id_whitelist']
 
     for network in whitelist:
+        
         try:
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
         except requests.exceptions.HTTPError as e:
-            log.error(f"{network} not accessible, ", e)
+            log.error(f"{network} not accessible, ")
+            log.error(e)
             continue
-        
+
         for device in devices:
-            serial_number = device["serial"]
+            serial_number = device['serial']
             clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
         
             db.insert(
