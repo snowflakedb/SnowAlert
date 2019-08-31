@@ -13,49 +13,31 @@ import requests
 from urllib.error import HTTPError
 # from .utils import yaml_dump
 
+import pprint
+
+import hashlib
+import json
+from functools import reduce
+import re
+import copy
 
 
 PAGE_SIZE = 50
 
 CONNECTION_OPTIONS = [
-    {
-        'name': 'username',
-        'title': 'AssetPanda Username',
-        'prompt': 'Your AssetPanda Username',
-        'type': 'str',
-        'required': True,
-        'secret': False,
-    },
-    {
-        'name': 'secret',
-        'title': 'AssetPanda Secret',
-        'prompt': 'Your AssetPanda Secret',
-        'type': 'str',
-        'required': True,
-        'secret': True,
-    },
-    {
-        'name': 'OAuth_client_id',
-        'title': 'AssetPanda OAuth Client ID',
-        'prompt': 'Your AssetPanda OAuth Client ID',
-        'type': 'str',
-        'required': True,
-        'secret': False,
-    },
-    {
-        'name': 'OAuth_client_secret',
-        'title': 'AssetPanda OAuth Client Secret',
-        'prompt': 'Your AssetPanda OAuth Client Secret',
-        'type': 'str',
-        'required': True,
-        'secret': True,
-    },
     {  
         'name': 'asset_entity_id',
         'title': 'AssetPanda Entity ID',
         'prompt': 'Your AssetPanda Asset Entity ID',
         'type': 'int',
         'required': True,
+        'secret': False
+    },
+    {
+        'name': 'token',
+        'title': 'AssetPanda API Token',
+        'prompt': 'Your AssetPanda API Token',
+        'type': 'str',
         'secret': False
     }
 ]
@@ -121,6 +103,43 @@ def validate_key(item: dict, validate_dict: dict) -> None:
 def validate_secret(secrets: dict) -> None:
     pass
 
+# Retrieve the values needed from the results objects
+def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
+    try:
+        list_object: list = result["objects"]
+        total_object_count: int = result["totals"]["objects"]
+    except BaseException:
+        raise AttributeError("error format result")
+    return (list_object, total_object_count)
+
+
+# Because AssetPanda has custom fields that are named via free-text in the tool we need to perform cleanup
+# on the user input data. We will reduce the fields down to just alpha numeric key strings so we can use
+# them as the keys in our final JSON data.
+def reduce_fields(accumulators: dict, field: dict) -> str:
+    # Take every word and join them by an underscore for create the new name
+    cleaner_name = "_".join(re.findall(r"[a-zA-Z]+", field["name"]))
+    field_key = field["key"]
+    accumulators[field_key] = cleaner_name
+    return accumulators
+
+
+# This method will iterate through the data and replace the data that matches against keys in the replace_keys
+# collection. It will convert data like the following example:
+# {"field_144": {"value": "00:0a:95:9d:68:16", "name": "MAC Address"}} => {"MAC_Address": "00:0a:95:9d:68:16"}
+def replace_device_key(list_device: list, replace_key: dict):
+    for key, value in replace_key.items():
+        for device in list_device:
+            if device.get(key, False):
+                if device.get(value) is not None:
+                    number = 2
+                    while device.get(f"{value}_{number}") is not None:
+                        number += 1
+                    value = f"{value}_{number}"
+                device[value] = device.pop(key)
+    return list_device
+
+
 def get_data(token: str, url: str, params: dict = {}) -> dict:
     """
     Make an API call
@@ -165,135 +184,113 @@ def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
     
-    ### Finish this later with Eduardo's help! ###
-    # asset_entity_id = options['asset_entity_id']
-    # username = options['username']
-    # secret = options['secret']
-    # OAuth_client_id = options['OAuth_client_id']
-    # OAuth_client_secret = options['OAuth_client_secret']
+    token = options['token']
+    asset_entity_id = options['asset_entity_id']
+
+    general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
+    fields_url  = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
+
+    params = {
+        "offset": 0,
+        "limit": PAGE_SIZE,
+    }
+
+    # TODO: Make a while loop here with a try/except (so exiting out is possible) OR TODO: make a lambda handler
+    try:
+        for a in [1,2]:
+
+            print("params['offset']: ", params['offset'])
+            assets: dict = get_data(token=token, url= general_url, params=options)
+            pp = pprint.PrettyPrinter(indent=4) # TODO: DELETE once debugging is done
+
+            dict_fields: dict = get_data(token, fields_url)
+            list_field: list = dict_fields["fields"]
+
+            hash_field = hashlib.md5(
+                json.dumps(list_field, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+            
+            # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
+            # {"field_140": "MAC_Address", "field_135" :"IP"}
+            clear_fields: list = reduce(reduce_fields, list_field, {})
+
+            # We will archive off a version of the raw data for comparison in the output data
+            raw_results: list = copy.deepcopy(assets["objects"])
+
+            # Pull out just data we need
+            list_object, total_object_count = get_list_objects_and_total_from_get_object(assets)
+
+            # replace every key "field_NO" by the value of the clear_field["field_NO"]
+            list_object_without_field_id = replace_device_key(list_object, clear_fields)
+
+            # adding the hash key value pair to the clear_fields dictionary
+            clear_field_with_hash = {**clear_fields, "id": hash_field}
 
 
-    # general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
-    # fields_url  = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
+            # tweak to match actual assets
+            db.insert(
+                landing_table,
+                values=[(
+                    asset,
+                    asset.get('id'),
+                    asset.get('is_locked'),
+                    asset.get('Date_Added'),
+                    asset.get('Storage Capacity'),
+                    asset.get('Asset_Tag_Number'),
+                    asset.get('is_deletable'),
+                    asset.get('has_audit_history'),
+                    asset.get('Purchase_From'),
+                    asset.get('Department'),
+                    asset.get('display_with_secondary'),
+                    asset.get('Asset_Panda_Number'), 
+                    asset.get('object_appreciation'),
+                    asset.get('Status'),
+                    asset.get('Purchase_date'),
+                    asset.get('Yubikey_Identifier'),
+                    asset.get('display_name'),
+                    asset.get('Brand'),
+                    asset.get('Assigned_To'),
+                    asset.get('share_url'),
+                    asset.get('object_version_ids'),
+                    asset.get('Creation_Date'),
+                    asset.get('Created_By'),
+                    asset.get('purchase_price'),
+                    asset.get('next_service'),
+                    asset.get('building'),
+                    asset.get('category'),
+                    asset.get('description'),
+                    asset.get('changed_by'),
+                    asset.get('wireless_status'),
+                    asset.get('created_at'),
+                    asset.get('gps_coordinates'),
+                    asset.get('updated_at'),
+                    asset.get('loaner_pool'),
+                    asset.get('default_attachment'),
+                    asset.get('room'),
+                    asset.get('notes'),
+                    asset.get('object_depreciation'),
+                    asset.get('is_editable'),
+                    asset.get('wifi_mac_address'),
+                    asset.get('change_date'),
+                    asset.get('display_size'),
+                    asset.get('operating_system'),
+                    asset.get('serial'),
+                    asset.get('end_of_life_date'),
+                    asset.get('imei_meid'),
+                    asset.get('model'),
+                    asset.get('mac_address'),
+                    asset.get('entity'),
+                    asset.get('PO')
+                ) for asset in list_object_without_field_id],
+                select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+            )
+            
+            log.info(f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).')
+            yield len(list_object_without_field_id)
 
-    # options['limit'] = PAGE_SIZE
+            params["offset"] += PAGE_SIZE 
 
-    # assets = get_data(token=OAuth_client_secret, url= general_url, params=options)
-    # fields = get_data(token=OAuth_client_secret, url=  fields_url, params=options)
-
-    # delete once actual assets come in
-    test_assets = [{
-        'id':' ', 
-        'is_locked': False, 
-        'date_added': '2019-01-22 10:25:18.686 +0000',
-        'storage_capacity': ' ',
-        'asset_tag_number': ' ',
-        'is_deletable': False,
-        'has_audit_history': False,
-        'purchase_from': ' ',
-        'department': ' ',
-        'display_with_secondary': ' ',
-        'asset_panda_number': 1,
-        'object_appreciation': False,
-        'status': ' ',
-        'purchase_date': '2019-01-22 10:25:18.686 +0000',
-        'yubikey_identifier': 1,
-        'display_name': ' ',
-        'brand': ' ',
-        'assigned_to': ' ',
-        'share_url': ' ',
-        'object_version_ids': 1,
-        'creation_date': '2019-01-22 10:25:18.686 +0000',
-        'created_by': ' ',
-        'purchase_price': 0.01,
-        'next_service': '2019-01-22 10:25:18.686 +0000',
-        'building': ' ',
-        'category': ' ',
-        'description': ' ',
-        'changed_by': ' ',
-        'wireless_status': ' ',
-        'created_at': '2019-01-22 10:25:18.686 +0000',
-        'gps_coordinates': ' ',
-        'updated_at': '2019-01-22 10:25:18.686 +0000',
-        'loaner_pool': False,
-        'default_attachment': ' ',
-        'room': ' ',
-        'notes': ' ',
-        'object_depreciation': False,
-        'is_editable': False,
-        'wifi_mac_address': ' ',
-        'change_date': '2019-01-22 10:25:18.686 +0000',
-        'display_size': ' ',
-        'operating_system': ' ',
-        'serial': ' ',
-        'end_of_life_date': '2019-01-22 10:25:18.686 +0000',
-        'imei_meid': ' ',
-        'model': ' ',
-        'mac_address': ' ',
-        'entity': ' ',
-        'PO': ' '
-    }]
-
-    # tweak to match actual assets
-    db.insert(
-        landing_table,
-        values=[(
-            str(asset),
-            asset.get('ID'),
-            asset.get('is_locked'),
-            asset.get('date_added'),
-            asset.get('storage_capacity'),
-            asset.get('asset_tag_number'),
-            asset.get('is_deletable'),
-            asset.get('has_audit_history'),
-            asset.get('purchase_from'),
-            asset.get('department'),
-            asset.get('display_with_secondary'),
-            asset.get('asset_panda_number'), 
-            asset.get('object_appreciation'),
-            asset.get('status'),
-            asset.get('purchase_date'),
-            asset.get('yubikey_identifier'),
-            asset.get('display_name'),
-            asset.get('brand'),
-            asset.get('assigned_to'),
-            asset.get('share_url'),
-            asset.get('object_version_ids'),
-            asset.get('creation_date'),
-            asset.get('created_by'),
-            asset.get('purchase_price'),
-            asset.get('next_service'),
-            asset.get('building'),
-            asset.get('category'),
-            asset.get('description'),
-            asset.get('changed_by'),
-            asset.get('wireless_status'),
-            asset.get('created_at'),
-            asset.get('gps_coordinates'),
-            asset.get('updated_at'),
-            asset.get('loaner_pool'),
-            asset.get('default_attachment'),
-            asset.get('room'),
-            asset.get('notes'),
-            asset.get('object_depreciation'),
-            asset.get('is_editable'),
-            asset.get('wifi_mac_address'),
-            asset.get('change_date'),
-            asset.get('display_size'),
-            asset.get('operating_system'),
-            asset.get('serial'),
-            asset.get('end_of_life_date'),
-            asset.get('imei_meid'),
-            asset.get('model'),
-            asset.get('mac_address'),
-            asset.get('entity'),
-            asset.get('PO')
-
-        ) for asset in test_assets],
-        select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
-    )
-    
-    log.info(f'Inserted {len(test_assets)} rows ({test_assets}).')
-    yield len(test_assets)
-
+    except Exception as e:
+        print(e)
+        return
