@@ -1,6 +1,5 @@
 """
 Asset Panda 
-Collect Asset Panda assets
 """
 
 from runners.helpers import db, log
@@ -11,7 +10,7 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-# from .utils import yaml_dump
+from .utils import yaml_dump
 
 import pprint
 
@@ -96,7 +95,7 @@ LANDING_TABLE_COLUMNS = [
     ('PO', 'VARCHAR(256)'),
 ]
 
-
+### Helper Functions ###
 def validate_key(item: dict, validate_dict: dict) -> None:
     pass
 
@@ -140,10 +139,19 @@ def replace_device_key(list_device: list, replace_key: dict):
     return list_device
 
 
+def parse_number(value):
+    """
+    If the value is '', None, or 0, return None
+    Otherwise, return the original value
+    """
+    if value:
+        return value
+    return None
+
+
+### Main Functions ###
+
 def get_data(token: str, url: str, params: dict = {}) -> dict:
-    """
-    Make an API call
-    """
     headers: dict = {
         "Authorization": f"Bearer {token}"
     }
@@ -158,27 +166,23 @@ def get_data(token: str, url: str, params: dict = {}) -> dict:
         raise http_err
     log.debug(req.status_code)
 
-    # decide whether to clean the data coming in
-
     return req.json()
     
     
 def connect(connection_name, options):
-    """
-    Create the ingestion tables
-    """
-    print("connection_name: ", connection_name)
-    landing_table = f'data.assetpanda_{connection_name}_connection' # creates table in snowalert
+    landing_table = f'data.assetpanda_{connection_name}_connection ' # creates table in snowalert
     
-    # comment = yaml_dump(module='assetpanda', **options)
+    comment = yaml_dump(module='assetpanda', **options)
 
     db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment="AssetPanda Connector") # comment=comment)
+
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     return {
         'newStage': 'finalized',
         'newMessage': "AssetPanda ingestion tables created!",
     }
+
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
@@ -195,102 +199,92 @@ def ingest(table_name, options):
         "limit": PAGE_SIZE,
     }
 
-    # TODO: Make a while loop here with a try/except (so exiting out is possible) OR TODO: make a lambda handler
-    try:
-        for a in [1,2]:
+    total_object_count = 0 
 
-            print("params['offset']: ", params['offset'])
-            assets: dict = get_data(token=token, url= general_url, params=options)
-            pp = pprint.PrettyPrinter(indent=4) # TODO: DELETE once debugging is done
+    while params['offset'] <= total_object_count:
 
-            dict_fields: dict = get_data(token, fields_url)
-            list_field: list = dict_fields["fields"]
+        print("total_object_count: ", total_object_count)
 
-            hash_field = hashlib.md5(
-                json.dumps(list_field, sort_keys=True).encode("utf-8")
-            ).hexdigest()
-            
-            # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
-            # {"field_140": "MAC_Address", "field_135" :"IP"}
-            clear_fields: list = reduce(reduce_fields, list_field, {})
+        assets = get_data(token=token, url= general_url, params=params)
+        
+        list_object, total_object_count = get_list_objects_and_total_from_get_object(assets)
 
-            # We will archive off a version of the raw data for comparison in the output data
-            raw_results: list = copy.deepcopy(assets["objects"])
+        dict_fields = get_data(token, fields_url, params=params)
+        list_field = dict_fields["fields"]
+        hash_field = hashlib.md5(
+            json.dumps(list_field, sort_keys=True).encode("utf-8")
+        ).hexdigest()
 
-            # Pull out just data we need
-            list_object, total_object_count = get_list_objects_and_total_from_get_object(assets)
+        # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
+        # {"field_140": "MAC_Address", "field_135" :"IP"}
+        clear_fields: list = reduce(reduce_fields, list_field, {})        
 
-            # replace every key "field_NO" by the value of the clear_field["field_NO"]
-            list_object_without_field_id = replace_device_key(list_object, clear_fields)
+        # replace every key "field_NO" by the value of the clear_field["field_NO"]
+        list_object_without_field_id = replace_device_key(list_object, clear_fields)
 
-            # adding the hash key value pair to the clear_fields dictionary
-            clear_field_with_hash = {**clear_fields, "id": hash_field}
+        # adding the hash key value pair to the clear_fields dictionary
+        clear_field_with_hash = {**clear_fields, "id": hash_field}
 
+        db.insert(
+            landing_table,
+            values=[(
+                entry,
+                parse_number(  entry.get('id', None)  ),
+                parse_number(  entry.get('is_locked', None)  ),
+                parse_number(  entry.get('Date_Added', None)  ),
+                parse_number(  entry.get('Storage Capacity', None)  ),
+                parse_number(  entry.get('Asset_Tag_Number', None)  ),
+                parse_number(  entry.get('is_deletable', None)  ),
+                parse_number(  entry.get('has_audit_history', None)  ),
+                parse_number(  entry.get('Purchase_From', None)  ),
+                parse_number(  entry.get('Department', None)  ),
+                parse_number(  entry.get('display_with_secondary', None)  ),
+                parse_number(  entry.get('Asset_Panda_Number', None)  ), 
+                parse_number(  entry.get('object_appreciation', None)  ),
+                parse_number(  entry.get('Status', None)  ),
+                parse_number(  entry.get('Purchase_date', None)  ),
+                parse_number(  entry.get('Yubikey_Identifier', None)  ),
+                parse_number(  entry.get('display_name', None)  ),
+                parse_number(  entry.get('Brand', None)  ),
+                parse_number(  entry.get('Assigned_To', None)  ),
+                parse_number(  entry.get('share_url', None)  ),
+                parse_number(  entry.get('object_version_ids', None)  ),
+                parse_number(  entry.get('Creation_Date', None)  ),
+                parse_number(  entry.get('Created_By', None)  ),
+                parse_number(  entry.get('purchase_price', None)  ),
+                parse_number(  entry.get('next_service', None)  ),
+                parse_number(  entry.get('building', None)  ),
+                parse_number(  entry.get('category', None)  ),
+                parse_number(  entry.get('description', None)  ),
+                parse_number(  entry.get('changed_by', None)  ),
+                parse_number(  entry.get('wireless_status', None)  ),
+                parse_number(  entry.get('created_at', None)  ),
+                parse_number(  entry.get('gps_coordinates', None)  ),
+                parse_number(  entry.get('updated_at', None)  ),
+                parse_number(  entry.get('loaner_pool', None)  ),
+                parse_number(  entry.get('default_attachment', None)  ),
+                parse_number(  entry.get('room', None)  ),
+                parse_number(  entry.get('notes', None)  ),
+                parse_number(  entry.get('object_depreciation', None)  ),
+                parse_number(  entry.get('is_editable', None)  ),
+                parse_number(  entry.get('wifi_mac_address', None)  ),
+                parse_number(  entry.get('change_date', None)  ),
+                parse_number(  entry.get('display_size', None)  ),
+                parse_number(  entry.get('operating_system', None)  ),
+                parse_number(  entry.get('serial', None)  ),
+                parse_number(  entry.get('end_of_life_date', None)  ),
+                parse_number(  entry.get('imei_meid', None)  ),
+                parse_number(  entry.get('model', None)  ),
+                parse_number(  entry.get('mac_address', None)  ),
+                parse_number(  entry.get('entity', None)  ),
+                parse_number(  entry.get('PO', None)  )
+            ) for entry in list_object_without_field_id],
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+        )
+        
+        log.info(f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).')
+        yield len(list_object_without_field_id)
 
-            # tweak to match actual assets
-            db.insert(
-                landing_table,
-                values=[(
-                    asset,
-                    asset.get('id'),
-                    asset.get('is_locked'),
-                    asset.get('Date_Added'),
-                    asset.get('Storage Capacity'),
-                    asset.get('Asset_Tag_Number'),
-                    asset.get('is_deletable'),
-                    asset.get('has_audit_history'),
-                    asset.get('Purchase_From'),
-                    asset.get('Department'),
-                    asset.get('display_with_secondary'),
-                    asset.get('Asset_Panda_Number'), 
-                    asset.get('object_appreciation'),
-                    asset.get('Status'),
-                    asset.get('Purchase_date'),
-                    asset.get('Yubikey_Identifier'),
-                    asset.get('display_name'),
-                    asset.get('Brand'),
-                    asset.get('Assigned_To'),
-                    asset.get('share_url'),
-                    asset.get('object_version_ids'),
-                    asset.get('Creation_Date'),
-                    asset.get('Created_By'),
-                    asset.get('purchase_price'),
-                    asset.get('next_service'),
-                    asset.get('building'),
-                    asset.get('category'),
-                    asset.get('description'),
-                    asset.get('changed_by'),
-                    asset.get('wireless_status'),
-                    asset.get('created_at'),
-                    asset.get('gps_coordinates'),
-                    asset.get('updated_at'),
-                    asset.get('loaner_pool'),
-                    asset.get('default_attachment'),
-                    asset.get('room'),
-                    asset.get('notes'),
-                    asset.get('object_depreciation'),
-                    asset.get('is_editable'),
-                    asset.get('wifi_mac_address'),
-                    asset.get('change_date'),
-                    asset.get('display_size'),
-                    asset.get('operating_system'),
-                    asset.get('serial'),
-                    asset.get('end_of_life_date'),
-                    asset.get('imei_meid'),
-                    asset.get('model'),
-                    asset.get('mac_address'),
-                    asset.get('entity'),
-                    asset.get('PO')
-                ) for asset in list_object_without_field_id],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
-            )
-            
-            log.info(f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).')
-            yield len(list_object_without_field_id)
-
-            params["offset"] += PAGE_SIZE 
-
-    except Exception as e:
-        print(e)
-        return
+        # increment the offset to get new entries each iteration in the while loop
+        params["offset"] += PAGE_SIZE
