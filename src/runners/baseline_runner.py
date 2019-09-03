@@ -75,6 +75,8 @@ def run_baseline(name, comment):
     os.mkdir(FORMATTED_CODE_DIRECTORY)
     files = os.listdir(f'../baseline_modules/{code_location}')
 
+    shutil.copyfile("../baseline_modules/run_module.R", f"{FORMATTED_CODE_DIRECTORY}/run_module.R")
+
     for file in files:
         print(file)
         if not file.startswith('.'):
@@ -84,10 +86,8 @@ def run_baseline(name, comment):
             with open(f"{FORMATTED_CODE_DIRECTORY}/{file}", 'w+') as ff:
                 ff.write(r_code)
 
-    with open(f"{FORMATTED_CODE_DIRECTORY}/{code_location}.R") as fr:
+    with open(f"{FORMATTED_CODE_DIRECTORY}/run_module.R") as fr:
         r_code = fr.read()
-
-    shutil.copyfile("../baseline_modules/run_module.R", f"{FORMATTED_CODE_DIRECTORY}/run_module.R")
     frame = query_log_source(source, time_filter, time_column)
     ro.globalenv['input_table'] = frame
     ro.r(f"setwd('./{FORMATTED_CODE_DIRECTORY}')")
