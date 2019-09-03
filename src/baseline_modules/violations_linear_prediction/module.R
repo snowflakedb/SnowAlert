@@ -65,8 +65,8 @@ prediction <-
   inner_join(nested, by = "QUERY_ID") %>% 
   mutate(results=map2(.x = model$fit, .y = nested$data, .f = ~augment(.x, newdata = .y), .id=.x), model2=model$fit) %>% 
   unnest(c(results))
-prediction$confidence_low <- prediction$.fitted-prediction$.se.fit
-prediction$confidence_high <- prediction$.fitted+prediction$.se.fit
+prediction$confidence_low <- prediction$.fitted-3*prediction$.se.fit
+prediction$confidence_high <- prediction$.fitted+3*prediction$.se.fit
 prediction <- base::merge(prediction, namessss, by = "QUERY_ID", all.x=TRUE)
 prediction <- base::merge(prediction, dplyr::select(model, QUERY_ID, fit), by = "QUERY_ID", all.x=TRUE)
 
