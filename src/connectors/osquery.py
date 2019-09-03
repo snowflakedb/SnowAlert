@@ -57,6 +57,7 @@ LANDING_TABLE_COLUMNS = [
     ('instance_id', 'VARCHAR(16777216)'),
     ('name', 'VARCHAR(16777216)'),
     ('unixtime', 'TIMESTAMP_LTZ(9)'),
+    ('decorations', 'VARIANT')
 ]
 
 
@@ -182,7 +183,9 @@ def finalize(connection_name):
             name=pipe,
             sql=(
                 f'COPY INTO data.{base_name}_connection '
-                f'FROM (SELECT PARSE_JSON($1), HASH($1), $1:unixTime::TIMESTAMP_LTZ(9), $1:action, $1:calendarTime, $1:columns, $1:counter, $1:epoch, $1:hostIdentifier, $1:instance_id, $1:name, $1:unixTime '
+                f'FROM (SELECT PARSE_JSON($1), HASH($1), $1:unixTime::TIMESTAMP_LTZ(9), $1:action, '
+                f'$1:calendarTime, $1:columns, $1:counter, $1:epoch, $1:hostIdentifier, $1:instance_id, '
+                f'$1:name, $1:unixTime, $1:decorations '
                 f'FROM @{stage}/)'
             ),
             replace=True,
