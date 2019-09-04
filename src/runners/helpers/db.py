@@ -3,9 +3,10 @@ from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Iterator, Any
 from os import getpid
 from re import match
+import operator
 
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
@@ -224,6 +225,49 @@ FROM VALUES {{values}}
 
 def sql_value_placeholders(n):
     return ", ".join(["(%s)"] * n)
+
+
+def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
+    skipped = 0
+
+    def get_col_transformation(idx: int, col: Tuple[str, str]) -> str:
+        nonlocal skipped
+        _, col_type = col
+        col_type = col_type.upper()
+        col_placeholder = f'column{idx - skipped + 1}'
+        if "AUTOINCREMENT" in col_type or "IDENTITY" in col_type:  # skip since auto populated
+            skipped += 1
+            return ''
+        if "VARIANT" in col_type:
+            return f'PARSE_JSON({col_placeholder})'
+        if "TIMESTAMP" in col_type:
+            return f'TRY_TO_TIMESTAMP({col_placeholder})'
+        return col_placeholder
+
+    cols = [get_col_transformation(idx, col)
+            for (idx, col) in enumerate(table_definition)]
+
+    return ",".join(filter(None, cols))
+
+
+def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[Any]:
+    auto_populating = {
+        "AUTOINCREMENT",
+        "IDENTITY"
+    }
+
+    def filter_auto_populating_cols(col: Tuple[str, str]) -> bool:
+        nonlocal auto_populating
+
+        col_name, col_type = col
+        col_type = col_type.upper()
+
+        for skippable in auto_populating:
+            if skippable in col_type:
+                return False
+        return True
+
+    return map(operator.itemgetter(0), filter(filter_auto_populating_cols, table_definition))
 
 
 def insert(table, values, overwrite=False, select="", columns=[]):
