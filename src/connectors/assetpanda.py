@@ -1,5 +1,6 @@
 """
 Asset Panda 
+Collect asset information from Asset Panda using an API token 
 """
 
 from runners.helpers import db, log
@@ -11,8 +12,6 @@ import snowflake
 import requests
 from urllib.error import HTTPError
 from .utils import yaml_dump
-
-import pprint
 
 import hashlib
 import json
@@ -37,7 +36,7 @@ CONNECTION_OPTIONS = [
         'title': 'AssetPanda API Token',
         'prompt': 'Your AssetPanda API Token',
         'type': 'str',
-        'secret': False
+        'secret': True
     }
 ]
 
@@ -96,11 +95,6 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 ### Helper Functions ###
-def validate_key(item: dict, validate_dict: dict) -> None:
-    pass
-
-def validate_secret(secrets: dict) -> None:
-    pass
 
 # Retrieve the values needed from the results objects
 def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
@@ -174,7 +168,7 @@ def connect(connection_name, options):
     
     comment = yaml_dump(module='assetpanda', **options)
 
-    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment="AssetPanda Connector") # comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
 
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
@@ -186,7 +180,6 @@ def connect(connection_name, options):
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    timestamp = datetime.utcnow()
     
     token = options['token']
     asset_entity_id = options['asset_entity_id']
@@ -203,7 +196,7 @@ def ingest(table_name, options):
 
     while params['offset'] <= total_object_count:
 
-        print("total_object_count: ", total_object_count)
+        log.debug("total_object_count: ", total_object_count)
 
         assets = get_data(token=token, url= general_url, params=params)
         
@@ -211,9 +204,7 @@ def ingest(table_name, options):
 
         dict_fields = get_data(token, fields_url, params=params)
         list_field = dict_fields["fields"]
-        hash_field = hashlib.md5(
-            json.dumps(list_field, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+
 
         # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
         # {"field_140": "MAC_Address", "field_135" :"IP"}
@@ -221,9 +212,6 @@ def ingest(table_name, options):
 
         # replace every key "field_NO" by the value of the clear_field["field_NO"]
         list_object_without_field_id = replace_device_key(list_object, clear_fields)
-
-        # adding the hash key value pair to the clear_fields dictionary
-        clear_field_with_hash = {**clear_fields, "id": hash_field}
 
         db.insert(
             landing_table,
