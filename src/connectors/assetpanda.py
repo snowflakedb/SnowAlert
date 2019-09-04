@@ -11,7 +11,6 @@ import requests
 from urllib.error import HTTPError
 from .utils import yaml_dump
 
-import hashlib
 import json
 from functools import reduce
 import re
