@@ -6,12 +6,10 @@ Collect asset information from Asset Panda using an API token
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-from datetime import datetime
-
 import snowflake
 import requests
 from urllib.error import HTTPError
-from .utils import yaml_dump
+# from .utils import yaml_dump
 
 import hashlib
 import json
@@ -133,16 +131,6 @@ def replace_device_key(list_device: list, replace_key: dict):
     return list_device
 
 
-def parse_number(value):
-    """
-    If the value is '', None, or 0, return None
-    Otherwise, return the original value
-    """
-    if value:
-        return value
-    return None
-
-
 ### Main Functions ###
 
 def get_data(token: str, url: str, params: dict = {}) -> dict:
@@ -166,9 +154,9 @@ def get_data(token: str, url: str, params: dict = {}) -> dict:
 def connect(connection_name, options):
     landing_table = f'data.assetpanda_{connection_name}_connection ' # creates table in snowalert
     
-    comment = yaml_dump(module='assetpanda', **options)
+    # comment = yaml_dump(module='assetpanda', **options)
 
-    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment="AssetPanda")
 
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
@@ -217,55 +205,55 @@ def ingest(table_name, options):
             landing_table,
             values=[(
                 entry,
-                parse_number(  entry.get('id', None)  ),
-                parse_number(  entry.get('is_locked', None)  ),
-                parse_number(  entry.get('Date_Added', None)  ),
-                parse_number(  entry.get('Storage Capacity', None)  ),
-                parse_number(  entry.get('Asset_Tag_Number', None)  ),
-                parse_number(  entry.get('is_deletable', None)  ),
-                parse_number(  entry.get('has_audit_history', None)  ),
-                parse_number(  entry.get('Purchase_From', None)  ),
-                parse_number(  entry.get('Department', None)  ),
-                parse_number(  entry.get('display_with_secondary', None)  ),
-                parse_number(  entry.get('Asset_Panda_Number', None)  ), 
-                parse_number(  entry.get('object_appreciation', None)  ),
-                parse_number(  entry.get('Status', None)  ),
-                parse_number(  entry.get('Purchase_date', None)  ),
-                parse_number(  entry.get('Yubikey_Identifier', None)  ),
-                parse_number(  entry.get('display_name', None)  ),
-                parse_number(  entry.get('Brand', None)  ),
-                parse_number(  entry.get('Assigned_To', None)  ),
-                parse_number(  entry.get('share_url', None)  ),
-                parse_number(  entry.get('object_version_ids', None)  ),
-                parse_number(  entry.get('Creation_Date', None)  ),
-                parse_number(  entry.get('Created_By', None)  ),
-                parse_number(  entry.get('purchase_price', None)  ),
-                parse_number(  entry.get('next_service', None)  ),
-                parse_number(  entry.get('building', None)  ),
-                parse_number(  entry.get('category', None)  ),
-                parse_number(  entry.get('description', None)  ),
-                parse_number(  entry.get('changed_by', None)  ),
-                parse_number(  entry.get('wireless_status', None)  ),
-                parse_number(  entry.get('created_at', None)  ),
-                parse_number(  entry.get('gps_coordinates', None)  ),
-                parse_number(  entry.get('updated_at', None)  ),
-                parse_number(  entry.get('loaner_pool', None)  ),
-                parse_number(  entry.get('default_attachment', None)  ),
-                parse_number(  entry.get('room', None)  ),
-                parse_number(  entry.get('notes', None)  ),
-                parse_number(  entry.get('object_depreciation', None)  ),
-                parse_number(  entry.get('is_editable', None)  ),
-                parse_number(  entry.get('wifi_mac_address', None)  ),
-                parse_number(  entry.get('change_date', None)  ),
-                parse_number(  entry.get('display_size', None)  ),
-                parse_number(  entry.get('operating_system', None)  ),
-                parse_number(  entry.get('serial', None)  ),
-                parse_number(  entry.get('end_of_life_date', None)  ),
-                parse_number(  entry.get('imei_meid', None)  ),
-                parse_number(  entry.get('model', None)  ),
-                parse_number(  entry.get('mac_address', None)  ),
-                parse_number(  entry.get('entity', None)  ),
-                parse_number(  entry.get('PO', None)  )
+                entry.get('id', None),
+                entry.get('is_locked', None),
+                entry.get('Date_Added', None),
+                entry.get('Storage Capacity', None),
+                entry.get('Asset_Tag_Number', None),
+                entry.get('is_deletable', None),
+                entry.get('has_audit_history', None),
+                entry.get('Purchase_From', None),
+                entry.get('Department', None),
+                entry.get('display_with_secondary', None),
+                None if (entry.get('Asset_Panda_Number', None) == '') else entry.get('Asset_Panda_Number', None), 
+                entry.get('object_appreciation', None),
+                entry.get('Status', None),
+                entry.get('Purchase_date', None),
+                entry.get('Yubikey_Identifier', None),
+                entry.get('display_name', None),
+                entry.get('Brand', None),
+                entry.get('Assigned_To', None),
+                entry.get('share_url', None),
+                None if (entry.get('object_version_ids', None) == '') else entry.get('object_version_ids', None),
+                entry.get('Creation_Date', None),
+                entry.get('Created_By', None),
+                entry.get('purchase_price', None),
+                entry.get('next_service', None),
+                entry.get('building', None),
+                entry.get('category', None),
+                entry.get('description', None),
+                entry.get('changed_by', None),
+                entry.get('wireless_status', None),
+                entry.get('created_at', None),
+                entry.get('gps_coordinates', None),
+                entry.get('updated_at', None),
+                entry.get('loaner_pool', None),
+                entry.get('default_attachment', None),
+                entry.get('room', None),
+                entry.get('notes', None),
+                entry.get('object_depreciation', None),
+                entry.get('is_editable', None),
+                entry.get('wifi_mac_address', None),
+                entry.get('change_date', None),
+                entry.get('display_size', None),
+                entry.get('operating_system', None),
+                entry.get('serial', None),
+                entry.get('end_of_life_date', None),
+                entry.get('imei_meid', None),
+                entry.get('model', None),
+                entry.get('mac_address', None),
+                entry.get('entity', None),
+                entry.get('PO', None)
             ) for entry in list_object_without_field_id],
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
             columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
