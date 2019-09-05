@@ -15,7 +15,7 @@ PAGE_SIZE = 500
 CONNECTION_OPTIONS = [
     {
         'name': 'api_key',
-        'title': "Cisco Umbrella",
+        'title': "Cisco Umbrella API Key",
         'prompt': "Your Cisco Umbrella API Key",
         'type': 'str',
         'required': True,
@@ -33,7 +33,7 @@ CONNECTION_OPTIONS = [
         'name': 'organization_id',
         'title': "Cisco Umbrella Organization Id",
         'prompt': "Your Cisco Umbrella Organization Id",
-        'type': 'str',
+        'type': 'int',
         'required': True,
     },
 ]
@@ -58,7 +58,7 @@ LANDING_TABLE_COLUMNS = [
 
 
 # Perform a generic API call
-def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> dict:
+def get_data(organization_id: int, key: str, secret: str, params: dict = {}) -> dict:
     url = f"https://management.api.umbrella.com/v1/organizations/{organization_id}/roamingcomputers"
     headers: dict = {"Content-Type": "application/json",
                      "Accept": "application/json"}
@@ -85,7 +85,7 @@ def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> 
 def connect(connection_name, options):
     table_name = f'cisco_umbrella_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    options['organization_id'] = options['organization_id'].strip("'")
+    options['organization_id'] = int(options['organization_id'])
     comment = yaml_dump(
         module='cisco_umbrella',
         **options)
@@ -105,7 +105,7 @@ def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
 
-    organization_id = options['organization_id']
+    organization_id = options['organization_id'].strip("'")
     api_secret = options['api_secret']
     api_key = options['api_key']
 
