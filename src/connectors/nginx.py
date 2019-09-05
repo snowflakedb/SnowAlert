@@ -284,6 +284,7 @@ def finalize(connection_name):
                 f"channel for all object create events in the {stage_prefix}/access folder of the bucket:\n\n  {log_sqs_arn}\n\n"
                 f"Please add this SQS Queue ARN to the bucket event notification "
                 f"channel for all object create events in the {stage_prefix}/error folder of the bucket:\n\n   {error_sqs_arn}\n\n"
+                f"Note that the two SQS Queue ARNs may be identical; this is normal.\n\n"
                 f"If you'd like to backfill the table, please run\n\n  ALTER PIPE {pipe} REFRESH;\n  ALTER PIPE {error_pipe} REFRESH;"
             )
         }
