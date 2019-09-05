@@ -85,6 +85,7 @@ def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> 
 def connect(connection_name, options):
     table_name = f'cisco_umbrella_{connection_name}_connection'
     landing_table = f'data.{table_name}'
+    options['organization_id'] = options['organization_id'].strip("'")
     comment = yaml_dump(
         module='cisco_umbrella',
         **options)
@@ -104,7 +105,7 @@ def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
 
-    organizations_id = options['organization_id']
+    organization_id = options['organization_id']
     api_secret = options['api_secret']
     api_key = options['api_key']
 
@@ -115,7 +116,7 @@ def ingest(table_name, options):
 
     while 1:
         devices: dict = get_data(
-            organizations_id, api_key, api_secret, params
+            organization_id, api_key, api_secret, params
         )
         params["page"] += 1
 
