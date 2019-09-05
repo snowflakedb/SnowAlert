@@ -93,7 +93,6 @@ def get_data(token: str, url: str, params: dict = {}) -> dict:
     try:
         log.debug(f"Preparing GET: url={url} with params={params}")
         req = requests.get(url, params=params, headers=headers)
-        print("req: ", req)
         req.raise_for_status()
     except HTTPError as http_err:
         log.error(f"Error GET: url={url}")
@@ -135,6 +134,8 @@ def ingest(table_name, options):
 
     total_object_count = 0 
 
+    insert_time = datetime.utcnow()
+
     while params['offset'] <= total_object_count:
 
         log.debug("total_object_count: ", total_object_count)
@@ -160,7 +161,7 @@ def ingest(table_name, options):
             values=[(
                 entry,
                 entry.get('id', None),
-                datetime.utcnow()
+                insert_time
             ) for entry in list_object_without_field_id],
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
             columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
