@@ -1,4 +1,4 @@
-"""Meraki
+"""Meraki Devices
 Collect Meraki Device information using an API Token
 """
 
@@ -32,7 +32,7 @@ CONNECTION_OPTIONS = [
         'title': "Meraki Network Ids Whitelist",
         'prompt': "Whitelist of Network Ids",
         'type': 'list',
-        'secret': True,
+        'secret': False,
         'required': True,
     },
 ]
