@@ -12,7 +12,7 @@ from . import okta
 from . import tenable_settings
 from . import crowdstrike_devices
 from . import cisco_umbrella
-from . import ldap
+from . import ldap_log
 
 __all__ = [
     'aws_inventory',
@@ -29,7 +29,7 @@ __all__ = [
     'tenable_settings',
     'crowdstrike_devices',
     'cisco_umbrella',
-    'ldap'
+    'ldap_log'
 ]
 
 connectors = {
@@ -47,7 +47,7 @@ connectors = {
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
-    'ldap': ldap,
+    'ldap_log': ldap_log,
 }
 
 CONNECTION_OPTIONS = [

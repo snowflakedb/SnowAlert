@@ -77,7 +77,7 @@ def connect(connection_name, options):
     stage = f'data.{base_name}_stage'
     landing_table = f'data.{base_name}_connection'
 
-    comment = yaml_dump(module='ldap')
+    comment = yaml_dump(module='ldap', **options)
 
     stage = options.get('existing_stage')
     if stage:
