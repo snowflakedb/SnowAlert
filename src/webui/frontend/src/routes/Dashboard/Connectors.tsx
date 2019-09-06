@@ -82,7 +82,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
 
     const selectedConnector = this.findConnector();
 
-    let options = [];
+    let options: any[] = [];
     if (selectedConnector) {
       options = [
         ...selectedConnector.options,
