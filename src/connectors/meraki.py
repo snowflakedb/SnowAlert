@@ -11,7 +11,7 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-# from .utils import yaml_dump
+from .utils import yaml_dump
 
 
 
@@ -92,11 +92,11 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 
 
 def connect(connection_name, options):
-    landing_table_client = f'data.meraki_{connection_name}_connection_client'
-    landing_table_device = f'data.meraki_{connection_name}_connection_device'
+    landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
+    landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
-    comment = yaml_dump(module='meraki', **options)
+    comment = yaml_dump(module='meraki_devices', **options)
 
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
@@ -183,7 +183,7 @@ def ingest(table_name, options):
                         client.get('ip',None),
                         client.get('switchport',None),
                         None if (client.get('vlan',None) == '') else client.get('vlan', None),
-                        None if (client.get('usage',None).get('sent',None) == '') else client.get('usage',None).get('sent',None),
+                        None if (client.get('usage',{}).get('sent',None) == '') else client.get('usage',{}).get('sent',None),
                         None if (client.get('usage',None).get('recv',None) == '') else client.get('usage',None).get('recv',None),
                         serial_number,
                     ) for client in clients],
