@@ -8,6 +8,7 @@ from json import dumps
 from runners.helpers import db
 
 from .utils import yaml_dump
+import yaml
 
 CONNECTION_OPTIONS = [
     {
@@ -17,15 +18,13 @@ CONNECTION_OPTIONS = [
         'prompt': "The S3 bucket where the LDAP Logs are collected",
         'prefix': "s3://",
         'placeholder': "my-test-s3-bucket",
-        'required': True,
     },
     {
         'type': 'str',
-        'name': 'filter',
+        'name': 'prefix',
         'title': "Prefix Filter",
         'prompt': "The folder in S3 bucket where LDAP Logs are collected",
         'default': "ldap/",
-        'required': True,
     },
     {
         'type': 'str',
@@ -33,8 +32,14 @@ CONNECTION_OPTIONS = [
         'title': "Config Bucket Reader Role",
         'prompt': "Role to be assumed for access to LDAP Logs in S3",
         'placeholder': "arn:aws:iam::012345678987:role/my-flow-log-reader-role",
-        'required': True,
-    }
+    },
+    {
+        'type': 'str',
+        'name': 'existing_stage',
+        'title': "Snowflake Stage (alternative)",
+        'prompt': "Enter to use an existing stage instead",
+        'placeholder': "snowalert.data.ldap_stage",
+    },
 ]
 
 FILE_FORMAT = db.TypeOptions(
@@ -72,20 +77,27 @@ def connect(connection_name, options):
     stage = f'data.{base_name}_stage'
     landing_table = f'data.{base_name}_connection'
 
-    bucket = options['bucket_name']
-    prefix = options['filter']
-    role = options['aws_role']
+    comment = yaml_dump(module='ldap')
 
-    comment = yaml_dump(module='aws_flow_log')
-
-    db.create_stage(
-        name=stage,
-        url=f's3://{bucket}',
-        prefix=prefix,
-        cloud='aws',
-        credentials=role,
-        file_format=FILE_FORMAT
-    )
+    stage = options.get('existing_stage')
+    if stage:
+        prefix = ''
+        aws_role = ''
+        bucket_name = ''
+        stage_name = stage
+    else:
+        stage_name = f'data.ldap_{connection_name}_stage'
+        bucket_name = options['bucket_name']
+        prefix = options['prefix']
+        aws_role = options['aws_role']
+        db.create_stage(
+            name=stage_name,
+            url=f's3://{bucket_name}',
+            prefix=prefix,
+            cloud='aws',
+            credentials=aws_role,
+            file_format=FILE_FORMAT
+        )
 
     db.create_table(
         name=landing_table,
@@ -94,16 +106,25 @@ def connect(connection_name, options):
     )
 
     stage_props = db.fetch_props(
-        f'DESC STAGE {stage}',
-        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+        f'DESC STAGE {stage_name}',
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
+
+    if prefix == '':
+        prefix = '/'.join(stage_props['URL'].split('/')[3:-1])
+
+    if bucket_name == '':
+        bucket_name = stage_props['URL'].split('/')[2]
+
+    if aws_role == '':
+        aws_role = stage_props['AWS_ROLE']
 
     prefix = prefix.rstrip('/')
 
     return {
         'newStage': 'created',
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
-            role=role,
+            role=aws_role,
             role_trust_relationship=dumps({
                 "Version": "2012-10-17",
                 "Statement": [
@@ -130,12 +151,12 @@ def connect(connection_name, options):
                             "s3:GetObject",
                             "s3:GetObjectVersion",
                         ],
-                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
+                        "Resource": f"arn:aws:s3:::{bucket_name}/{prefix}/*"
                     },
                     {
                         "Effect": "Allow",
                         "Action": "s3:ListBucket",
-                        "Resource": f"arn:aws:s3:::{bucket}",
+                        "Resource": f"arn:aws:s3:::{bucket_name}",
                         "Condition": {
                             "StringLike": {
                                 "s3:prefix": [
@@ -153,6 +174,8 @@ def connect(connection_name, options):
 def finalize(connection_name):
     base_name = f'ldap_{connection_name}'
     pipe = f'data.{base_name}_pipe'
+    options = yaml.load(next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))['comment'])
+    stage = options.get('existing_stage', f'data.{base_name}_stage')
 
     # IAM change takes 5-15 seconds to take effect
     sleep(5)
@@ -164,7 +187,7 @@ def finalize(connection_name):
                 f"FROM (SELECT $1, $2, $3, $4, to_timestamp_ltz($5, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
                 f" to_timestamp_ltz($6, 'mm/dd/yyyy hh24:mi:ss (UTC)'), to_timestamp_ltz($7, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
                 f" to_timestamp_ltz($8, 'mm/dd/yyyy hh24:mi:ss (UTC)') "
-                f"FROM @data.{base_name}_stage/)"
+                f"FROM @{stage}/)"
             ),
             replace=True,
             autoingest=True,
