@@ -2,7 +2,8 @@
 Collect Meraki Device information using an API Token
 """
 
-from runners.helpers import db, log
+from runners.helpers import log
+from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from datetime import datetime
@@ -10,7 +11,9 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-from .utils import yaml_dump
+# from .utils import yaml_dump
+
+
 
 PAGE_SIZE = 5
 
@@ -98,6 +101,7 @@ def connect(connection_name, options):
     db.create_table(name=landing_table_client,
                     cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
+    
     db.create_table(name=landing_table_device,
                     cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
@@ -107,15 +111,15 @@ def connect(connection_name, options):
     }
 
 
-def parse_number(value):
-    if value:
-        return value
-    return None
-
-
 def ingest(table_name, options):
-    landing_table_client = f'data.{table_name_client}'
-    landing_table_device = f'data.{landing_table_device}'
+    ingest_type = ''
+    if (table_name.endswith('CLIENT')) or (table_name.endswith('client')):
+        ingest_type = 'client'
+    elif (table_name.endswith('DEVICE') or table_name.endswith('device')):
+        ingest_type = 'device'
+    
+    landing_table = f'data.{table_name}'
+
     timestamp = datetime.utcnow()
     api_key = options['api_key']
     whitelist = options['network_id_whitelist']
@@ -129,53 +133,62 @@ def ingest(table_name, options):
             log.error(e)
             continue
 
-        for device in devices:
-            serial_number = device['serial']
-            clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
-        
+        if (ingest_type == 'device'):
             db.insert(
-                landing_table_client,
+                landing_table,
                 values=[(
                     timestamp,
-                    client,
-                    client.get('id','None'),
-                    client.get('mac','None'),
-                    client.get('description','None'),
-                    client.get('mdnsName','None'),
-                    client.get('dhcpHostname','None'),
-                    client.get('ip','None'),
-                    parse_number(client.get('vlan','None')),
-                    client.get('switchport','None'),
-                    parse_number(client.get('usage','None').get('sent','None')),
-                    parse_number(client.get('usage','None').get('recv','None')),
-                    serial_number,
-                ) for client in clients],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
+                    device,
+                    device.get('serial',None),
+                    device.get('address',None),
+                    device.get('name',None),
+                    device.get('networkId',None),
+                    device.get('model',None),
+                    device.get('mac',None),
+                    device.get('lanIp',None),
+                    device.get('wan1Ip',None),
+                    device.get('wan2Ip',None),
+                    device.get('tags',None),
+                    device.get('lng',None),
+                    device.get('lat',None),
+                ) for device in devices],
+                select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
+                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
             )
-            log.info(f'Inserted {len(clients)} rows (clients).')
-            yield len(clients)
+            log.info(f'Inserted {len(devices)} rows ({landing_table}).')
+            yield len(devices)
 
-        db.insert(
-            landing_table_device,
-            values=[(
-                timestamp,
-                device,
-                device.get('serial','None'),
-                device.get('address','None'),
-                device.get('name','None'),
-                device.get('networkId','None'),
-                device.get('model','None'),
-                device.get('mac','None'),
-                device.get('lanIp','None'),
-                device.get('wan1Ip','None'),
-                device.get('wan2Ip','None'),
-                device.get('tags','None'),
-                device.get('lng','None'),
-                device.get('lat','None'),
-            ) for device in devices],
-            select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
-            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
-        )
-        log.info(f'Inserted {len(devices)} rows (devices).')
-        yield len(devices)
+        elif (ingest_type == 'client'):
+            
+            for device in devices:
+                serial_number = device['serial']
+                
+                try:
+                    clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
+                except requests.exceptions.HTTPError as e:
+                    log.error(f"{network} not accessible, ")
+                    log.error(e)
+                    continue
+                
+                db.insert(
+                    landing_table,
+                    values=[(
+                        timestamp,
+                        client,
+                        client.get('id',None),
+                        client.get('mac',None),
+                        client.get('description',None),
+                        client.get('mdnsName',None),
+                        client.get('dhcpHostname',None),
+                        client.get('ip',None),
+                        client.get('switchport',None),
+                        None if (client.get('vlan',None) == '') else client.get('vlan', None),
+                        None if (client.get('usage',None).get('sent',None) == '') else client.get('usage',None).get('sent',None),
+                        None if (client.get('usage',None).get('recv',None) == '') else client.get('usage',None).get('recv',None),
+                        serial_number,
+                    ) for client in clients],
+                    select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+                    columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
+                )
+                log.info(f'Inserted {len(clients)} rows ({landing_table}).')
+                yield len(clients)
