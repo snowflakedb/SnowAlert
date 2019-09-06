@@ -10,10 +10,9 @@ from datetime import datetime
 import snowflake
 import requests
 from urllib.error import HTTPError
-from .utils import yaml_dump
+# from .utils import yaml_dump
 
 PAGE_SIZE = 5
-
 
 CONNECTION_OPTIONS = [
     {
@@ -49,25 +48,26 @@ LANDING_TABLE_COLUMNS_CLIENT = [
     ('USAGE_SENT', 'INT'),
     ('USAGE_RECV', 'INT'),
     ('SERIAL', 'VARCHAR(256)'),
+    ('NETWORK_RAW', 'VARIANT')
 ]
 
-LANDING_TABLE_COLUMNS_DEVICE = [
-    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
-    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
-    ('RAW', 'VARIANT'),
-    ('SERIAL', 'VARCHAR(256)'),
-    ('ADDRESS', 'VARCHAR(256)'),
-    ('NAME', 'VARCHAR(256)'),
-    ('NETWORK_ID', 'VARCHAR(256)'),
-    ('MODEL', 'VARCHAR(256)'),
-    ('MAC', 'VARCHAR(256)'),
-    ('LAN_IP', 'VARCHAR(256)'),
-    ('WAN_1_IP', 'VARCHAR(256)'),
-    ('WAN_2_IP', 'VARCHAR(256)'),
-    ('TAGS', 'VARCHAR(256)'),
-    ('LNG', 'FLOAT'),
-    ('LAT', 'FLOAT'),
-]
+# LANDING_TABLE_COLUMNS_DEVICE = [
+#     ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+#     ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
+#     ('RAW', 'VARIANT'),
+#     ('SERIAL', 'VARCHAR(256)'),
+#     ('ADDRESS', 'VARCHAR(256)'),
+#     ('NAME', 'VARCHAR(256)'),
+#     ('NETWORK_ID', 'VARCHAR(256)'),
+#     ('MODEL', 'VARCHAR(256)'),
+#     ('MAC', 'VARCHAR(256)'),
+#     ('LAN_IP', 'VARCHAR(256)'),
+#     ('WAN_1_IP', 'VARCHAR(256)'),
+#     ('WAN_2_IP', 'VARCHAR(256)'),
+#     ('TAGS', 'VARCHAR(256)'),
+#     ('LNG', 'FLOAT'),
+#     ('LAT', 'FLOAT'),
+# ]
 
 
 def get_data(url: str, token: str, params: dict = {}) -> dict:
@@ -90,13 +90,13 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 
 def connect(connection_name, options):
     landing_table_client = f'data.meraki_{connection_name}_connection_client'
-    landing_table_device = f'data.meraki_{connection_name}_connection_device'
+    # landing_table_device = f'data.meraki_{connection_name}_connection_device'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
-    comment = yaml_dump(module='meraki', **options)
+    # comment = yaml_dump(module='meraki', **options)
 
     db.create_table(name=landing_table_client,
-                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
+                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment="comment") # TODO: Change back to comment=comment
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
     db.create_table(name=landing_table_device,
                     cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment)
@@ -121,13 +121,17 @@ def ingest(table_name_client, landing_table_device, options):
     whitelist = options['network_id_whitelist']
 
     for network in whitelist:
-        
+        print("network: ", network)
         try:
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
         except requests.exceptions.HTTPError as e:
             log.error(f"{network} not accessible, ")
             log.error(e)
             continue
+        
+        if (len(devices)) == 0:
+            print("network with 0 devices:", network)
+
 
         for device in devices:
             serial_number = device['serial']
@@ -149,6 +153,7 @@ def ingest(table_name_client, landing_table_device, options):
                     parse_number(client.get('usage','None').get('sent','None')),
                     parse_number(client.get('usage','None').get('recv','None')),
                     serial_number,
+                    device
                 ) for client in clients],
                 select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
                 columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT)
@@ -156,26 +161,26 @@ def ingest(table_name_client, landing_table_device, options):
             log.info(f'Inserted {len(clients)} rows (clients).')
             yield len(clients)
 
-        db.insert(
-            landing_table_device,
-            values=[(
-                timestamp,
-                device,
-                device.get('serial','None'),
-                device.get('address','None'),
-                device.get('name','None'),
-                device.get('networkId','None'),
-                device.get('model','None'),
-                device.get('mac','None'),
-                device.get('lanIp','None'),
-                device.get('wan1Ip','None'),
-                device.get('wan2Ip','None'),
-                device.get('tags','None'),
-                device.get('lng','None'),
-                device.get('lat','None'),
-            ) for device in devices],
-            select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
-            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
-        )
-        log.info(f'Inserted {len(devices)} rows (devices).')
-        yield len(devices)
+        # db.insert(
+        #     landing_table_device,
+        #     values=[(
+        #         timestamp,
+        #         device,
+        #         device.get('serial','None'),
+        #         device.get('address','None'),
+        #         device.get('name','None'),
+        #         device.get('networkId','None'),
+        #         device.get('model','None'),
+        #         device.get('mac','None'),
+        #         device.get('lanIp','None'),
+        #         device.get('wan1Ip','None'),
+        #         device.get('wan2Ip','None'),
+        #         device.get('tags','None'),
+        #         device.get('lng','None'),
+        #         device.get('lat','None'),
+        #     ) for device in devices],
+        #     select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
+        #     columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
+        # )
+        # log.info(f'Inserted {len(devices)} rows (devices).')
+        # yield len(devices)
