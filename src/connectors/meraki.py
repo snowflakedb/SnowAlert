@@ -113,7 +113,7 @@ def parse_number(value):
     return None
 
 
-def ingest(table_name_client, landing_table_device, options):
+def ingest(table_name, options):
     landing_table_client = f'data.{table_name_client}'
     landing_table_device = f'data.{landing_table_device}'
     timestamp = datetime.utcnow()
