@@ -2,13 +2,13 @@
 Collect LDAP logs from S3 using AssumeRole
 """
 
-from time import sleep
 from json import dumps
+from time import sleep
+import yaml
 
 from runners.helpers import db
 
 from .utils import yaml_dump
-import yaml
 
 CONNECTION_OPTIONS = [
     {
@@ -17,21 +17,21 @@ CONNECTION_OPTIONS = [
         'title': "LDAP Log Bucket",
         'prompt': "The S3 bucket where the LDAP Logs are collected",
         'prefix': "s3://",
-        'placeholder': "my-test-s3-bucket",
+        'placeholder': "my-ldap-log-s3-bucket",
     },
     {
         'type': 'str',
         'name': 'prefix',
         'title': "Prefix Filter",
-        'prompt': "The folder in S3 bucket where LDAP Logs are collected",
+        'prompt': "The folder in LDAP Log Bucket where logs are collected",
         'default': "ldap/",
     },
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': "Config Bucket Reader Role",
-        'prompt': "Role to be assumed for access to LDAP Logs in S3",
-        'placeholder': "arn:aws:iam::012345678987:role/my-flow-log-reader-role",
+        'title': "LDAP Log Bucket Reader Role",
+        'prompt': "Role to be assumed for access to LDAP Log Bucket",
+        'placeholder': "arn:aws:iam::012345678987:role/my-ldap-log-reader",
     },
     {
         'type': 'str',
@@ -110,11 +110,12 @@ def connect(connection_name, options):
         filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
 
+    url_parts = stage_props['URL'].split('/')
     if prefix == '':
-        prefix = '/'.join(stage_props['URL'].split('/')[3:-1])
+        prefix = '/'.join(url_parts[3:-1])
 
     if bucket_name == '':
-        bucket_name = stage_props['URL'].split('/')[2]
+        bucket_name = url_parts[2]
 
     if aws_role == '':
         aws_role = stage_props['AWS_ROLE']
@@ -174,7 +175,8 @@ def connect(connection_name, options):
 def finalize(connection_name):
     base_name = f'ldap_{connection_name}'
     pipe = f'data.{base_name}_pipe'
-    options = yaml.load(next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))['comment'])
+    table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
+    options = yaml.load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
 
     # IAM change takes 5-15 seconds to take effect
@@ -184,8 +186,10 @@ def finalize(connection_name):
             name=pipe,
             sql=(
                 f"COPY INTO data.{base_name}_connection "
-                f"FROM (SELECT $1, $2, $3, $4, to_timestamp_ltz($5, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
-                f" to_timestamp_ltz($6, 'mm/dd/yyyy hh24:mi:ss (UTC)'), to_timestamp_ltz($7, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
+                f"FROM (SELECT $1, $2, $3, $4,"
+                f" to_timestamp_ltz($5, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
+                f" to_timestamp_ltz($6, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
+                f" to_timestamp_ltz($7, 'mm/dd/yyyy hh24:mi:ss (UTC)'),"
                 f" to_timestamp_ltz($8, 'mm/dd/yyyy hh24:mi:ss (UTC)') "
                 f"FROM @{stage}/)"
             ),
