@@ -1,7 +1,8 @@
-"""nginx
-Collect nginx from S3 using a Stage or privileged Role
+"""Nginx Log
+Collect nginx Logs and Nginx Error Logs from S3 using a Stage or privileged Role
 """
 from json import dumps
+import re
 from time import sleep
 import yaml
 
@@ -15,8 +16,8 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'bucket_name',
-        'title': "Source S3 Bucket",
-        'prompt': "the S3 bucket where nginx logs go",
+        'title': "Nginx Log Bucket",
+        'prompt': "the S3 bucket where Nginx logs go",
         'prefix': "s3://",
         'placeholder': "my-nginx-s3-bucket",
     },
@@ -24,7 +25,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'aws_role',
         'title': "Bucket Reader Role",
-        'prompt': "Role to be assumed for access to nginx log files in S3",
+        'prompt': "Role to be assumed to access Nginx Log Bucket in S3",
         'placeholder': "arn:aws:iam::012345678987:role/my-nginx-read-role",
     },
     {
@@ -148,11 +149,13 @@ def connect(connection_name, options):
         filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
 
+    url_components = re.match('\[\"s3:\/\/([a-z\-]*)\/(.*)\"\]$', stage_props['URL'])
+
     if prefix == '':
-        prefix = '/'.join(stage_props['URL'].split('/')[3:-1])
+        prefix = url_components[2]
 
     if bucket_name == '':
-        bucket_name = stage_props['URL'].split('/')[2]
+        bucket_name = url_components[1]
 
     prefix = prefix.rstrip('/')
 
@@ -208,7 +211,8 @@ def connect(connection_name, options):
 
 def finalize(connection_name):
     base_name = f'nginx_{connection_name}'
-    options = yaml.load(next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))['comment'])
+    table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
+    options = yaml.load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
     pipe = f'data.{base_name}_pipe'
     error_pipe = f'data.{base_name}_error_pipe'
