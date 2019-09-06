@@ -86,7 +86,7 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
     except HTTPError as http_err:
         log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
-        raise http_err
+        raise
     log.debug(req.status_code)
     return req.json()
 
@@ -182,9 +182,9 @@ def ingest(table_name, options):
                         client.get('dhcpHostname',None),
                         client.get('ip',None),
                         client.get('switchport',None),
-                        None if (client.get('vlan',None) == '') else client.get('vlan', None),
-                        None if (client.get('usage',{}).get('sent',None) == '') else client.get('usage',{}).get('sent',None),
-                        None if (client.get('usage',None).get('recv',None) == '') else client.get('usage',None).get('recv',None),
+                        None if (client.get('vlan', None) == '') else client.get('vlan', None),
+                        None if (client.get('usage', {}).get('sent', None) == '') else client.get('usage', {}).get('sent', None),
+                        None if (client.get('usage', {}).get('recv', None) == '') else client.get('usage', {}).get('recv', None),
                         serial_number,
                     ) for client in clients],
                     select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
