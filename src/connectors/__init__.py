@@ -25,7 +25,7 @@ __all__ = [
     'azure_vm',
     'github_webhooks_s3',
     'gsuite_logs',
-    'meraki',
+    'meraki_devices',
     'okta',
     'tenable_settings',
     'crowdstrike_devices',
