@@ -113,9 +113,9 @@ def connect(connection_name, options):
 
 def ingest(table_name, options):
     ingest_type = ''
-    if (table_name.endswith('CLIENT')) or (table_name.endswith('client')):
+    if (table_name.endswith('CONNECTION_CLIENT')) or (table_name.endswith('connection_client')):
         ingest_type = 'client'
-    elif (table_name.endswith('DEVICE') or table_name.endswith('device')):
+    else:
         ingest_type = 'device'
     
     landing_table = f'data.{table_name}'
@@ -158,7 +158,7 @@ def ingest(table_name, options):
             log.info(f'Inserted {len(devices)} rows ({landing_table}).')
             yield len(devices)
 
-        elif (ingest_type == 'client'):
+        else:
             
             for device in devices:
                 serial_number = device['serial']
