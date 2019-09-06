@@ -104,7 +104,7 @@ def connect(connection_name, options):
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
-
+    organization_id = options['organization_id']
     api_secret = options['api_secret']
     api_key = options['api_key']
 
