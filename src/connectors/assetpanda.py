@@ -1,27 +1,23 @@
-"""
-Asset Panda 
-Collect asset information from Asset Panda using an API token 
+"""Asset Panda
+Collect asset information from Asset Panda using an API token
 """
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-import snowflake
 import requests
 from urllib.error import HTTPError
 from .utils import yaml_dump
 
-import json
 from functools import reduce
 import re
-import copy
 from datetime import datetime
 
 
 PAGE_SIZE = 50
 
 CONNECTION_OPTIONS = [
-    {  
+    {
         'name': 'asset_entity_id',
         'title': 'AssetPanda Entity ID',
         'prompt': 'Your AssetPanda Asset Entity ID',
@@ -45,10 +41,14 @@ LANDING_TABLE_COLUMNS = [
     ('INSERT_AT', 'TIMESTAMP_LTZ(9)')
 ]
 
-### Helper Functions ###
 
-# Retrieve the values needed from the results objects
+###
+# Helper Functions
+###
+
+
 def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
+    """Retrieve the values needed from the results objects"""
     try:
         list_object: list = result["objects"]
         total_object_count: int = result["totals"]["objects"]
@@ -57,21 +57,31 @@ def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
     return (list_object, total_object_count)
 
 
-# Because AssetPanda has custom fields that are named via free-text in the tool we need to perform cleanup
-# on the user input data. We will reduce the fields down to just alpha numeric key strings so we can use
-# them as the keys in our final JSON data.
 def reduce_fields(accumulators: dict, field: dict) -> str:
-    # Take every word and join them by an underscore for create the new name
+    """Because AssetPanda has custom fields that are named via free-text in the tool we need to perform cleanup
+    on the user input data. We will reduce the fields down to just alpha numeric key strings so we can use
+    them as the keys in our final JSON data."""
     cleaner_name = "_".join(re.findall(r"[a-zA-Z]+", field["name"]))
     field_key = field["key"]
     accumulators[field_key] = cleaner_name
     return accumulators
 
 
-# This method will iterate through the data and replace the data that matches against keys in the replace_keys
-# collection. It will convert data like the following example:
-# {"field_144": {"value": "00:0a:95:9d:68:16", "name": "MAC Address"}} => {"MAC_Address": "00:0a:95:9d:68:16"}
 def replace_device_key(list_device: list, replace_key: dict):
+    """This method will iterate through the data and replace the data that matches against keys in the replace_keys
+    collection.
+
+    It will convert data like:
+
+        {
+            "field_144": {
+                "value": "00:0a:95:9d:68:16",
+                "name": "MAC Address"
+            }
+        }
+
+    to {"MAC_Address": "00:0a:95:9d:68:16"}
+    """
     for key, value in replace_key.items():
         for device in list_device:
             if device.get(key, False):
@@ -84,7 +94,10 @@ def replace_device_key(list_device: list, replace_key: dict):
     return list_device
 
 
-### Main Functions ###
+###
+# Main Functions
+###
+
 
 def get_data(token: str, url: str, params: dict = {}) -> dict:
     headers: dict = {
@@ -101,11 +114,11 @@ def get_data(token: str, url: str, params: dict = {}) -> dict:
     log.debug(req.status_code)
 
     return req.json()
-    
-    
+
+
 def connect(connection_name, options):
-    landing_table = f'data.assetpanda_{connection_name}_connection ' # creates table in snowalert
-    
+    landing_table = f'data.assetpanda_{connection_name}_connection '
+
     comment = yaml_dump(module='assetpanda', **options)
 
     db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
@@ -120,19 +133,19 @@ def connect(connection_name, options):
 
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
-    
+
     token = options['token']
     asset_entity_id = options['asset_entity_id']
 
     general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
-    fields_url  = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
+    fields_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
 
     params = {
         "offset": 0,
         "limit": PAGE_SIZE,
     }
 
-    total_object_count = 0 
+    total_object_count = 0
 
     insert_time = datetime.utcnow()
 
@@ -140,21 +153,19 @@ def ingest(table_name, options):
 
         log.debug("total_object_count: ", total_object_count)
 
-        assets = get_data(token=token, url= general_url, params=params)
-        
+        assets = get_data(token=token, url=general_url, params=params)
+
         list_object, total_object_count = get_list_objects_and_total_from_get_object(assets)
 
         dict_fields = get_data(token, fields_url, params=params)
         list_field = dict_fields["fields"]
 
-
         # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
         # {"field_140": "MAC_Address", "field_135" :"IP"}
-        clear_fields: list = reduce(reduce_fields, list_field, {})        
+        clear_fields: list = reduce(reduce_fields, list_field, {})
 
         # replace every key "field_NO" by the value of the clear_field["field_NO"]
         list_object_without_field_id = replace_device_key(list_object, clear_fields)
-
 
         db.insert(
             landing_table,
@@ -166,7 +177,7 @@ def ingest(table_name, options):
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
             columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
         )
-        
+
         log.info(f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).')
         yield len(list_object_without_field_id)
 
