@@ -40,7 +40,7 @@ CONNECTION_OPTIONS = [
         'name': 'existing_stage',
         'title': "Snowflake Stage (alternative)",
         'prompt': "Enter to use an existing stage instead",
-        'placeholder': "snowalert.data.nginx_stage",
+        'placeholder': "snowalert.data.nginx_log_existing_stage",
     },
 ]
 
@@ -103,9 +103,9 @@ STEP 2: For Role "{role}", ensure the following inline policy:
 
 
 def connect(connection_name, options):
-    table_name = f'nginx_{connection_name}_connection'
+    table_name = f'nginx_log_{connection_name}_connection'
     log_landing_table = f'data.{table_name}'
-    error_landing_table = f'data.nginx_{connection_name}_error_connection'
+    error_landing_table = f'data.nginx_log_{connection_name}_error_connection'
     prefix = ''
     bucket_name = ''
 
@@ -125,7 +125,7 @@ def connect(connection_name, options):
 
     stage_name = options.get('existing_stage')
     if not stage_name:
-        stage_name = f'data.nginx_{connection_name}_stage'
+        stage_name = f'data.nginx_log_{connection_name}_stage'
         bucket_name = options['bucket_name']
         prefix = options['prefix']
         aws_role = options['aws_role']
@@ -203,7 +203,7 @@ def connect(connection_name, options):
 
 
 def finalize(connection_name):
-    base_name = f'nginx_{connection_name}'
+    base_name = f'nginx_log_{connection_name}'
     table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
     options = yaml.load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
@@ -243,7 +243,8 @@ def finalize(connection_name):
             name=error_pipe,
             sql=(
                 f"COPY INTO data.{base_name}_error_connection "
-                f"FROM (SELECT PARSE_JSON($1), HASH($1), $1:instance_id::string, $1:log_level::string, $1:message::string, $1:time::timestamp_ltz, $1:pid::int, $1:tid::int "
+                f"FROM (SELECT PARSE_JSON($1), HASH($1), $1:instance_id::string, $1:log_level::string,"
+                f" $1:message::string, $1:time::timestamp_ltz, $1:pid::int, $1:tid::int "
                 f"FROM @{stage}/error)"
             ),
             replace=True,
@@ -278,10 +279,14 @@ def finalize(connection_name):
             'newStage': 'finalized',
             'newMessage': (
                 f"Please add this SQS Queue ARN to the bucket event notification "
-                f"channel for all object create events in the {stage_prefix}/access folder of the bucket:\n\n  {log_sqs_arn}\n\n"
+                f"channel for all object create events in the {stage_prefix}/access "
+                f"folder of the bucket:\n\n  {log_sqs_arn}\n\n"
                 f"Please add this SQS Queue ARN to the bucket event notification "
-                f"channel for all object create events in the {stage_prefix}/error folder of the bucket:\n\n   {error_sqs_arn}\n\n"
+                f"channel for all object create events in the {stage_prefix}/error "
+                f"folder of the bucket:\n\n   {error_sqs_arn}\n\n"
                 f"Note that the two SQS Queue ARNs may be identical; this is normal.\n\n"
-                f"If you'd like to backfill the table, please run\n\n  ALTER PIPE {pipe} REFRESH;\n  ALTER PIPE {error_pipe} REFRESH;"
+                f"If you'd like to backfill the table, please run\n\n"
+                f"  ALTER PIPE {pipe} REFRESH;\n"
+                f"  ALTER PIPE {error_pipe} REFRESH;"
             )
         }
