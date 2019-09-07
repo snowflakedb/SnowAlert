@@ -39,7 +39,7 @@ CONNECTION_OPTIONS = [
         'name': 'existing_stage',
         'title': "Snowflake Stage (optional)",
         'prompt': "Alternatively, use an existing stage instead of Bucket & Role",
-        'placeholder': "data.osquery_default_stage",
+        'placeholder': "data.osquery_log_existing_stage",
     },
 ]
 
@@ -74,7 +74,7 @@ STEP 2: For Role "{role}", ensure the following inline policy:
 
 
 def connect(connection_name, options):
-    table_name = f'osquery_{connection_name}_connection'
+    table_name = f'osquery_log_{connection_name}_connection'
     landing_table = f'data.{table_name}'
     prefix = ''
     bucket_name = ''
@@ -88,7 +88,7 @@ def connect(connection_name, options):
 
     stage_name = options.get('existing_stage')
     if not stage_name:
-        stage_name = f'data.osquery_{connection_name}_stage'
+        stage_name = f'data.osquery_log_{connection_name}_stage'
         bucket_name = options['bucket_name']
         prefix = options['prefix']
         aws_role = options['aws_role']
@@ -165,7 +165,7 @@ def connect(connection_name, options):
 
 
 def finalize(connection_name):
-    base_name = f'osquery_{connection_name}'
+    base_name = f'osquery_log_{connection_name}'
     table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
     options = yaml.load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
