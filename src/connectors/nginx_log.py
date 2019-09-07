@@ -17,7 +17,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'bucket_name',
         'title': "Nginx Log Bucket",
-        'prompt': "the S3 bucket where Nginx logs go",
+        'prompt': "The S3 bucket where Nginx logs are ingested",
         'prefix': "s3://",
         'placeholder': "my-nginx-s3-bucket",
     },
@@ -25,14 +25,14 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'aws_role',
         'title': "Bucket Reader Role",
-        'prompt': "Role to be assumed to access Nginx Log Bucket in S3",
-        'placeholder': "arn:aws:iam::012345678987:role/my-nginx-read-role",
+        'prompt': "The Role to be assumed to access Nginx Log Bucket in S3",
+        'placeholder': "arn:aws:iam::012345678987:role/my-nginx-reader",
     },
     {
         'type': 'str',
         'name': 'prefix',
         'title': "Log Prefix Filter",
-        'prompt': "Folder in S3 bucket where nginx access and error folders are located",
+        'prompt': "Location of nginx access and error folders in Nginx Log Bucket",
         'default': "operational_logs/",
     },
     {
@@ -46,48 +46,48 @@ CONNECTION_OPTIONS = [
 
 
 LOG_LANDING_TABLE_COLUMNS = [
-    ("raw", "VARIANT"),
-    ("hash_raw", "NUMBER(19,0)"),
-    ("request_id", "VARCHAR(16777216)"),
-    ("event_time", "TIMESTAMP_LTZ(9)"),
-    ("bytes_sent", "NUMBER(38,0)"),
-    ("connection", "NUMBER(38,0)"),
-    ("connection_requests", "NUMBER(38,0)"),
-    ("deployment_cluster", "VARCHAR(16777216)"),
-    ("gzip_ratio", "FLOAT"),
-    ("host_header", "VARCHAR(16777216)"),
-    ("host_name", "VARCHAR(16777216)"),
-    ("user_agent", "VARCHAR(16777216)"),
-    ("http_user_agent", "VARCHAR(16777216)"),
-    ("http_xff", "VARCHAR(16777216)"),
-    ("http_referer", "VARCHAR(16777216)"),
-    ("http_method", "VARCHAR(16777216)"),
-    ("instance_id", "VARCHAR(16777216)"),
-    ("redirect_counter", "NUMBER(38,0)"),
-    ("remote_address", "VARCHAR(16777216)"),
-    ("request", "VARCHAR(16777216)"),
-    ("request_time", "FLOAT"),
-    ("requests_length", "NUMBER(38,0)"),
-    ("ssl_session_id", "VARCHAR(16777216)"),
-    ("ssl_session_reused", "VARCHAR(16777216)"),
-    ("status", "NUMBER(38,0)"),
-    ("event_time_other", "VARIANT"),
-    ("n_upstream_attempts", "NUMBER(38,0)"),
-    ("upstream_address", "VARCHAR(16777216)"),
-    ("upstream_response_length", "NUMBER(38,0)"),
-    ("upstream_response_time", "FLOAT"),
-    ("upstream_status", "NUMBER(38,0)"),
+    ('raw', 'VARIANT'),
+    ('hash_raw', 'NUMBER(19,0)'),
+    ('request_id', 'VARCHAR(16777216)'),
+    ('event_time', 'TIMESTAMP_LTZ(9)'),
+    ('bytes_sent', 'NUMBER(38,0)'),
+    ('connection', 'NUMBER(38,0)'),
+    ('connection_requests', 'NUMBER(38,0)'),
+    ('deployment_cluster', 'VARCHAR(16777216)'),
+    ('gzip_ratio', 'FLOAT'),
+    ('host_header', 'VARCHAR(16777216)'),
+    ('host_name', 'VARCHAR(16777216)'),
+    ('user_agent', 'VARCHAR(16777216)'),
+    ('http_user_agent', 'VARCHAR(16777216)'),
+    ('http_xff', 'VARCHAR(16777216)'),
+    ('http_referer', 'VARCHAR(16777216)'),
+    ('http_method', 'VARCHAR(16777216)'),
+    ('instance_id', 'VARCHAR(16777216)'),
+    ('redirect_counter', 'NUMBER(38,0)'),
+    ('remote_address', 'VARCHAR(16777216)'),
+    ('request', 'VARCHAR(16777216)'),
+    ('request_time', 'FLOAT'),
+    ('requests_length', 'NUMBER(38,0)'),
+    ('ssl_session_id', 'VARCHAR(16777216)'),
+    ('ssl_session_reused', 'VARCHAR(16777216)'),
+    ('status', 'NUMBER(38,0)'),
+    ('event_time_other', 'VARIANT'),
+    ('n_upstream_attempts', 'NUMBER(38,0)'),
+    ('upstream_address', 'VARCHAR(16777216)'),
+    ('upstream_response_length', 'NUMBER(38,0)'),
+    ('upstream_response_time', 'FLOAT'),
+    ('upstream_status', 'NUMBER(38,0)'),
 ]
 
 ERROR_LANDING_TABLE_COLUMNS = [
-    ("raw", "VARIANT"),
-    ("hash_raw", "NUMBER(19,0)"),
-    ("instance_id", "VARCHAR(16777216)"),
-    ("log_level", "VARCHAR(16777216)"),
-    ("message", "VARCHAR(16777216)"),
-    ("event_time", "TIMESTAMP_LTZ(9)"),
-    ("pid", "NUMBER(38,0)"),
-    ("tid", "NUMBER(38,0)"),
+    ('raw', 'VARIANT'),
+    ('hash_raw', 'NUMBER(19,0)'),
+    ('instance_id', 'VARCHAR(16777216)'),
+    ('log_level', 'VARCHAR(16777216)'),
+    ('message', 'VARCHAR(16777216)'),
+    ('event_time', 'TIMESTAMP_LTZ(9)'),
+    ('pid', 'NUMBER(38,0)'),
+    ('tid', 'NUMBER(38,0)'),
 ]
 
 CONNECT_RESPONSE_MESSAGE = """
@@ -127,10 +127,8 @@ def connect(connection_name, options):
     )
     db.execute(f'GRANT INSERT, SELECT ON {error_landing_table} TO ROLE {SA_ROLE}')
 
-    stage = options.get('existing_stage')
-    if stage:
-        stage_name = stage
-    else:
+    stage_name = options.get('existing_stage')
+    if not stage_name:
         stage_name = f'data.nginx_{connection_name}_stage'
         bucket_name = options['bucket_name']
         prefix = options['prefix']
@@ -149,13 +147,12 @@ def connect(connection_name, options):
         filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
 
-    url_components = re.match('\[\"s3:\/\/([a-z\-]*)\/(.*)\"\]$', stage_props['URL'])
-
-    if prefix == '':
-        prefix = url_components[2]
-
-    if bucket_name == '':
-        bucket_name = url_components[1]
+    if not bucket_name or not prefix:
+        m = re.match(r'^\["s3://([a-z-]*)/(.*)"\]$', stage_props['URL'])
+        if m:
+            bucket_name, prefix = m.groups()
+        else:
+            raise RuntimeError('cannot determine bucket name or prefix')
 
     prefix = prefix.rstrip('/')
 
