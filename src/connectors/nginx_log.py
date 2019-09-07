@@ -109,10 +109,6 @@ def connect(connection_name, options):
     prefix = ''
     bucket_name = ''
 
-    for i in options:
-        if i == '':
-            options.pop(i)
-
     db.create_table(
         name=log_landing_table,
         cols=LOG_LANDING_TABLE_COLUMNS,
