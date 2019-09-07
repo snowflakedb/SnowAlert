@@ -45,7 +45,7 @@ connectors = {
     'azure_vm': azure_vm,
     'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
-    'meraki': meraki_devices,
+    'meraki_devices': meraki_devices,
     'okta': okta,
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
