@@ -15,7 +15,7 @@ PAGE_SIZE = 500
 CONNECTION_OPTIONS = [
     {
         'name': 'api_key',
-        'title': "Cisco Umbrella",
+        'title': "Cisco Umbrella API Key",
         'prompt': "Your Cisco Umbrella API Key",
         'type': 'str',
         'required': True,
@@ -33,7 +33,7 @@ CONNECTION_OPTIONS = [
         'name': 'organization_id',
         'title': "Cisco Umbrella Organization Id",
         'prompt': "Your Cisco Umbrella Organization Id",
-        'type': 'str',
+        'type': 'int',
         'required': True,
     },
 ]
@@ -57,37 +57,45 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
-# Perform a generic API call
-def get_data(organization_id: str, key: str, secret: str, params: dict = {}) -> dict:
+def get_data(organization_id: int, key: str, secret: str, params: dict = {}) -> dict:
     url = f"https://management.api.umbrella.com/v1/organizations/{organization_id}/roamingcomputers"
-    headers: dict = {"Content-Type": "application/json",
-                     "Accept": "application/json"}
+    headers: dict = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
     try:
         req = requests.get(
-            url, params=params, headers=headers, auth=requests.auth.HTTPBasicAuth(
-                key, secret)
+            url,
+            params=params,
+            headers=headers,
+            auth=requests.auth.HTTPBasicAuth(key, secret),
         )
         req.raise_for_status()
+
     except requests.HTTPError as http_err:
         log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
-        raise http_err
+        raise
+
     try:
         log.debug(req.status_code)
         json = req.json()
+
     except Exception as json_error:
         log.error(f"JSON error occurred: {json_error}")
         log.debug(f"requests response {req}")
-        raise json_error
+        raise
+
     return json
 
 
 def connect(connection_name, options):
-    table_name = f'cisco_umbrella_{connection_name}_connection'
+    table_name = f'cisco_umbrella_devices_{connection_name}_connection'
     landing_table = f'data.{table_name}'
     comment = yaml_dump(
         module='cisco_umbrella',
-        **options)
+        **options
+    )
 
     db.create_table(name=landing_table,
                     cols=LANDING_TABLE_COLUMNS, comment=comment)
@@ -103,8 +111,7 @@ def connect(connection_name, options):
 def ingest(table_name, options):
     landing_table = f'data.{table_name}'
     timestamp = datetime.utcnow()
-
-    organizations_id = options['organization_id']
+    organization_id = options['organization_id']
     api_secret = options['api_secret']
     api_key = options['api_key']
 
@@ -115,7 +122,10 @@ def ingest(table_name, options):
 
     while 1:
         devices: dict = get_data(
-            organizations_id, api_key, api_secret, params
+            organization_id,
+            api_key,
+            api_secret,
+            params,
         )
         params["page"] += 1
 
