@@ -14,9 +14,7 @@ from urllib.error import HTTPError
 from .utils import yaml_dump
 
 
-
 PAGE_SIZE = 5
-
 
 CONNECTION_OPTIONS = [
     {
@@ -99,11 +97,13 @@ def connect(connection_name, options):
     comment = yaml_dump(module='meraki_devices', **options)
 
     db.create_table(name=landing_table_client,
-                    cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment)
+                    cols=LANDING_TABLE_COLUMNS_CLIENT,
+                    comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
     
     db.create_table(name=landing_table_device,
-                    cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment)
+                    cols=LANDING_TABLE_COLUMNS_DEVICE,
+                    comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
@@ -133,24 +133,24 @@ def ingest(table_name, options):
             log.error(e)
             continue
 
-        if (ingest_type == 'device'):
+        if ingest_type == 'device':
             db.insert(
                 landing_table,
                 values=[(
                     timestamp,
                     device,
-                    device.get('serial',None),
-                    device.get('address',None),
-                    device.get('name',None),
-                    device.get('networkId',None),
-                    device.get('model',None),
-                    device.get('mac',None),
-                    device.get('lanIp',None),
-                    device.get('wan1Ip',None),
-                    device.get('wan2Ip',None),
-                    device.get('tags',None),
-                    device.get('lng',None),
-                    device.get('lat',None),
+                    device.get('serial'),
+                    device.get('address'),
+                    device.get('name'),
+                    device.get('networkId'),
+                    device.get('model'),
+                    device.get('mac'),
+                    device.get('lanIp'),
+                    device.get('wan1Ip'),
+                    device.get('wan2Ip'),
+                    device.get('tags'),
+                    device.get('lng'),
+                    device.get('lat'),
                 ) for device in devices],
                 select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
                 columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE)
@@ -159,7 +159,6 @@ def ingest(table_name, options):
             yield len(devices)
 
         else:
-            
             for device in devices:
                 serial_number = device['serial']
                 
