@@ -1,4 +1,4 @@
-"""Nginx Log
+"""NGINX Log
 Collect nginx Logs and Nginx Error Logs from S3 using a Stage or privileged Role
 """
 from json import dumps
