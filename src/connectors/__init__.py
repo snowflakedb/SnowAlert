@@ -6,10 +6,14 @@ from . import aws_inventory
 from . import azure_log
 from . import azure_subscription
 from . import azure_vm
+from . import github_webhooks_s3
 from . import gsuite_logs
 from . import okta
-from . import osquery
+from . import osquery_log
 from . import tenable_settings
+from . import crowdstrike_devices
+from . import cisco_umbrella
+from . import ldap_log
 
 __all__ = [
     'aws_inventory',
@@ -20,10 +24,14 @@ __all__ = [
     'azure_log',
     'azure_subscription',
     'azure_vm',
+    'github_webhooks_s3',
     'gsuite_logs',
     'okta',
-    'osquery',
+    'osquery_log',
     'tenable_settings',
+    'crowdstrike_devices',
+    'cisco_umbrella',
+    'ldap_log'
 ]
 
 connectors = {
@@ -35,10 +43,14 @@ connectors = {
     'azure_log': azure_log,
     'azure_subscription': azure_subscription,
     'azure_vm': azure_vm,
+    'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
     'okta': okta,
-    'osquery': osquery,
+    'osquery_log': osquery_log,
     'tenable_settings': tenable_settings,
+    'crowdstrike_devices': crowdstrike_devices,
+    'cisco_umbrella': cisco_umbrella,
+    'ldap_log': ldap_log,
 }
 
 CONNECTION_OPTIONS = [

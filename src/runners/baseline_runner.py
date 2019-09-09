@@ -11,8 +11,14 @@ from rpy2 import robjects as ro
 from rpy2.robjects import pandas2ri
 
 import math
+import os
+import shutil
 import pandas
 import yaml
+
+import random
+
+FORMATTED_CODE_DIRECTORY = ''.join(random.choice('abcdefghijklmnop') for i in range(10))
 
 
 def format_code(code, vars):
@@ -66,20 +72,40 @@ def run_baseline(name, comment):
         log.error(e, f"{name} has invalid metadata: >{metadata}<, skipping")
         return
 
-    with open(f"../baseline_modules/{code_location}/{code_location}.R") as f:
-        r_code = f.read()
-    r_code = format_code(r_code, required_values)
+    os.mkdir(FORMATTED_CODE_DIRECTORY)
+    files = os.listdir(f'../baseline_modules/{code_location}')
+
+    shutil.copyfile("../baseline_modules/run_module.R", f"{FORMATTED_CODE_DIRECTORY}/run_module.R")
+
+    for file in files:
+        print(file)
+        if not file.startswith('.'):
+            with open(f"../baseline_modules/{code_location}/{file}") as f:
+                r_code = f.read()
+            r_code = format_code(r_code, required_values)
+            with open(f"{FORMATTED_CODE_DIRECTORY}/{file}", 'w+') as ff:
+                ff.write(r_code)
+
+    with open(f"{FORMATTED_CODE_DIRECTORY}/run_module.R") as fr:
+        r_code = fr.read()
     frame = query_log_source(source, time_filter, time_column)
     ro.globalenv['input_table'] = frame
+    ro.r(f"setwd('./{FORMATTED_CODE_DIRECTORY}')")
     output = ro.r(r_code)
     output = output.to_dict()
 
     results = unpack(output)
+
+    # Get the columns of the baseline table; find the timestamp column and pop it from the list
+
+    columns = [row['name'] for row in db.fetch(f'desc table {DATA_SCHEMA}.{name}')].remove('EXPORT_TIME')
     try:
         log.info(f"{name} generated {len(results)} rows")
-        db.insert(f"{DATA_SCHEMA}.{name}", results, overwrite=True)
+        db.insert(f"{DATA_SCHEMA}.{name}", results, columns=columns, overwrite=True)
     except Exception as e:
         log.error("Failed to insert the results into the target table", e)
+    finally:
+        shutil.rmtree(f"../{FORMATTED_CODE_DIRECTORY}")
 
 
 def main(baseline='%_BASELINE'):
