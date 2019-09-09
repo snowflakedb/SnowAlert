@@ -71,6 +71,6 @@ def main(connection_table="%_CONNECTION"):
     else:
         connection_run(connection_table)
 
-        
+
 if __name__ == "__main__":
     main()
