@@ -480,6 +480,7 @@ def create_stage(name, url='', prefix='', cloud='', credentials='',
 def create_table(name, cols, replace=False, comment='', ifnotexists=False):
     if type(comment) is tuple:
         comment = '\n'.join(comment)
+    comment = comment.replace("'", r"\'")
 
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment}' "
