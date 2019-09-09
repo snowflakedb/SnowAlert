@@ -5,6 +5,7 @@ from .helpers.dbconfig import DATABASE
 
 ENV = environ.get('SA_ENV', 'unset')
 POOLSIZE = int(environ.get('SA_POOLSIZE', '4'))
+DC_POOLSIZE = int(environ.get('SA_DC_POOLSIZE', '4'))
 
 # generated once per runtime
 RUN_ID = uuid.uuid4().hex

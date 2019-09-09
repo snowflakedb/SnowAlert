@@ -12,7 +12,7 @@ from types import GeneratorType
 import yaml
 
 from runners.helpers import db, log, vault
-from runners.config import RUN_ID, DC_METADATA_TABLE, POOLSIZE
+from runners.config import RUN_ID, DC_METADATA_TABLE, DC_POOLSIZE
 
 
 def connection_run(connection_table):
@@ -69,7 +69,7 @@ def main(connection_table="%_CONNECTION"):
     if len(tables) == 1:
         connection_run(connection_table)
     else:
-        Pool(POOLSIZE).map(connection_run, tables)
+        Pool(DC_POOLSIZE).map(connection_run, tables)
 
 
 if __name__ == "__main__":
