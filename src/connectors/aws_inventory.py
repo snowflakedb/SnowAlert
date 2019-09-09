@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collect AWS EC2, SG, ELB details using an Access Key or by assuming a role in multiple accounts.
+Collect AWS EC2, SG, ELB assets using an Access Key or privileged Role
 """
 from datetime import datetime
 import json
@@ -30,46 +30,78 @@ CONNECTION_OPTIONS = [
         # The AWS Client ID. The account ID is not necessary as Client ID's are globally unique
         'name': 'aws_access_key',
         'title': "AWS Access Key",
-        'prompt': "If provided, this key id will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
+        'prompt': (
+            "If provided, this key id will be used to authenticate to a single AWS Account. You must provide either "
+            "an access key and secret key pair, or a source role, destination role, external id, and accounts "
+            "connection identifier."
+        ),
         'type': 'str',
         'placeholder': 'AKIAQWERTYUIOPASDFGH (NEEDED WITH SECRET KEY)',
     },
     {
         # The AWS Secret Key
+        'type': 'str',
         'name': 'aws_secret_key',
         'title': "AWS Secret Key",
-        'prompt': "If provided, this secret key will be used to authenticate to a single AWS Account. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
-        'type': 'str',
+        'prompt': (
+            "If provided, this secret key will be used to authenticate to a single AWS Account. You must provide "
+            "either an access key and secret key pair, or a source role, destination role, external id, and "
+            "accounts connection identifier."
+        ),
         'secret': True,
         'placeholder': 'WGndo5/Flssn3FnsOIuYwiei9NbsemsNLK96sdSF (NEEDED WITH ACCESS KEY)',
     },
     {
+        'type': 'str',
         'name': 'source_role_arn',
         'title': "Source Role ARN",
-        'prompt': "If provided, this role will be used to STS AssumeRole into accounts from the AWS Accounts Connection Table. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
-        'type': 'str',
-        'placeholder': 'arn:aws:iam::1234567890987:role/sample-audit-assumer-role (NEEDED WITH DESTINATION ROLE NAME, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)',
+        'prompt': (
+            "If provided, this role will be used to STS AssumeRole into accounts from the AWS Accounts Connection "
+            "Table. You must provide either an access key and secret key pair, or a source role, destination role, "
+            "external id, and accounts connection identifier."
+        ),
+        'placeholder': (
+            "arn:aws:iam::1234567890987:role/sample-audit-assumer "
+            "(NEEDED WITH DESTINATION ROLE NAME, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)"
+        ),
     },
     {
+        'type': 'str',
         'name': 'destination_role_name',
         'title': "Destination Role Name",
-        'prompt': "If provided, this role is the target destination role in each account listed by the AWS Accounts Connector. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier."
-        "and has access to the Organization API",
-        'type': 'str',
-        'placeholder': 'sample-audit-role (NEEDED WITH SOURCE ROLE ARN, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)',
+        'prompt': (
+            "If provided, this role is the target destination role in each account listed by the AWS Accounts "
+            "Connector. You must provide either an access key and secret key pair, or a source role, destination "
+            "role, external id, and accounts connection identifier. and has access to the Organization API"
+        ),
+        'placeholder': (
+            "sample-audit-role "
+            "(NEEDED WITH SOURCE ROLE ARN, EXTERNAL ID, AND ACCOUNTS CONNECTION IDENTIFIER)"
+        ),
     },
     {
+        'type': 'str',
         'name': 'external_id',
         'title': "Destination Role External ID",
-        'prompt': "The External ID required for Source Role to assume Destination Role. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
-        'type': 'str',
-        'placeholder': 'sample_external_id (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE NAME, AND ACCOUNTS CONNECTION IDENTIFIER)',
+        'prompt': (
+            "The External ID required for Source Role to assume Destination Role. You must provide either an access "
+            "key and secret key pair, or a source role, destination role, external id, and accounts connection "
+            "identifier."
+        ),
+        'placeholder': (
+            "sample_external_id "
+            "(NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE NAME, AND ACCOUNTS CONNECTION IDENTIFIER)"
+        ),
     },
     {
+        'type': 'str',
         'name': 'accounts_identifier',
         'title': "AWS Accounts Connection Identifier",
-        'prompt': "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an access key and secret key pair, or a source role, destination role, external id, and accounts connection identifier.",
-        'type': 'str',
+        'prompt': (
+            "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an "
+            "access key and secret key pair, or a source role, destination role, external id, and accounts "
+            "connection identifier."
+        ),
         'placeholder': "default (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
     }
 ]
@@ -77,40 +109,40 @@ CONNECTION_OPTIONS = [
 LANDING_TABLES_COLUMNS = {
     # EC2 Instances Landing Table
     'EC2': [
-        ('RAW', 'VARIANT'),
-        ('INSTANCE_ID', 'STRING(30)'),
-        ('ARCHITECTURE', 'STRING(16)'),
-        ('MONITORED_TIME_UTC', 'TIMESTAMP_TZ'),
-        ('INSTANCE_TYPE', 'STRING(256)'),
-        ('KEY_NAME', 'STRING(256)'),
-        ('LAUNCH_TIME', 'TIMESTAMP_TZ'),
-        ('REGION_NAME', 'STRING(16)'),
-        ('INSTANCE_STATE', 'STRING(16)'),
-        ('INSTANCE_NAME', 'STRING(256)')
+        ('raw', 'VARIANT'),
+        ('instance_id', 'STRING(30)'),
+        ('architecture', 'STRING(16)'),
+        ('monitored_time_utc', 'TIMESTAMP_TZ'),
+        ('instance_type', 'STRING(256)'),
+        ('key_name', 'STRING(256)'),
+        ('launch_time', 'TIMESTAMP_TZ'),
+        ('region_name', 'STRING(16)'),
+        ('instance_state', 'STRING(16)'),
+        ('instance_name', 'STRING(256)')
     ],
     # Security Group Landing table
     'SG': [
-        ('RAW', 'VARIANT'),
-        ('DESCRIPTION', 'STRING(256)'),
-        ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-        ('GROUP_ID', 'STRING(30)'),
-        ('GROUP_NAME', 'STRING(255)'),
-        ('ACCOUNT_ID', 'STRING(30)'),
-        ('REGION_NAME', 'STRING(16)'),
-        ('VPC_ID', 'STRING(30)')
+        ('raw', 'VARIANT'),
+        ('description', 'STRING(256)'),
+        ('monitored_time', 'TIMESTAMP_TZ'),
+        ('group_id', 'STRING(30)'),
+        ('group_name', 'STRING(255)'),
+        ('account_id', 'STRING(30)'),
+        ('region_name', 'STRING(16)'),
+        ('vpc_id', 'STRING(30)')
     ],
     # Elastic Load Balancer landing table
     'ELB': [
-        ('RAW', 'VARIANT'),
-        ('MONITORED_TIME', 'TIMESTAMP_TZ'),
-        ('HOSTED_ZONE_NAME', 'STRING(256)'),
-        ('HOSTED_ZONE_NAME_ID', 'STRING(30)'),
-        ('CREATED_TIME', 'TIMESTAMP_TZ'),
-        ('DNS_NAME', 'STRING(512)'),
-        ('LOAD_BALANCER_NAME', 'STRING(256)'),
-        ('REGION_NAME', 'STRING(16)'),
-        ('SCHEME', 'STRING(30)'),
-        ('VPC_ID', 'STRING(30)')
+        ('raw', 'VARIANT'),
+        ('monitored_time', 'TIMESTAMP_TZ'),
+        ('hosted_zone_name', 'STRING(256)'),
+        ('hosted_zone_name_id', 'STRING(30)'),
+        ('created_time', 'TIMESTAMP_TZ'),
+        ('dns_name', 'STRING(512)'),
+        ('load_balancer_name', 'STRING(256)'),
+        ('region_name', 'STRING(16)'),
+        ('scheme', 'STRING(30)'),
+        ('vpc_id', 'STRING(30)')
     ]
 }
 
@@ -173,9 +205,22 @@ def ingest(table_name, options):
 
     if source_role_arn and destination_role_name and external_id and accounts_identifier:
         # get accounts list, pass list into ingest ec2
-        query = f"SELECT account_id, account_alias FROM data.aws_accounts_{accounts_identifier}_connection WHERE created_at = (select max(created_at) FROM data.aws_accounts_{accounts_identifier}_connection)"
+        query = (
+            f"SELECT account_id, account_alias "
+            f"FROM data.aws_accounts_{accounts_identifier}_connection "
+            f"WHERE created_at = ("
+            f"  SELECT MAX(created_at)"
+            f"  FROM data.aws_accounts_{accounts_identifier}_connection"
+            f")"
+        )
         accounts = db.fetch(query)
-        count = ingest_of_type(landing_table, accounts=accounts, source_role_arn=source_role_arn, destination_role_name=destination_role_name, external_id=external_id)
+        count = ingest_of_type(
+            landing_table,
+            accounts=accounts,
+            source_role_arn=source_role_arn,
+            destination_role_name=destination_role_name,
+            external_id=external_id
+        )
 
     elif aws_access_key and aws_secret_key:
         count = ingest_of_type(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
@@ -185,7 +230,8 @@ def ingest(table_name, options):
         log.error()
 
 
-def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
+def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
+                 destination_role_name='', external_id=''):
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -198,26 +244,15 @@ def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                 results = ingest_ec2(landing_table, session=session, account=account)
 
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        results
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, results)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'ec2_count']
                 )
 
             except Exception as e:
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        0,
-                        e
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'ec2_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
@@ -227,7 +262,8 @@ def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
     return results
 
 
-def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
+def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
+                destination_role_name='', external_id=''):
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -239,25 +275,14 @@ def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=No
                 results = ingest_sg(landing_table, session=session, account=account)
 
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        results,
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, results)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'sg_count']
                 )
             except Exception as e:
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        0,
-                        e
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'sg_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
@@ -267,7 +292,8 @@ def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=No
     return results
 
 
-def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='', destination_role_name='', external_id=''):
+def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
+                 destination_role_name='', external_id=''):
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -279,25 +305,14 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                 results = ingest_elb(landing_table, session=session, account=account)
 
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        results,
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, results)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'elb_count']
                 )
             except Exception as e:
                 db.insert(
-                    AWS_ACCOUNTS_METADATA, values=[(
-                        datetime.utcnow(),
-                        RUN_ID,
-                        id,
-                        name,
-                        0,
-                        e
-                    )],
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
                     columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'elb_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
@@ -308,7 +323,12 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
 
 
 def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    instances = get_ec2_instances(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
+    instances = get_ec2_instances(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account
+    )
 
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
@@ -333,7 +353,12 @@ def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None, session=
 
 
 def ingest_sg(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    groups = get_all_security_groups(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
+    groups = get_all_security_groups(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account
+    )
     monitor_time = datetime.utcnow().isoformat()
     db.insert(
         landing_table,
@@ -355,7 +380,6 @@ def ingest_sg(landing_table, aws_access_key=None, aws_secret_key=None, session=N
 def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
     elbs = get_all_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
     monitor_time = datetime.utcnow().isoformat()
-    #pdb.set_trace()
 
     db.insert(
         landing_table,
@@ -378,11 +402,7 @@ def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=
 
 
 def get_ec2_instances(aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    client = boto3.client(
-        'ec2',
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key
-    )
+    client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
     regions = client.describe_regions()['Regions']
 
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
@@ -393,11 +413,13 @@ def get_ec2_instances(aws_access_key=None, aws_secret_key=None, session=None, ac
         if session:
             client = session.client('ec2', region_name=region['RegionName'])
         else:
-            client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key, region_name=region['RegionName'])
+            client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
+                                  region_name=region['RegionName'])
         paginator = client.get_paginator('describe_instances')
         page_iterator = paginator.paginate()
         results = [
-            instance for page in page_iterator
+            instance
+            for page in page_iterator
             for instance_array in page['Reservations']
             for instance in instance_array['Instances']
         ]
@@ -468,8 +490,18 @@ def get_all_security_groups(aws_access_key=None, aws_secret_key=None, session=No
 
 
 def get_all_elbs(aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    v1_elbs = get_all_v1_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
-    v2_elbs = get_all_v2_elbs(aws_access_key=aws_access_key, aws_secret_key=aws_secret_key, session=session, account=account)
+    v1_elbs = get_all_v1_elbs(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account
+    )
+    v2_elbs = get_all_v2_elbs(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account
+    )
     elbs = v1_elbs + v2_elbs
 
     if len(elbs) is 0:
@@ -498,11 +530,8 @@ def get_all_v1_elbs(aws_access_key=None, aws_secret_key=None, session=None, acco
         if session:
             elb_client = session.client('elb', region_name=region['RegionName'])
         else:
-            elb_client = boto3.client(
-                'elb',
-                aws_access_key_id=aws_access_key,
-                aws_secret_access_key=aws_secret_key,
-                region_name=region['RegionName'])
+            elb_client = boto3.client('elb', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
+                                      region_name=region['RegionName'])
         for elb in elb_client.describe_load_balancers()['LoadBalancerDescriptions']:
             # add region before adding elb to list of elbs
             elb["Region"] = region
