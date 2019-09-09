@@ -42,6 +42,8 @@ def main(connection_table="%_CONNECTION"):
                         options[name] = vault.decrypt_if_encrypted(options[name])
                         if module_option.get('type') == 'json':
                             options[name] = json.loads(options[name])
+                        if module_option.get('type') == 'list':
+                            options[name] = options[name].split(',')
                         if module_option.get('type') == 'int':
                             options[name] = int(options[name])
 
