@@ -255,7 +255,7 @@ def finalize(connection_name):
     )
 
     stage_props = db.fetch_props(
-        f'DESC STAGE DATA.{base_name}_STAGE',
+        f'DESC STAGE {stage}',
         filter=('URL')
     )
     stage_prefix = stage_props['URL'].split('/')[3]
