@@ -33,10 +33,9 @@ __all__ = [
     'tenable_settings',
     'crowdstrike_devices',
     'cisco_umbrella',
-    'assetpanda'
-    'ldap_log'
-    'nginx_log',
+    'assetpanda',
     'ldap_log',
+    'nginx_log',
 ]
 
 connectors = {
@@ -55,7 +54,7 @@ connectors = {
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
-    'assetpanda': assetpanda
+    'assetpanda': assetpanda,
     'nginx_log': nginx_log,
     'ldap_log': ldap_log,
 }
