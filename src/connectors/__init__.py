@@ -9,10 +9,13 @@ from . import azure_vm
 from . import github_webhooks_s3
 from . import gsuite_logs
 from . import okta
+from . import osquery_log
 from . import tenable_settings
 from . import crowdstrike_devices
 from . import cisco_umbrella
 from . import meraki_devices
+from . import assetpanda
+from . import nginx_log
 from . import ldap_log
 
 __all__ = [
@@ -28,10 +31,13 @@ __all__ = [
     'gsuite_logs',
     'meraki_devices',
     'okta',
+    'osquery_log',
     'tenable_settings',
     'crowdstrike_devices',
     'cisco_umbrella',
-    'ldap_log'
+    'assetpanda',
+    'ldap_log',
+    'nginx_log',
 ]
 
 connectors = {
@@ -47,9 +53,12 @@ connectors = {
     'gsuite_logs': gsuite_logs,
     'meraki_devices': meraki_devices,
     'okta': okta,
+    'osquery_log': osquery_log,
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
+    'assetpanda': assetpanda,
+    'nginx_log': nginx_log,
     'ldap_log': ldap_log,
 }
 
