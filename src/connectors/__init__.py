@@ -49,7 +49,7 @@ connectors = {
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
-    'assetpanda': assetpanda
+    'assetpanda': assetpanda,
     'ldap_log': ldap_log,
 }
 
