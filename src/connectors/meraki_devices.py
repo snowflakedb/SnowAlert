@@ -8,7 +8,6 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from datetime import datetime
 
-import snowflake
 import requests
 from urllib.error import HTTPError
 from .utils import yaml_dump
@@ -46,7 +45,7 @@ LANDING_TABLE_COLUMNS_CLIENT = [
     ('DHCP_HOSTNAME', 'VARCHAR(256)'),
     ('IP', 'VARCHAR(256)'),
     ('SWITCHPORT', 'VARCHAR(256)'),
-    ('VLAN', 'INT'), 
+    ('VLAN', 'INT'),
     ('USAGE_SENT', 'INT'),
     ('USAGE_RECV', 'INT'),
     ('SERIAL', 'VARCHAR(256)'),
@@ -90,8 +89,8 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 
 
 def connect(connection_name, options):
-    landing_table_client = f'data.meraki_devices_{connection_name}_connection_client'
-    landing_table_device = f'data.meraki_devices_{connection_name}_connection_device'
+    landing_table_client = f'data.meraki_devices_{connection_name}_client_connection'
+    landing_table_device = f'data.meraki_devices_{connection_name}_device_connection'
     options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
     comment = yaml_dump(module='meraki_devices', **options)
@@ -100,7 +99,7 @@ def connect(connection_name, options):
                     cols=LANDING_TABLE_COLUMNS_CLIENT,
                     comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
-    
+
     db.create_table(name=landing_table_device,
                     cols=LANDING_TABLE_COLUMNS_DEVICE,
                     comment=comment)
@@ -112,12 +111,9 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options):
-    ingest_type = ''
-    if (table_name.endswith('CONNECTION_CLIENT')) or (table_name.endswith('connection_client')):
-        ingest_type = 'client'
-    else:
-        ingest_type = 'device'
-    
+    ingest_type = 'client' if table_name.endswith('_CLIENT_CONNECTION') else 'device'
+    print("ingest_type: ", ingest_type)
+    print("table_name: ", table_name)
     landing_table = f'data.{table_name}'
 
     timestamp = datetime.utcnow()
@@ -125,7 +121,6 @@ def ingest(table_name, options):
     whitelist = options['network_id_whitelist']
 
     for network in whitelist:
-        
         try:
             devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
         except requests.exceptions.HTTPError as e:
@@ -161,29 +156,29 @@ def ingest(table_name, options):
         else:
             for device in devices:
                 serial_number = device['serial']
-                
+
                 try:
                     clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
                 except requests.exceptions.HTTPError as e:
                     log.error(f"{network} not accessible, ")
                     log.error(e)
                     continue
-                
+
                 db.insert(
                     landing_table,
                     values=[(
                         timestamp,
                         client,
-                        client.get('id',None),
-                        client.get('mac',None),
-                        client.get('description',None),
-                        client.get('mdnsName',None),
-                        client.get('dhcpHostname',None),
-                        client.get('ip',None),
-                        client.get('switchport',None),
-                        None if (client.get('vlan', None) == '') else client.get('vlan', None),
-                        None if (client.get('usage', {}).get('sent', None) == '') else client.get('usage', {}).get('sent', None),
-                        None if (client.get('usage', {}).get('recv', None) == '') else client.get('usage', {}).get('recv', None),
+                        client.get('id'),
+                        client.get('mac'),
+                        client.get('description'),
+                        client.get('mdnsName'),
+                        client.get('dhcpHostname'),
+                        client.get('ip'),
+                        client.get('switchport'),
+                        client.get('vlan') or None, # vlan sometimes set to ''
+                        client.get('usage', {}).get('sent') or None,
+                        client.get('usage', {}).get('recv') or None,
                         serial_number,
                     ) for client in clients],
                     select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
