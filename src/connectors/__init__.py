@@ -13,6 +13,7 @@ from . import tenable_settings
 from . import crowdstrike_devices
 from . import cisco_umbrella
 from . import assetpanda
+from . import ldap_log
 
 __all__ = [
     'aws_inventory',
@@ -30,6 +31,7 @@ __all__ = [
     'crowdstrike_devices',
     'cisco_umbrella',
     'assetpanda'
+    'ldap_log'
 ]
 
 connectors = {
@@ -48,6 +50,7 @@ connectors = {
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
     'assetpanda': assetpanda
+    'ldap_log': ldap_log,
 }
 
 CONNECTION_OPTIONS = [
