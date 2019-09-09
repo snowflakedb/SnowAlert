@@ -36,6 +36,6 @@ def create_metadata_table(table, cols, addition):
     db.create_table(table, cols, ifnotexists=True)
     db.execute(f"GRANT INSERT, SELECT ON {table} TO ROLE {SA_ROLE}")
     table_names = (row['name'] for row in db.fetch(f'desc table {table}'))
-    if any(name == addition[0] for name in table_names):
+    if any(name == addition[0].upper() for name in table_names):
         return
     db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')

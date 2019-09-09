@@ -126,7 +126,7 @@ def connect(connection_name, options):
         ('SUBSCRIPTION_ID', 'STRING(500)'),
         ('VM_INSTANCE_COUNT', 'NUMBER')
     ]
-    create_metadata_table(AZURE_COLLECTION_METADATA, cols, cols[2])
+    create_metadata_table(AZURE_COLLECTION_METADATA, cols, cols[3])
 
     return {
         'newStage': 'finalized',
