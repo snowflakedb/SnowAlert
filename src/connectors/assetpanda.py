@@ -57,14 +57,14 @@ def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
     return (list_object, total_object_count)
 
 
-def reduce_fields(accumulators: dict, field: dict) -> str:
+def reduce_fields(accumulated_value: dict, field: dict) -> str:
     """Because AssetPanda has custom fields that are named via free-text in the tool we need to perform cleanup
     on the user input data. We will reduce the fields down to just alpha numeric key strings so we can use
     them as the keys in our final JSON data."""
     cleaner_name = "_".join(re.findall(r"[a-zA-Z]+", field["name"]))
     field_key = field["key"]
-    accumulators[field_key] = cleaner_name
-    return accumulators
+    accumulated_value[field_key] = cleaner_name
+    return accumulated_value
 
 
 def replace_device_key(list_device: list, replace_key: dict):
