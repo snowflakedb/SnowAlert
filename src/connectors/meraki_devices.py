@@ -112,17 +112,15 @@ def connect(connection_name, options):
 
 def ingest(table_name, options):
     ingest_type = 'client' if table_name.endswith('_CLIENT_CONNECTION') else 'device'
-    print("ingest_type: ", ingest_type)
-    print("table_name: ", table_name)
     landing_table = f'data.{table_name}'
 
     timestamp = datetime.utcnow()
-    api_key = options['api_key']
+    api_token = options['api_token']
     whitelist = options['network_id_whitelist']
 
     for network in whitelist:
         try:
-            devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_key)
+            devices = get_data(f"https://api.meraki.com/api/v0/networks/{network}/devices", api_token)
         except requests.exceptions.HTTPError as e:
             log.error(f"{network} not accessible, ")
             log.error(e)
@@ -158,7 +156,7 @@ def ingest(table_name, options):
                 serial_number = device['serial']
 
                 try:
-                    clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_key)
+                    clients = get_data(f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_token)
                 except requests.exceptions.HTTPError as e:
                     log.error(f"{network} not accessible, ")
                     log.error(e)
