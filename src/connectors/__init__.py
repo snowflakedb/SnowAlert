@@ -13,6 +13,7 @@ from . import osquery_log
 from . import tenable_settings
 from . import crowdstrike_devices
 from . import cisco_umbrella
+from . import assetpanda
 from . import nginx_log
 from . import ldap_log
 
@@ -32,8 +33,9 @@ __all__ = [
     'tenable_settings',
     'crowdstrike_devices',
     'cisco_umbrella',
-    'nginx_log',
+    'assetpanda',
     'ldap_log',
+    'nginx_log',
 ]
 
 connectors = {
@@ -52,6 +54,7 @@ connectors = {
     'tenable_settings': tenable_settings,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
+    'assetpanda': assetpanda,
     'nginx_log': nginx_log,
     'ldap_log': ldap_log,
 }
