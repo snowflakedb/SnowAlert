@@ -3,6 +3,7 @@ Collect osquery events from S3 using a Stage or privileged Role
 """
 from json import dumps
 from time import sleep
+import re
 import yaml
 
 from runners.helpers import db
@@ -106,11 +107,12 @@ def connect(connection_name, options):
         filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
     )
 
-    if not prefix:
-        prefix = '/'.join(stage_props['URL'].split('/')[3:-1])
-
-    if not bucket_name:
-        bucket_name = stage_props['URL'].split('/')[2]
+    if not bucket_name or not prefix:
+        m = re.match(r'^\["s3://([a-z-]*)/(.*)"\]$', stage_props['URL'])
+        if m:
+            bucket_name, prefix = m.groups()
+        else:
+            raise RuntimeError('cannot determine bucket name or prefix')
 
     prefix = prefix.rstrip('/')
 
