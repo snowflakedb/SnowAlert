@@ -75,8 +75,15 @@ def post_connector(connector, name):
             'errorMessage': f"Missing required configuration options:{missing_titles_str}",
         }
 
+    # TODO: fix connection options to support secret ints (probs w/ one for loop)
+    int_option_names = {
+        o['name'] for o in connector.CONNECTION_OPTIONS if o.get('type') == 'int'
+    }
+    for opt_name in int_option_names:
+        options[opt_name] = int(options[opt_name])
+
     secret_option_names = {
-        o['name']: o for o in connector.CONNECTION_OPTIONS if o.get('secret')
+        o['name'] for o in connector.CONNECTION_OPTIONS if o.get('secret')
     }
     for opt_name in secret_option_names:
         if vault.ENABLED and opt_name in options:
