@@ -35,38 +35,38 @@ CONNECTION_OPTIONS = [
 ]
 
 LANDING_TABLE_COLUMNS_CLIENT = [
-    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
-    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
-    ('RAW', 'VARIANT'),
-    ('ID', 'VARCHAR(256)'),
-    ('MAC', 'VARCHAR(256)'),
-    ('DESCRIPTION', 'VARCHAR(256)'),
-    ('MDNS_NAME', 'VARCHAR(256)'),
-    ('DHCP_HOSTNAME', 'VARCHAR(256)'),
-    ('IP', 'VARCHAR(256)'),
-    ('SWITCHPORT', 'VARCHAR(256)'),
-    ('VLAN', 'INT'),
-    ('USAGE_SENT', 'INT'),
-    ('USAGE_RECV', 'INT'),
-    ('SERIAL', 'VARCHAR(256)'),
+    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('snapshot_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw', 'VARIANT'),
+    ('id', 'VARCHAR(256)'),
+    ('mac', 'VARCHAR(256)'),
+    ('description', 'VARCHAR(256)'),
+    ('mdns_name', 'VARCHAR(256)'),
+    ('dhcp_hostname', 'VARCHAR(256)'),
+    ('ip', 'VARCHAR(256)'),
+    ('switchport', 'VARCHAR(256)'),
+    ('vlan', 'INT'),
+    ('usage_sent', 'INT'),
+    ('usage_recv', 'INT'),
+    ('serial', 'VARCHAR(256)'),
 ]
 
 LANDING_TABLE_COLUMNS_DEVICE = [
-    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
-    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
-    ('RAW', 'VARIANT'),
-    ('SERIAL', 'VARCHAR(256)'),
-    ('ADDRESS', 'VARCHAR(256)'),
-    ('NAME', 'VARCHAR(256)'),
-    ('NETWORK_ID', 'VARCHAR(256)'),
-    ('MODEL', 'VARCHAR(256)'),
-    ('MAC', 'VARCHAR(256)'),
-    ('LAN_IP', 'VARCHAR(256)'),
-    ('WAN_1_IP', 'VARCHAR(256)'),
-    ('WAN_2_IP', 'VARCHAR(256)'),
-    ('TAGS', 'VARCHAR(256)'),
-    ('LNG', 'FLOAT'),
-    ('LAT', 'FLOAT'),
+    ('insert_id', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('snapshot_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw', 'VARIANT'),
+    ('serial', 'VARCHAR(256)'),
+    ('address', 'VARCHAR(256)'),
+    ('name', 'VARCHAR(256)'),
+    ('network_id', 'VARCHAR(256)'),
+    ('model', 'VARCHAR(256)'),
+    ('mac', 'VARCHAR(256)'),
+    ('lan_ip', 'VARCHAR(256)'),
+    ('wan_1_ip', 'VARCHAR(256)'),
+    ('wan_2_ip', 'VARCHAR(256)'),
+    ('tags', 'VARCHAR(256)'),
+    ('lng', 'FLOAT'),
+    ('lat', 'FLOAT'),
 ]
 
 
@@ -91,7 +91,6 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
 def connect(connection_name, options):
     landing_table_client = f'data.meraki_devices_{connection_name}_client_connection'
     landing_table_device = f'data.meraki_devices_{connection_name}_device_connection'
-    options['network_id_whitelist'] = options.get('network_id_whitelist', '').split(',')
 
     comment = yaml_dump(module='meraki_devices', **options)
 
