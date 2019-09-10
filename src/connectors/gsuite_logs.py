@@ -70,7 +70,6 @@ def connect(connection_name, options):
     connection_type = options['connection_type']
     base_name = f'gsuite_logs_{connection_name}_{connection_type}'
     landing_table = f'data.{base_name}_connection'
-    options['subjects_list'] = options.get('subjects_list', '').split(',')
     comment = yaml_dump(
         module='gsuite_logs',
         **options

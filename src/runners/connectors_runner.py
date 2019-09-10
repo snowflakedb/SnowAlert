@@ -43,7 +43,8 @@ def connection_run(connection_table):
                 if module_option.get('type') == 'json':
                     options[name] = json.loads(options[name])
                 if module_option.get('type') == 'list':
-                    options[name] = options[name].split(',')
+                    if type(options[name]) is str:
+                        options[name] = options[name].split(',')
                 if module_option.get('type') == 'int':
                     options[name] = int(options[name])
 

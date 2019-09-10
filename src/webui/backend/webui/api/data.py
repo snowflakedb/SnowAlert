@@ -75,6 +75,14 @@ def post_connector(connector, name):
             'errorMessage': f"Missing required configuration options:{missing_titles_str}",
         }
 
+    for o in connector.CONNECTION_OPTIONS:
+        oname = o['name']
+        ovalue = options.get(oname)
+
+        # lists that are passed in as strings are comma-saparated
+        if o.get('type') == 'list' and type(ovalue) is str:
+            options[oname] = None if ovalue is None else ovalue.split(',')
+
     # TODO: fix connection options to support secret ints (probs w/ one for loop)
     int_option_names = {
         o['name'] for o in connector.CONNECTION_OPTIONS if o.get('type') == 'int'
