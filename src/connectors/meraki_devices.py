@@ -173,7 +173,7 @@ def ingest(table_name, options):
                         client.get('dhcpHostname'),
                         client.get('ip'),
                         client.get('switchport'),
-                        client.get('vlan') or None, # vlan sometimes set to ''
+                        client.get('vlan') or None,  # vlan sometimes set to ''
                         client.get('usage', {}).get('sent') or None,
                         client.get('usage', {}).get('recv') or None,
                         serial_number,
