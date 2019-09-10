@@ -12,7 +12,7 @@ from types import GeneratorType
 import yaml
 
 from runners.helpers import db, log, vault
-from runners.config import RUN_ID, DC_METADATA_TABLE, POOLSIZE
+from runners.config import RUN_ID, DC_METADATA_TABLE, DC_POOLSIZE
 
 
 def connection_run(connection_table):
@@ -40,10 +40,12 @@ def connection_run(connection_table):
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
                     options[name] = vault.decrypt_if_encrypted(options[name])
-                    if module_option.get('type') == 'json':
-                        options[name] = json.loads(options[name])
-                    if module_option.get('type') == 'int':
-                        options[name] = int(options[name])
+                if module_option.get('type') == 'json':
+                    options[name] = json.loads(options[name])
+                if module_option.get('type') == 'list':
+                    options[name] = options[name].split(',')
+                if module_option.get('type') == 'int':
+                    options[name] = int(options[name])
 
             if callable(getattr(connector, 'ingest', None)):
                 ingested = connector.ingest(table_name, options)
@@ -65,11 +67,11 @@ def connection_run(connection_table):
 
 
 def main(connection_table="%_CONNECTION"):
-    if connection_table == '%_CONNECTION':
-        tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
-        Pool(POOLSIZE).map(connection_run, tables)
-    else:
+    tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
+    if len(tables) == 1:
         connection_run(connection_table)
+    else:
+        Pool(DC_POOLSIZE).map(connection_run, tables)
 
 
 if __name__ == "__main__":
