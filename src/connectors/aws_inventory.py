@@ -164,9 +164,6 @@ def create_asset_table(connection_name, asset_type, columns, options):
     table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
     landing_table = f'data.{table_name}'
 
-    if len(options['accounts_identifier']) == 0:
-        options.pop('accounts_identifier')
-
     comment = yaml_dump(
         module='aws_inventory',
         **options
