@@ -2,16 +2,17 @@
 Collect asset information from Asset Panda using an API token
 """
 
+from datetime import datetime
+from functools import reduce
+import re
+import requests
+from typing import Tuple
+from urllib.error import HTTPError
+
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-import requests
-from urllib.error import HTTPError
 from .utils import yaml_dump
-
-from functools import reduce
-import re
-from datetime import datetime
 
 
 PAGE_SIZE = 50
@@ -47,7 +48,7 @@ LANDING_TABLE_COLUMNS = [
 ###
 
 
-def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
+def get_list_objects_and_total_from_get_object(result: dict) -> Tuple[list, int]:
     """Retrieve the values needed from the results objects"""
     try:
         list_object: list = result["objects"]
@@ -57,7 +58,7 @@ def get_list_objects_and_total_from_get_object(result: dict) -> (list, int):
     return (list_object, total_object_count)
 
 
-def reduce_fields(accumulated_value: dict, field: dict) -> str:
+def reduce_fields(accumulated_value: dict, field: dict) -> dict:
     """Because AssetPanda has custom fields that are named via free-text in the tool we need to perform cleanup
     on the user input data. We will reduce the fields down to just alpha numeric key strings so we can use
     them as the keys in our final JSON data."""
@@ -162,7 +163,7 @@ def ingest(table_name, options):
 
         # Stripping down the metadata to remove unnecessary fields. We only really care about the following:
         # {"field_140": "MAC_Address", "field_135" :"IP"}
-        clear_fields: list = reduce(reduce_fields, list_field, {})
+        clear_fields: dict = reduce(reduce_fields, list_field, {})
 
         # replace every key "field_NO" by the value of the clear_field["field_NO"]
         list_object_without_field_id = replace_device_key(list_object, clear_fields)
