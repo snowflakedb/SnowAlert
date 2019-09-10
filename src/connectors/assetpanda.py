@@ -15,7 +15,7 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 from .utils import yaml_dump
 
 
-PAGE_SIZE = 50
+PAGE_SIZE = 1000
 
 CONNECTION_OPTIONS = [
     {
