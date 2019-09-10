@@ -40,10 +40,12 @@ def connection_run(connection_table):
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
                     options[name] = vault.decrypt_if_encrypted(options[name])
-                    if module_option.get('type') == 'json':
-                        options[name] = json.loads(options[name])
-                    if module_option.get('type') == 'int':
-                        options[name] = int(options[name])
+                if module_option.get('type') == 'json':
+                    options[name] = json.loads(options[name])
+                if module_option.get('type') == 'list':
+                    options[name] = options[name].split(',')
+                if module_option.get('type') == 'int':
+                    options[name] = int(options[name])
 
             if callable(getattr(connector, 'ingest', None)):
                 ingested = connector.ingest(table_name, options)
