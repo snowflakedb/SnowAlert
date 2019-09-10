@@ -26,8 +26,8 @@ def get_timestamp(table):
 
 def main():
     for pipe in db.get_pipes('data'):
-        metadata = yaml.load(pipe['comment'])
-        if metadata and metadata.get('type') != 'Azure':
+        metadata = yaml.load(pipe['comment']) or {}
+        if not metadata or metadata.get('type') != 'Azure':
             log.info(f"{pipe['name']} is not an Azure pipe, and will be skipped.")
             continue
 
