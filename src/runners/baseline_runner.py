@@ -98,7 +98,8 @@ def run_baseline(name, comment):
 
     # Get the columns of the baseline table; find the timestamp column and pop it from the list
 
-    columns = [row['name'] for row in db.fetch(f'desc table {DATA_SCHEMA}.{name}')].remove('EXPORT_TIME')
+    columns = [row['name'] for row in db.fetch(f'desc table {DATA_SCHEMA}.{name}')]
+    columns.remove('EXPORT_TIME')
     try:
         log.info(f"{name} generated {len(results)} rows")
         db.insert(f"{DATA_SCHEMA}.{name}", results, columns=columns, overwrite=True)
