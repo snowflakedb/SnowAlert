@@ -3,7 +3,7 @@
 import fire
 
 from runners import ingest_runner, connectors_runner
-from runners import baseline_runner
+# from runners import baseline_runner
 
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner
@@ -15,6 +15,7 @@ from runners import violation_suppressions_runner
 
 from runners.config import RUN_ID
 from runners.helpers import log
+
 
 def main(target="all", rule_name=None):
     if target == "connector" and rule_name:
