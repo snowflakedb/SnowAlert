@@ -77,7 +77,7 @@ PROTOCOL_MAPPING_TABLE_COLUMNS = [
     ('PROTOCOL_IPV6_EXTENSION_HEADER', 'BOOLEAN'),
 ]
 
-NETWORK_PROTOCOL_PATH = '../../../connectors/protocol_table.csv'
+NETWORK_PROTOCOL_PATH = '../../connectors/protocol_table.csv'
 
 CONNECT_RESPONSE_MESSAGE = """
 STEP 1: Modify the Role "{role}" to include the following trust relationship:
