@@ -116,7 +116,7 @@ def connect(connection_name, options):
 
     comment = f'''
 ---
-module: cloudtrail
+module: aws_cloudtrail
 '''
 
     db.create_stage(
