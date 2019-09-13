@@ -98,9 +98,9 @@ CONNECTION_OPTIONS = [
         'name': 'accounts_connection_name',
         'title': "AWS Accounts Table Name",
         'prompt': (
-            "The custom name for your AWS Accounts Connection Table. You must provide either an "
+            "The name for your AWS Accounts Connection. You must provide either an "
             "access key and secret key pair, or a source role, destination role, external id, and accounts "
-            "connection name."
+            "connection table name."
         ),
         'placeholder': "AWS_ACCOUNTS_DEFAULT_CONNECTION (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
     }
@@ -193,6 +193,10 @@ def ingest(table_name, options):
     destination_role_name = options.get('destination_role_name')
     external_id = options.get('external_id')
     accounts_connection_name = options.get('accounts_connection_name')
+
+    #Want to prepend 'data.' if it doesn't exist in the input
+    if accounts_connection_name[0:5] != 'data.':
+        accounts_connection_name = 'data.' + accounts_connection_name
 
     ingest_of_type = {
         'EC2': ec2_dispatch,
