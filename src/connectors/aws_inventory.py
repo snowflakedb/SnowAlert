@@ -195,7 +195,7 @@ def ingest(table_name, options):
     accounts_connection_name = options.get('accounts_connection_name')
 
     #Want to prepend 'data.' if it doesn't exist in the input
-    if accounts_connection_name[0:5] != 'data.':
+    if (accounts_connection_name[0:5]).lower() != 'data.':
         accounts_connection_name = 'data.' + accounts_connection_name
 
     ingest_of_type = {
