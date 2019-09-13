@@ -95,14 +95,14 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'accounts_identifier',
-        'title': "AWS Accounts Connection Identifier",
+        'name': 'accounts_connection_name',
+        'title': "AWS Accounts Table Name",
         'prompt': (
-            "The custom name for your AWS Accounts Connection, if you provided one. You must provide either an "
+            "The name for your AWS Accounts Connection. You must provide either an "
             "access key and secret key pair, or a source role, destination role, external id, and accounts "
-            "connection identifier."
+            "connection table name."
         ),
-        'placeholder': "default (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
+        'placeholder': "AWS_ACCOUNTS_DEFAULT_CONNECTION (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
     }
 ]
 
@@ -192,7 +192,11 @@ def ingest(table_name, options):
     source_role_arn = options.get('source_role_arn')
     destination_role_name = options.get('destination_role_name')
     external_id = options.get('external_id')
-    accounts_identifier = options.get('accounts_identifier')
+    accounts_connection_name = options.get('accounts_connection_name')
+
+    #Want to prepend 'data.' if it doesn't exist in the input
+    if (accounts_connection_name[0:5]).lower() != 'data.':
+        accounts_connection_name = 'data.' + accounts_connection_name
 
     ingest_of_type = {
         'EC2': ec2_dispatch,
@@ -200,14 +204,14 @@ def ingest(table_name, options):
         'ELB': elb_dispatch,
     }[connection_type]
 
-    if source_role_arn and destination_role_name and external_id and accounts_identifier:
+    if source_role_arn and destination_role_name and external_id and accounts_connection_name:
         # get accounts list, pass list into ingest ec2
         query = (
             f"SELECT account_id, account_alias "
-            f"FROM data.aws_accounts_{accounts_identifier}_connection "
+            f"FROM {accounts_connection_name} "
             f"WHERE created_at = ("
             f"  SELECT MAX(created_at)"
-            f"  FROM data.aws_accounts_{accounts_identifier}_connection"
+            f"  FROM {accounts_connection_name}"
             f")"
         )
         accounts = db.fetch(query)
