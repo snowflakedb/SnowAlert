@@ -229,6 +229,7 @@ def ingest(table_name, options):
 
 def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
                  destination_role_name='', external_id=''):
+    results = 0
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -238,7 +239,7 @@ def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             try:
                 session = sts_assume_role(source_role_arn, target_role, external_id)
 
-                results = ingest_ec2(landing_table, session=session, account=account)
+                results += ingest_ec2(landing_table, session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA,
@@ -254,13 +255,14 @@ def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
-        results = ingest_ec2(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+        results += ingest_ec2(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
     return results
 
 
 def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
                 destination_role_name='', external_id=''):
+    results = 0
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -269,7 +271,7 @@ def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=No
             log.info(f"Using role {target_role}")
             try:
                 session = sts_assume_role(source_role_arn, target_role, external_id)
-                results = ingest_sg(landing_table, session=session, account=account)
+                results += ingest_sg(landing_table, session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA,
@@ -284,13 +286,14 @@ def sg_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=No
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
-        results = ingest_sg(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+        results += ingest_sg(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
     return results
 
 
 def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
                  destination_role_name='', external_id=''):
+    results = 0
     if accounts:
         for account in accounts:
             id = account['ACCOUNT_ID']
@@ -299,7 +302,7 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             log.info(f"Using role {target_role}")
             try:
                 session = sts_assume_role(source_role_arn, target_role, external_id)
-                results = ingest_elb(landing_table, session=session, account=account)
+                results += ingest_elb(landing_table, session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA,
@@ -314,7 +317,7 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
-        results = ingest_elb(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+        results += ingest_elb(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
 
     return results
 
