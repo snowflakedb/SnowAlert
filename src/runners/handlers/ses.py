@@ -5,7 +5,9 @@ from runners.helpers import log
 from runners.helpers.dbconfig import REGION
 
 
-def handle(alert, type='ses', recipient_email=None, sender_email=None, text=None, html=None, subject=None, cc=None, bcc=None, reply_to=None, charset="UTF-8"):
+def handle(alert, type='ses', recipient_email=None, sender_email=None,
+           text=None, html=None, subject=None, cc=None, bcc=None,
+           reply_to=None, charset="UTF-8"):
 
     # check if recipient email is not empty
     if recipient_email is None:
