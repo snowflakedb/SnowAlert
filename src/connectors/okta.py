@@ -84,7 +84,8 @@ def ingest(table_name, options):
     subdomain = options['subdomain']
 
     url = {
-        'users': f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"ACTIVE\"+or+status+eq+\"DEPROVISIONED\"+or+status+eq+\"STAGED\"+or+status+eq+\"PROVISIONED\"+or+status+eq+\"RECOVERY\"+or+status+eq+\"PASSWORD_EXPIRED\"+or+status+eq+\"LOCKED_OUT\"',
+        'users': f'https://{subdomain}.okta.com/api/v1/users',
+        'deprovisioned':f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
         'groups': f'https://{subdomain}.okta.com/api/v1/groups',
         'logs': f'https://{subdomain}.okta.com/api/v1/logs'
     }
@@ -137,6 +138,34 @@ def ingest(table_name, options):
                     values=[(row, timestamp) for row in result],
                     select='PARSE_JSON(column1), column2'
                 )
+
+            log.info(f'Inserted {len(result)} rows.')
+            yield len(result)
+
+            url[ingest_type] = ''
+            links = requests.utils.parse_header_links(response.headers['Link'])
+            for link in links:
+                if link['rel'] == 'next':
+                    url[ingest_type] = link['url']
+
+            if len(url[ingest_type]) == 0:
+                break
+        while 1:
+            ingest_type = 'deprovisioned'
+            response = requests.get(url=url[ingest_type], headers=headers)
+            if response.status_code != 200:
+                log.error('OKTA REQUEST FAILED: ', response.text)
+                return
+
+            result = response.json()
+            if result == []:
+                break
+
+            db.insert(
+                landing_table,
+                values=[(row, timestamp) for row in result],
+                select='PARSE_JSON(column1), column2'
+            )
 
             log.info(f'Inserted {len(result)} rows.')
             yield len(result)
