@@ -375,7 +375,7 @@ def ingest_sg(landing_table, aws_access_key=None, aws_secret_key=None, session=N
             row['GroupName'],
             row['OwnerId'],
             row['Region']['RegionName'],
-            row['VpcId'])
+            row.get('VpcId'))
             for row in groups],
         select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8'
     )
