@@ -84,7 +84,7 @@ def ingest(table_name, options):
     subdomain = options['subdomain']
 
     url = {
-        'users': f'https://{subdomain}.okta.com/api/v1/users',
+        'users': f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"ACTIVE\"+or+status+eq+\"DEPROVISIONED\"+or+status+eq+\"STAGED\"+or+status+eq+\"PROVISIONED\"+or+status+eq+\"RECOVERY\"+or+status+eq+\"PASSWORD_EXPIRED\"+or+status+eq+\"LOCKED_OUT\"',
         'groups': f'https://{subdomain}.okta.com/api/v1/groups',
         'logs': f'https://{subdomain}.okta.com/api/v1/logs'
     }
