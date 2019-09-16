@@ -71,6 +71,34 @@ def connect(connection_name, options):
         'newMessage': "Okta ingestion table, user table, group table created!",
     }
 
+def ingest_users(ingest_type, url, headers, landing_table, timestamp):
+    while 1:
+        response = requests.get(url=url[ingest_type], headers=headers)
+        if response.status_code != 200:
+            log.error('OKTA REQUEST FAILED: ', response.text)
+            return
+
+        result = response.json()
+        if result == []:
+            break
+
+        db.insert(
+            landing_table,
+            values=[(row, timestamp) for row in result],
+            select='PARSE_JSON(column1), column2'
+        )
+
+        log.info(f'Inserted {len(result)} rows.')
+        yield len(result)
+
+        url[ingest_type] = ''
+        links = requests.utils.parse_header_links(response.headers['Link'])
+        for link in links:
+            if link['rel'] == 'next':
+                url[ingest_type] = link['url']
+
+        if len(url[ingest_type]) == 0:
+            break
 
 def ingest(table_name, options):
     ingest_type = (
@@ -85,7 +113,7 @@ def ingest(table_name, options):
 
     url = {
         'users': f'https://{subdomain}.okta.com/api/v1/users',
-        'deprovisioned':f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
+        'deprovisioned_users':f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
         'groups': f'https://{subdomain}.okta.com/api/v1/groups',
         'logs': f'https://{subdomain}.okta.com/api/v1/logs'
     }
@@ -116,68 +144,8 @@ def ingest(table_name, options):
         yield len(result)
 
     elif ingest_type == 'users':
-        while 1:
-            response = requests.get(url=url[ingest_type], headers=headers)
-            if response.status_code != 200:
-                log.error('OKTA REQUEST FAILED: ', response.text)
-                return
-
-            result = response.json()
-            if result == []:
-                break
-
-            if ingest_type == 'logs':
-                db.insert(
-                    landing_table,
-                    values=[(row, row['published']) for row in result],
-                    select='PARSE_JSON(column1), column2'
-                )
-            else:
-                db.insert(
-                    landing_table,
-                    values=[(row, timestamp) for row in result],
-                    select='PARSE_JSON(column1), column2'
-                )
-
-            log.info(f'Inserted {len(result)} rows.')
-            yield len(result)
-
-            url[ingest_type] = ''
-            links = requests.utils.parse_header_links(response.headers['Link'])
-            for link in links:
-                if link['rel'] == 'next':
-                    url[ingest_type] = link['url']
-
-            if len(url[ingest_type]) == 0:
-                break
-        while 1:
-            ingest_type = 'deprovisioned'
-            response = requests.get(url=url[ingest_type], headers=headers)
-            if response.status_code != 200:
-                log.error('OKTA REQUEST FAILED: ', response.text)
-                return
-
-            result = response.json()
-            if result == []:
-                break
-
-            db.insert(
-                landing_table,
-                values=[(row, timestamp) for row in result],
-                select='PARSE_JSON(column1), column2'
-            )
-
-            log.info(f'Inserted {len(result)} rows.')
-            yield len(result)
-
-            url[ingest_type] = ''
-            links = requests.utils.parse_header_links(response.headers['Link'])
-            for link in links:
-                if link['rel'] == 'next':
-                    url[ingest_type] = link['url']
-
-            if len(url[ingest_type]) == 0:
-                break
+        ingest_users('users', url, headers, landing_table, timestamp)
+        ingest_users('deprovisioned_users', url, headers, landing_table, timestamp)
 
     else:
         ts = db.fetch_latest(landing_table, 'event_time')
