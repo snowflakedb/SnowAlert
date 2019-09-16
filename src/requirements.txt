@@ -18,6 +18,7 @@ oauthlib==2.1.0
 pbr==5.1.0
 pyasn1==0.4.4
 pyasn1-modules==0.2.2
+pybrake==0.4.0
 pycparser==2.19
 pycryptodomex==3.7.0
 pyflakes==2.0.0
