@@ -13,5 +13,9 @@ class ExceptionTracker():
                                                       environment=ENV)
 
     def notify(self, *args):
-        if self.airbrake_notifier:
-            self.airbrake_notifier(*args)
+        for a in args:
+            try:
+                if self.airbrake_notifier:
+                    self.airbrake_notifier.notify(*args)
+            except Exception as e:
+                print(e)

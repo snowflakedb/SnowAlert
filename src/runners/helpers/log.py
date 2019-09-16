@@ -8,6 +8,9 @@ from os import getpid
 import boto3
 
 from ..config import ENV
+from .exception_tracker import ExceptionTracker
+
+EXCEPTION_TRACKER = ExceptionTracker()
 
 
 def write(*args, stream=sys.stdout):
