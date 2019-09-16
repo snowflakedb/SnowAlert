@@ -7,7 +7,7 @@ import json
 import boto3
 
 from runners.helpers import db, log
-from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.helpers.dbconfig import REGION, ROLE as SA_ROLE
 from runners.config import RUN_ID
 from .utils import create_metadata_table, sts_assume_role, yaml_dump
 
@@ -102,7 +102,9 @@ CONNECTION_OPTIONS = [
             "access key and secret key pair, or a source role, destination role, external id, and accounts "
             "connection table name."
         ),
-        'placeholder': "AWS_ACCOUNTS_DEFAULT_CONNECTION (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)",
+        'placeholder': (
+            "AWS_ACCOUNTS_DEFAULT_CONNECTION (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)"
+        ),
     }
 ]
 
@@ -194,8 +196,7 @@ def ingest(table_name, options):
     external_id = options.get('external_id')
     accounts_connection_name = options.get('accounts_connection_name')
 
-    #Want to prepend 'data.' if it doesn't exist in the input
-    if (accounts_connection_name[0:5]).lower() != 'data.':
+    if not accounts_connection_name.startswith('data.'):
         accounts_connection_name = 'data.' + accounts_connection_name
 
     ingest_of_type = {
@@ -406,7 +407,12 @@ def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=
 
 
 def get_ec2_instances(aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
+    client = boto3.client(
+        'ec2',
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=REGION,
+    )
     regions = client.describe_regions()['Regions']
 
     log.info(f"Searching for EC2 instances in {len(regions)} region(s).")
