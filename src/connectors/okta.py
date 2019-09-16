@@ -81,7 +81,7 @@ def ingest_users(ingest_type, url, headers, landing_table, timestamp):
         result = response.json()
         if result == []:
             break
-
+        
         db.insert(
             landing_table,
             values=[(row, timestamp) for row in result],
@@ -144,8 +144,10 @@ def ingest(table_name, options):
         yield len(result)
 
     elif ingest_type == 'users':
-        ingest_users('users', url, headers, landing_table, timestamp)
-        ingest_users('deprovisioned_users', url, headers, landing_table, timestamp)
+        for result in ingest_users('users', url, headers, landing_table, timestamp):
+            yield result
+        for result in ingest_users('deprovisioned_users', url, headers, landing_table, timestamp):
+            yield result
 
     else:
         ts = db.fetch_latest(landing_table, 'event_time')
