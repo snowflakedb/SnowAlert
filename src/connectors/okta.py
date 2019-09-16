@@ -144,10 +144,8 @@ def ingest(table_name, options):
         yield len(result)
 
     elif ingest_type == 'users':
-        for result in ingest_users('users', url, headers, landing_table, timestamp):
-            yield result
-        for result in ingest_users('deprovisioned_users', url, headers, landing_table, timestamp):
-            yield result
+        yield from ingest_users('users', url, headers, landing_table, timestamp)
+        yield from ingest_users('deprovisioned_users', url, headers, landing_table, timestamp)
 
     else:
         ts = db.fetch_latest(landing_table, 'event_time')
