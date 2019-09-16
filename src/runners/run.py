@@ -3,7 +3,7 @@
 import fire
 
 from runners import ingest_runner, connectors_runner
-# from runners import baseline_runner
+from runners import baseline_runner
 
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner

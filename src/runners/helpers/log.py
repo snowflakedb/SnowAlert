@@ -57,6 +57,7 @@ def info(*args):
 
 
 def error(*args):
+    EXCEPTION_TRACKER.notify(*args)
     write(*args, stream=sys.stderr)
 
 

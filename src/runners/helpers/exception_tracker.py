@@ -16,6 +16,6 @@ class ExceptionTracker():
         for a in args:
             try:
                 if self.airbrake_notifier:
-                    self.airbrake_notifier.notify(*args)
+                    self.airbrake_notifier.notify(a)
             except Exception as e:
                 print(e)
