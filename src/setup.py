@@ -9,7 +9,7 @@ setup(
         'fire==0.1.3',
         'jira==2.0.0',
         'PyYAML==4.2b1',
-        'snowflake-connector-python==1.8.4',
+        'snowflake-connector-python==1.9.0',
         'snowflake-sqlalchemy==1.1.2',
         'pandas==0.24.1',
         'pybrake==0.4.0',
