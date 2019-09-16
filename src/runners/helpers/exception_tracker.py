@@ -7,7 +7,7 @@ class ExceptionTracker():
     airbrake_notifier = None
 
     def __init__(self):
-        if AIRBRAKE_KEY and AIRBRAKE_PROJECT:
+        if AIRBRAKE_PROJECT_KEY and AIRBRAKE_PROJECT_ID:
             self.airbrake_notifier = pybrake.Notifier(project_id=AIRBRAKE_PROJECT_ID,
                                                       project_key=AIRBRAKE_PROJECT_KEY,
                                                       environment=ENV)
