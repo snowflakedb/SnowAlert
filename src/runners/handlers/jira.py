@@ -119,7 +119,6 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
             issue_params[f'customfield_{custom_field["id"]}'] = {'value': custom_field['value']}
         for field_id, field_value in custom_fields:
             issue_params[f'customfield_{field_id}'] = {'value': field_value}
-        issue_params['customfield_11401'] = {'value': os.environ.get('CUSTOM_FIELD_AREA')}
 
     new_issue = jira.create_issue(**issue_params)
 
