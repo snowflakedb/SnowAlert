@@ -3,6 +3,7 @@
  SAIR processes Data Connections in *_CONNECTION tables
 
 """
+import fire
 
 from multiprocessing import Pool
 from datetime import datetime
@@ -76,4 +77,4 @@ def main(connection_table="%_CONNECTION"):
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
