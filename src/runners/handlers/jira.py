@@ -1,6 +1,7 @@
 from os import environ
 from urllib.parse import quote
 import yaml
+import os
 
 from jira import JIRA
 
@@ -103,10 +104,16 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
     body = jira_ticket_body(alert)
 
     log.info(f'Creating new JIRA ticket for "{alert["TITLE"]}" in project {PROJECT}')
-    new_issue = jira.create_issue(project=PROJECT,
-                                  issuetype={'name': 'Story'},
-                                  summary=alert['TITLE'],
-                                  description=body,)
+    args_dict = {'project': PROJECT,
+                 'issuetype' : {'name': 'Story'},
+                 'summary': alert['TITLE'],
+                 'description' : body,
+                }
+    if os.environ.get('CUSTOM_FIELD_AREA'):
+        args_dict['customfield_11401'] = {'value': os.environ.get('CUSTOM_FIELD_AREA')}
+
+    new_issue = jira.create_issue(**args_dict)
+
     if custom_field:
         new_issue.update(fields={custom_field['id']: {'value': custom_field['value']}})
     if assignee:
