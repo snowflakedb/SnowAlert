@@ -16,9 +16,8 @@ from runners.config import (
 from runners.helpers import db, log
 
 
-# Get the time delta from environment variable, if not set fall back to the original default
-time_delta = os.environ.get('TIME_DELTA', -90)
-GROUPING_CUTOFF = "DATEADD(minute, {0}, CURRENT_TIMESTAMP())".format(time_delta)
+ALERT_CUTOFF_MINUTES = os.environ.get('SA_ALERT_CUTOFF_MINUTES', -90)
+GROUPING_CUTOFF = f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())"
 
 RUN_ALERT_QUERY = f"""
 CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
@@ -110,7 +109,7 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
     try:
         db.execute(RUN_ALERT_QUERY.format(
             query_name=rule_name,
-            from_time_sql="DATEADD(minute, {0}, CURRENT_TIMESTAMP())".format(time_delta),
+            from_time_sql=f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())",
             to_time_sql="CURRENT_TIMESTAMP()",
         ), fix_errors=False)
         insert_count, update_count = merge_alerts(rule_name, GROUPING_CUTOFF)
