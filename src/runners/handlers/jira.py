@@ -104,18 +104,25 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
     body = jira_ticket_body(alert)
 
     log.info(f'Creating new JIRA ticket for "{alert["TITLE"]}" in project {PROJECT}')
-    args_dict = {'project': PROJECT,
-                 'issuetype' : {'name': 'Story'},
-                 'summary': alert['TITLE'],
-                 'description' : body,
-                }
-    if os.environ.get('CUSTOM_FIELD_AREA'):
-        args_dict['customfield_11401'] = {'value': os.environ.get('CUSTOM_FIELD_AREA')}
 
-    new_issue = jira.create_issue(**args_dict)
+    issue_params = {
+        'project': PROJECT,
+        'issuetype': {'name': 'Story'},
+        'summary': alert['TITLE'],
+        'description': body,
+    }
 
-    if custom_field:
-        new_issue.update(fields={custom_field['id']: {'value': custom_field['value']}})
+    env_fields = os.environ.get('SA_JIRA_CUSTOM_FIELDS')
+    if env_fields or custom_field:
+        custom_fields = [f.split('=') for f in env_fields.split(';')]
+        if custom_field:
+            issue_params[f'customfield_{custom_field["id"]}'] = {'value': custom_field['value']}
+        for field_id, field_value in custom_fields:
+            issue_params[f'customfield_{field_id}'] = {'value': field_value}
+        issue_params['customfield_11401'] = {'value': os.environ.get('CUSTOM_FIELD_AREA')}
+
+    new_issue = jira.create_issue(**issue_params)
+
     if assignee:
         jira.assign_issue(new_issue, assignee)
 
