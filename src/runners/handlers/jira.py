@@ -115,10 +115,11 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
     env_fields = os.environ.get('SA_JIRA_CUSTOM_FIELDS')
     if env_fields or custom_field:
         custom_fields = [f.split('=') for f in env_fields.split(';')]
-        if custom_field:
-            issue_params[f'customfield_{custom_field["id"]}'] = {'value': custom_field['value']}
         for field_id, field_value in custom_fields:
             issue_params[f'customfield_{field_id}'] = {'value': field_value}
+
+        if custom_field:
+            issue_params[f'customfield_{custom_field["id"]}'] = {'value': custom_field['value']}
 
     new_issue = jira.create_issue(**issue_params)
 
