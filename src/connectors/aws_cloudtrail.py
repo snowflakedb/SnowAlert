@@ -243,7 +243,7 @@ SELECT CURRENT_TIMESTAMP() insert_time
     , value:userIdentity.invokedBy::STRING user_identity_invokedby
     , value:userIdentity.accessKeyId::STRING user_identity_access_key_id
     , value:userIdentity.userName::STRING user_identity_username
-    , value:userIdentity.sessionContext.attributes.mfaAuthenticated::STRING user_identity_session_context_attributes_mfa_authenticated
+    , TRY_CAST(value:userIdentity.sessionContext.attributes.mfaAuthenticated::STRING AS BOOLEAN) user_identity_session_context_attributes_mfa_authenticated
     , value:userIdentity.sessionContext.attributes.creationDate::STRING user_identity_session_context_attributes_creation_date
     , value:userIdentity.sessionContext.sessionIssuer.type::STRING user_identity_session_context_session_issuer_type
     , value:userIdentity.sessionContext.sessionIssuer.principalId::STRING user_identity_session_context_session_issuer_principal_id
