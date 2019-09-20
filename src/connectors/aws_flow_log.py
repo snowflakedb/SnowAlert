@@ -30,7 +30,7 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'aws_role',
-        'title': "Config Bucket Reader Role",
+        'title': "Flow Bucket Reader Role",
         'prompt': "Role to be assumed for access to Flow Logs in S3",
         'placeholder': "arn:aws:iam::012345678987:role/my-flow-log-reader-role",
         'required': True,
