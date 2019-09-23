@@ -97,7 +97,7 @@ CONNECTION_OPTIONS = [
     }
 ]
 
-LANDING_TABLES_COLUMNS = {
+LANDING_TABLES_COLUMNS = [
     ('raw', 'VARCHAR'),
     ('ingested_at', 'TIMESTAMP_LTZ'),
     ('Path', 'VARCHAR'),
@@ -106,7 +106,7 @@ LANDING_TABLES_COLUMNS = {
     ('Arn', 'VARCHAR'),
     ('CreateDate', 'TIMESTAMP_LTZ'),
     ('PasswordLastUsed', 'TIMESTAMP_LTZ')
-}
+]
 
 
 def connect(connection_name, options):
@@ -224,32 +224,24 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
 
     monitor_time = datetime.utcnow().isoformat()
 
-    for row in users:
-        print(row)
-        print(monitor_time)
-        print(row.get('Path'))
-        print(row.get('UserName'))
-        print(row.get('UserId'))
-        print(row.get('Arn'))
-        print(row.get('CreateDate'))
-        print(row.get('PasswordLastUsed'))
-
+    print(db.derive_insert_select(LANDING_TABLES_COLUMNS))
+    print(db.derive_insert_columns(LANDING_TABLES_COLUMNS))
     db.insert(
         landing_table,
         values=[(
             row,
             monitor_time,
-            row.get('Path'),
-            row.get('UserName'),
-            row.get('UserId'),
+            row['Path'],
+            row['UserName'],
+            row['UserId'],
             row.get('Arn'),
-            row.get('CreateDate'),
+            row['CreateDate'],
             row.get('PasswordLastUsed'))
             for row in users
         ],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8'
+        select=db.derive_insert_select(LANDING_TABLES_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS)
     )
-    print("done with all")
 
     return len(users)
 
