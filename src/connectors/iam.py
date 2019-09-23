@@ -9,7 +9,8 @@ import boto3
 from runners.helpers import db, log
 from runners.helpers.dbconfig import REGION, ROLE as SA_ROLE
 from runners.config import RUN_ID
-from .utils import create_metadata_table, sts_assume_role, yaml_dump
+#from .utils import create_metadata_table, sts_assume_role, yaml_dump
+#from .utils import create_metadata_table, sts_assume_role
 
 AWS_IAM_METADATA = 'data.aws_iam_information'
 
@@ -97,16 +98,14 @@ CONNECTION_OPTIONS = [
 ]
 
 LANDING_TABLES_COLUMNS = {
-    ('raw', 'VARIANT'),
-    ('instance_id', 'STRING(30)'),
-    ('architecture', 'STRING(16)'),
-    ('monitored_time_utc', 'TIMESTAMP_TZ'),
-    ('instance_type', 'STRING(256)'),
-    ('key_name', 'STRING(256)'),
-    ('launch_time', 'TIMESTAMP_TZ'),
-    ('region_name', 'STRING(16)'),
-    ('instance_state', 'STRING(16)'),
-    ('instance_name', 'STRING(256)')
+    ('raw', 'VARCHAR'),
+    ('ingested_at', 'TIMESTAMP_LTZ'),
+    ('Path', 'VARCHAR'),
+    ('UserName', 'VARCHAR'),
+    ('UserId', 'VARCHAR'),
+    ('Arn', 'VARCHAR'),
+    ('CreateDate', 'TIMESTAMP_LTZ'),
+    ('PasswordLastUsed', 'TIMESTAMP_LTZ')
 }
 
 
@@ -114,10 +113,11 @@ def connect(connection_name, options):
     columns = LANDING_TABLES_COLUMNS
     landing_table = f'data.iam_{connection_name}_connection'
 
-    comment = yaml_dump(
-        module='iam',
-        **options
-    )
+    # comment = yaml_dump(
+    #     module='iam',
+    #     **options
+    # )
+    comment = ""
 
     db.create_table(name=landing_table, cols=columns, comment=comment)
     metadata_cols = [
@@ -128,7 +128,7 @@ def connect(connection_name, options):
         (f'iam_count', 'NUMBER'),
         ('error', 'VARCHAR')
     ]
-    create_metadata_table(table=AWS_IAM_METADATA, cols=metadata_cols, addition=metadata_cols[4])
+    #create_metadata_table(table=AWS_IAM_METADATA, cols=metadata_cols, addition=metadata_cols[4])
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     return {
@@ -191,9 +191,9 @@ def iam_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             log.info(f"Using role {target_role}")
             try:
-                session = sts_assume_role(source_role_arn, target_role, external_id)
+                #session = sts_assume_role(source_role_arn, target_role, external_id)
 
-                results += ingest_iam(landing_table, session=session, account=account)
+                results += ingest_iam(landing_table, session="session", account=account)
 
                 db.insert(
                     AWS_IAM_METADATA,
@@ -215,7 +215,7 @@ def iam_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
 
 
 def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    instances = get_iam_instances(
+    users = get_iam_users(
         aws_access_key=aws_access_key,
         aws_secret_key=aws_secret_key,
         session=session,
@@ -223,74 +223,60 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
     )
 
     monitor_time = datetime.utcnow().isoformat()
+
+    for row in users:
+        print(row)
+        print(monitor_time)
+        print(row.get('Path'))
+        print(row.get('UserName'))
+        print(row.get('UserId'))
+        print(row.get('Arn'))
+        print(row.get('CreateDate'))
+        print(row.get('PasswordLastUsed'))
+
     db.insert(
         landing_table,
         values=[(
             row,
-            row['InstanceId'],
-            row['Architecture'],
             monitor_time,
-            row['InstanceType'],
-            row.get('KeyName', ''),  # can be not present if a managed instance such as EMR
-            row['LaunchTime'],
-            row['Region']['RegionName'],
-            row['State']['Name'],
-            row.get('InstanceName', ''))
-            for row in instances
+            row.get('Path'),
+            row.get('UserName'),
+            row.get('UserId'),
+            row.get('Arn'),
+            row.get('CreateDate'),
+            row.get('PasswordLastUsed'))
+            for row in users
         ],
-        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8, column9, column10'
+        select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8'
     )
+    print("done with all")
 
-    return len(instances)
+    return len(users)
 
 
-def get_iam_instances(aws_access_key=None, aws_secret_key=None, session=None, account=None):
+def get_iam_users(aws_access_key=None, aws_secret_key=None, session=None, account=None):
     client = boto3.client(
         'iam',
         aws_access_key_id=aws_access_key,
         aws_secret_access_key=aws_secret_key,
         region_name=REGION,
     )
-    regions = client.describe_regions()['Regions']
 
-    log.info(f"Searching for iam instances in {len(regions)} region(s).")
+    log.info(f"Searching for iam users.")
 
-    # get list of all instances in each region
-    instances = []
-    for region in regions:
-        if session:
-            client = session.client('iam', region_name=region['RegionName'])
-        else:
-            client = boto3.client('iam', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
-                                  region_name=region['RegionName'])
-        paginator = client.get_paginator('describe_instances')
-        page_iterator = paginator.paginate()
-        results = [
-            instance
-            for page in page_iterator
-            for instance_array in page['Reservations']
-            for instance in instance_array['Instances']
-        ]
-        for instance in results:
-            instance['Region'] = region
-            instance['Name'] = get_iam_instance_name(instance)
-            if account:
-                instance['Account'] = account
-        instances.extend(results)
+    # get list of all users
+    if session:
+        client = session.client('iam', region_name=REGION)
+    else:
+        client = boto3.client('iam', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
+                                region_name=REGION)
+    paginator = client.get_paginator('list_users')
+    page_iterator = paginator.paginate()
+    results = [
+        user
+        for page in page_iterator
+        for user in page['Users']
+    ]
 
-    # return list of instances
-    log.info(f"Successfully serialized {len(instances)} iam instance(s).")
-    return instances
-
-
-def get_iam_instance_name(instance=None):
-    """
-    This method searches an iam instance object
-    for the Name tag and returns that value as a string.
-    """
-    # return the name if possible, return empty string if not possible
-    if "Tags" not in instance:
-        return ""
-    for tag in instance["Tags"]:
-        if "Name" == tag["Key"]:
-            return tag["Value"]
+    # return list of users
+    return results
