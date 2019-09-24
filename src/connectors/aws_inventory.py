@@ -20,6 +20,7 @@ CONNECTION_OPTIONS = [
             {'value': 'EC2', 'label': "EC2 Inventory"},
             {'value': 'SG', 'label': "SG Inventory"},
             {'value': 'ELB', 'label': "ELB Inventory"},
+            {'value': 'IAM', 'label': "IAM Inventory"}
         ],
         'name': 'connection_type',
         'title': "Asset Type",
@@ -145,6 +146,17 @@ LANDING_TABLES_COLUMNS = {
         ('region_name', 'STRING(16)'),
         ('scheme', 'STRING(30)'),
         ('vpc_id', 'STRING(30)')
+    ],
+    # IAM Users
+    'IAM': [
+        ('raw', 'VARCHAR'),
+        ('ingested_at', 'TIMESTAMP_LTZ'),
+        ('Path', 'VARCHAR'),
+        ('UserName', 'VARCHAR'),
+        ('UserId', 'VARCHAR'),
+        ('Arn', 'VARCHAR'),
+        ('CreateDate', 'TIMESTAMP_LTZ'),
+        ('PasswordLastUsed', 'TIMESTAMP_LTZ')
     ]
 }
 
@@ -203,6 +215,7 @@ def ingest(table_name, options):
         'EC2': ec2_dispatch,
         'SG': sg_dispatch,
         'ELB': elb_dispatch,
+        'IAM': iam_dispatch,
     }[connection_type]
 
     if source_role_arn and destination_role_name and external_id and accounts_connection_name:
@@ -230,6 +243,39 @@ def ingest(table_name, options):
         yield count
     else:
         log.error()
+
+
+def iam_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
+                 destination_role_name='', external_id=''):
+    results = 0
+    if accounts:
+        for account in accounts:
+            id = account['ACCOUNT_ID']
+            name = account['ACCOUNT_ALIAS']
+            target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
+            log.info(f"Using role {target_role}")
+            try:
+                session = sts_assume_role(source_role_arn, target_role, external_id)
+
+                results += ingest_iam(landing_table, session=session, account=account)
+
+                db.insert(
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, results)],
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'iam_count']
+                )
+
+            except Exception as e:
+                db.insert(
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
+                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'iam_count', 'error']
+                )
+                log.error(f"Unable to assume role {target_role} with error", e)
+    else:
+        results += ingest_iam(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+
+    return results
 
 
 def ec2_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=None, source_role_arn='',
@@ -327,6 +373,38 @@ def elb_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
     return results
 
 
+def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
+    users = get_iam_users(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account
+    )
+
+    monitor_time = datetime.utcnow().isoformat()
+
+    print(db.derive_insert_select(LANDING_TABLES_COLUMNS))
+    print(db.derive_insert_columns(LANDING_TABLES_COLUMNS))
+    db.insert(
+        landing_table,
+        values=[(
+            row,
+            monitor_time,
+            row['Path'],
+            row['UserName'],
+            row['UserId'],
+            row.get('Arn'),
+            row['CreateDate'],
+            row.get('PasswordLastUsed'))
+            for row in users
+        ],
+        select=db.derive_insert_select(LANDING_TABLES_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS)
+    )
+
+    return len(users)
+
+
 def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None):
     instances = get_ec2_instances(
         aws_access_key=aws_access_key,
@@ -404,6 +482,33 @@ def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=
                'column7, column8, column9, column10'
     )
     return len(elbs)
+
+def get_iam_users(aws_access_key=None, aws_secret_key=None, session=None, account=None):
+    client = boto3.client(
+        'iam',
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=REGION,
+    )
+
+    log.info(f"Searching for iam users.")
+
+    # get list of all users
+    if session:
+        client = session.client('iam', region_name=REGION)
+    else:
+        client = boto3.client('iam', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
+                                region_name=REGION)
+    paginator = client.get_paginator('list_users')
+    page_iterator = paginator.paginate()
+    results = [
+        user
+        for page in page_iterator
+        for user in page['Users']
+    ]
+
+    # return list of users
+    return results
 
 
 def get_ec2_instances(aws_access_key=None, aws_secret_key=None, session=None, account=None):
