@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collect AWS EC2, SG, ELB assets using an Access Key or privileged Role
+Collect AWS EC2, SG, ELB, IAM assets using an Access Key or privileged Role
 """
 from datetime import datetime
 import json
@@ -151,12 +151,12 @@ LANDING_TABLES_COLUMNS = {
     'IAM': [
         ('raw', 'VARCHAR'),
         ('ingested_at', 'TIMESTAMP_LTZ'),
-        ('Path', 'VARCHAR'),
-        ('UserName', 'VARCHAR'),
-        ('UserId', 'VARCHAR'),
-        ('Arn', 'VARCHAR'),
-        ('CreateDate', 'TIMESTAMP_LTZ'),
-        ('PasswordLastUsed', 'TIMESTAMP_LTZ')
+        ('path', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('user_id', 'VARCHAR'),
+        ('arn', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_LTZ'),
+        ('password_last_used', 'TIMESTAMP_LTZ')
     ]
 }
 
@@ -383,8 +383,6 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
 
     monitor_time = datetime.utcnow().isoformat()
 
-    print(db.derive_insert_select(LANDING_TABLES_COLUMNS))
-    print(db.derive_insert_columns(LANDING_TABLES_COLUMNS))
     db.insert(
         landing_table,
         values=[(
@@ -398,8 +396,8 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row.get('PasswordLastUsed'))
             for row in users
         ],
-        select=db.derive_insert_select(LANDING_TABLES_COLUMNS),
-        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS)
+        select=db.derive_insert_select(LANDING_TABLES_COLUMNS['IAM']),
+        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['IAM'])
     )
 
     return len(users)
