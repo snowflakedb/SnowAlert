@@ -482,13 +482,6 @@ def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=
     return len(elbs)
 
 def get_iam_users(aws_access_key=None, aws_secret_key=None, session=None, account=None):
-    client = boto3.client(
-        'iam',
-        aws_access_key_id=aws_access_key,
-        aws_secret_access_key=aws_secret_key,
-        region_name=REGION,
-    )
-
     log.info(f"Searching for iam users.")
 
     # get list of all users
