@@ -702,7 +702,12 @@ def get_images(aws_access_key=None, aws_secret_key=None, session=None, account=N
             client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
                                   region_name=region['RegionName'])
 
-        results = client.describe_images(Owners=['self'])['Images']
+        results = client.describe_images(
+            Owners=[
+                'self',
+                'amazon',
+                '679593333241'  # canonical
+            ])['Images']
         for image in results:
             image['Region'] = region
             if account:
