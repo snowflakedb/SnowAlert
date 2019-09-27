@@ -175,6 +175,7 @@ LANDING_TABLES_COLUMNS = {
         ('architecture', 'STRING(64)'),
         ('image_location', 'STRING'),
         ('root_device_type', 'STRING(128)'),
+        ('owner_id', 'STRING(128)'),
         ('creation_date', 'TIMESTAMP_LTZ'),
         ('public', 'BOOLEAN'),
         ('image_type', 'STRING(128)'),
@@ -689,21 +690,16 @@ def get_images(aws_access_key=None, aws_secret_key=None, session=None, account=N
         else:
             client = boto3.client('ec2', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key,
                                   region_name=region['RegionName'])
-        paginator = client.get_paginator('describe_images')
-        page_iterator = paginator.paginate({'Owner': 'self'})
-        results = [
-            image
-            for page in page_iterator
-            for image in page['Images']
-        ]
+
+        results = client.describe_images(Owners=['self'])['Images']
         for image in results:
-            instance['Region'] = region
+            image['Region'] = region
             if account:
-                instance['Account'] = account
+                image['Account'] = account
         images.extend(results)
 
     # return list of images
-    log.info(f"Successfully serialized {len(mages)} images(s).")
+    log.info(f"Successfully serialized {len(images)} images(s).")
     return images
 
 
