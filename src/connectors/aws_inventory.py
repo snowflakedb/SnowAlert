@@ -162,11 +162,14 @@ LANDING_TABLES_COLUMNS = {
         ('architecture', 'STRING(64)'),
         ('image_location', 'STRING'),
         ('root_device_type', 'STRING(128)'),
+        ('root_device_name', 'STRING(128)'),
         ('owner_id', 'STRING(128)'),
         ('creation_date', 'TIMESTAMP_LTZ'),
         ('public', 'BOOLEAN'),
         ('image_type', 'STRING(128)'),
-        ('name', 'STRING')
+        ('name', 'STRING'),
+        ('account_id', 'STRING(30)'),
+        ('region_name', 'STRING(16)'),
     ]
 }
 
@@ -446,29 +449,32 @@ def ingest_ami(landing_table, aws_access_key=None, aws_secret_key=None, session=
     )
 
     monitor_time = datetime.utcnow().isoformat()
+
     db.insert(
         landing_table,
         values=[(
             row,
             monitor_time,
-            row.get('VirtualizationType'),
-            row.get('Description'),
-            row.get('Tags'),
-            row.get('Hypervisor'),
-            row.get('EnaSupport'),
-            row.get('SriovNetSupport'),
-            row.get('ImageId'),
-            row.get('State'),
-            row.get('BlockDeviceMappings'),
-            row.get('Architecture'),
-            row.get('ImageLocation'),
-            row.get('RootDeviceType'),
-            row.get('OwnerId'),
-            row.get('RootDeviceName'),
-            row.get('CreationDate'),
-            row.get('Public'),
-            row.get('ImageType'),
-            row.get('Name'))
+            row.get('VirtualizationType', None),
+            row.get('Description', None),
+            row.get('Tags', None),
+            row.get('Hypervisor', None),
+            row.get('EnaSupport', None),
+            row.get('SriovNetSupport', None),
+            row.get('ImageId', None),
+            row.get('State', None),
+            row.get('BlockDeviceMappings', None),
+            row.get('Architecture', None),
+            row.get('ImageLocation', None),
+            row.get('RootDeviceType', None),
+            row.get('RootDeviceName', None),
+            row.get('OwnerId', None),
+            row.get('CreationDate', None),
+            row.get('Public', None),
+            row.get('ImageType', None),
+            row.get('Name', None),
+            row.get('Account', None),
+            row['Region']['RegionName'])
             for row in images
         ],
         select=db.derive_insert_select(LANDING_TABLES_COLUMNS['AMI']),
@@ -591,6 +597,7 @@ def get_images(aws_access_key=None, aws_secret_key=None, session=None, account=N
             image['Region'] = region
             if account:
                 image['Account'] = account
+
         images.extend(results)
 
     # return list of images
