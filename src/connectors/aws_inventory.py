@@ -156,7 +156,8 @@ LANDING_TABLES_COLUMNS = {
         ('user_id', 'VARCHAR'),
         ('arn', 'VARCHAR'),
         ('create_date', 'TIMESTAMP_LTZ'),
-        ('password_last_used', 'TIMESTAMP_LTZ')
+        ('password_last_used', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING(32)')
     ]
 }
 
@@ -393,7 +394,8 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row['UserId'],
             row.get('Arn'),
             row['CreateDate'],
-            row.get('PasswordLastUsed'))
+            row.get('PasswordLastUsed'),
+            row.get('Account'))
             for row in users
         ],
         select=db.derive_insert_select(LANDING_TABLES_COLUMNS['IAM']),
@@ -497,6 +499,10 @@ def get_iam_users(aws_access_key=None, aws_secret_key=None, session=None, accoun
         for page in page_iterator
         for user in page['Users']
     ]
+
+    for user in results:
+        if account:
+            results['Account'] = account
 
     # return list of users
     return results
