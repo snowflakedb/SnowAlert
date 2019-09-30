@@ -64,6 +64,25 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 
+API_ENDPOINTS = {
+    'reg': {
+        'activeDirectoryEndpointUrl': 'https://login.microsoftonline.com/',
+        'resourceManagerEndpointUrl': 'https://management.azure.com/',
+        'managementEndpointUrl': 'https://management.core.windows.net/',
+    },
+    'gov': {
+        'activeDirectoryEndpointUrl': 'https://login.microsoftonline.us',
+        'resourceManagerEndpointUrl': 'https://management.usgovcloudapi.net',
+        'managementEndpointUrl': 'https://management.core.usgovcloudapi.net',
+    },
+}
+
+
+def get_subscription_service(options, cloud_type='reg'):
+    options.update(API_ENDPOINTS[cloud_type])
+    return get_client_from_json_dict(SubscriptionClient, options).subscriptions
+
+
 def connect(connection_name, options):
     base_name = f"azure_subscription_{connection_name}"
 
@@ -90,31 +109,16 @@ def ingest(table_name, options):
     tenant_id = options['tenant_id']
     client_id = options['client_id']
     client_secret = options['client_secret']
-    cloud_type = options['cloud_type']
+    cloud_type = options.get('cloud_type', 'reg')
 
-    activeDirectoryEndpoints = {
-        'reg': "https://login.microsoftonline.com",
-        'gov': "https://login.microsoftonline.us"
-    }
-
-    resourceManagerEndpoints = {
-        'reg': "https://management.azure.com/",
-        'gov': "https://management.usgovcloudapi.net"
-    }
-
-    managementEndpoints = {
-        'reg': "https://management.core.windows.net/",
-        'gov': "https://management.core.usgovcloudapi.net"
-    }
-
-    subscriptions_service = get_client_from_json_dict(SubscriptionClient, {
-        "tenantId": tenant_id,
-        "clientId": client_id,
-        "clientSecret": client_secret,
-        "activeDirectoryEndpointUrl": activeDirectoryEndpoints[cloud_type],
-        "resourceManagerEndpointUrl": resourceManagerEndpoints[cloud_type],
-        "managementEndpointUrl": managementEndpoints[cloud_type],
-    }).subscriptions
+    subscriptions_service = get_subscription_service(
+        {
+            "tenantId": tenant_id,
+            "clientId": client_id,
+            "clientSecret": client_secret,
+        },
+        cloud_type
+    )
 
     subscription_list = subscriptions_service.list()
     subscriptions = [s.as_dict() for s in subscription_list]

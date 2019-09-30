@@ -2,7 +2,7 @@
 Collect Azure VM Inventory using an SP and Subscription Inventory
 """
 
-from azure.common.credentials import ServicePrincipalCredentials
+from azure.common.client_factory import get_client_from_json_dict
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
 
@@ -11,6 +11,7 @@ from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.utils import groups_of
 from .utils import create_metadata_table
+from .azure_subscription import API_ENDPOINTS
 
 from datetime import datetime
 import itertools
@@ -80,15 +81,17 @@ WHERE event_time
 """
 
 
-def get_vms(creds, sub):
-    vms = [vm.as_dict() for vm in ComputeManagementClient(creds, sub).virtual_machines.list_all()]
+def get_vms(options):
+    cli = get_client_from_json_dict(ComputeManagementClient, options)
+    vms = [vm.as_dict() for vm in cli.virtual_machines.list_all()]
     for vm in vms:
-        vm['subscription_id'] = sub
+        vm['subscription_id'] = options['subscriptionId']
     return vms
 
 
-def get_nics(creds, sub):
-    return [nic.as_dict() for nic in NetworkManagementClient(creds, sub).network_interfaces.list_all()]
+def get_nics(options):
+    cli = get_client_from_json_dict(NetworkManagementClient, options)
+    return [nic.as_dict() for nic in cli.network_interfaces.list_all()]
 
 
 def enrich_vm_with_nics(vm, nics):
@@ -137,23 +140,26 @@ def connect(connection_name, options):
 def ingest(table_name, options):
     table_name = f'data.{table_name}'
     now = datetime.utcnow()
-    client_id = options['client_id']
-    secret = options['client_secret']
-    tenant = options['tenant_id']
     subscription_connection_name = options['subscription_connection_name']
-
-    creds = ServicePrincipalCredentials(client_id=client_id, secret=secret, tenant=tenant)
+    cloud_type = options.get('cloud_type', 'reg')
+    creds = {
+        'clientId': options['client_id'],
+        'clientSecret': options['client_secret'],
+        'tenantId': options['tenant_id']
+    }
 
     virtual_machines = []
     for sub in db.fetch(GET_SUBSCRIPTION_IDS_SQL.format(subscription_connection_name)):
-        sub_id = sub['SUBSCRIPTION_ID']
-        vms = get_vms(creds, sub_id)
+        options = creds.copy()
+        options.update(API_ENDPOINTS[cloud_type])
+        options['subscriptionId'] = sub['SUBSCRIPTION_ID']
+        vms = get_vms(options)
         db.insert(
             table=AZURE_COLLECTION_METADATA,
-            values=[(now, RUN_ID, sub_id, len(vms))],
+            values=[(now, RUN_ID, options['subscriptionId'], len(vms))],
             columns=['SNAPSHOT_AT', 'RUN_ID', 'SUBSCRIPTION_ID', 'VM_INSTANCE_COUNT'],
         )
-        nics = get_nics(creds, sub_id)
+        nics = get_nics(options)
         for vm in vms:
             enrich_vm_with_nics(vm, nics)
         virtual_machines.append(vms)
