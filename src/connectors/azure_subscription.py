@@ -8,7 +8,7 @@ from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from .utils import yaml_dump
 
-from azure.mgmt.subscription.subscription_client import SubscriptionClient
+from azure.mgmt.subscription import SubscriptionClient
 from azure.common.client_factory import get_client_from_json_dict
 
 

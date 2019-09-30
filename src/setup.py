@@ -22,7 +22,7 @@ setup(
         'azure-mgmt-compute==4.6.2',
         'azure-mgmt-network==2.7.0',
         'azure-mgmt-storage==3.3.0',
-        'azure-mgmt-subscription==0.4.1',
+        'azure-mgmt-subscription==0.5.0',
         'azure-storage-blob==1.5.0',
         'azure-storage-common==1.4.0',
         'google-api-python-client==1.7.10',
