@@ -15,57 +15,56 @@ def handle(alert, type='smtp', sender_email=None, recipient_email=None,
 
     if not os.environ.get('SMTP_SERVER'):
         log.info("No SMTP_SERVER in env, skipping handler.")
-        return
+        return None
 
-    smtp_server = os.environ["SMTP_SERVER"]
+    smtp_server = os.environ['SMTP_SERVER']
 
-    if "SMTP_PORT" in os.environ:
-        smtp_port = os.environ["SMTP_PORT"]
+    if 'SMTP_PORT' in os.environ:
+        smtp_port = os.environ['SMTP_PORT']
     else:
         smtp_port = 587
 
-    if "SMTP_USE_SSL" in os.environ:
-        smtp_use_ssl = os.environ["SMTP_USE_SSL"]
+    if 'SMTP_USE_SSL' in os.environ:
+        smtp_use_ssl = os.environ['SMTP_USE_SSL']
     else:
         smtp_use_ssl = True
 
-    if "SMTP_USE_TLS" in os.environ:
-        smtp_use_tls = os.environ["SMTP_USE_TLS"]
+    if 'SMTP_USE_TLS' in os.environ:
+        smtp_use_tls = os.environ['SMTP_USE_TLS']
     else:
         smtp_use_tls = True
 
-    smtp_user = vault.decrypt_if_encrypted(os.environ["SMTP_USER"])
-    smtp_password = vault.decrypt_if_encrypted(os.environ["SMTP_PASSWORD"])
+    smtp_user = vault.decrypt_if_encrypted(os.environ['SMTP_USER'])
+    smtp_password = vault.decrypt_if_encrypted(os.environ['SMTP_PASSWORD'])
 
-    # check if recipient email is not empty
     if recipient_email is None:
-        log.error(f'Cannot identify recipient email')
+        log.error(f"Cannot identify recipient email")
         return None
 
     if text is None:
-        log.error(f'SES Message is empty')
+        log.error(f"SES Message is empty")
         return None
 
     # Create the base MIME message.
     if html is None:
         message = MIMEMultipart()
     else:
-        message = MIMEMultipart("alternative")
+        message = MIMEMultipart('alternative')
 
     # Add HTML/plain-text parts to MIMEMultipart message
     # The email client will try to render the last part first
 
     # Turn these into plain/html MIMEText objects
-    textPart = MIMEText(text, "plain")
+    textPart = MIMEText(text, 'plain')
     message.attach(textPart)
 
     if html is not None:
-        htmlPart = MIMEText(html, "html")
+        htmlPart = MIMEText(html, 'html')
         message.attach(htmlPart)
 
     message['Subject'] = subject
-    message["From"] = sender_email
-    message["To"] = recipient_email
+    message['From'] = sender_email
+    message['To'] = recipient_email
 
     recipients = recipient_email.split(',')
 
@@ -89,13 +88,6 @@ def handle(alert, type='smtp', sender_email=None, recipient_email=None,
     else:
         smtpserver = smtplib.SMTP(smtp_server, smtp_port)
 
-    # this is just for dev purpose, remove later!!!
-
-    log.debug(f'user {smtp_user}')
-
     smtpserver.login(smtp_user, smtp_password)
-
     smtpserver.sendmail(sender_email, recipients, message.as_string())
-
     smtpserver.close()
-    return
