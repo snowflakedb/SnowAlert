@@ -502,7 +502,7 @@ def get_iam_users(aws_access_key=None, aws_secret_key=None, session=None, accoun
 
     for user in results:
         if account:
-            results['Account'] = account
+            user['Account'] = account
 
     # return list of users
     return results
