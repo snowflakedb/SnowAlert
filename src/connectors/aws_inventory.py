@@ -397,7 +397,7 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row.get('Arn'),
             row['CreateDate'],
             row.get('PasswordLastUsed'),
-            row.get('Account'))
+            row.get('Account', {}).get('ACCOUNT_ID'))
             for row in users
         ],
         select=db.derive_insert_select(LANDING_TABLES_COLUMNS['IAM']),
