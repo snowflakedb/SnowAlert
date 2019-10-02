@@ -106,7 +106,7 @@ CONNECTION_OPTIONS = [
         'placeholder': (
             "AWS_ACCOUNTS_DEFAULT_CONNECTION (NEEDED WITH SOURCE ROLE ARN, DESTINATION ROLE ARN, AND EXTERNAL ID)"
         ),
-    }
+    },
 ]
 
 LANDING_TABLES_COLUMNS = {
@@ -122,7 +122,7 @@ LANDING_TABLES_COLUMNS = {
         ('region_name', 'STRING(16)'),
         ('instance_state', 'STRING(16)'),
         ('instance_name', 'STRING(256)'),
-        ('account_id', 'STRING(30)')
+        ('account_id', 'STRING(30)'),
     ],
     # Security Group Landing table
     'SG': [
@@ -147,7 +147,7 @@ LANDING_TABLES_COLUMNS = {
         ('region_name', 'STRING(16)'),
         ('scheme', 'STRING(30)'),
         ('vpc_id', 'STRING(30)'),
-        ('account_id', 'STRING(30)')
+        ('account_id', 'STRING(30)'),
     ],
     # IAM Users
     'IAM': [
@@ -159,7 +159,7 @@ LANDING_TABLES_COLUMNS = {
         ('arn', 'VARCHAR'),
         ('create_date', 'TIMESTAMP_LTZ'),
         ('password_last_used', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING(32)')
+        ('account_id', 'STRING(32)'),
     ]
 }
 
