@@ -287,25 +287,30 @@ def iam_dispatch(landing_table, aws_access_key='', aws_secret_key='', accounts=N
             target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
             log.info(f"Using role {target_role}")
             try:
-                session = sts_assume_role(source_role_arn, target_role, external_id)
+                session = sts_assume_role(
+                    source_role_arn, target_role, external_id)
 
-                results += ingest_iam(landing_table, session=session, account=account)
+                results += ingest_iam(landing_table,
+                                      session=session, account=account)
 
                 db.insert(
                     AWS_ACCOUNTS_METADATA,
                     values=[(datetime.utcnow(), RUN_ID, id, name, results)],
-                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'iam_count']
+                    columns=['snapshot_at', 'run_id',
+                             'account_id', 'account_alias', 'iam_count']
                 )
 
             except Exception as e:
                 db.insert(
                     AWS_ACCOUNTS_METADATA,
                     values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
-                    columns=['snapshot_at', 'run_id', 'account_id', 'account_alias', 'iam_count', 'error']
+                    columns=['snapshot_at', 'run_id', 'account_id',
+                             'account_alias', 'iam_count', 'error']
                 )
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
-        results += ingest_iam(landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key)
+        results += ingest_iam(landing_table, aws_access_key=aws_access_key,
+                              aws_secret_key=aws_secret_key)
 
     return results
 
@@ -479,7 +484,7 @@ def ingest_iam(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row.get('Arn'),
             row['CreateDate'],
             row.get('PasswordLastUsed'),
-            row.get('Account'))
+            row.get('Account', {}).get('ACCOUNT_ID'))
             for row in users
         ],
         select=db.derive_insert_select(LANDING_TABLES_COLUMNS['IAM']),
@@ -553,7 +558,7 @@ def ingest_ami(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row.get('Public'),
             row.get('ImageType'),
             row.get('Name'),
-            row.get('Account'),
+            row.get('Account', {}).get('ACCOUNT_ID'),
             row['Region']['RegionName'])
             for row in images
         ],
