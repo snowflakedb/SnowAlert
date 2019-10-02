@@ -121,7 +121,8 @@ LANDING_TABLES_COLUMNS = {
         ('launch_time', 'TIMESTAMP_TZ'),
         ('region_name', 'STRING(16)'),
         ('instance_state', 'STRING(16)'),
-        ('instance_name', 'STRING(256)')
+        ('instance_name', 'STRING(256)'),
+        ('account_id', 'STRING(30)')
     ],
     # Security Group Landing table
     'SG': [
@@ -145,7 +146,8 @@ LANDING_TABLES_COLUMNS = {
         ('load_balancer_name', 'STRING(256)'),
         ('region_name', 'STRING(16)'),
         ('scheme', 'STRING(30)'),
-        ('vpc_id', 'STRING(30)')
+        ('vpc_id', 'STRING(30)'),
+        ('account_id', 'STRING(30)')
     ],
     # IAM Users
     'IAM': [
@@ -424,11 +426,13 @@ def ingest_ec2(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row['Architecture'],
             monitor_time,
             row['InstanceType'],
-            row.get('KeyName', ''),  # can be not present if a managed instance such as EMR
+            # can be not present if a managed instance such as EMR
+            row.get('KeyName', ''),
             row['LaunchTime'],
             row['Region']['RegionName'],
             row['State']['Name'],
-            row.get('InstanceName', ''))
+            row.get('InstanceName', ''),
+            row.get('Account', {}).get('ACCOUNT_ID'))
             for row in instances
         ],
         select='PARSE_JSON(column1), column2, column3, column4, column5, column6, column7, column8, column9, column10'
@@ -478,7 +482,8 @@ def ingest_elb(landing_table, aws_access_key=None, aws_secret_key=None, session=
             row['LoadBalancerName'],
             row['Region']['RegionName'],
             row['Scheme'],
-            row.get('VPCId', 'VpcId'))
+            row.get('VPCId', 'VpcId'),
+            row.get('Account', {}).get('ACCOUNT_ID'))
             for row in elbs],
         select='PARSE_JSON(column1), column2, column3, column4, column5, column6, '
                'column7, column8, column9, column10'
