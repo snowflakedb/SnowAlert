@@ -102,7 +102,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
                     </a>
                   </Menu.Item>
                   <Menu.Item>
-                    <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.8.6</a>
+                    <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.8.7</a>
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item key="logout">
