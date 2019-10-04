@@ -22,6 +22,8 @@ export default function loadDynamicComponent(config: ConfigType) {
   const LoadingComponent = config.LoadingComponent || defaultLoadingComponent;
 
   return class DynamicComponent extends React.PureComponent<Props, State> {
+    mounted: boolean;
+
     constructor(props: any) {
       super(props);
 
@@ -29,8 +31,6 @@ export default function loadDynamicComponent(config: ConfigType) {
         Component: null,
       };
     }
-
-    mounted: boolean;
 
     componentWillUnmount() {
       this.mounted = false;
