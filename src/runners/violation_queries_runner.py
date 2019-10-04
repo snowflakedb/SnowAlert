@@ -22,7 +22,7 @@ def main(rules_postfix=VIOLATION_QUERY_POSTFIX):
     }
 
     # Force warehouse resume so query runner doesn't have a bunch of queries waiting for warehouse resume
-    for query_name in db.load_rules(VIOLATION_QUERY_POSTFIX):
+    for query_name in db.load_rules(rules_postfix):
         metadata = {
             'QUERY_NAME': query_name,
             'RUN_ID': RUN_ID,
