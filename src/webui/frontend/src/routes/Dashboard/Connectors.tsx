@@ -54,7 +54,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   selectConnector(name: string | null) {
     const selectedConnector = this.findConnector(name);
     if (selectedConnector) {
-      let entries = [['name', 'default'], ...selectedConnector.options.map((o: any) => [o.name, o.default])];
+      const entries = [['name', 'default'], ...selectedConnector.options.map((o: any) => [o.name, o.default])];
       this.setState({
         optionValues: Object.fromEntries(entries),
       });
@@ -69,16 +69,16 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
   }
 
   changeOption(name: string, value: string) {
-    let {optionValues} = this.state;
+    const {optionValues} = this.state;
     this.setState({
       optionValues: Object.assign({}, optionValues, {[name]: value}),
     });
   }
 
   render() {
-    let {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
+    const {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
 
-    let {optionValues} = this.state;
+    const {optionValues} = this.state;
 
     const selectedConnector = this.findConnector();
 
@@ -166,7 +166,9 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
           />
         ) : (
           <pre>
-            {typeof connectionMessage == 'string' ? connectionMessage : JSON.stringify(connectionMessage, undefined, 2)}
+            {typeof connectionMessage === 'string'
+              ? connectionMessage
+              : JSON.stringify(connectionMessage, undefined, 2)}
           </pre>
         )}
 
@@ -212,7 +214,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             key={c.name}
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
-              <a onClick={() => this.selectConnector(c.name)}>
+              <a key={1} onClick={() => this.selectConnector(c.name)}>
                 <Icon type="api" /> Connect
               </a>,
             ]}

@@ -40,7 +40,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case LOAD_SA_DATA_SUCCESS: {
-      let {connectors} = action.payload;
+      const {connectors} = action.payload;
       return {
         ...state,
         isFetching: false,
@@ -48,7 +48,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case CHANGE_CONNECTOR_SELECTION: {
-      let selection = action.payload;
+      const selection = action.payload;
       return {
         ...state,
         selected: selection,
@@ -57,7 +57,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case CHANGE_CONNECTION_STAGE: {
-      let {newStage, newMessage} = action.payload;
+      const {newStage, newMessage} = action.payload;
       return {
         ...state,
         connectionStage: newStage,
@@ -65,7 +65,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case CHANGE_CONNECTION_STAGE_ERROR: {
-      let {message} = action.payload;
+      const {message} = action.payload;
       return {
         ...state,
         errorMessage: message,

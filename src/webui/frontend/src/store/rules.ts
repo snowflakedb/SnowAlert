@@ -378,7 +378,7 @@ export class Suppression extends SQLBackedRule {
       decorations: {tags},
     } = parseComment(parsedComment.comment);
     const parsedStart = stripStart(parsedComment.rest) || raise('err0');
-    var {rest} = parsedStart;
+    const {rest} = parsedStart;
     const {from} = parsedStart;
 
     // hack until string array UI is ready
