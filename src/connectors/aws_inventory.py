@@ -160,7 +160,7 @@ LANDING_TABLES_COLUMNS = {
         ('arn', 'VARCHAR'),
         ('create_date', 'TIMESTAMP_LTZ'),
         ('password_last_used', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING(32)'),
+        ('account_id', 'STRING(30)'),
     ],
     'AMI': [
         ('raw', 'VARIANT'),
