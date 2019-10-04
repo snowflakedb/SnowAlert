@@ -14,7 +14,7 @@ from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTH
 
 from . import log
 from .auth import load_pkb, oauth_refresh
-from .dbconfig import ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconfig import HOST, PORT, PROTOCOL, ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
 from .dbconnect import snowflake_connect
 
 from runners import utils
@@ -60,14 +60,16 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
         (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
 
-    def connect():
+    def key_pair_connect(runner_role=None):
         return connect_db(
-            account=oauth_account or ACCOUNT,
+            host=HOST,
+            port=PORT,
+            protocol=PROTOCOL,
+            account=ACCOUNT,
             database=DATABASE,
-            user=oauth_username or USER,
-            warehouse=None if oauth_access_token else WAREHOUSE,
-            role=None if oauth_access_token else ROLE,
-            token=oauth_access_token,
+            user=USER,
+            warehouse=WAREHOUSE,
+            role=runner_role or ROLE,
             private_key=pk,
             authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
@@ -75,7 +77,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         )
 
     try:
-        connection = retry(connect)
+        connection = retry(key_pair_connect)
 
         # see SP-1116 for why set_cache=False by default
         if set_cache and not cached_connection:

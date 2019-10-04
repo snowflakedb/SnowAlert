@@ -147,22 +147,37 @@ CREATE_TABLES_QUERIES = [
 def parse_snowflake_url(url):
     account = None
     region = None
+    host = None
+    port = None
+    protocol = None
     res = urlsplit(url)
     path = res.netloc or res.path
 
-    c = path.split('.')
+    host_regex = re.sub(r'\s', '', r'''^
+        (?P<host>
+          (?P<internal_account>[\w]+)
+          (?:[.\w]+\.com)
+        )
+        :(?P<port>\d+)
+        |
+        (:?
+          (?P<account>[^.]+)
+          (?:\.(?P<region>[^.\n]+))?
+          (?:\.\w+\.com)?
+        )
+    $''')
 
-    if len(c) == 1:
-        account = c[0]
-    else:
-        if c[-2:] == ['snowflakecomputing', 'com']:
-            c.pop(-1)
-            c.pop(-1)
+    m = re.match(host_regex, path)
+    if m:
+        groups = m.groupdict()
+        account = groups['internal_account'] or groups['account']
+        region = groups['region'] or ''
+        host = groups['host'] or (account+'.'+region+'.snowflakecomputing.com'
+                                  if region else account+'.snowflakecomputing.com')
+        port = groups['port'] or '443'
+        protocol = res.scheme or ('https' if port == '443' else 'http')
 
-        account = c.pop(0)
-        region = '.'.join(c) if len(c) > 0 else 'us-west-2'
-
-    return account, region
+    return account, region, host, port, protocol
 
 
 def login(configuration=None):
@@ -182,27 +197,28 @@ def login(configuration=None):
         username = config.get('username')
         password = config.get('password')
         region = config.get('region')
+        host = config.get('host')
+        port = config.get('port')
+        protocol = config.get('protocol')
+
     else:
         account = None
         username = None
         password = None
         region = None
 
-    print("Starting installer for SnowAlert.")
-
+    print("Starting installer for SnowAlert...")
     if not account:
         while 1:
             url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
-            account, region = parse_snowflake_url(url)
-            if not account:
+            account, region, host, port, protocol = parse_snowflake_url(url)
+
+            if not (account or host):
                 print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
             else:
                 break
     else:
         print(f"Loaded account: '{account}'")
-
-    if not region:
-        region = input("Region of your Snowflake account [blank for us-west-2]: ")
 
     if not username:
         print("Next, authenticate installer --")
@@ -215,7 +231,12 @@ def login(configuration=None):
     else:
         print(f"Loaded password: {'*' * len(password)}")
 
-    connect_kwargs = {'user': username, 'account': account}
+    if not region:
+        region = input("Region of your Snowflake account [blank for us-west-2]: ")
+    else:
+        print(f"Loaded region: '{region}'")
+
+    connect_kwargs = {'user': username, 'account': account, 'host' : host, 'port' : port, 'protocol' : protocol}
     if password == '':
         connect_kwargs['authenticator'] = 'externalbrowser'
     else:
@@ -244,7 +265,7 @@ def login(configuration=None):
 
     ctx = attempt("Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs))
 
-    return ctx, account, region or "us-west-2", attempt
+    return ctx, account, region or "us-west-2", host, port, protocol, attempt
 
 
 def load_aws_config() -> Tuple[str, str]:
@@ -389,18 +410,21 @@ def setup_authentication(jira_password, region, pk_passphrase=None):
     return private_key, pk_passphrase, jira_password, rsa_public_key
 
 
-def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
+def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, host, port, protocol,
              private_key, pk_passphrase, aws_key, aws_secret, **x):
     vars = [
+        ('SNOWFLAKE_HOST', host),
         ('SNOWFLAKE_ACCOUNT', account),
         ('SA_USER', USER),
         ('SA_ROLE', ROLE),
         ('SA_DATABASE', DATABASE),
         ('SA_WAREHOUSE', WAREHOUSE),
-        ('REGION', region or 'us-west-2'),
+        ('SA_REGION', region or 'us-west-2'),
+        ('SA_PORT', port),
+        ('SA_PROTOCOL', protocol),
 
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
-        ('PRIVATE_KEY_PASSWORD', pk_passphrase.replace('$', r'\$')),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase),
     ]
 
     if jira_url:
@@ -452,7 +476,7 @@ def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=N
         'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
     }
 
-    ctx, account, region, do_attempt = login(configuration)
+    ctx, account, region, host, port, protocol, do_attempt = login(configuration)
 
     if admin_role:
         do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
