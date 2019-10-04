@@ -14,7 +14,7 @@ from .helpers import db, log
 METADATA_RECORDS = []
 
 
-def main():
+def main(rules_postfix=VIOLATION_QUERY_POSTFIX):
     RUN_METADATA = {
         'RUN_TYPE': 'VIOLATION QUERY',
         'START_TIME': datetime.datetime.utcnow(),
