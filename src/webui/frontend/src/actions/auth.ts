@@ -37,7 +37,7 @@ export const oauthRedirect = (account: string, returnHref: string) => async (dis
   try {
     const response = await api.oauthRedirect({account, returnHref});
     if (response.url) {
-      location.href = response.url;
+      window.location.href = response.url;
     }
   } catch (error) {
     dispatch(LoginActions.oauthRedirectFailure(error.message));
@@ -50,7 +50,7 @@ export const oauthLogin = (account: string, code: string, redirectUri: string) =
     const response = await api.oauthLogin({account, code, redirectUri});
     const toks = response.tokens;
     if (toks && toks.error) {
-      throw {message: `${toks.error}: ${toks.message}`};
+      throw new Error(`${toks.error}: ${toks.message}`);
     }
     const auth = JSON.parse(localStorage.getItem('auth') || '{}');
     toks.account = account;
