@@ -20,26 +20,40 @@ import snowflake.connector
 
 def get_aws_client():
     sts_client = boto3.client('sts')
-    response = sts_client.assume_role(RoleArn=os.environ['aws_audit_role'],
-                                      RoleSessionName=os.environ['aws_audit_session_name'],
-                                      ExternalId=os.environ['aws_audit_role_externalid'])
-    org_session = boto3.Session(aws_access_key_id=response['Credentials']['AccessKeyId'],
-                                aws_secret_access_key=response['Credentials']['SecretAccessKey'],
-                                aws_session_token=response['Credentials']['SessionToken'])
+    response = sts_client.assume_role(
+        RoleArn=os.environ['aws_audit_role'],
+        RoleSessionName=os.environ['aws_audit_session_name'],
+        ExternalId=os.environ['aws_audit_role_externalid'],
+    )
+    org_session = boto3.Session(
+        aws_access_key_id=response['Credentials']['AccessKeyId'],
+        aws_secret_access_key=response['Credentials']['SecretAccessKey'],
+        aws_session_token=response['Credentials']['SessionToken'],
+    )
     org_client = org_session.client('organizations')
     return org_client
 
 
 def get_snowflake_client():
     kms = boto3.client('kms')
-    password = kms.decrypt(CiphertextBlob=base64.b64decode(os.environ['private_key_password']))['Plaintext'].decode()
-    private_key = serialization.load_pem_private_key(base64.b64decode(os.environ['private_key']),
-                                                     password=password.encode(), backend=default_backend())
-    pkb = private_key.private_bytes(encoding=serialization.Encoding.DER,
-                                    format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                    encryption_algorithm=serialization.NoEncryption())
-    ctx = snowflake.connector.connect(user=os.environ['snowflake_user'], account=os.environ['snowflake_account'],
-                                      private_key=pkb)
+    password = kms.decrypt(
+        CiphertextBlob=base64.b64decode(os.environ['private_key_password'])
+    )['Plaintext'].decode()
+    private_key = serialization.load_pem_private_key(
+        base64.b64decode(os.environ['private_key']),
+        password=password.encode(),
+        backend=default_backend(),
+    )
+    pkb = private_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    ctx = snowflake.connector.connect(
+        user=os.environ['snowflake_user'],
+        account=os.environ['snowflake_account'],
+        private_key=pkb,
+    )
     return ctx
 
 
@@ -58,8 +72,12 @@ def load_accounts_list(sf_client, accounts_list):
     format_string = ", ".join(["(%s)"] * len(accounts_list))
     snapshotclock = datetime.datetime.utcnow().isoformat()
     sf_client.cursor().execute(
-        "insert into AWS_INVENTORY.SNAPSHOTS.AWS_ACCOUNT_MAP (timestamp, account) select '" + snapshotclock + "', parse_json(column1) from values" + format_string,
-        accounts_list)
+        "insert into AWS_INVENTORY.SNAPSHOTS.AWS_ACCOUNT_MAP (timestamp, account) select '"
+        + snapshotclock
+        + "', parse_json(column1) from values"
+        + format_string,
+        accounts_list,
+    )
 
 
 def handler(event, context):

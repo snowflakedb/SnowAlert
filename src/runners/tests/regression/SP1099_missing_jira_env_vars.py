@@ -55,7 +55,9 @@ def without_jira_vars():
     reload(jira)
 
 
-def test_missing_jira_env_regression(sample_alert_rule, without_jira_vars, delete_results):
+def test_missing_jira_env_regression(
+    sample_alert_rule, without_jira_vars, delete_results
+):
     from runners import alert_queries_runner
     from runners import alert_suppressions_runner
     from runners import alert_processor

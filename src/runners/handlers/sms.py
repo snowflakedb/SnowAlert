@@ -25,14 +25,14 @@ def handle(alert, type='sms', recipient_phone=None, sender_phone=None, message=N
         log.error(f'SMS Message is empty')
         return None
 
-    log.debug(f'Twilio message for recipient with phone number {recipient_phone}', message)
+    log.debug(
+        f'Twilio message for recipient with phone number {recipient_phone}', message
+    )
 
     client = Client(twilio_sid, twilio_token)
 
     response = client.messages.create(
-        body=message,
-        from_=sender_phone,
-        to=recipient_phone
+        body=message, from_=sender_phone, to=recipient_phone
     )
 
     return response

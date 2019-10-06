@@ -146,7 +146,8 @@ def sample_alert_rules(db_schemas):
     db.execute(TEST_SUPPRESSION)
     db.execute(TEST_CORRELATED_ALERT)
     db.execute(TEST_ALERT_WITH_SLACK_HANDLER)
-    db.execute(f"""
+    db.execute(
+        f"""
         CREATE OR REPLACE VIEW rules.__suppress_sample_alerts_alert_suppression COPY GRANTS
           COMMENT='this should suppress anything not a test alert'
         AS
@@ -154,7 +155,8 @@ def sample_alert_rules(db_schemas):
         FROM data.alerts
         WHERE suppressed IS NULL
           AND query_name NOT ILIKE '_TEST%'
-    """)
+    """
+    )
 
     yield
 
@@ -173,6 +175,7 @@ def update_jira_issue_status_done(request):
     @request.addfinalizer
     def fin():
         from runners.handlers import jira
+
         for jira_id in issues_to_update:
             jira.set_issue_done(jira_id)
 
@@ -194,20 +197,25 @@ def assert_dict_has_subset(a, b):
         assert b[x] == a[x]
 
 
-def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_issue_status_done, delete_results):
+def test_alert_runners_processor_and_dispatcher(
+    sample_alert_rules, update_jira_issue_status_done, delete_results
+):
 
     #
     # queries runner
     #
 
     from runners import alert_queries_runner
+
     alert_queries_runner.main()
 
     # basics
     alert = next(db.get_alerts(query_id='test_1_query_id'))
     assert_dict_is_subset(EXPECTED_TEST_1_OUTPUT, alert)
 
-    query_rule_run_record = list(db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY query_name'))
+    query_rule_run_record = list(
+        db.fetch('SELECT * FROM data.alert_query_rule_runs ORDER BY query_name')
+    )
 
     assert len(query_rule_run_record) == 7  # 3 from samples + 4 test alert queries
 
@@ -215,10 +223,16 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     queries_by_admin = 57
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == queries_by_admin
 
-    assert query_rule_run_record[1]['QUERY_NAME'] == 'SNOWFLAKE_LOGIN_WITHOUT_MFA_ALERT_QUERY'
+    assert (
+        query_rule_run_record[1]['QUERY_NAME']
+        == 'SNOWFLAKE_LOGIN_WITHOUT_MFA_ALERT_QUERY'
+    )
     assert query_rule_run_record[1]['NUM_ALERTS_CREATED'] == 1
 
-    assert query_rule_run_record[2]['QUERY_NAME'] == 'SNOWFLAKE_RESOURCE_CREATION_ALERT_QUERY'
+    assert (
+        query_rule_run_record[2]['QUERY_NAME']
+        == 'SNOWFLAKE_RESOURCE_CREATION_ALERT_QUERY'
+    )
     # unclear why this value is non-deterministic in test suite
     resource_creations = query_rule_run_record[2]['NUM_ALERTS_CREATED']
     assert resource_creations >= 40
@@ -227,7 +241,9 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert query_rule_run_record[-4]['NUM_ALERTS_CREATED'] == 1
 
     assert query_rule_run_record[-3]['QUERY_NAME'] == '_TEST2_ALERT_QUERY'
-    assert query_rule_run_record[-3]['NUM_ALERTS_CREATED'] == 1  # second is de-duplicated
+    assert (
+        query_rule_run_record[-3]['NUM_ALERTS_CREATED'] == 1
+    )  # second is de-duplicated
 
     assert query_rule_run_record[-2]['QUERY_NAME'] == '_TEST3_ALERT_QUERY'
     assert query_rule_run_record[-2]['NUM_ALERTS_CREATED'] == 1
@@ -237,9 +253,14 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
 
     print(query_rule_run_record)
 
-    queries_run_records = list(db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time'))
+    queries_run_records = list(
+        db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time')
+    )
     assert len(queries_run_records) == 1
-    assert queries_run_records[0]['NUM_ALERTS_CREATED'] == resource_creations + queries_by_admin + 5
+    assert (
+        queries_run_records[0]['NUM_ALERTS_CREATED']
+        == resource_creations + queries_by_admin + 5
+    )
     assert queries_run_records[0]['NUM_ALERTS_UPDATED'] == 0
 
     # TODO: errors
@@ -254,6 +275,7 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     #
 
     from runners import alert_suppressions_runner
+
     alert_suppressions_runner.main()
 
     # basics
@@ -263,25 +285,41 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert alerts[0]['TICKET'] is None
     assert alerts[0]['SUPPRESSION_RULE'] == '_TEST2_ALERT_SUPPRESSION'
 
-    suppression_rule_run_records = list(db.fetch('SELECT * FROM data.alert_suppression_rule_runs ORDER BY rule_name'))
+    suppression_rule_run_records = list(
+        db.fetch('SELECT * FROM data.alert_suppression_rule_runs ORDER BY rule_name')
+    )
     assert len(suppression_rule_run_records) == 3
     assert suppression_rule_run_records[0]['RUN_ID'] == RUN_ID
-    assert suppression_rule_run_records[0]['RULE_NAME'] == 'SINGLE_FACTOR_EXCEPTIONS_ALERT_SUPPRESSION'
+    assert (
+        suppression_rule_run_records[0]['RULE_NAME']
+        == 'SINGLE_FACTOR_EXCEPTIONS_ALERT_SUPPRESSION'
+    )
     assert suppression_rule_run_records[0]['NUM_ALERTS_SUPPRESSED'] == 0
     assert suppression_rule_run_records[1]['RUN_ID'] == RUN_ID
     assert suppression_rule_run_records[1]['RULE_NAME'] == '_TEST2_ALERT_SUPPRESSION'
     assert suppression_rule_run_records[1]['NUM_ALERTS_SUPPRESSED'] == 1
     assert suppression_rule_run_records[2]['RUN_ID'] == RUN_ID
-    assert suppression_rule_run_records[2]['RULE_NAME'] == '__SUPPRESS_SAMPLE_ALERTS_ALERT_SUPPRESSION'
-    assert suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED'] == resource_creations + queries_by_admin + 1
+    assert (
+        suppression_rule_run_records[2]['RULE_NAME']
+        == '__SUPPRESS_SAMPLE_ALERTS_ALERT_SUPPRESSION'
+    )
+    assert (
+        suppression_rule_run_records[2]['NUM_ALERTS_SUPPRESSED']
+        == resource_creations + queries_by_admin + 1
+    )
 
-    suppression_run_records = list(db.fetch('SELECT * FROM data.alert_suppressions_runs'))
+    suppression_run_records = list(
+        db.fetch('SELECT * FROM data.alert_suppressions_runs')
+    )
     assert len(suppression_run_records) == 1
-    assert_dict_has_subset(suppression_run_records[0], {
-        'RUN_ID': RUN_ID,
-        'NUM_ALERTS_SUPPRESSED': resource_creations + queries_by_admin + 2,
-        'NUM_ALERTS_PASSED': 3,
-    })
+    assert_dict_has_subset(
+        suppression_run_records[0],
+        {
+            'RUN_ID': RUN_ID,
+            'NUM_ALERTS_SUPPRESSED': resource_creations + queries_by_admin + 2,
+            'NUM_ALERTS_PASSED': 3,
+        },
+    )
 
     # TODO: errors
 
@@ -290,6 +328,7 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     #
 
     from runners import alert_processor
+
     alert_processor.main()
 
     # basics
@@ -305,9 +344,11 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     # alert handler
     #
     from runners.handlers import slack
+
     slack.handle = MagicMock(return_value={'ok': True})
     from runners import alert_dispatcher
     from runners.handlers import jira
+
     alert_dispatcher.main()
 
     # jira
@@ -317,7 +358,10 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     ticket_body = jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    assert {lines[2], lines[23]} == {'Query ID: test_1_query_id', 'Query ID: test_3_query'}
+    assert {lines[2], lines[23]} == {
+        'Query ID: test_1_query_id',
+        'Query ID: test_3_query',
+    }
 
     # slack
     alert = next(db.get_alerts(query_id='test_4_query_id'))

@@ -27,7 +27,9 @@ def unindent(text):
 def replace_config_vals(rule_body: str) -> str:
     for k, v in CONFIG_VARS:
         vregex = v.replace('.', '\\.')
-        rule_body = re.sub(f'\\b{vregex}\\b', f"{{{k}}}", rule_body, flags=re.IGNORECASE)
+        rule_body = re.sub(
+            f'\\b{vregex}\\b', f"{{{k}}}", rule_body, flags=re.IGNORECASE
+        )
     return rule_body
 
 
@@ -51,7 +53,12 @@ def get_rules():
     return jsonify(
         rules=[
             {
-                "title": re.sub('_(alert|violation|policy)_(query|suppression|definition)$', '', rule['name'], flags=re.I),
+                "title": re.sub(
+                    '_(alert|violation|policy)_(query|suppression|definition)$',
+                    '',
+                    rule['name'],
+                    flags=re.I,
+                ),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
                 "body": replace_config_vals(rule['text']),
@@ -60,7 +67,9 @@ def get_rules():
                     if rule['name'].endswith("_POLICY_DEFINITION")
                     else None
                 ),
-            } for rule in rules if db.is_valid_rule_name(rule['name'])
+            }
+            for rule in rules
+            if db.is_valid_rule_name(rule['name'])
         ]
     )
 
@@ -71,7 +80,12 @@ def create_rule():
         return jsonify(success=False, message="bad sid", rule={})
 
     data = request.get_json()
-    rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
+    rule_title, rule_type, rule_target, rule_body = (
+        data['title'],
+        data['type'],
+        data['target'],
+        data['body'],
+    )
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
     for name, value in CONFIG_VARS:
@@ -80,11 +94,15 @@ def create_rule():
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
     m = re.match(r"^  COMMENT='((?:\\'|[^'])*)'\nAS\n", rule_body)
-    comment, rule_body = (m.group(1), rule_body[m.span()[1]:]) if m else ('', rule_body)
+    comment, rule_body = (
+        (m.group(1), rule_body[m.span()[1] :]) if m else ('', rule_body)
+    )
     comment_clause = f"\n  COMMENT='{comment}'\n"
 
     view_name = f"rules.{rule_title}_{rule_target}_{rule_type}"
-    rule_body = f"CREATE OR REPLACE VIEW {view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
+    rule_body = (
+        f"CREATE OR REPLACE VIEW {view_name} COPY GRANTS{comment_clause}AS\n{rule_body}"
+    )
 
     try:
         oauth = json.loads(request.headers.get('Authorization') or '{}')
@@ -92,7 +110,9 @@ def create_rule():
         ctx.cursor().execute(rule_body).fetchall()
 
         try:  # errors expected, e.g. if permissions managed by future grants on schema
-            ctx.cursor().execute(f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}").fetchall()
+            ctx.cursor().execute(
+                f"GRANT SELECT ON VIEW {view_name} TO ROLE {dbconfig.ROLE}"
+            ).fetchall()
         except Exception:
             pass
 
@@ -117,7 +137,12 @@ def delete_rule():
         return jsonify(success=False, message="bad sid", rule={})
 
     data = request.get_json()
-    rule_title, rule_type, rule_target, rule_body = data['title'], data['type'], data['target'], data['body']
+    rule_title, rule_type, rule_target, rule_body = (
+        data['title'],
+        data['type'],
+        data['target'],
+        data['body'],
+    )
     logger.info(f'Deleting rule {rule_title}_{rule_target}_{rule_type}')
 
     try:
@@ -142,7 +167,12 @@ def rename_rule():
         return jsonify(success=False, message="bad sid", rule={})
 
     data = request.get_json()
-    rule_title, rule_type, rule_target, new_title = data['title'], data['type'], data['target'], data['newTitle']
+    rule_title, rule_type, rule_target, new_title = (
+        data['title'],
+        data['type'],
+        data['target'],
+        data['newTitle'],
+    )
     logger.info(f'Renaming rule {rule_title}_{rule_target}_{rule_type}')
 
     try:

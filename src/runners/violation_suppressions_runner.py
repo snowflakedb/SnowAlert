@@ -36,9 +36,7 @@ def run_suppression(squelch_name):
         'RUN_ID': RUN_ID,
         'ATTEMPTS': 1,
         'START_TIME': datetime.datetime.utcnow(),
-        'ROW_COUNT': {
-            'SUPPRESSED': 0
-        }
+        'ROW_COUNT': {'SUPPRESSED': 0},
     }
     log.info(f"{squelch_name} processing...")
     try:
@@ -66,15 +64,24 @@ def main():
     for squelch_name in db.load_rules(VIOLATION_SQUELCH_POSTFIX):
         run_suppression(squelch_name)
 
-    num_violations_passed = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
+    num_violations_passed = next(db.fetch(SET_SUPPRESSED_FALSE))[
+        'number of rows updated'
+    ]
     RUN_METADATA['ROW_COUNT'] = {
-        'SUPPRESSED': sum(rmr['ROW_COUNT']['SUPPRESSED'] for rmr in RULE_METADATA_RECORDS),
+        'SUPPRESSED': sum(
+            rmr['ROW_COUNT']['SUPPRESSED'] for rmr in RULE_METADATA_RECORDS
+        ),
         'PASSED': num_violations_passed,
     }
     db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Suppression Runner'}], 1)
+        log.metric(
+            'Run',
+            'SnowAlert',
+            [{'Name': 'Component', 'Value': 'Violation Suppression Runner'}],
+            1,
+        )
 
 
 if __name__ == '__main__':

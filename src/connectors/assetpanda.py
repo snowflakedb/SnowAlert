@@ -24,22 +24,22 @@ CONNECTION_OPTIONS = [
         'prompt': 'Your AssetPanda Asset Entity ID',
         'type': 'int',
         'required': True,
-        'secret': False
+        'secret': False,
     },
     {
         'name': 'token',
         'title': 'AssetPanda API Token',
         'prompt': 'Your AssetPanda API Token',
         'type': 'str',
-        'secret': True
-    }
+        'secret': True,
+    },
 ]
 
 LANDING_TABLE_COLUMNS = [
     ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
     ('RAW', 'VARIANT'),
     ('ID', 'VARCHAR(256)'),
-    ('INSERT_AT', 'TIMESTAMP_LTZ(9)')
+    ('INSERT_AT', 'TIMESTAMP_LTZ(9)'),
 ]
 
 
@@ -101,9 +101,7 @@ def replace_device_key(list_device: list, replace_key: dict):
 
 
 def get_data(token: str, url: str, params: dict = {}) -> dict:
-    headers: dict = {
-        "Authorization": f"Bearer {token}"
-    }
+    headers: dict = {"Authorization": f"Bearer {token}"}
     try:
         log.debug(f"Preparing GET: url={url} with params={params}")
         req = requests.get(url, params=params, headers=headers)
@@ -138,13 +136,12 @@ def ingest(table_name, options):
     token = options['token']
     asset_entity_id = options['asset_entity_id']
 
-    general_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
+    general_url = (
+        f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}/objects"
+    )
     fields_url = f"https://api.assetpanda.com:443//v2/entities/{asset_entity_id}"
 
-    params = {
-        "offset": 0,
-        "limit": PAGE_SIZE,
-    }
+    params = {"offset": 0, "limit": PAGE_SIZE}
 
     total_object_count = 0
 
@@ -156,7 +153,9 @@ def ingest(table_name, options):
 
         assets = get_data(token=token, url=general_url, params=params)
 
-        list_object, total_object_count = get_list_objects_and_total_from_get_object(assets)
+        list_object, total_object_count = get_list_objects_and_total_from_get_object(
+            assets
+        )
 
         dict_fields = get_data(token, fields_url, params=params)
         list_field = dict_fields["fields"]
@@ -170,16 +169,17 @@ def ingest(table_name, options):
 
         db.insert(
             landing_table,
-            values=[(
-                entry,
-                entry.get('id', None),
-                insert_time
-            ) for entry in list_object_without_field_id],
+            values=[
+                (entry, entry.get('id', None), insert_time)
+                for entry in list_object_without_field_id
+            ],
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS),
         )
 
-        log.info(f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).')
+        log.info(
+            f'Inserted {len(list_object_without_field_id)} rows ({landing_table}).'
+        )
         yield len(list_object_without_field_id)
 
         # increment the offset to get new entries each iteration in the while loop

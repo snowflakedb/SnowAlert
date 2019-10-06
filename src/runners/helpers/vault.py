@@ -13,7 +13,9 @@ ENABLED = bool(KMS_KEY)
 kms = boto3.client('kms', region_name=SA_KMS_REGION)
 
 
-def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) -> Optional[str]:
+def decrypt_if_encrypted(
+    ct: Optional[str] = None, envar: Optional[str] = None
+) -> Optional[str]:
     if envar:
         ct = environ.get(envar)
 
@@ -40,7 +42,6 @@ def decrypt_if_encrypted(ct: Optional[str] = None, envar: Optional[str] = None) 
 
 
 def encrypt(pt):
-    return b64encode(kms.encrypt(
-        KeyId=KMS_KEY,
-        Plaintext=pt,
-    )['CiphertextBlob']).decode()
+    return b64encode(
+        kms.encrypt(KeyId=KMS_KEY, Plaintext=pt)['CiphertextBlob']
+    ).decode()

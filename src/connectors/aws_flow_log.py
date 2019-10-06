@@ -34,23 +34,15 @@ CONNECTION_OPTIONS = [
         'prompt': "Role to be assumed for access to Flow Logs in S3",
         'placeholder': "arn:aws:iam::012345678987:role/my-flow-log-reader-role",
         'required': True,
-    }
+    },
 ]
 
 FILE_FORMAT = db.TypeOptions(
-    type='CSV',
-    compression='GZIP',
-    field_delimiter=' ',
-    skip_header=1,
-    null_if='-',
+    type='CSV', compression='GZIP', field_delimiter=' ', skip_header=1, null_if='-'
 )
 
 PROTOCOL_FILE_FORMAT = db.TypeOptions(
-    type='CSV',
-    compression='AUTO',
-    skip_header=1,
-    field_delimiter=',',
-    null_if='',
+    type='CSV', compression='AUTO', skip_header=1, field_delimiter=',', null_if=''
 )
 
 LANDING_TABLE_COLUMNS = [
@@ -108,14 +100,10 @@ def connect(connection_name, options):
         prefix=prefix,
         cloud='aws',
         credentials=role,
-        file_format=FILE_FORMAT
+        file_format=FILE_FORMAT,
     )
 
-    db.create_table(
-        name=landing_table,
-        cols=LANDING_TABLE_COLUMNS,
-        comment=comment
-    )
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
 
     db.create_table_and_upload_csv(
         name='data.network_protocol_mapping',
@@ -126,8 +114,7 @@ def connect(connection_name, options):
     )
 
     stage_props = db.fetch_props(
-        f'DESC STAGE {stage}',
-        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+        f'DESC STAGE {stage}', filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
     )
 
     prefix = prefix.rstrip('/')
@@ -136,49 +123,44 @@ def connect(connection_name, options):
         'newStage': 'created',
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
             role=role,
-            role_trust_relationship=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+            role_trust_relationship=dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": stage_props['SNOWFLAKE_IAM_USER']},
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                                }
+                            },
+                        }
+                    ],
+                },
+                indent=4,
+            ),
+            role_policy=dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+                            "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*",
                         },
-                        "Action": "sts:AssumeRole",
-                        "Condition": {
-                            "StringEquals": {
-                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-            role_policy=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": [
-                            "s3:GetObject",
-                            "s3:GetObjectVersion",
-                        ],
-                        "Resource": f"arn:aws:s3:::{bucket}/{prefix}/*"
-                    },
-                    {
-                        "Effect": "Allow",
-                        "Action": "s3:ListBucket",
-                        "Resource": f"arn:aws:s3:::{bucket}",
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    f"{prefix}/*"
-                                ]
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-        )
+                        {
+                            "Effect": "Allow",
+                            "Action": "s3:ListBucket",
+                            "Resource": f"arn:aws:s3:::{bucket}",
+                            "Condition": {"StringLike": {"s3:prefix": [f"{prefix}/*"]}},
+                        },
+                    ],
+                },
+                indent=4,
+            ),
+        ),
     }
 
 
@@ -200,14 +182,14 @@ def finalize(connection_name):
             autoingest=True,
         ),
         n=10,
-        sleep_seconds_btw_retry=1
+        sleep_seconds_btw_retry=1,
     )
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
     if pipe_description is None:
         return {
             'newStage': 'error',
-            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
+            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance.",
         }
 
     else:
@@ -218,5 +200,5 @@ def finalize(connection_name):
                 f"Please add this SQS Queue ARN to the bucket event notification "
                 f"channel for all object create events:\n\n  {sqs_arn}\n\n"
                 f"If you'd like to backfill the table, please run\n\n  ALTER PIPE {pipe} REFRESH;"
-            )
+            ),
         }

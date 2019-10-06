@@ -100,23 +100,20 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
         'RUN_ID': RUN_ID,
         'ATTEMPTS': 1,
         'START_TIME': datetime.datetime.utcnow(),
-        'ROW_COUNT': {
-            'INSERTED': 0,
-            'UPDATED': 0,
-        }
+        'ROW_COUNT': {'INSERTED': 0, 'UPDATED': 0},
     }
 
     try:
-        db.execute(RUN_ALERT_QUERY.format(
-            query_name=rule_name,
-            from_time_sql=f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())",
-            to_time_sql="CURRENT_TIMESTAMP()",
-        ), fix_errors=False)
+        db.execute(
+            RUN_ALERT_QUERY.format(
+                query_name=rule_name,
+                from_time_sql=f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())",
+                to_time_sql="CURRENT_TIMESTAMP()",
+            ),
+            fix_errors=False,
+        )
         insert_count, update_count = merge_alerts(rule_name, GROUPING_CUTOFF)
-        metadata['ROW_COUNT'] = {
-            'INSERTED': insert_count,
-            'UPDATED': update_count,
-        }
+        metadata['ROW_COUNT'] = {'INSERTED': insert_count, 'UPDATED': update_count}
         db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 
     except Exception as e:
@@ -150,7 +147,12 @@ def main(rule_name=None):
 
     try:
         if CLOUDWATCH_METRICS:
-            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Query Runner'}], 1)
+            log.metric(
+                'Run',
+                'SnowAlert',
+                [{'Name': 'Component', 'Value': 'Alert Query Runner'}],
+                1,
+            )
     except Exception as e:
         log.error("Cloudwatch metric logging failed: ", e)
 

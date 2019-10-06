@@ -16,7 +16,7 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "ENVIRONMENT": "No Environment described",
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
-    "SEVERITY": "Severity Unspecified"
+    "SEVERITY": "Severity Unspecified",
 }
 
 JIRA_TICKET_BODY_FMT = """
@@ -50,7 +50,9 @@ def jira_ticket_body(alert):
     alert['SOURCES'] = ', '.join(alert['SOURCES'])
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
     sources = escaped_locals_strings['SOURCES']
-    escaped_locals_strings['SOURCES'] = f'[{sources}|{link_search_todos(f"Sources: {sources}")}]'
+    escaped_locals_strings[
+        'SOURCES'
+    ] = f'[{sources}|{link_search_todos(f"Sources: {sources}")}]'
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     ticket_body = JIRA_TICKET_BODY_FMT.format(**jira_body)
     return ticket_body[:99000]
@@ -73,10 +75,14 @@ def append_to_body(id, alert):
     log.info(f"Appending data to ticket {id}")
     description = description + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     alert['SOURCES'] = ', '.join(alert['SOURCES'])
-    alert['EVENT_DATA'] = yaml.dump(alert['EVENT_DATA'], indent=4, default_flow_style=False)
+    alert['EVENT_DATA'] = yaml.dump(
+        alert['EVENT_DATA'], indent=4, default_flow_style=False
+    )
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
     sources = escaped_locals_strings['SOURCES']
-    escaped_locals_strings['SOURCES'] = f'[{sources}|{link_search_todos(f"SOURCES: {sources}")}]'
+    escaped_locals_strings[
+        'SOURCES'
+    ] = f'[{sources}|{link_search_todos(f"SOURCES: {sources}")}]'
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     description = description + JIRA_TICKET_BODY_FMT.format(**jira_body)
 
@@ -97,7 +103,9 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
         return
 
     try:
-        alert['EVENT_DATA'] = yaml.dump(alert['EVENT_DATA'], indent=4, default_flow_style=False)
+        alert['EVENT_DATA'] = yaml.dump(
+            alert['EVENT_DATA'], indent=4, default_flow_style=False
+        )
     except Exception as e:
         log.error("Error while creating ticket", e)
 
@@ -119,7 +127,9 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
             issue_params[f'customfield_{field_id}'] = {'value': field_value}
 
         if custom_field:
-            issue_params[f'customfield_{custom_field["id"]}'] = {'value': custom_field['value']}
+            issue_params[f'customfield_{custom_field["id"]}'] = {
+                'value': custom_field['value']
+            }
 
     new_issue = jira.create_issue(**issue_params)
 
@@ -198,7 +208,9 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
             try:
                 append_to_body(ticket_id, alert)
             except Exception as e:
-                log.error(f"Failed to append alert {alert_id} to ticket {ticket_id}.", e)
+                log.error(
+                    f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
+                )
                 try:
                     ticket_id = create_jira_ticket(alert)
                 except Exception as e:

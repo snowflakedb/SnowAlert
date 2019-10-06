@@ -8,19 +8,13 @@ from scripts import install
 def db_schemas(request):
     @request.addfinalizer
     def fin():
-        install.main(
-            uninstall=True,
-        )
+        install.main(uninstall=True)
 
-    install.main(
-        samples=True,
-        pk_passphrase='',
-        jira=False,
-        set_env_vars=True,
-    )
+    install.main(samples=True, pk_passphrase='', jira=False, set_env_vars=True)
 
     # reload to pick up env vars set by installer
     import importlib
+
     importlib.reload(dbconfig)
     importlib.reload(db)
     importlib.reload(install)

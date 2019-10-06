@@ -12,10 +12,16 @@ TEST_URLS = {
     "account.region": ['account', 'region'],
     "account.region.snowflakecomputing.com": ['account', 'region'],
     "azure_account.azure_region.azure": ['azure_account', 'azure_region.azure'],
-    "azure_account.azure_region.azure.snowflakecomputing.com": ['azure_account', 'azure_region.azure'],
+    "azure_account.azure_region.azure.snowflakecomputing.com": [
+        'azure_account',
+        'azure_region.azure',
+    ],
     "https://account.snowflakecomputing.com": ['account', 'us-west-2'],
     "https://account.region.snowflakecomputing.com": ['account', 'region'],
-    "https://azure_account.azure_region.azure.snowflakecomputing.com/console": ['azure_account', 'azure_region.azure'],
+    "https://azure_account.azure_region.azure.snowflakecomputing.com/console": [
+        'azure_account',
+        'azure_region.azure',
+    ],
 }
 
 

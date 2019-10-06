@@ -21,26 +21,29 @@ def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> _RSAPriv
     private_key = serialization.load_pem_private_key(
         p8_private_key,
         password=ptpass.encode() if ptpass else None,
-        backend=default_backend()
+        backend=default_backend(),
     )
     return private_key
 
 
 def oauth_refresh(account: str, refresh_token: str) -> str:
-    OAUTH_CLIENT_ID = environ.get(f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', '')
-    OAUTH_SECRET_ID = environ.get(f'OAUTH_SECRET_{account.partition(".")[0].upper()}', '')
+    OAUTH_CLIENT_ID = environ.get(
+        f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', ''
+    )
+    OAUTH_SECRET_ID = environ.get(
+        f'OAUTH_SECRET_{account.partition(".")[0].upper()}', ''
+    )
 
-    return post(
-        f'https://{account}.snowflakecomputing.com/oauth/token-request',
-        auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
-        headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        data={
-            'grant_type': 'refresh_token',
-            'refresh_token': refresh_token,
-        },
-    ).json().get('access_token')
+    return (
+        post(
+            f'https://{account}.snowflakecomputing.com/oauth/token-request',
+            auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data={'grant_type': 'refresh_token', 'refresh_token': refresh_token},
+        )
+        .json()
+        .get('access_token')
+    )
 
 
 def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
@@ -58,5 +61,5 @@ def load_pkb(p8_private_key: bytes, passphrase: Optional[bytes]) -> bytes:
     return load_pkb_rsa(p8_private_key, passphrase).private_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.NoEncryption(),
     )

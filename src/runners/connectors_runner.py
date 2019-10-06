@@ -28,12 +28,14 @@ def connection_run(connection_table):
         if 'module' in options:
             module = options['module']
 
-            metadata.update({
-                'RUN_ID': RUN_ID,
-                'TYPE': module,
-                'LANDING_TABLE': table_name,
-                'INGEST_COUNT': 0
-            })
+            metadata.update(
+                {
+                    'RUN_ID': RUN_ID,
+                    'TYPE': module,
+                    'LANDING_TABLE': table_name,
+                    'INGEST_COUNT': 0,
+                }
+            )
 
             connector = importlib.import_module(f"connectors.{module}")
 

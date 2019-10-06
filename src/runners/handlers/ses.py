@@ -5,9 +5,19 @@ from runners.helpers import log
 from runners.helpers.dbconfig import REGION
 
 
-def handle(alert, type='ses', recipient_email=None, sender_email=None,
-           text=None, html=None, subject=None, cc=None, bcc=None,
-           reply_to=None, charset="UTF-8"):
+def handle(
+    alert,
+    type='ses',
+    recipient_email=None,
+    sender_email=None,
+    text=None,
+    html=None,
+    subject=None,
+    cc=None,
+    bcc=None,
+    reply_to=None,
+    charset="UTF-8",
+):
 
     # check if recipient email is not empty
     if recipient_email is None:
@@ -34,33 +44,17 @@ def handle(alert, type='ses', recipient_email=None, sender_email=None,
         replyTo = reply_to.split(",")
 
     destination = {
-        'ToAddresses': [
-            recipient_email
-        ],
+        'ToAddresses': [recipient_email],
         'CcAddresses': ccs,
-        'BccAddresses': bccs
+        'BccAddresses': bccs,
     }
 
-    body = {
-        'Text': {
-            'Charset': charset,
-            'Data': text,
-        },
-    }
+    body = {'Text': {'Charset': charset, 'Data': text}}
 
     if html is not None:
-        body.update(Html={
-                    'Charset': charset,
-                    'Data': html,
-                    })
+        body.update(Html={'Charset': charset, 'Data': html})
 
-    message = {
-        'Body': body,
-        'Subject': {
-            'Charset': charset,
-            'Data': subject,
-        },
-    }
+    message = {'Body': body, 'Subject': {'Charset': charset, 'Data': subject}}
 
     log.debug(f'SES message for recipient with email {recipient_email}', message)
 
@@ -73,7 +67,7 @@ def handle(alert, type='ses', recipient_email=None, sender_email=None,
             Destination=destination,
             Message=message,
             Source=sender_email,
-            ReplyToAddresses=replyTo
+            ReplyToAddresses=replyTo,
         )
     # Display an error if something goes wrong.
     except ClientError as e:
