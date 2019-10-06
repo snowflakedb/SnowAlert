@@ -212,7 +212,7 @@ def test_alert_runners_processor_and_dispatcher(sample_alert_rules, update_jira_
     assert len(query_rule_run_record) == 7  # 3 from samples + 4 test alert queries
 
     assert query_rule_run_record[0]['QUERY_NAME'] == 'ACTIVITY_BY_ADMIN_ALERT_QUERY'
-    queries_by_admin = 55
+    queries_by_admin = 57
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == queries_by_admin
 
     assert query_rule_run_record[1]['QUERY_NAME'] == 'SNOWFLAKE_LOGIN_WITHOUT_MFA_ALERT_QUERY'
