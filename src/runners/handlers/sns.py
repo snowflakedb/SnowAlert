@@ -6,7 +6,16 @@ from runners.helpers import log
 from runners.helpers.dbconfig import REGION
 
 
-def handle(alert, type='sns', topic=None, target=None, recipient_phone=None, subject=None, message_structure=None, message=None):
+def handle(
+    alert,
+    type='sns',
+    topic=None,
+    target=None,
+    recipient_phone=None,
+    subject=None,
+    message_structure=None,
+    message=None,
+):
 
     # check if phone is nit empty if yes notification will be delivered to twilio
     if recipient_phone is None and topic is None and target is None:

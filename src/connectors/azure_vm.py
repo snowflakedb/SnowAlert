@@ -25,7 +25,7 @@ CONNECTION_OPTIONS = [
         'prompt': "Identifies the Client's Azure Tenant",
         'placeholder': "48bbefee-7db1-4459-8f83-085fddf063b",
         'type': 'str',
-        'required': True
+        'required': True,
     },
     {
         'name': 'client_id',
@@ -33,7 +33,7 @@ CONNECTION_OPTIONS = [
         'prompt': "Usename identifying the Service Principal",
         'placeholder': "90d501a2-7c37-4036-af29-1e7e087437",
         'type': 'str',
-        'required': True
+        'required': True,
     },
     {
         'name': 'client_secret',
@@ -41,7 +41,7 @@ CONNECTION_OPTIONS = [
         'prompt': "Secret access key authenticating the client",
         'type': 'str',
         'required': True,
-        'secret': True
+        'secret': True,
     },
     {
         'name': 'subscription_connection_name',
@@ -49,8 +49,8 @@ CONNECTION_OPTIONS = [
         'prompt': 'The custom name you provided when setting up the Azure Subscription Connector',
         'type': 'str',
         'required': True,
-        'default': 'default'
-    }
+        'default': 'default',
+    },
 ]
 
 LANDING_TABLE_COLUMNS = [
@@ -117,9 +117,7 @@ def connect(connection_name, options):
         f'subscription_connection_name: {subscription_connection_name}',
     )
     db.create_table(
-        name=f'data.{base_name}_CONNECTION',
-        cols=LANDING_TABLE_COLUMNS,
-        comment=comment,
+        name=f'data.{base_name}_CONNECTION', cols=LANDING_TABLE_COLUMNS, comment=comment
     )
     db.execute(f'GRANT INSERT, SELECT ON data.{base_name}_CONNECTION TO ROLE {SA_ROLE}')
 
@@ -127,13 +125,13 @@ def connect(connection_name, options):
         ('SNAPSHOT_AT', 'TIMESTAMP_LTZ'),
         ('RUN_ID', 'STRING(100)'),
         ('SUBSCRIPTION_ID', 'STRING(500)'),
-        ('VM_INSTANCE_COUNT', 'NUMBER')
+        ('VM_INSTANCE_COUNT', 'NUMBER'),
     ]
     create_metadata_table(AZURE_COLLECTION_METADATA, cols, cols[3])
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'Landing and metadata tables created for collectors to populate.'
+        'newMessage': 'Landing and metadata tables created for collectors to populate.',
     }
 
 
@@ -145,7 +143,7 @@ def ingest(table_name, options):
     creds = {
         'clientId': options['client_id'],
         'clientSecret': options['client_secret'],
-        'tenantId': options['tenant_id']
+        'tenantId': options['tenant_id'],
     }
 
     virtual_machines = []
@@ -164,22 +162,25 @@ def ingest(table_name, options):
             enrich_vm_with_nics(vm, nics)
         virtual_machines.append(vms)
 
-    virtual_machines = [(
-        now,
-        elem,
-        elem.get('hardware_profile'),
-        elem.get('id'),
-        elem.get('location'),
-        elem.get('name'),
-        elem.get('network_profile'),
-        elem.get('os_profile'),
-        elem.get('provisioning_state'),
-        elem.get('storage_profile'),
-        elem.get('subscription_id'),
-        elem.get('tags'),
-        elem.get('type'),
-        elem.get('vm_id'),
-    ) for elem in itertools.chain(*virtual_machines)]
+    virtual_machines = [
+        (
+            now,
+            elem,
+            elem.get('hardware_profile'),
+            elem.get('id'),
+            elem.get('location'),
+            elem.get('name'),
+            elem.get('network_profile'),
+            elem.get('os_profile'),
+            elem.get('provisioning_state'),
+            elem.get('storage_profile'),
+            elem.get('subscription_id'),
+            elem.get('tags'),
+            elem.get('type'),
+            elem.get('vm_id'),
+        )
+        for elem in itertools.chain(*virtual_machines)
+    ]
 
     for group in groups_of(15000, virtual_machines):
         db.insert(
@@ -200,7 +201,7 @@ def ingest(table_name, options):
                 'PARSE_JSON(column12)',
                 'column13',
                 'column14',
-            )
+            ),
         )
 
     yield len(virtual_machines)

@@ -8,7 +8,7 @@ from runners.config import (
     RUN_METADATA_TABLE,
     ALERT_SQUELCH_POSTFIX,
     CLOUDWATCH_METRICS,
-    RUN_ID
+    RUN_ID,
 )
 from runners.helpers import db, log
 
@@ -44,7 +44,9 @@ def run_suppression_query(squelch_name):
         query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
         return next(db.fetch(query, fix_errors=False))['number of rows updated']
     except Exception:
-        log.info(f"{squelch_name} warning: query broken, might need 'id' column, trying 'alert:ALERT_ID'.")
+        log.info(
+            f"{squelch_name} warning: query broken, might need 'id' column, trying 'alert:ALERT_ID'."
+        )
         query = OLD_SUPPRESSION_QUERY.format(suppression_name=squelch_name)
         return next(db.fetch(query))['number of rows updated']
 
@@ -79,12 +81,16 @@ def main(squelch_name=None):
         'RUN_ID': RUN_ID,
     }
 
-    rules = db.load_rules(ALERT_SQUELCH_POSTFIX) if squelch_name is None else [squelch_name]
+    rules = (
+        db.load_rules(ALERT_SQUELCH_POSTFIX) if squelch_name is None else [squelch_name]
+    )
     for squelch_name in rules:
         run_suppressions(squelch_name)
 
     num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
-    log.info(f'All suppressions done, {num_rows_updated} remaining alerts marked suppressed=FALSE.')
+    log.info(
+        f'All suppressions done, {num_rows_updated} remaining alerts marked suppressed=FALSE.'
+    )
 
     RUN_METADATA['ROW_COUNT'] = {
         'PASSED': num_rows_updated,
@@ -95,7 +101,12 @@ def main(squelch_name=None):
 
     try:
         if CLOUDWATCH_METRICS:
-            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}], 1)
+            log.metric(
+                'Run',
+                'SnowAlert',
+                [{'Name': 'Component', 'Value': 'Alert Suppression Runner'}],
+                1,
+            )
     except Exception as e:
         log.error("Cloudwatch metric logging failed: ", e)
 

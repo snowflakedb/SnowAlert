@@ -36,9 +36,14 @@ USER = environ.get('SA_USER', "snowalert") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
 pk = environ.get('PRIVATE_KEY')
 PRIVATE_KEY = (
-    b64decode(pk) if pk.startswith('LS0t')  # "LS0t" is base64 of '---'
-    else format_p8_from_key(pk, encrypted=PRIVATE_KEY_PASSWORD)
-) if pk else None
+    (
+        b64decode(pk)
+        if pk.startswith('LS0t')  # "LS0t" is base64 of '---'
+        else format_p8_from_key(pk, encrypted=PRIVATE_KEY_PASSWORD)
+    )
+    if pk
+    else None
+)
 
 ROLE = environ.get('SA_ROLE', "snowalert") + tail
 WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert") + tail

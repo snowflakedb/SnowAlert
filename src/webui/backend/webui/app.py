@@ -44,12 +44,11 @@ app.register_blueprint(oauth_api, url_prefix='/api/sa/oauth')
 
 @app.errorhandler(Exception)
 def error_handler(ex):
-    logger.exception('An error has occurred! ({} {} {} {})'.format(
-        request.remote_addr,
-        request.method,
-        request.scheme,
-        request.full_path
-    ))
+    logger.exception(
+        'An error has occurred! ({} {} {} {})'.format(
+            request.remote_addr, request.method, request.scheme, request.full_path
+        )
+    )
     return 'Internal Server Error', 500
 
 

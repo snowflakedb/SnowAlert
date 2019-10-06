@@ -40,15 +40,17 @@ def read_queries(file, tmpl_vars=None):
     if tmpl_vars is None:
         tmpl_vars = {}
 
-    tmpl_vars.update({
-        'uuid': uuid4().hex,
-        'DATABASE': DATABASE,
-        'DATA_SCHEMA': DATA_SCHEMA,
-        'RULES_SCHEMA': RULES_SCHEMA,
-        'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
-        'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
-        'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
-    })
+    tmpl_vars.update(
+        {
+            'uuid': uuid4().hex,
+            'DATABASE': DATABASE,
+            'DATA_SCHEMA': DATA_SCHEMA,
+            'RULES_SCHEMA': RULES_SCHEMA,
+            'ALERT_QUERY_POSTFIX': ALERT_QUERY_POSTFIX,
+            'ALERT_SQUELCH_POSTFIX': ALERT_SQUELCH_POSTFIX,
+            'VIOLATION_QUERY_POSTFIX': VIOLATION_QUERY_POSTFIX,
+        }
+    )
 
     pwd = path.dirname(path.realpath(__file__))
     tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
@@ -60,17 +62,14 @@ VERBOSE = False
 GRANT_OBJECT_PRIVILEGES_QUERIES = [
     # account
     f'GRANT EXECUTE TASK ON ACCOUNT TO ROLE {ROLE}',
-
     # data
     f'GRANT ALL PRIVILEGES ON ALL SCHEMAS IN DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL VIEWS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {DATA_SCHEMA} TO ROLE {ROLE}',
-
     # rules
     f'GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
-
     # results
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
 ]
@@ -83,11 +82,9 @@ WAREHOUSE_QUERIES = [
         AUTO_SUSPEND=60
         AUTO_RESUME=TRUE
         INITIALLY_SUSPENDED=TRUE
-    """,
+    """
 ]
-DATABASE_QUERIES = [
-    f'CREATE DATABASE IF NOT EXISTS {DATABASE}',
-]
+DATABASE_QUERIES = [f'CREATE DATABASE IF NOT EXISTS {DATABASE}']
 GRANT_ACCOUNT_PRIVILEGES_TO_ROLE = [
     f'GRANT ALL PRIVILEGES ON DATABASE {DATABASE} TO ROLE {ROLE}',
     f'GRANT ALL PRIVILEGES ON WAREHOUSE {WAREHOUSE} TO ROLE {ROLE}',
@@ -140,7 +137,7 @@ CREATE_TABLES_QUERIES = [
           event_time TIMESTAMP_LTZ
           , v VARIANT
           );
-    """
+    """,
 ]
 
 
@@ -173,7 +170,9 @@ def login(configuration=None):
         config = configuration
     if type(configuration) is str:
         parser = ConfigParser()
-        config_section = f'connections.{configuration}' if configuration else 'connections'
+        config_section = (
+            f'connections.{configuration}' if configuration else 'connections'
+        )
         if parser.read(path.expanduser(config_file)) and config_section in parser:
             config = parser[config_section]
 
@@ -192,10 +191,14 @@ def login(configuration=None):
 
     if not account:
         while 1:
-            url = input("Snowflake account where SnowAlert can store data, rules, and results (URL or account name): ")
+            url = input(
+                "Snowflake account where SnowAlert can store data, rules, and results (URL or account name): "
+            )
             account, region = parse_snowflake_url(url)
             if not account:
-                print("That's not a valid URL for a snowflake account. Please check for typos and try again.")
+                print(
+                    "That's not a valid URL for a snowflake account. Please check for typos and try again."
+                )
             else:
                 break
     else:
@@ -230,7 +233,11 @@ def login(configuration=None):
                 retval = ctx.cursor().execute(todo).fetchall()
                 print('.', end='', flush=True)
             if type(todo) is list:
-                retval = [ctx.cursor().execute(query) for query in todo if (True, print('.', end='', flush=True))]
+                retval = [
+                    ctx.cursor().execute(query)
+                    for query in todo
+                    if (True, print('.', end='', flush=True))
+                ]
             elif callable(todo):
                 retval = todo()
 
@@ -242,7 +249,9 @@ def login(configuration=None):
         print(" ✓")
         return retval
 
-    ctx = attempt("Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs))
+    ctx = attempt(
+        "Authenticating to Snowflake", lambda: snowflake_connect(**connect_kwargs)
+    )
 
     return ctx, account, region or "us-west-2", attempt
 
@@ -274,20 +283,25 @@ def setup_schemas_and_tables(do_attempt, database):
 
 def setup_user_and_role(do_attempt):
     defaults = f"login_name='{USER}' password='' default_role={ROLE} default_warehouse='{WAREHOUSE}'"
-    do_attempt("Creating role and user", [
-        f"CREATE ROLE IF NOT EXISTS {ROLE}",
-        f"CREATE USER IF NOT EXISTS {USER} {defaults}",
-        f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
-    ])
+    do_attempt(
+        "Creating role and user",
+        [
+            f"CREATE ROLE IF NOT EXISTS {ROLE}",
+            f"CREATE USER IF NOT EXISTS {USER} {defaults}",
+            f"ALTER USER IF EXISTS {USER} SET {defaults}",  # in case user was manually created
+        ],
+    )
     do_attempt("Granting role to user", f"GRANT ROLE {ROLE} TO USER {USER}")
-    do_attempt("Granting account level privileges to SA role", GRANT_ACCOUNT_PRIVILEGES_TO_ROLE)
+    do_attempt(
+        "Granting account level privileges to SA role", GRANT_ACCOUNT_PRIVILEGES_TO_ROLE
+    )
 
 
 def find_share_db_name(do_attempt):
     sample_data_share_rows = do_attempt(
         "Retrieving sample data share(s)",
         r"SHOW TERSE SHARES LIKE '%SAMPLE_DATA'",
-        fail_silently=True
+        fail_silently=True,
     )
 
     # Database name is 4th attribute in row
@@ -307,7 +321,9 @@ def find_share_db_name(do_attempt):
 def setup_samples(do_attempt, share_db_name):
     tmpl_var = {"SNOWFLAKE_SAMPLE_DATA": share_db_name}
     VERBOSE and print(f"Using SAMPLE DATA share with name {share_db_name}")
-    do_attempt("Creating sample data view", read_queries('sample-data-queries', tmpl_var))
+    do_attempt(
+        "Creating sample data view", read_queries('sample-data-queries', tmpl_var)
+    )
 
     do_attempt("Creating sample alert", read_queries('sample-alert-queries'))
     do_attempt("Creating sample violation", read_queries('sample-violation-queries'))
@@ -315,7 +331,9 @@ def setup_samples(do_attempt, share_db_name):
 
 def jira_integration(setup_jira=None):
     while setup_jira is None:
-        uinput = input("Would you like to integrate Jira with SnowAlert (y/N)? ").lower()
+        uinput = input(
+            "Would you like to integrate Jira with SnowAlert (y/N)? "
+        ).lower()
         answered_yes = uinput.startswith('y')
         answered_no = uinput == '' or uinput.startswith('n')
         setup_jira = True if answered_yes else False if answered_no else None
@@ -325,41 +343,52 @@ def jira_integration(setup_jira=None):
         if jira_url[:8] != "https://":
             jira_url = "https://" + jira_url
         jira_user = input("Please enter the username for the SnowAlert user in Jira: ")
-        jira_password = getpass("Please enter the password for the SnowAlert user in Jira: ")
+        jira_password = getpass(
+            "Please enter the password for the SnowAlert user in Jira: "
+        )
         print("Please enter the project tag for the alerts...")
-        print("Note that this should be the text that will prepend the ticket id; if the project is SnowAlert")
-        print("and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt.")
-        jira_project = input("Please enter the project tag for the alerts from SnowAlert: ")
+        print(
+            "Note that this should be the text that will prepend the ticket id; if the project is SnowAlert"
+        )
+        print(
+            "and the tickets will be SA-XXXX, then you should enter 'SA' for this prompt."
+        )
+        jira_project = input(
+            "Please enter the project tag for the alerts from SnowAlert: "
+        )
         return jira_user, jira_password, jira_url, jira_project
     else:
         return "", "", "", ""
 
 
 def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
-    from cryptography.hazmat.primitives import serialization as cs  # crypto serialization
+    from cryptography.hazmat.primitives import (
+        serialization as cs,
+    )  # crypto serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
     key = rsa.generate_private_key(
-        backend=crypto_default_backend(),
-        public_exponent=65537,
-        key_size=2048
+        backend=crypto_default_backend(), public_exponent=65537, key_size=2048
     )
     return (
         key.private_bytes(
             cs.Encoding.PEM,
             cs.PrivateFormat.PKCS8,
-            encryption_algorithm=cs.BestAvailableEncryption(passwd.encode('utf-8')) if passwd else cs.NoEncryption()
+            encryption_algorithm=cs.BestAvailableEncryption(passwd.encode('utf-8'))
+            if passwd
+            else cs.NoEncryption(),
         ),
         key.public_key().public_bytes(
-            cs.Encoding.PEM,
-            cs.PublicFormat.SubjectPublicKeyInfo
-        )
+            cs.Encoding.PEM, cs.PublicFormat.SubjectPublicKeyInfo
+        ),
     )
 
 
 def setup_authentication(jira_password, region, pk_passphrase=None):
-    print("The access key for SnowAlert's Snowflake account can have a passphrase, if you wish.")
+    print(
+        "The access key for SnowAlert's Snowflake account can have a passphrase, if you wish."
+    )
 
     if pk_passphrase is None:
         pk_passphrase = getpass("RSA key passphrase [blank for none, '.' for random]: ")
@@ -371,11 +400,15 @@ def setup_authentication(jira_password, region, pk_passphrase=None):
     private_key, public_key = genrsa(pk_passphrase)
 
     if pk_passphrase:
-        print("\nAdditionally, you may use Amazon Web Services for encryption and audit.")
+        print(
+            "\nAdditionally, you may use Amazon Web Services for encryption and audit."
+        )
         kms = boto3.client('kms', region_name=region)
         while True:
             try:
-                pk_passphrase, jira_password = do_kms_encrypt(kms, pk_passphrase, jira_password)
+                pk_passphrase, jira_password = do_kms_encrypt(
+                    kms, pk_passphrase, jira_password
+                )
                 break
 
             except KeyboardInterrupt:
@@ -389,8 +422,19 @@ def setup_authentication(jira_password, region, pk_passphrase=None):
     return private_key, pk_passphrase, jira_password, rsa_public_key
 
 
-def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
-             private_key, pk_passphrase, aws_key, aws_secret, **x):
+def gen_envs(
+    jira_user,
+    jira_project,
+    jira_url,
+    jira_password,
+    account,
+    region,
+    private_key,
+    pk_passphrase,
+    aws_key,
+    aws_secret,
+    **x,
+):
     vars = [
         ('SNOWFLAKE_ACCOUNT', account),
         ('SA_USER', USER),
@@ -398,7 +442,6 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
         ('SA_DATABASE', DATABASE),
         ('SA_WAREHOUSE', WAREHOUSE),
         ('REGION', region or 'us-west-2'),
-
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
         ('PRIVATE_KEY_PASSWORD', pk_passphrase.replace('$', r'\$')),
     ]
@@ -421,7 +464,9 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region,
 
 
 def do_kms_encrypt(kms, *args: str) -> List[str]:
-    key = input("Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for new]: ")
+    key = input(
+        "Enter IAM KMS KeyId or 'alias/{KeyAlias}' [blank for none, '.' for new]: "
+    )
 
     if not key:
         return list(args)
@@ -431,26 +476,46 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
         key = result['KeyMetadata']['KeyId']
 
     return [
-        b64encode(kms.encrypt(KeyId=key, Plaintext=s).get('CiphertextBlob')).decode('utf-8') if s else ""
+        b64encode(kms.encrypt(KeyId=key, Plaintext=s).get('CiphertextBlob')).decode(
+            'utf-8'
+        )
+        if s
+        else ""
         for s in args
     ]
 
 
-def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=None, jira=None, config_account=None,
-         config_region=None, config_username=None, config_password=None, connection_name=None, uninstall=False,
-         set_env_vars=False, verbose=False):
+def main(
+    admin_role="accountadmin",
+    samples=True,
+    _samples=True,
+    pk_passphrase=None,
+    jira=None,
+    config_account=None,
+    config_region=None,
+    config_username=None,
+    config_password=None,
+    connection_name=None,
+    uninstall=False,
+    set_env_vars=False,
+    verbose=False,
+):
 
     global VERBOSE
     VERBOSE = verbose
 
     samples = samples and _samples  # so that --no-samples works, as well
 
-    configuration = connection_name if connection_name is not None else {
-        'region': config_region or environ.get('REGION'),
-        'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
-        'username': config_username or environ.get('SA_ADMIN_USER'),
-        'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
-    }
+    configuration = (
+        connection_name
+        if connection_name is not None
+        else {
+            'region': config_region or environ.get('REGION'),
+            'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
+            'username': config_username or environ.get('SA_ADMIN_USER'),
+            'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
+        }
+    )
 
     ctx, account, region, do_attempt = login(configuration)
 
@@ -458,16 +523,21 @@ def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=N
         do_attempt(f"Use role {admin_role}", f"USE ROLE {admin_role}")
 
     if uninstall:
-        do_attempt("Uninstalling", [
-            f'DROP USER {USER}',
-            f'DROP ROLE {ROLE}',
-            f'DROP WAREHOUSE {WAREHOUSE}',
-            f'DROP DATABASE {DATABASE}',
-        ] if admin_role == 'accountadmin' else [
-            f'DROP SCHEMA {DATA_SCHEMA}',
-            f'DROP SCHEMA {RULES_SCHEMA}',
-            f'DROP SCHEMA {RESULTS_SCHEMA}'
-        ])
+        do_attempt(
+            "Uninstalling",
+            [
+                f'DROP USER {USER}',
+                f'DROP ROLE {ROLE}',
+                f'DROP WAREHOUSE {WAREHOUSE}',
+                f'DROP DATABASE {DATABASE}',
+            ]
+            if admin_role == 'accountadmin'
+            else [
+                f'DROP SCHEMA {DATA_SCHEMA}',
+                f'DROP SCHEMA {RULES_SCHEMA}',
+                f'DROP SCHEMA {RESULTS_SCHEMA}',
+            ],
+        )
         return
 
     if admin_role == "accountadmin":
@@ -483,17 +553,23 @@ def main(admin_role="accountadmin", samples=True, _samples=True, pk_passphrase=N
         else:
             print("No share db found, skipping samples.")
 
-    do_attempt("Granting object level privileges to SA role", GRANT_OBJECT_PRIVILEGES_QUERIES)
+    do_attempt(
+        "Granting object level privileges to SA role", GRANT_OBJECT_PRIVILEGES_QUERIES
+    )
 
     jira_user, jira_password, jira_url, jira_project = jira_integration(jira)
 
     print(f"\n--- DB setup complete! Now, let's prep the runners... ---\n")
 
-    private_key, pk_passphrase, jira_password, rsa_public_key = setup_authentication(jira_password,
-                                                                                     region, pk_passphrase)
+    private_key, pk_passphrase, jira_password, rsa_public_key = setup_authentication(
+        jira_password, region, pk_passphrase
+    )
 
     if admin_role == "accountadmin":
-        do_attempt("Setting auth key on snowalert user", f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
+        do_attempt(
+            "Setting auth key on snowalert user",
+            f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'",
+        )
 
     aws_key, aws_secret = load_aws_config()
 

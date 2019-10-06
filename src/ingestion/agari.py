@@ -9,16 +9,14 @@ AGARI_TABLE = environ.get('AGARI_TABLE')
 
 AGARI_TRUST_CUTOFF = 5.0
 
-URLS = [
-    'https://api.agari.com/v1/ep/messages'
-]
+URLS = ['https://api.agari.com/v1/ep/messages']
 
 
 # Agari provides bearer auth tokens,
 def gen_headers():
     r = requests.post(
         'https://api.agari.com/oauth/token',
-        data={'client_id': AGARI_TOKEN, 'client_secret': AGARI_SECRET}
+        data={'client_id': AGARI_TOKEN, 'client_secret': AGARI_SECRET},
     )
     token = r.json()['access_token']
     return {'Authorization': f'Bearer {token}'}
@@ -76,7 +74,9 @@ def process_endpoint(url):
         if params['offset'] == 9900:  # Maximum offset is 9900
             params = {'start_date': get_newest_timestamp(), 'limit': 100, 'offset': 0}
 
-        elif len(data['messages']) == params['limit']:  # if we got the limit of messages, get the next page
+        elif (
+            len(data['messages']) == params['limit']
+        ):  # if we got the limit of messages, get the next page
             params['offset'] += params['limit']
         else:
             break

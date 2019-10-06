@@ -9,9 +9,18 @@ from runners.helpers import log
 from runners.helpers import vault
 
 
-def handle(alert, type='smtp', sender_email=None, recipient_email=None,
-           text=None, html=None, subject=None, reply_to=None, cc=None,
-           bcc=None):
+def handle(
+    alert,
+    type='smtp',
+    sender_email=None,
+    recipient_email=None,
+    text=None,
+    html=None,
+    subject=None,
+    reply_to=None,
+    cc=None,
+    bcc=None,
+):
 
     if not os.environ.get('SMTP_SERVER'):
         log.info("No SMTP_SERVER in env, skipping handler.")

@@ -16,9 +16,12 @@ EXCEPTION_TRACKER = ExceptionTracker()
 def write(*args, stream=sys.stdout):
     for a in args:
         if isinstance(a, Exception):
+
             def fmt(fs):
                 return (
-                    './' + relpath(fs.filename) + f':{fs.lineno}'
+                    './'
+                    + relpath(fs.filename)
+                    + f':{fs.lineno}'
                     + f' in {fs.name}\n'
                     + f'    {fs.line}\n'
                 )
@@ -70,10 +73,12 @@ def metric(metric, namespace, dimensions, value):
     client = boto3.client('cloudwatch', 'us-west-2')
     client.put_metric_data(
         Namespace=namespace,
-        MetricData=[{
-            'MetricName': metric,
-            'Dimensions': dimensions,
-            'Timestamp': datetime.datetime.utcnow(),
-            'Value': value
-        }]
+        MetricData=[
+            {
+                'MetricName': metric,
+                'Dimensions': dimensions,
+                'Timestamp': datetime.datetime.utcnow(),
+                'Value': value,
+            }
+        ],
     )

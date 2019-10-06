@@ -58,7 +58,7 @@ LANDING_TABLE_COLUMNS = [
     ('instance_id', 'VARCHAR(16777216)'),
     ('name', 'VARCHAR(16777216)'),
     ('unixtime', 'TIMESTAMP_LTZ(9)'),
-    ('decorations', 'VARIANT')
+    ('decorations', 'VARIANT'),
 ]
 
 
@@ -83,7 +83,7 @@ def connect(connection_name, options):
     db.create_table(
         name=landing_table,
         cols=LANDING_TABLE_COLUMNS,
-        comment=yaml_dump(module='osquery_log', **options)
+        comment=yaml_dump(module='osquery_log', **options),
     )
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
@@ -99,12 +99,12 @@ def connect(connection_name, options):
             prefix=prefix,
             cloud='aws',
             credentials=aws_role,
-            file_format=db.TypeOptions(type='JSON')
+            file_format=db.TypeOptions(type='JSON'),
         )
 
     stage_props = db.fetch_props(
         f'DESC STAGE {stage_name}',
-        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL')
+        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER', 'AWS_ROLE', 'URL'),
     )
 
     if not bucket_name or not prefix:
@@ -119,50 +119,47 @@ def connect(connection_name, options):
     return {
         'newStage': 'created',
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
-            role=stage_props['AWS_ROLE'],  # this seems better than what we do in other places?
-            role_trust_relationship=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Principal": {
-                            "AWS": stage_props['SNOWFLAKE_IAM_USER']
+            role=stage_props[
+                'AWS_ROLE'
+            ],  # this seems better than what we do in other places?
+            role_trust_relationship=dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": stage_props['SNOWFLAKE_IAM_USER']},
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
+                                }
+                            },
+                        }
+                    ],
+                },
+                indent=4,
+            ),
+            role_policy=dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+                            "Resource": f"arn:aws:s3:::{bucket_name}/{prefix}/*",
                         },
-                        "Action": "sts:AssumeRole",
-                        "Condition": {
-                            "StringEquals": {
-                                "sts:ExternalId": stage_props['AWS_EXTERNAL_ID']
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-            role_policy=dumps({
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": [
-                            "s3:GetObject",
-                            "s3:GetObjectVersion",
-                        ],
-                        "Resource": f"arn:aws:s3:::{bucket_name}/{prefix}/*"
-                    },
-                    {
-                        "Effect": "Allow",
-                        "Action": "s3:ListBucket",
-                        "Resource": f"arn:aws:s3:::{bucket_name}",
-                        "Condition": {
-                            "StringLike": {
-                                "s3:prefix": [
-                                    f"{prefix}/*"
-                                ]
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-        )
+                        {
+                            "Effect": "Allow",
+                            "Action": "s3:ListBucket",
+                            "Resource": f"arn:aws:s3:::{bucket_name}",
+                            "Condition": {"StringLike": {"s3:prefix": [f"{prefix}/*"]}},
+                        },
+                    ],
+                },
+                indent=4,
+            ),
+        ),
     }
 
 
@@ -189,14 +186,14 @@ def finalize(connection_name):
             autoingest=True,
         ),
         n=10,
-        sleep_seconds_btw_retry=1
+        sleep_seconds_btw_retry=1,
     )
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
     if pipe_description is None:
         return {
             'newStage': 'error',
-            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance."
+            'newMessage': f"{pipe} does not exist; please reach out to Snowflake Security for assistance.",
         }
 
     else:
@@ -207,5 +204,5 @@ def finalize(connection_name):
                 f"Please add this SQS Queue ARN to the bucket event notification "
                 f"channel for all object create events:\n\n  {sqs_arn}\n\n"
                 f"If you'd like to backfill the table, please run\n\n  ALTER PIPE {pipe} REFRESH;"
-            )
+            ),
         }

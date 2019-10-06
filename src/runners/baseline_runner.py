@@ -1,9 +1,7 @@
 from typing import List, Dict, Any
 import subprocess
 
-from runners.config import (
-    DATA_SCHEMA,
-)
+from runners.config import DATA_SCHEMA
 
 from runners.helpers import db, log
 
@@ -75,7 +73,9 @@ def run_baseline(name, comment):
     os.mkdir(FORMATTED_CODE_DIRECTORY)
     files = os.listdir(f'../baseline_modules/{code_location}')
 
-    shutil.copyfile("../baseline_modules/run_module.R", f"{FORMATTED_CODE_DIRECTORY}/run_module.R")
+    shutil.copyfile(
+        "../baseline_modules/run_module.R", f"{FORMATTED_CODE_DIRECTORY}/run_module.R"
+    )
 
     for file in files:
         print(file)

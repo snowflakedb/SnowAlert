@@ -94,34 +94,27 @@ def connect(connection_name, options):
 
     comment = yaml_dump(module='meraki_devices', **options)
 
-    db.create_table(name=landing_table_client,
-                    cols=LANDING_TABLE_COLUMNS_CLIENT,
-                    comment=comment)
-    db.execute(
-        f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
+    db.create_table(
+        name=landing_table_client, cols=LANDING_TABLE_COLUMNS_CLIENT, comment=comment
+    )
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table_client} TO ROLE {SA_ROLE}')
 
-    db.create_table(name=landing_table_device,
-                    cols=LANDING_TABLE_COLUMNS_DEVICE,
-                    comment=comment)
-    db.execute(
-        f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
-    return {
-        'newStage': 'finalized',
-        'newMessage': "Meraki ingestion tables created!",
-    }
+    db.create_table(
+        name=landing_table_device, cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment
+    )
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
+    return {'newStage': 'finalized', 'newMessage': "Meraki ingestion tables created!"}
 
 
 def ingest(table_name, options):
-    ingest_type = 'client' if table_name.endswith(
-        '_CLIENT_CONNECTION') else 'device'
+    ingest_type = 'client' if table_name.endswith('_CLIENT_CONNECTION') else 'device'
     landing_table = f'data.{table_name}'
 
     timestamp = datetime.utcnow()
     api_token = options['api_token']
     whitelist = set(options['network_id_whitelist'])
 
-    organizations = get_data(
-        f"https://api.meraki.com/api/v0/organizations", api_token)
+    organizations = get_data(f"https://api.meraki.com/api/v0/organizations", api_token)
 
     for organization in organizations:
         organization_id = organization.get('id')
@@ -130,7 +123,9 @@ def ingest(table_name, options):
             continue
 
         networks = get_data(
-            f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks", api_token)
+            f"https://api.meraki.com/api/v0/organizations/{organization_id}/networks",
+            api_token,
+        )
         network_ids = {network.get('id') for network in networks}
 
         if whitelist:
@@ -140,7 +135,9 @@ def ingest(table_name, options):
             log.debug(f'Processing Meraki network {network}')
             try:
                 devices = get_data(
-                    f"https://api.meraki.com/api/v0/networks/{network}/devices", api_token)
+                    f"https://api.meraki.com/api/v0/networks/{network}/devices",
+                    api_token,
+                )
             except requests.exceptions.HTTPError as e:
                 log.error(f"{network} not accessible, ")
                 log.error(e)
@@ -149,26 +146,27 @@ def ingest(table_name, options):
             if ingest_type == 'device':
                 db.insert(
                     landing_table,
-                    values=[(
-                        timestamp,
-                        device,
-                        device.get('serial'),
-                        device.get('address'),
-                        device.get('name'),
-                        device.get('networkId'),
-                        device.get('model'),
-                        device.get('mac'),
-                        device.get('lanIp'),
-                        device.get('wan1Ip'),
-                        device.get('wan2Ip'),
-                        device.get('tags'),
-                        device.get('lng'),
-                        device.get('lat'),
-                    ) for device in devices],
-                    select=db.derive_insert_select(
-                        LANDING_TABLE_COLUMNS_DEVICE),
-                    columns=db.derive_insert_columns(
-                        LANDING_TABLE_COLUMNS_DEVICE)
+                    values=[
+                        (
+                            timestamp,
+                            device,
+                            device.get('serial'),
+                            device.get('address'),
+                            device.get('name'),
+                            device.get('networkId'),
+                            device.get('model'),
+                            device.get('mac'),
+                            device.get('lanIp'),
+                            device.get('wan1Ip'),
+                            device.get('wan2Ip'),
+                            device.get('tags'),
+                            device.get('lng'),
+                            device.get('lat'),
+                        )
+                        for device in devices
+                    ],
+                    select=db.derive_insert_select(LANDING_TABLE_COLUMNS_DEVICE),
+                    columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_DEVICE),
                 )
                 log.info(f'Inserted {len(devices)} rows ({landing_table}).')
                 yield len(devices)
@@ -179,7 +177,9 @@ def ingest(table_name, options):
 
                     try:
                         clients = get_data(
-                            f"https://api.meraki.com/api/v0/devices/{serial_number}/clients", api_token)
+                            f"https://api.meraki.com/api/v0/devices/{serial_number}/clients",
+                            api_token,
+                        )
                     except requests.exceptions.HTTPError as e:
                         log.error(f"{network} not accessible, ")
                         log.error(e)
@@ -187,27 +187,27 @@ def ingest(table_name, options):
 
                     db.insert(
                         landing_table,
-                        values=[(
-                            timestamp,
-                            client,
-                            client.get('id'),
-                            client.get('mac'),
-                            client.get('description'),
-                            client.get('mdnsName'),
-                            client.get('dhcpHostname'),
-                            client.get('ip'),
-                            client.get('switchport'),
-                            # vlan sometimes set to ''
-                            client.get('vlan') or None,
-                            client.get('usage', {}).get('sent') or None,
-                            client.get('usage', {}).get('recv') or None,
-                            serial_number,
-                        ) for client in clients],
-                        select=db.derive_insert_select(
-                            LANDING_TABLE_COLUMNS_CLIENT),
-                        columns=db.derive_insert_columns(
-                            LANDING_TABLE_COLUMNS_CLIENT)
+                        values=[
+                            (
+                                timestamp,
+                                client,
+                                client.get('id'),
+                                client.get('mac'),
+                                client.get('description'),
+                                client.get('mdnsName'),
+                                client.get('dhcpHostname'),
+                                client.get('ip'),
+                                client.get('switchport'),
+                                # vlan sometimes set to ''
+                                client.get('vlan') or None,
+                                client.get('usage', {}).get('sent') or None,
+                                client.get('usage', {}).get('recv') or None,
+                                serial_number,
+                            )
+                            for client in clients
+                        ],
+                        select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CLIENT),
+                        columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CLIENT),
                     )
-                    log.info(
-                        f'Inserted {len(clients)} rows ({landing_table}).')
+                    log.info(f'Inserted {len(clients)} rows ({landing_table}).')
                     yield len(clients)

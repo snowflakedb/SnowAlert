@@ -88,7 +88,7 @@ LANDING_TABLE_COLUMNS = [
     ('resources', 'VARIANT'),
     ('service_event_details', 'STRING'),
     ('shared_event_id', 'STRING'),
-    ('vpc_endpoint_id', 'STRING')
+    ('vpc_endpoint_id', 'STRING'),
 ]
 
 
@@ -125,23 +125,15 @@ module: aws_cloudtrail
         prefix=prefix,
         cloud='aws',
         credentials=role,
-        file_format=FILE_FORMAT
+        file_format=FILE_FORMAT,
     )
 
-    db.create_table(
-        name=staging_table,
-        cols=[('v', 'variant')]
-    )
+    db.create_table(name=staging_table, cols=[('v', 'variant')])
 
-    db.create_table(
-        name=landing_table,
-        cols=LANDING_TABLE_COLUMNS,
-        comment=comment
-    )
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
 
     stage_props = db.fetch_props(
-        f'DESC STAGE {stage}',
-        filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
+        f'DESC STAGE {stage}', filter=('AWS_EXTERNAL_ID', 'SNOWFLAKE_IAM_USER')
     )
 
     prefix = prefix.rstrip('/')
@@ -150,49 +142,44 @@ module: aws_cloudtrail
         'newStage': 'created',
         'newMessage': CONNECT_RESPONSE_MESSAGE.format(
             role=role,
-            role_trust_relationship=dumps({
-                'Version': '2012-10-17',
-                'Statement': [
-                    {
-                        'Effect': 'Allow',
-                        'Principal': {
-                            'AWS': stage_props['SNOWFLAKE_IAM_USER']
+            role_trust_relationship=dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Effect': 'Allow',
+                            'Principal': {'AWS': stage_props['SNOWFLAKE_IAM_USER']},
+                            'Action': 'sts:AssumeRole',
+                            'Condition': {
+                                'StringEquals': {
+                                    'sts:ExternalId': stage_props['AWS_EXTERNAL_ID']
+                                }
+                            },
+                        }
+                    ],
+                },
+                indent=4,
+            ),
+            role_policy=dumps(
+                {
+                    'Version': '2012-10-17',
+                    'Statement': [
+                        {
+                            'Effect': 'Allow',
+                            'Action': ['s3:GetObject', 's3:GetObjectVersion'],
+                            'Resource': f'arn:aws:s3:::{bucket}/{prefix}/*',
                         },
-                        'Action': 'sts:AssumeRole',
-                        'Condition': {
-                            'StringEquals': {
-                                'sts:ExternalId': stage_props['AWS_EXTERNAL_ID']
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-            role_policy=dumps({
-                'Version': '2012-10-17',
-                'Statement': [
-                    {
-                        'Effect': 'Allow',
-                        'Action': [
-                            's3:GetObject',
-                            's3:GetObjectVersion',
-                        ],
-                        'Resource': f'arn:aws:s3:::{bucket}/{prefix}/*'
-                    },
-                    {
-                        'Effect': 'Allow',
-                        'Action': 's3:ListBucket',
-                        'Resource': f'arn:aws:s3:::{bucket}',
-                        'Condition': {
-                            'StringLike': {
-                                's3:prefix': [
-                                    f'{prefix}/*'
-                                ]
-                            }
-                        }
-                    }
-                ]
-            }, indent=4),
-        )
+                        {
+                            'Effect': 'Allow',
+                            'Action': 's3:ListBucket',
+                            'Resource': f'arn:aws:s3:::{bucket}',
+                            'Condition': {'StringLike': {'s3:prefix': [f'{prefix}/*']}},
+                        },
+                    ],
+                },
+                indent=4,
+            ),
+        ),
     }
 
 
@@ -264,8 +251,7 @@ WHERE ARRAY_SIZE(v:Records) > 0
 '''
 
     db.create_stream(
-        name=f'data.{base_name}_STREAM',
-        target=f'data.{base_name}_STAGING'
+        name=f'data.{base_name}_STREAM', target=f'data.{base_name}_STAGING'
     )
 
     # IAM change takes 5-15 seconds to take effect
@@ -275,20 +261,24 @@ WHERE ARRAY_SIZE(v:Records) > 0
             name=pipe,
             sql=f"COPY INTO data.{base_name}_STAGING(v) FROM @data.{base_name}_STAGE/",
             replace=True,
-            autoingest=True
+            autoingest=True,
         ),
         n=10,
-        sleep_seconds_btw_retry=1
+        sleep_seconds_btw_retry=1,
     )
 
-    db.create_task(name=f'data.{base_name}_TASK', schedule='1 minute',
-                   warehouse=WAREHOUSE, sql=cloudtrail_ingest_task)
+    db.create_task(
+        name=f'data.{base_name}_TASK',
+        schedule='1 minute',
+        warehouse=WAREHOUSE,
+        sql=cloudtrail_ingest_task,
+    )
 
     pipe_description = next(db.fetch(f'DESC PIPE {pipe}'), None)
     if pipe_description is None:
         return {
             'newStage': 'error',
-            'newMessage': f"{pipe} doesn't exist; please reach out to Snowflake Security for assistance."
+            'newMessage': f"{pipe} doesn't exist; please reach out to Snowflake Security for assistance.",
         }
     else:
         sqs_arn = pipe_description['notification_channel']
@@ -299,5 +289,5 @@ WHERE ARRAY_SIZE(v:Records) > 0
             f"Please add this SQS Queue ARN to the bucket event notification"
             f"channel for all object create events:\n\n  {sqs_arn}\n\n"
             f"To backfill the landing table with existing data, please run:\n\n  ALTER PIPE {pipe} REFRESH;\n\n"
-        )
+        ),
     }

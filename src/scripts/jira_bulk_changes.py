@@ -14,8 +14,9 @@ def connect_jira():
     username = input('Jira username: ')
     pwd = getpass.getpass('Jira password: ')
     try:
-        jira_api = JIRA(f'https://{JIRA_ACCOUNT}.atlassian.net',
-                        basic_auth=(username, pwd))
+        jira_api = JIRA(
+            f'https://{JIRA_ACCOUNT}.atlassian.net', basic_auth=(username, pwd)
+        )
     except Exception as e:
         print('Error connecting to Jira!\n', e)
 
@@ -25,7 +26,9 @@ def connect_jira():
 def close_all_tickets(jira_api):
     jira_query = f'project = {PROJECT_NAME} AND resolution = Unresolved'
 
-    issues = jira_api.search_issues(jql_str=jira_query, maxResults=MAX_RESULTS, validate_query=True)
+    issues = jira_api.search_issues(
+        jql_str=jira_query, maxResults=MAX_RESULTS, validate_query=True
+    )
 
     done_counter = 0
     t0 = time.time()
@@ -36,8 +39,14 @@ def close_all_tickets(jira_api):
             done_counter = done_counter + 1
             seconds = round(time.time() - t0)
             jira_api.transition_issue(issue, 'done')
-            print("Issue: {0.key} transitioned to Done. Total completed: {1} Seconds elapsed: {2}".format(issue, done_counter, seconds))
-        issues = jira_api.search_issues(jql_str=jira_query, maxResults=MAX_RESULTS, validate_query=True)
+            print(
+                "Issue: {0.key} transitioned to Done. Total completed: {1} Seconds elapsed: {2}".format(
+                    issue, done_counter, seconds
+                )
+            )
+        issues = jira_api.search_issues(
+            jql_str=jira_query, maxResults=MAX_RESULTS, validate_query=True
+        )
 
 
 def main():

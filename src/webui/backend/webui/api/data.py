@@ -45,10 +45,7 @@ def jsonified(f):
 
         except Exception as e:
             log.error(e)
-            result = {
-                'success': False,
-                'errorMessage': format_exception_only(e),
-            }
+            result = {'success': False, 'errorMessage': format_exception_only(e)}
 
         return jsonify(result)
 

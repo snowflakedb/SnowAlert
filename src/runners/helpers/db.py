@@ -10,11 +10,23 @@ import operator
 
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
-from snowflake.connector.network import MASTER_TOKEN_EXPIRED_GS_CODE, OAUTH_AUTHENTICATOR
+from snowflake.connector.network import (
+    MASTER_TOKEN_EXPIRED_GS_CODE,
+    OAUTH_AUTHENTICATOR,
+)
 
 from . import log
 from .auth import load_pkb, oauth_refresh
-from .dbconfig import ACCOUNT, ROLE, DATABASE, USER, WAREHOUSE, PRIVATE_KEY, PRIVATE_KEY_PASSWORD, TIMEOUT
+from .dbconfig import (
+    ACCOUNT,
+    ROLE,
+    DATABASE,
+    USER,
+    WAREHOUSE,
+    PRIVATE_KEY,
+    PRIVATE_KEY_PASSWORD,
+    TIMEOUT,
+)
 from .dbconnect import snowflake_connect
 
 from runners import utils
@@ -44,10 +56,13 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
 # Connecting
 ###
 
+
 def connect(flush_cache=False, set_cache=False, oauth={}):
     account = oauth.get('account')
     oauth_refresh_token = oauth.get('refresh_token')
-    oauth_access_token = oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
+    oauth_access_token = (
+        oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
+    )
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
@@ -55,10 +70,17 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
 
-    connect_db, authenticator, pk = \
-        (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None) if oauth_access_token else \
-        (snowflake_connect, 'EXTERNALBROWSER', None) if PRIVATE_KEY is None else \
-        (snowflake.connector.connect, None, load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD))
+    connect_db, authenticator, pk = (
+        (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
+        if oauth_access_token
+        else (snowflake_connect, 'EXTERNALBROWSER', None)
+        if PRIVATE_KEY is None
+        else (
+            snowflake.connector.connect,
+            None,
+            load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
+        )
+    )
 
     def connect():
         return connect_db(
@@ -71,7 +93,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             private_key=pk,
             authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
-            network_timeout=TIMEOUT
+            network_timeout=TIMEOUT,
         )
 
     try:
@@ -100,7 +122,11 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
             break
 
         def parse_field(value, field_type):
-            if value is not None and field_type['name'] in {'OBJECT', 'ARRAY', 'VARIANT'}:
+            if value is not None and field_type['name'] in {
+                'OBJECT',
+                'ARRAY',
+                'VARIANT',
+            }:
                 return json.loads(value)
             return value
 
@@ -152,16 +178,17 @@ def connect_and_fetchall(query):
 
 def fetch_latest(table, col='event_time', where=''):
     where = f' WHERE {where}' if where else ''
-    ts = next(fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None)
+    ts = next(
+        fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None
+    )
     return ts[col.upper()] if ts else None
 
 
 def fetch_props(sql, filter=None):
     return {
-        row['property']: row['property_value'] for row in fetch(sql) if (
-            filter is None
-            or row['property'] in filter
-        )
+        row['property']: row['property_value']
+        for row in fetch(sql)
+        if (filter is None or row['property'] in filter)
     }
 
 
@@ -177,10 +204,12 @@ class TypeOptions(object):
         self.type_options = kwargs.items()
 
     def __str__(self):
-        return ', '.join([
-            f'{k}={v}' if isinstance(v, (int, bool)) else f"{k}='{v}'"
-            for k, v in self.type_options
-        ])
+        return ', '.join(
+            [
+                f'{k}={v}' if isinstance(v, (int, bool)) else f"{k}='{v}'"
+                for k, v in self.type_options
+            ]
+        )
 
 
 def is_valid_rule_name(rule_name):
@@ -202,7 +231,7 @@ def load_rules(postfix) -> List[str]:
     try:
         views = sorted(
             (v['name'] for v in fetch(f'SHOW VIEWS IN rules')),
-            key=lambda vn: vn.replace('_', '{{')  # _ after letters, like in Snowflake
+            key=lambda vn: vn.replace('_', '{{'),  # _ after letters, like in Snowflake
         )
     except Exception as e:
         log.error(e, f"Loading '{postfix}' rules failed.")
@@ -235,7 +264,9 @@ def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
         _, col_type = col
         col_type = col_type.upper()
         col_placeholder = f'column{idx - skipped + 1}'
-        if "AUTOINCREMENT" in col_type or "IDENTITY" in col_type:  # skip since auto populated
+        if (
+            "AUTOINCREMENT" in col_type or "IDENTITY" in col_type
+        ):  # skip since auto populated
             skipped += 1
             return ''
         if "VARIANT" in col_type:
@@ -244,17 +275,15 @@ def derive_insert_select(table_definition: List[Tuple[str, str]]) -> str:
             return f'TRY_TO_TIMESTAMP({col_placeholder})'
         return col_placeholder
 
-    cols = [get_col_transformation(idx, col)
-            for (idx, col) in enumerate(table_definition)]
+    cols = [
+        get_col_transformation(idx, col) for (idx, col) in enumerate(table_definition)
+    ]
 
     return ",".join(filter(None, cols))
 
 
 def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[Any]:
-    auto_populating = {
-        "AUTOINCREMENT",
-        "IDENTITY"
-    }
+    auto_populating = {"AUTOINCREMENT", "IDENTITY"}
 
     def filter_auto_populating_cols(col: Tuple[str, str]) -> bool:
         nonlocal auto_populating
@@ -267,7 +296,9 @@ def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[A
                 return False
         return True
 
-    return map(operator.itemgetter(0), filter(filter_auto_populating_cols, table_definition))
+    return map(
+        operator.itemgetter(0), filter(filter_auto_populating_cols, table_definition)
+    )
 
 
 def insert(table, values, overwrite=False, select="", columns=[]):
@@ -294,10 +325,14 @@ def insert(table, values, overwrite=False, select="", columns=[]):
     jsony = (dict, list, tuple, Exception, datetime)
     params_with_json = [
         [
-            v.isoformat() if isinstance(v, datetime) else
-            utils.json_dumps(v) if isinstance(v, jsony) else
-            utils.format_exception(v) if isinstance(v, Exception) else
-            v for v in vp
+            v.isoformat()
+            if isinstance(v, datetime)
+            else utils.json_dumps(v)
+            if isinstance(v, jsony)
+            else utils.format_exception(v)
+            if isinstance(v, Exception)
+            else v
+            for v in vp
         ]
         for vp in values
     ]
@@ -355,10 +390,14 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
 
     log.info(f"{query_name} processing...")
     try:
-        result = next(fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False))
+        result = next(
+            fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False)
+        )
     except Exception:
         log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
-        result = next(fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False))
+        result = next(
+            fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False)
+        )
 
     num_rows_inserted = result['number of rows inserted']
     log.info(f"{query_name} created {num_rows_inserted} rows.")
@@ -373,9 +412,9 @@ def value_to_sql(v):
         v = json.dumps(v)
         obj = (
             v.replace("'", "\\'")
-             .replace("\\n", "\\\\n")
-             .replace("\\t", "\\\\t")
-             .replace("\\\"", "\\\\\"")
+            .replace("\\n", "\\\\n")
+            .replace("\\t", "\\\\t")
+            .replace("\\\"", "\\\\\"")
         )
         return f"parse_json('{obj}')"
 
@@ -404,7 +443,9 @@ def record_metadata(metadata, table, e=None):
         if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
             metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
 
-    metadata.setdefault('ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0})
+    metadata.setdefault(
+        'ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0}
+    )
 
     metadata['END_TIME'] = datetime.utcnow()
     metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
@@ -430,10 +471,14 @@ def record_metadata(metadata, table, e=None):
 
 
 def record_failed_ingestion(table, r, timestamp):
-    log = json.dumps({'headers': dict(r.headers),
-                      'text': r.text,
-                      'status_code': r.status_code,
-                      'failure': True})
+    log = json.dumps(
+        {
+            'headers': dict(r.headers),
+            'text': r.text,
+            'status_code': r.status_code,
+            'failure': True,
+        }
+    )
     data = [(log, timestamp)]
     query = f"INSERT INTO {table} SELECT PARSE_JSON(COLUMN1), COLUMN2 FROM VALUES (%s)"
     execute(query, params=data)
@@ -443,16 +488,26 @@ def get_pipes(schema):
     return fetch(f"SHOW PIPES IN {schema}")
 
 
-def create_table_and_upload_csv(name, columns, file_path, file_format, ifnotexists=False):
+def create_table_and_upload_csv(
+    name, columns, file_path, file_format, ifnotexists=False
+):
     create_table(f"{name}", columns, ifnotexists=ifnotexists)
     create_stage(f"{name}_stage", file_format=file_format, temporary=True)
     execute(f"PUT file://{file_path} @{name}_stage")
     execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
 
 
-def create_stage(name, url='', prefix='', cloud='', credentials='',
-                 file_format: Optional[TypeOptions]=None, replace=False,
-                 comment='', temporary=False):
+def create_stage(
+    name,
+    url='',
+    prefix='',
+    cloud='',
+    credentials='',
+    file_format: Optional[TypeOptions] = None,
+    replace=False,
+    comment='',
+    temporary=False,
+):
 
     replace = 'OR REPLACE ' if replace else ''
     temporary = 'TEMPORARY ' if temporary else ''
@@ -462,9 +517,11 @@ def create_stage(name, url='', prefix='', cloud='', credentials='',
         query += f"\nURL='{url}/{prefix}' "
 
     credentials_type = (
-        'aws_role' if cloud == 'aws' else
-        'azure_sas_token' if cloud == 'azure' else
-        None
+        'aws_role'
+        if cloud == 'aws'
+        else 'azure_sas_token'
+        if cloud == 'azure'
+        else None
     )
     if credentials_type is not None:
         query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
@@ -491,9 +548,18 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False):
     execute(query, fix_errors=False)
 
 
-def create_external_table(name, location, cols=None, partition='',
-                          refresh=False, replace=False, file_format='',
-                          comment='', ifnotexists=False, copygrants=''):
+def create_external_table(
+    name,
+    location,
+    cols=None,
+    partition='',
+    refresh=False,
+    replace=False,
+    file_format='',
+    comment='',
+    ifnotexists=False,
+    copygrants='',
+):
     partition = f'\nPARTITION BY ({partition})' if partition else ''
     refresh = f'\nAUTO_REFRESH={refresh} '
     replace = 'OR REPLACE ' if replace else ''
@@ -504,8 +570,10 @@ def create_external_table(name, location, cols=None, partition='',
     location = f'\nLOCATION={location}'
     columns = '(' + ', '.join(f'{a} {b} AS {c}' for a, b, c in cols) + ')'
 
-    query = f"CREATE {replace}EXTERNAL TABLE {ifnotexists}{name}\n{columns}"\
-            f"{partition}{location}{refresh}{file_format}{copygrants}{comment}"
+    query = (
+        f"CREATE {replace}EXTERNAL TABLE {ifnotexists}{name}\n{columns}"
+        f"{partition}{location}{refresh}{file_format}{copygrants}{comment}"
+    )
     execute(query, fix_errors=False)
 
 
@@ -535,7 +603,9 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     execute(f"ALTER TASK {name} RESUME")
 
 
-def create_stored_procedure(name, args, return_type, executor, definition, replace='', comment=''):
+def create_stored_procedure(
+    name, args, return_type, executor, definition, replace='', comment=''
+):
     replace = 'OR REPLACE ' if replace else ''
     comment = f"\nCOMMENT='{comment}'" if comment else ''
     arguments = '(' + ', '.join(f'{a}, {b}' for a, b in args) + ')'

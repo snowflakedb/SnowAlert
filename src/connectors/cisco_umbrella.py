@@ -59,10 +59,7 @@ LANDING_TABLE_COLUMNS = [
 
 def get_data(organization_id: int, key: str, secret: str, params: dict = {}) -> dict:
     url = f"https://management.api.umbrella.com/v1/organizations/{organization_id}/roamingcomputers"
-    headers: dict = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+    headers: dict = {"Content-Type": "application/json", "Accept": "application/json"}
     try:
         req = requests.get(
             url,
@@ -92,13 +89,9 @@ def get_data(organization_id: int, key: str, secret: str, params: dict = {}) -> 
 def connect(connection_name, options):
     table_name = f'cisco_umbrella_devices_{connection_name}_connection'
     landing_table = f'data.{table_name}'
-    comment = yaml_dump(
-        module='cisco_umbrella',
-        **options
-    )
+    comment = yaml_dump(module='cisco_umbrella', **options)
 
-    db.create_table(name=landing_table,
-                    cols=LANDING_TABLE_COLUMNS, comment=comment)
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
 
     db.execute(f'GRANT INSERT, SELECT ON data.{table_name} TO ROLE {SA_ROLE}')
 
@@ -115,18 +108,10 @@ def ingest(table_name, options):
     api_secret = options['api_secret']
     api_key = options['api_key']
 
-    params: dict = {
-        "limit": PAGE_SIZE,
-        "page": 1,  # API starts at 1
-    }
+    params: dict = {"limit": PAGE_SIZE, "page": 1}  # API starts at 1
 
     while 1:
-        devices: dict = get_data(
-            organization_id,
-            api_key,
-            api_secret,
-            params,
-        )
+        devices: dict = get_data(organization_id, api_key, api_secret, params)
         params["page"] += 1
 
         if len(devices) == 0:
@@ -134,24 +119,27 @@ def ingest(table_name, options):
 
         db.insert(
             landing_table,
-            values=[(
-                timestamp,
-                device,
-                device.get('deviceId'),
-                device.get('osVersionName', None),
-                device.get('lastSyncStatus', None),
-                device.get('type', None),
-                device.get('version', None),
-                device.get('lastSync', None),
-                device.get('osVersion', None),
-                device.get('name', None),
-                device.get('status', None),
-                device.get('originId', None),
-                device.get('appliedBundle', None),
-                device.get('hasIpBlocking', None),
-            ) for device in devices],
+            values=[
+                (
+                    timestamp,
+                    device,
+                    device.get('deviceId'),
+                    device.get('osVersionName', None),
+                    device.get('lastSyncStatus', None),
+                    device.get('type', None),
+                    device.get('version', None),
+                    device.get('lastSync', None),
+                    device.get('osVersion', None),
+                    device.get('name', None),
+                    device.get('status', None),
+                    device.get('originId', None),
+                    device.get('appliedBundle', None),
+                    device.get('hasIpBlocking', None),
+                )
+                for device in devices
+            ],
             select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS)
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS),
         )
         log.info(f'Inserted {len(devices)} rows.')
         yield len(devices)

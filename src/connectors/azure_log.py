@@ -14,7 +14,7 @@ CONNECTION_OPTIONS = [
         'title': "Storage Account",
         'prompt': "Your storage account with the container where Azure sends logs",
         'placeholder': "azstorageaccount",
-        'required': True
+        'required': True,
     },
     {
         'type': 'str',
@@ -22,7 +22,7 @@ CONNECTION_OPTIONS = [
         'title': "Container Name",
         'prompt': "Your storage container where Azure sends logs",
         'placeholder': "insights-logs",
-        'required': True
+        'required': True,
     },
     {
         'type': 'str',
@@ -34,19 +34,19 @@ CONNECTION_OPTIONS = [
             "?sv=2010-01-01&ss=abcd&srt=def&sp=gh&se=2011-01-01T00:12:34Z"
             "&st=2011-01-23T45:67:89Z&spr=https&sig=abcdefghijklmnopqrstuvwxyz%3D"
         ),
-        'required': True
+        'required': True,
     },
     {
         'type': 'str',
         'name': 'cloud_type',
         'options': [
             {'value': 'reg', 'label': "Azure Cloud"},
-            {'value': 'gov', 'label': "Azure Gov Cloud"}
+            {'value': 'gov', 'label': "Azure Gov Cloud"},
         ],
         'title': "Cloud Type",
         'placeholder': "Choose Cloud Type",
         'prompt': "Azure provides two types of clouds: regular and government",
-        'required': True
+        'required': True,
     },
     {
         'type': 'str',
@@ -59,7 +59,7 @@ CONNECTION_OPTIONS = [
         'title': "Log Type",
         'placeholder': "Choose Log Type",
         'prompt': "Azure provides several activity log streams, choose one for this connector",
-        'required': True
+        'required': True,
     },
     {
         'type': 'str',
@@ -67,7 +67,7 @@ CONNECTION_OPTIONS = [
         'title': "Endpoint Suffix (optional)",
         'prompt': "If using Azure Storage in an independent cloud, modify the endpoint suffix below",
         'default': 'core.windows.net',
-        'required': True
+        'required': True,
     },
 ]
 
@@ -105,7 +105,7 @@ LANDING_TABLES_COLUMNS = {
         ('result_signature', 'VARCHAR'),
         ('result_type', 'VARCHAR'),
         ('event_time', 'TIMESTAMP_LTZ'),
-        ('loaded_on', 'TIMESTAMP_LTZ')
+        ('loaded_on', 'TIMESTAMP_LTZ'),
     ],
     'audit': [
         ('raw', 'VARIANT'),
@@ -133,7 +133,7 @@ LANDING_TABLES_COLUMNS = {
         ('result_signature', 'VARCHAR'),
         ('tenant_id', 'VARCHAR'),
         ('event_time', 'TIMESTAMP_LTZ(9)'),
-        ('loaded_on', 'TIMESTAMP_LTZ(9)')
+        ('loaded_on', 'TIMESTAMP_LTZ(9)'),
     ],
     'signin': [
         ('raw', 'VARIANT'),
@@ -182,8 +182,8 @@ LANDING_TABLES_COLUMNS = {
         ('result_type', 'VARCHAR'),
         ('tenant_id', 'VARCHAR'),
         ('event_time', 'TIMESTAMP_LTZ'),
-        ('loaded_on', 'TIMESTAMP_LTZ')
-    ]
+        ('loaded_on', 'TIMESTAMP_LTZ'),
+    ],
 }
 
 GET_TIMESTAMP_FROM_FILENAME_SQL = {
@@ -219,7 +219,7 @@ substr(metadata$filename, 61, 2)
 substr(metadata$filename, 66, 2)
 || ':' ||
 substr(metadata$filename, 71, 2))
-'''
+''',
 }
 
 # This requires External Tables to support REGEXP_REPLACE, which they currently do not.
@@ -319,7 +319,7 @@ try {{
             f"  FROM data.{base_name}_external"
             f"  WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
             f"), LATERAL FLATTEN (INPUT => a:records)"
-        )
+        ),
     }
 
     insert_task_sql = {
@@ -412,10 +412,10 @@ WHEN NOT MATCHED THEN
         name=f'data.{base_name}_ingest_task',
         warehouse=WAREHOUSE,
         schedule=f'AFTER data.{base_name}_refresh_task',
-        sql=ingest_task_sql
+        sql=ingest_task_sql,
     )
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'Created Stage, Tables, Stored Procedure, and Tasks.'
+        'newMessage': 'Created Stage, Tables, Stored Procedure, and Tasks.',
     }

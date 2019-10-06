@@ -16,5 +16,5 @@ setup(
         'pendulum',
         'requests',
         'ujson',
-    ]
+    ],
 )
