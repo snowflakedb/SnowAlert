@@ -71,6 +71,7 @@ def connect(connection_name, options):
         'newMessage': "Okta ingestion table, user table, group table created!",
     }
 
+
 def ingest_users(ingest_type, url, headers, landing_table, timestamp):
     while 1:
         response = requests.get(url=url[ingest_type], headers=headers)
@@ -81,7 +82,7 @@ def ingest_users(ingest_type, url, headers, landing_table, timestamp):
         result = response.json()
         if result == []:
             break
-        
+
         db.insert(
             landing_table,
             values=[(row, timestamp) for row in result],
@@ -100,6 +101,7 @@ def ingest_users(ingest_type, url, headers, landing_table, timestamp):
         if len(url[ingest_type]) == 0:
             break
 
+
 def ingest(table_name, options):
     ingest_type = (
         'users' if table_name.endswith('_USERS_CONNECTION') else
@@ -113,7 +115,7 @@ def ingest(table_name, options):
 
     url = {
         'users': f'https://{subdomain}.okta.com/api/v1/users',
-        'deprovisioned_users':f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
+        'deprovisioned_users': f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
         'groups': f'https://{subdomain}.okta.com/api/v1/groups',
         'logs': f'https://{subdomain}.okta.com/api/v1/logs'
     }
@@ -132,7 +134,11 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
-            row['users'] = requests.get(url=row['_links']['users']['href'], headers=headers).json()
+            try:
+                row['users'] = requests.get(url=row['_links']['users']['href'], headers=headers).json()
+            except TypeError:
+                log.info(row)
+                raise
 
         db.insert(
             landing_table,
