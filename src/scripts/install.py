@@ -268,8 +268,8 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt(f"Use database {database}", f'USE DATABASE {database}')
     do_attempt("Creating schemas", CREATE_SCHEMAS_QUERIES)
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
-    do_attempt("Creating standard data views", read_queries('data-views'))
     do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
+    do_attempt("Creating standard data views", read_queries('data-views'))
 
 
 def setup_user_and_role(do_attempt):
