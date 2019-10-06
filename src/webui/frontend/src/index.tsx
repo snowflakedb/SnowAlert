@@ -1,4 +1,4 @@
-import {LocaleProvider} from 'antd';
+import {ConfigProvider} from 'antd';
 import enUS from 'antd/lib/locale-provider/en_US';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
@@ -14,9 +14,9 @@ const render = () =>
   ReactDOM.render(
     <Provider store={store}>
       <ConnectedRouter history={history}>
-        <LocaleProvider locale={enUS}>
+        <ConfigProvider locale={enUS}>
           <SamuiApp />
-        </LocaleProvider>
+        </ConfigProvider>
       </ConnectedRouter>
     </Provider>,
     document.getElementById('root'),
