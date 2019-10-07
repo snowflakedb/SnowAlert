@@ -192,13 +192,13 @@ def login(configuration=None):
             config = parser[config_section]
 
     if config is not None:
-        account = "snowhouse"  # config.get('accountname')
-        username = "lambda_user"  # config.get('username')
-        password = "Test1234"  # config.get('password')
-        region = "us-west-2"  # config.get('region')
-        host = "snowhouse.preprod2.int.snowflakecomputing.com"  # config.get('host')
-        port = 8084  # config.get('port')
-        protocol = "http"  # config.get('protocol')
+        account = config.get('accountname')
+        username = config.get('username')
+        password = config.get('password')
+        region = config.get('region')
+        host = config.get('host')
+        port = config.get('port')
+        protocol = config.get('protocol')
 
     else:
         account = None
