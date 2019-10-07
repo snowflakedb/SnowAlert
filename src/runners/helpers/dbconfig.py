@@ -36,13 +36,13 @@ REGION = environ.get('SA_REGION', "us-west-2")
 REGION_SUBDOMAIN_POSTFIX = '' if REGION == 'us-west-2' else f'.{REGION}'
 ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') if HOST else environ.get('SNOWFLAKE_ACCOUNT', '') + REGION_SUBDOMAIN_POSTFIX
 
-USER = environ.get('SA_USER', "snowalert") + tail
+USER = environ.get('SA_USER', "app_self_service_logs") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
 PRIVATE_KEY = b64decode(environ['PRIVATE_KEY']) if environ.get('PRIVATE_KEY') else None
 
-ROLE = environ.get('SA_ROLE', "snowalert") + tail
-WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert") + tail
-DATABASE = environ.get('SA_DATABASE', "snowalert") + tail
+ROLE = environ.get('SA_ROLE', "APP_SELF_SERVICE_LOGS_ADMIN_RL") + tail
+WAREHOUSE = environ.get('SA_WAREHOUSE', "snowhouse") + tail
+DATABASE = environ.get('SA_DATABASE', "SELF_SERVICE_LOGS") + tail
 
 # connection properties
 TIMEOUT = environ.get('SA_TIMEOUT', 500)

@@ -14,7 +14,7 @@ from .helpers import db, log
 METADATA_RECORDS = []
 
 
-def main():
+def main(rules_postfix=VIOLATION_QUERY_POSTFIX):
     RUN_METADATA = {
         'RUN_TYPE': 'VIOLATION QUERY',
         'START_TIME': datetime.datetime.utcnow(),
@@ -22,7 +22,7 @@ def main():
     }
 
     # Force warehouse resume so query runner doesn't have a bunch of queries waiting for warehouse resume
-    for query_name in db.load_rules(VIOLATION_QUERY_POSTFIX):
+    for query_name in db.load_rules(rules_postfix):
         metadata = {
             'QUERY_NAME': query_name,
             'RUN_ID': RUN_ID,
@@ -36,20 +36,23 @@ def main():
             insert_count = 0
             metadata['EXCEPTION'] = e
 
-        metadata['ROW_COUNT'] = {
-            'INSERTED': insert_count,
-        }
+        metadata['ROW_COUNT'] = {'INSERTED': insert_count}
         db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
         log.info(f"{query_name} done.")
         METADATA_RECORDS.append(metadata)
 
     RUN_METADATA['ROW_COUNT'] = {
-        'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS),
+        'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS)
     }
     db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 
     if CLOUDWATCH_METRICS:
-        log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Violation Query Runner'}], 1)
+        log.metric(
+            'Run',
+            'SnowAlert',
+            [{'Name': 'Component', 'Value': 'Violation Query Runner'}],
+            1,
+        )
 
 
 if __name__ == '__main__':

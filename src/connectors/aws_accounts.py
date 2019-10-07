@@ -32,7 +32,7 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'required': True,
         'secret': True,
-    }
+    },
 ]
 
 LANDING_TABLE_COLUMNS = [
@@ -75,24 +75,27 @@ def ingest(table_name, options):
     org_client = sts_assume_role(
         src_role_arn=options['source_role_arn'],
         dest_role_arn=options['destination_role_arn'],
-        dest_external_id=options['destination_role_external_id']
+        dest_external_id=options['destination_role_external_id'],
     ).client('organizations')
 
     account_pages = org_client.get_paginator('list_accounts').paginate()
     accounts = [a for page in account_pages for a in page['Accounts']]
     db.insert(
         table=f'data.{table_name}',
-        values=[(
-            a,
-            current_time,
-            a['Arn'],
-            a['Email'],
-            a['Id'],
-            a['JoinedMethod'],
-            a['JoinedTimestamp'],
-            a['Name'],
-            a['Status'],
-        ) for a in accounts],
+        values=[
+            (
+                a,
+                current_time,
+                a['Arn'],
+                a['Email'],
+                a['Id'],
+                a['JoinedMethod'],
+                a['JoinedTimestamp'],
+                a['Name'],
+                a['Status'],
+            )
+            for a in accounts
+        ],
         select=(
             'PARSE_JSON(column1)',
             'column2',
@@ -103,6 +106,6 @@ def ingest(table_name, options):
             'column7::TIMESTAMP_LTZ',
             'column8::STRING',
             'column9::STRING',
-        )
+        ),
     )
     return len(accounts)

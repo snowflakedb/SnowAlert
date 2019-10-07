@@ -120,7 +120,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
   render() {
     const {updateRule, updateRuleBody, cols, saveRule} = this.props;
     const {currentRuleView, queries, suppressions} = this.props.rules;
-    const rules = [...queries, ...suppressions].filter(q => q.target == this.props.target);
+    const rules = [...queries, ...suppressions].filter(q => q.target === this.props.target);
     const q = rules.find(q => q.viewName === currentRuleView);
 
     if (!(currentRuleView && q && q.isParsed)) {

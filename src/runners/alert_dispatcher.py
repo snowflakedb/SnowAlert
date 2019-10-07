@@ -51,25 +51,26 @@ def main():
                 handler_type = handler['type']
 
                 handler_kwargs = handler.copy()
-                handler_kwargs.update({
-                    'alert': alert,
-                    'correlation_id': alert_row.get('CORRELATION_ID'),
-                    'alert_count': alert_row['COUNTER'],
-                })
+                handler_kwargs.update(
+                    {
+                        'alert': alert,
+                        'correlation_id': alert_row.get('CORRELATION_ID'),
+                        'alert_count': alert_row['COUNTER'],
+                    }
+                )
 
                 try:
-                    handler_module = importlib.import_module(f'runners.handlers.{handler_type}')
+                    handler_module = importlib.import_module(
+                        f'runners.handlers.{handler_type}'
+                    )
                     result = {
                         'success': True,
-                        'details': apply_some(handler_module.handle, **handler_kwargs)
+                        'details': apply_some(handler_module.handle, **handler_kwargs),
                     }
 
                 except Exception as e:
                     log.error(e, 'handler failed')
-                    result = {
-                        'success': False,
-                        'details': e,
-                    }
+                    result = {'success': False, 'details': e}
 
                 results.append(result)
 
@@ -77,12 +78,15 @@ def main():
 
     try:
         if CLOUDWATCH_METRICS:
-            log.metric('Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1)
+            log.metric(
+                'Run', 'SnowAlert', [{'Name': 'Component', 'Value': 'Alert Handler'}], 1
+            )
     except Exception as e:
         log.error("Cloudwatch metric logging failed", e)
 
 
 if __name__ == "__main__":
     import os
+
     if os.environ.get('JIRA_USER'):
         main()

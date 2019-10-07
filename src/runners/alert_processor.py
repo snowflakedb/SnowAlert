@@ -63,7 +63,11 @@ def get_correlation_id(ctx, alert):
         log.error("Failed unexpectedly while getting correlation matches", e)
         match = []
 
-    correlation_id = match[0]['CORRELATION_ID'] if len(match) > 0 and 'CORRELATION_ID' in match[0] else uuid.uuid4().hex
+    correlation_id = (
+        match[0]['CORRELATION_ID']
+        if len(match) > 0 and 'CORRELATION_ID' in match[0]
+        else uuid.uuid4().hex
+    )
 
     return correlation_id
 
@@ -79,7 +83,10 @@ def assess_correlation(ctx):
         try:
             alert_body = json.loads(row[0])
         except Exception as e:
-            log.error("Failed unexpectedly while loading alert inside alert_processor.assess_correlation", e)
+            log.error(
+                "Failed unexpectedly while loading alert inside alert_processor.assess_correlation",
+                e,
+            )
             continue
 
         alert_id = alert_body['ALERT_ID']

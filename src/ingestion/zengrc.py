@@ -24,7 +24,7 @@ ENDPOINTS = [
     '/api/v2/audits',
     '/api/v2/issues',
     '/api/v2/requests',
-    '/api/v2/risks'
+    '/api/v2/risks',
 ]
 
 

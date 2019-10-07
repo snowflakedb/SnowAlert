@@ -16,7 +16,11 @@ def message_template(vars):
 
     # if we have Slack user data, send it to template
     if 'user' in vars:
-        params = {'alert': vars['alert'], 'properties': vars['properties'], 'user': vars['user']}
+        params = {
+            'alert': vars['alert'],
+            'properties': vars['properties'],
+            'user': vars['user'],
+        }
     else:
         params = {'alert': vars['alert'], 'properties': vars['properties']}
 
@@ -24,7 +28,8 @@ def message_template(vars):
     try:
         # retrieve Slack message structure from javascript UDF
         rows = db.connect_and_fetchall(
-            "select " + vars['template'] + "(parse_json('" + json.dumps(params) + "'))")
+            "select " + vars['template'] + "(parse_json('" + json.dumps(params) + "'))"
+        )
         row = rows[1]
 
         if len(row) > 0:
@@ -41,8 +46,17 @@ def message_template(vars):
     return payload
 
 
-def handle(alert, recipient_email=None, channel=None, template=None, message=None, file_content=None, file_type=None,
-           file_name=None, slack_api_token=None):
+def handle(
+    alert,
+    recipient_email=None,
+    channel=None,
+    template=None,
+    message=None,
+    file_content=None,
+    file_type=None,
+    file_name=None,
+    slack_api_token=None,
+):
     if 'SLACK_API_TOKEN' not in os.environ and slack_api_token is None:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
         return None
@@ -75,7 +89,9 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
     else:
         if recipient_email is not None:
             channel = userid
-            log.info(f'Creating new SLACK message for {title} for user {recipient_email}')
+            log.info(
+                f'Creating new SLACK message for {title} for user {recipient_email}'
+            )
         else:
             log.error(f'Cannot identify assignee email')
             return None
@@ -119,7 +135,7 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
                 channel=channel,
                 text=text,
                 blocks=blocks,
-                attachments=attachments
+                attachments=attachments,
             )
 
         file_descriptor = sc.api_call(
@@ -143,7 +159,7 @@ def handle(alert, recipient_email=None, channel=None, template=None, message=Non
             channel=channel,
             text=text,
             blocks=blocks,
-            attachments=attachments
+            attachments=attachments,
         )
 
     if response is not None:

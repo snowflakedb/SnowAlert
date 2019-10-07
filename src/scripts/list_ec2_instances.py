@@ -52,12 +52,12 @@ def write_to_firehose(firehose_client, stream_name, instances, snapshot_at):
     :rtype: void
     """
     for i in range(len(instances['Reservations'])):
-        data = json.dumps({"snapshot_at": snapshot_at, "data": instances['Reservations'][i]}, default=convert_dt)
+        data = json.dumps(
+            {"snapshot_at": snapshot_at, "data": instances['Reservations'][i]},
+            default=convert_dt,
+        )
         firehose_client.put_record(
-            DeliveryStreamName=stream_name,
-            Record={
-                'Data': data + '\n'
-            }
+            DeliveryStreamName=stream_name, Record={'Data': data + '\n'}
         )
 
 
@@ -73,9 +73,10 @@ def get_ec2_client(parent_arn, child_arn, child_session_name, aws_service, aws_r
     :rtype: AWS<A>
     """
 
-    parent_assume_role_response = boto3.Session().client('sts').assume_role(
-        RoleArn=parent_arn,
-        RoleSessionName="parent_role"
+    parent_assume_role_response = (
+        boto3.Session()
+        .client('sts')
+        .assume_role(RoleArn=parent_arn, RoleSessionName="parent_role")
     )
 
     parent_credentials = parent_assume_role_response['Credentials']
@@ -83,24 +84,21 @@ def get_ec2_client(parent_arn, child_arn, child_session_name, aws_service, aws_r
     parent_session = boto3.Session(
         aws_access_key_id=parent_credentials['AccessKeyId'],
         aws_secret_access_key=parent_credentials['SecretAccessKey'],
-        aws_session_token=parent_credentials['SessionToken']
+        aws_session_token=parent_credentials['SessionToken'],
     )
 
     child_assume_role_response = parent_session.client('sts').assume_role(
-        RoleArn=child_arn,
-        RoleSessionName=child_session_name
+        RoleArn=child_arn, RoleSessionName=child_session_name
     )
 
     child_credentials = child_assume_role_response['Credentials']
 
-    return (
-        boto3.client(
-            aws_service,
-            aws_region,
-            aws_access_key_id=child_credentials['AccessKeyId'],
-            aws_secret_access_key=child_credentials['SecretAccessKey'],
-            aws_session_token=child_credentials['SessionToken']
-        )
+    return boto3.client(
+        aws_service,
+        aws_region,
+        aws_access_key_id=child_credentials['AccessKeyId'],
+        aws_secret_access_key=child_credentials['SecretAccessKey'],
+        aws_session_token=child_credentials['SessionToken'],
     )
 
 
@@ -116,21 +114,20 @@ def get_service_client(arn, session_name, aws_service, aws_region):
     :rtype: AWS<A>
     """
 
-    assume_role_response = boto3.Session().client('sts').assume_role(
-        RoleArn=arn,
-        RoleSessionName=session_name
+    assume_role_response = (
+        boto3.Session()
+        .client('sts')
+        .assume_role(RoleArn=arn, RoleSessionName=session_name)
     )
 
     temp_credentials = assume_role_response['Credentials']
 
-    return (
-        boto3.client(
-            aws_service,
-            aws_region,
-            aws_access_key_id=temp_credentials['AccessKeyId'],
-            aws_secret_access_key=temp_credentials['SecretAccessKey'],
-            aws_session_token=temp_credentials['SessionToken'],
-        )
+    return boto3.client(
+        aws_service,
+        aws_region,
+        aws_access_key_id=temp_credentials['AccessKeyId'],
+        aws_secret_access_key=temp_credentials['SecretAccessKey'],
+        aws_session_token=temp_credentials['SessionToken'],
     )
 
 
@@ -144,17 +141,22 @@ def worker(thread_num, firehose_client, snapshot_at):
     :returns: none
     :rtype: void
     """
-    ec2 = get_ec2_client(CONFIG['parent_arn'], CONFIG['ec2_arn'][thread_num]['arn'], 'DescribeEC2', 'ec2', CONFIG['ec2_arn'][thread_num]['region'])
+    ec2 = get_ec2_client(
+        CONFIG['parent_arn'],
+        CONFIG['ec2_arn'][thread_num]['arn'],
+        'DescribeEC2',
+        'ec2',
+        CONFIG['ec2_arn'][thread_num]['region'],
+    )
 
     key = 'NextToken'
-    kwargs = {
-        'MaxResults': 1000,
-        key: ''
-    }
+    kwargs = {'MaxResults': 1000, key: ''}
 
     while True:
         instances = ec2.describe_instances(**kwargs)
-        write_to_firehose(firehose_client, 'instance-data-delivery', instances, snapshot_at)
+        write_to_firehose(
+            firehose_client, 'instance-data-delivery', instances, snapshot_at
+        )
         try:
             kwargs[key] = instances[key]
         except KeyError:
@@ -164,6 +166,7 @@ def worker(thread_num, firehose_client, snapshot_at):
 #
 # main procedure
 #
+
 
 def main():
 
@@ -175,10 +178,7 @@ def main():
     log_location = CONFIG['log_location']
     logger = logging.getLogger()
     os_touch(log_location)
-    handler = RotatingFileHandler(
-        filename=log_location,
-        maxBytes=8000000
-    )
+    handler = RotatingFileHandler(filename=log_location, maxBytes=8000000)
     handler.setFormatter(logmatic.JsonFormatter())
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)

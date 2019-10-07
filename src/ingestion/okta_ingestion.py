@@ -12,7 +12,11 @@ AUTH = "SSWS " + OKTA_API_KEY
 OKTA_URL = environ.get('OKTA_URL')
 OKTA_TABLE = environ.get('OKTA_TABLE')
 
-HEADERS = {'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': AUTH}
+HEADERS = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': AUTH,
+}
 
 
 # This should at some point be made more modular so that it works with a bunch of ETL tools and not just alooma.
@@ -39,12 +43,17 @@ def get_timestamp():
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         log.info(ts)
         if len(ts) < 1:
-            log.error("The okta timestamp is too short or doesn't exist; defaulting to one hour ago")
+            log.error(
+                "The okta timestamp is too short or doesn't exist; defaulting to one hour ago"
+            )
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
             ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
     except Exception as e:
-        log.error("Unable to find a timestamp of most recent okta log, defaulting to one hour ago", e)
+        log.error(
+            "Unable to find a timestamp of most recent okta log, defaulting to one hour ago",
+            e,
+        )
         ts = datetime.datetime.now() - datetime.timedelta(hours=1)
         ts = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 

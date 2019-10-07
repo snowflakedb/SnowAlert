@@ -1,5 +1,4 @@
 import jwtDecode from 'jwt-decode';
-import * as _ from 'lodash';
 import {Reducer} from 'redux';
 import * as FromActions from '../actions/auth';
 import {AuthState, State} from './types';

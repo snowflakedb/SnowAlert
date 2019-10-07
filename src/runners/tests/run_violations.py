@@ -80,7 +80,8 @@ def violation_queries(db_schemas):
     db.execute(TEST_QUERY)
     db.execute(TEST_SUPPRESSION)
     db.execute(TEST_INVALID_QUERY)
-    db.execute(f"""
+    db.execute(
+        f"""
         CREATE OR REPLACE VIEW rules.__suppress_samples_violation_suppression COPY GRANTS
           COMMENT='this should suppress anything not a test'
         AS
@@ -88,7 +89,8 @@ def violation_queries(db_schemas):
         FROM data.violations
         WHERE suppressed IS NULL
           AND query_name NOT ILIKE '_TEST%'
-    """)
+    """
+    )
 
     yield
 
@@ -98,7 +100,9 @@ def violation_queries(db_schemas):
 
 
 def test_violation_tags_in_rule_tags_view(violation_queries):
-    test_violation_tag_row = next(db.fetch("SELECT * FROM data.rule_tags WHERE tag='test-violation-tag'"))
+    test_violation_tag_row = next(
+        db.fetch("SELECT * FROM data.rule_tags WHERE tag='test-violation-tag'")
+    )
     assert test_violation_tag_row == {
         'TYPE': 'QUERY',
         'TARGET': 'VIOLATION',
@@ -136,7 +140,10 @@ def test_run_violations(violation_queries):
     }
 
     # basics
-    assert v['ID'] == md5(json_like_snowflake(default_identity).encode('utf-8')).hexdigest()
+    assert (
+        v['ID']
+        == md5(json_like_snowflake(default_identity).encode('utf-8')).hexdigest()
+    )
     assert v['OBJECT'] == "Test Violation Object"
     assert v['EVENT_DATA'] == {"b": 1, "a": 2}
     assert v['SUPPRESSED'] is None
@@ -144,11 +151,15 @@ def test_run_violations(violation_queries):
     assert v['CREATED_TIME'] is not None
 
     # metadata
-    queries_run_records = list(db.fetch('SELECT * FROM data.violation_queries_runs ORDER BY start_time'))
+    queries_run_records = list(
+        db.fetch('SELECT * FROM data.violation_queries_runs ORDER BY start_time')
+    )
     assert len(queries_run_records) == 1
     assert queries_run_records[0]['NUM_VIOLATIONS_CREATED'] == 2
 
-    query_rule_run_record = list(db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time'))
+    query_rule_run_record = list(
+        db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time')
+    )
     assert len(query_rule_run_record) == 3
     assert query_rule_run_record[-2]['QUERY_NAME'] == '_TEST1_VIOLATION_QUERY'
     assert query_rule_run_record[-2]['NUM_VIOLATIONS_CREATED'] == 1
@@ -174,7 +185,9 @@ def test_run_violations(violation_queries):
     assert v['SUPPRESSION_RULE'] == '_TEST1_VIOLATION_SUPPRESSION'
 
     # metadata
-    suppressions_run_record = next(db.fetch('SELECT * FROM data.violation_suppressions_runs'))
+    suppressions_run_record = next(
+        db.fetch('SELECT * FROM data.violation_suppressions_runs')
+    )
     assert suppressions_run_record['NUM_VIOLATIONS_PASSED'] == 0
     assert suppressions_run_record['NUM_VIOLATIONS_SUPPRESSED'] == 2
 
@@ -183,7 +196,10 @@ def test_run_violations(violation_queries):
     assert len(suppression_rule_run_record) == 2
     assert suppression_rule_run_record[0]['RULE_NAME'] == '_TEST1_VIOLATION_SUPPRESSION'
     assert suppression_rule_run_record[0]['NUM_VIOLATIONS_SUPPRESSED'] == 1
-    assert suppression_rule_run_record[1]['RULE_NAME'] == '__SUPPRESS_SAMPLES_VIOLATION_SUPPRESSION'
+    assert (
+        suppression_rule_run_record[1]['RULE_NAME']
+        == '__SUPPRESS_SAMPLES_VIOLATION_SUPPRESSION'
+    )
     assert suppression_rule_run_record[1]['NUM_VIOLATIONS_SUPPRESSED'] == 1
 
 

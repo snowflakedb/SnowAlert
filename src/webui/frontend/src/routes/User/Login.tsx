@@ -42,7 +42,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     this.props.form.validateFields((err: string, values: FormProps) => {
       if (!err) {
         localStorage.setItem('account', values.account);
-        this.props.oauthRedirect(values.account, location.href);
+        this.props.oauthRedirect(values.account, window.location.href);
       } else {
         this.setState({
           errorMessage: err,
@@ -53,13 +53,13 @@ class LoginForm extends React.Component<LoginFormProps, State> {
 
   render() {
     const {getFieldDecorator} = this.props.form;
-    const m = location.search.match(/\?code=([0-9A-F]+)/);
+    const m = window.location.search.match(/\?code=([0-9A-F]+)/);
     const code = m ? m[1] : null;
 
     const account = JSON.parse(localStorage.getItem('auth') || '{}').account || localStorage.getItem('account') || '';
 
     if (code && account) {
-      const redirectUri = location.origin + location.pathname;
+      const redirectUri = window.location.origin + window.location.pathname;
       this.props.oauthLogin(account, code, redirectUri);
     }
 

@@ -7,7 +7,7 @@ export class Connector {
   options: any;
   finalize: boolean;
   secret: boolean;
-  mask_on_screen: boolean;
+  maskOnScreen: boolean;
   title: string;
   prompt: string;
   placeholder: string;
@@ -20,7 +20,7 @@ export class Connector {
     this.finalize = payload.finalize;
     this.description = payload.docstring.replace(/[^\n]*\n/m, '');
     this.secret = payload.secret;
-    this.mask_on_screen = payload.mask_on_screen;
+    this.maskOnScreen = payload.mask_on_screen;
     this.prompt = payload.prompt;
     this.placeholder = payload.placeholder;
   }
