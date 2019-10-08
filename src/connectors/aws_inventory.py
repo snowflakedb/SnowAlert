@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collect AWS EC2, SG, ELB, IAM assets using an Access Key or privileged Role
+Collect AWS EC2, SG, ELB, AMI, and IAM assets using an Access Key or privileged Role
 """
 from datetime import datetime
 import json
@@ -20,6 +20,7 @@ CONNECTION_OPTIONS = [
             {'value': 'EC2', 'label': "EC2 Inventory"},
             {'value': 'SG', 'label': "SG Inventory"},
             {'value': 'ELB', 'label': "ELB Inventory"},
+            {'value': 'AMI', 'label': "AMI Inventory"},
             {'value': 'IAM', 'label': "IAM Inventory"},
         ],
         'name': 'connection_type',
@@ -161,6 +162,30 @@ LANDING_TABLES_COLUMNS = {
         ('password_last_used', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING(30)'),
     ],
+    'AMI': [
+        ('raw', 'VARIANT'),
+        ('monitored_time', 'TIMESTAMP_TZ'),
+        ('virtualization_type', 'STRING(256)'),
+        ('description', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('hypervisor', 'STRING(256)'),
+        ('ena_support', 'BOOLEAN'),
+        ('sriov_net_support', 'STRING(256)'),
+        ('image_id', 'STRING(256)'),
+        ('state', 'STRING(256)'),
+        ('block_device_mappings', 'VARIANT'),
+        ('architecture', 'STRING(64)'),
+        ('image_location', 'STRING'),
+        ('root_device_type', 'STRING(128)'),
+        ('root_device_name', 'STRING(128)'),
+        ('owner_id', 'STRING(128)'),
+        ('creation_date', 'TIMESTAMP_LTZ'),
+        ('public', 'BOOLEAN'),
+        ('image_type', 'STRING(128)'),
+        ('name', 'STRING'),
+        ('account_id', 'STRING(30)'),
+        ('region_name', 'STRING(16)'),
+    ],
 }
 
 
@@ -217,6 +242,7 @@ def ingest(table_name, options: dict):
         'SG': sg_dispatch,
         'ELB': elb_dispatch,
         'IAM': iam_dispatch,
+        'AMI': ami_dispatch,
     }[connection_type]
 
     if (
@@ -357,6 +383,61 @@ def ec2_dispatch(
                 log.error(f"Unable to assume role {target_role} with error", e)
     else:
         results += ingest_ec2(
+            landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key
+        )
+
+    return results
+
+
+def ami_dispatch(
+    landing_table,
+    aws_access_key='',
+    aws_secret_key='',
+    accounts=None,
+    source_role_arn='',
+    destination_role_name='',
+    external_id='',
+):
+    results = 0
+    if accounts:
+        for account in accounts:
+            id = account['ACCOUNT_ID']
+            name = account['ACCOUNT_ALIAS']
+            target_role = f'arn:aws:iam::{id}:role/{destination_role_name}'
+            log.info(f"Using role {target_role}")
+            try:
+                session = sts_assume_role(source_role_arn, target_role, external_id)
+
+                results += ingest_ami(landing_table, session=session, account=account)
+
+                db.insert(
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, results)],
+                    columns=[
+                        'snapshot_at',
+                        'run_id',
+                        'account_id',
+                        'account_alias',
+                        'ami_count',
+                    ],
+                )
+
+            except Exception as e:
+                db.insert(
+                    AWS_ACCOUNTS_METADATA,
+                    values=[(datetime.utcnow(), RUN_ID, id, name, 0, e)],
+                    columns=[
+                        'snapshot_at',
+                        'run_id',
+                        'account_id',
+                        'account_alias',
+                        'ami_count',
+                        'error',
+                    ],
+                )
+                log.error(f"Unable to assume role {target_role} with error", e)
+    else:
+        results += ingest_ami(
             landing_table, aws_access_key=aws_access_key, aws_secret_key=aws_secret_key
         )
 
@@ -540,6 +621,53 @@ def ingest_ec2(
     return len(instances)
 
 
+def ingest_ami(
+    landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None
+):
+    images = get_images(
+        aws_access_key=aws_access_key,
+        aws_secret_key=aws_secret_key,
+        session=session,
+        account=account,
+    )
+
+    monitor_time = datetime.utcnow().isoformat()
+
+    db.insert(
+        landing_table,
+        values=[
+            (
+                row,
+                monitor_time,
+                row.get('VirtualizationType'),
+                row.get('Description'),
+                row.get('Tags'),
+                row.get('Hypervisor'),
+                row.get('EnaSupport'),
+                row.get('SriovNetSupport'),
+                row.get('ImageId'),
+                row.get('State'),
+                row.get('BlockDeviceMappings'),
+                row.get('Architecture'),
+                row.get('ImageLocation'),
+                row.get('RootDeviceType'),
+                row.get('RootDeviceName'),
+                row.get('OwnerId'),
+                row.get('CreationDate'),
+                row.get('Public'),
+                row.get('ImageType'),
+                row.get('Name'),
+                row.get('Account', {}).get('ACCOUNT_ID'),
+                row['Region']['RegionName'],
+            )
+            for row in images
+        ],
+        select=db.derive_insert_select(LANDING_TABLES_COLUMNS['AMI']),
+        columns=db.derive_insert_columns(LANDING_TABLES_COLUMNS['AMI']),
+    )
+    return len(images)
+
+
 def ingest_sg(
     landing_table, aws_access_key=None, aws_secret_key=None, session=None, account=None
 ):
@@ -673,6 +801,43 @@ def get_ec2_instances(
     # return list of instances
     log.info(f"Successfully serialized {len(instances)} EC2 instance(s).")
     return instances
+
+
+def get_images(aws_access_key=None, aws_secret_key=None, session=None, account=None):
+    client = boto3.client(
+        'ec2',
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=REGION,
+    )
+    regions = client.describe_regions()['Regions']
+
+    log.info(f"Searching for images in {len(regions)} region(s).")
+
+    # get list of all images in each region
+    images = []
+    for region in regions:
+        if session:
+            client = session.client('ec2', region_name=region['RegionName'])
+        else:
+            client = boto3.client(
+                'ec2',
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+                region_name=region['RegionName'],
+            )
+
+        results = client.describe_images(Owners=['self'])['Images']
+        for image in results:
+            image['Region'] = region
+            if account:
+                image['Account'] = account
+
+        images.extend(results)
+
+    # return list of images
+    log.info(f"Successfully serialized {len(images)} images(s).")
+    return images
 
 
 def get_ec2_instance_name(instance=None):
