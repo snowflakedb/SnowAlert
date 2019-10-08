@@ -431,7 +431,6 @@ def ami_dispatch(
                         'run_id',
                         'account_id',
                         'account_alias',
-                        'ec2_count',
                         'ami_count',
                         'error',
                     ],
