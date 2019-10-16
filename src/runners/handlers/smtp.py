@@ -97,6 +97,8 @@ def handle(
     else:
         smtpserver = smtplib.SMTP(smtp_server, smtp_port)
 
-    smtpserver.login(smtp_user, smtp_password)
+    if smtp_user and smtp_password:
+        smtpserver.login(smtp_user, smtp_password)
+
     smtpserver.sendmail(sender_email, recipients, message.as_string())
     smtpserver.close()
