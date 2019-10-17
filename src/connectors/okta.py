@@ -66,9 +66,9 @@ def connect(connection_name, options):
     }
 
 
-def ingest_users(ingest_type, url, headers, landing_table, timestamp):
+def ingest_users(url, headers, landing_table, timestamp):
     while 1:
-        response = requests.get(url=url[ingest_type], headers=headers)
+        response = requests.get(url=url, headers=headers)
         if response.status_code != 200:
             log.error('OKTA REQUEST FAILED: ', response.text)
             return
@@ -86,13 +86,13 @@ def ingest_users(ingest_type, url, headers, landing_table, timestamp):
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
 
-        url[ingest_type] = ''
+        url = ''
         links = requests.utils.parse_header_links(response.headers['Link'])
         for link in links:
             if link['rel'] == 'next':
-                url[ingest_type] = link['url']
+                url = link['url']
 
-        if len(url[ingest_type]) == 0:
+        if len(url) == 0:
             break
 
 
@@ -109,7 +109,7 @@ def ingest(table_name, options):
     api_key = options['api_key']
     subdomain = options['subdomain']
 
-    url = {
+    ingest_urls = {
         'users': f'https://{subdomain}.okta.com/api/v1/users',
         'deprovisioned_users': f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
         'groups': f'https://{subdomain}.okta.com/api/v1/groups',
@@ -125,7 +125,7 @@ def ingest(table_name, options):
     timestamp = datetime.datetime.utcnow()
 
     if ingest_type == 'groups':
-        response = requests.get(url=url[ingest_type], headers=headers)
+        response = requests.get(url=ingest_urls[ingest_type], headers=headers)
 
         result = response.json()
 
@@ -148,9 +148,9 @@ def ingest(table_name, options):
         yield len(result)
 
     elif ingest_type == 'users':
-        yield from ingest_users('users', url, headers, landing_table, timestamp)
+        yield from ingest_users(ingest_urls['users'], headers, landing_table, timestamp)
         yield from ingest_users(
-            'deprovisioned_users', url, headers, landing_table, timestamp
+            ingest_urls['deprovisioned_users'], headers, landing_table, timestamp
         )
 
     else:
@@ -166,9 +166,10 @@ def ingest(table_name, options):
 
         i = 0
         print(params['since'])
+        url = ingest_urls[ingest_type]
         while 1:
             response = requests.get(
-                url=url[ingest_type], headers=headers, params=params
+                url=url, headers=headers, params=params
             )
             if response.status_code != 200:
                 log.error('OKTA REQUEST FAILED: ', response.text)
@@ -188,11 +189,11 @@ def ingest(table_name, options):
             i += 1
             yield len(result)
 
-            url[ingest_type] = ''
+            url = ''
             links = requests.utils.parse_header_links(response.headers['Link'])
             for link in links:
                 if link['rel'] == 'next':
-                    url[ingest_type] = link['url']
+                    url = link['url']
 
-            if len(url[ingest_type]) == 0:
+            if len(url) == 0:
                 break
