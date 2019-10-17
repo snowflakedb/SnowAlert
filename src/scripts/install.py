@@ -169,8 +169,8 @@ def parse_snowflake_url(url):
         groups = m.groupdict()
         account = groups['internal_account'] or groups['account']
         region = groups['region'] or ''
-        host = groups['host'] or (account+'.'+region+'.snowflakecomputing.com'
-                                  if region else account+'.snowflakecomputing.com')
+        host = groups['host'] or (f"{account}.{region}.snowflakecomputing.com"
+                                  if region else f"{account}.snowflakecomputing.com")
         port = groups['port'] or '443'
         protocol = res.scheme or ('https' if port == '443' else 'http')
 
@@ -452,6 +452,7 @@ def gen_envs(jira_user, jira_project, jira_url, jira_password, account, region, 
         ('SA_PORT', port),
         ('SA_PROTOCOL', protocol),
         ('PRIVATE_KEY', b64encode(private_key).decode("utf-8")),
+        ('PRIVATE_KEY_PASSWORD', pk_passphrase.replace('$', r'\$')),
         ('PRIVATE_KEY_PASSWORD', pk_passphrase),
     ]
 

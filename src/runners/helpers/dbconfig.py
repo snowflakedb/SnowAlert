@@ -38,7 +38,11 @@ ACCOUNT = environ.get('SNOWFLAKE_ACCOUNT', '') if HOST else environ.get('SNOWFLA
 
 USER = environ.get('SA_USER', "app_self_service_logs") + tail
 PRIVATE_KEY_PASSWORD = environ.get('PRIVATE_KEY_PASSWORD', '').encode('utf-8')
-PRIVATE_KEY = b64decode(environ['PRIVATE_KEY']) if environ.get('PRIVATE_KEY') else None
+pk = environ.get('PRIVATE_KEY')
+PRIVATE_KEY = (
+    b64decode(pk) if pk.startswith('LS0t')  # "LS0t" is base64 of '---'
+    else format_p8_from_key(pk, encrypted=PRIVATE_KEY_PASSWORD)
+) if pk else None
 
 ROLE = environ.get('SA_ROLE', "APP_SELF_SERVICE_LOGS_ADMIN_RL") + tail
 WAREHOUSE = environ.get('SA_WAREHOUSE', "snowhouse") + tail
