@@ -2,14 +2,15 @@
 Collect Tenable Settings using a Service User’s API Key
 """
 
-import requests
-from .utils import yaml_dump
-from tenable.io import TenableIO
 from datetime import datetime, timezone
+import requests
+from tenable.io import TenableIO
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from runners.utils import groups_of
+
+from .utils import yaml_dump
 
 CONNECTION_OPTIONS = [
     {
@@ -67,8 +68,11 @@ AGENT_LANDING_TABLE = [('RAW', 'VARIANT'), ('EXPORT_AT', 'TIMESTAMP_LTZ')]
 
 VULN_LANDING_TABLE = [('RAW', 'VARIANT'), ('EXPORT_AT', 'TIMESTAMP_LTZ')]
 
+TIO = None  # connection created in `ingest` below
+GET = None
 
-def ingest_vulns(tio, table_name):
+
+def ingest_vulns(table_name):
     last_export_time = next(
         db.fetch(f'SELECT MAX(export_at) as time FROM data.{table_name}')
     )['TIME']
@@ -79,7 +83,7 @@ def ingest_vulns(tio, table_name):
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
         log.info("Exporting vulnerabilities...")
-        vulns = tio.exports.vulns()
+        vulns = TIO.exports.vulns()
 
         for page in groups_of(10000, vulns):
             db.insert(
@@ -92,8 +96,8 @@ def ingest_vulns(tio, table_name):
         log.info('Not time to import Tenable vulnerabilities yet')
 
 
-def ingest_users(tio, table_name):
-    users = tio.users.list()
+def ingest_users(table_name):
+    users = TIO.users.list()
     timestamp = datetime.now(timezone.utc)
 
     for user in users:
@@ -139,22 +143,18 @@ def ingest_users(tio, table_name):
     )
 
 
-def get_agent_data(tio, access, secret):
-    headers = {"X-ApiKeys": f"accessKey={access}; secretKey={secret}"}
-
-    r = requests.get(
-        url='https://cloud.tenable.com/scanners/1/agent-groups', headers=headers
-    )
-    groups = r.json()['groups']
-
-    agents = []
-    for group in groups:
-        agents += tio.agent_groups.details(group['id'])['agents']
-
-    return agents
+def get_group_ids():
+    return GET('agent-groups', 'groups', 10, 0)
 
 
-def ingest_agents(tio, table_name, options):
+def get_agent_data():
+    groups = get_group_ids()
+    for g in groups:
+        agents = GET(f'agent-groups/{g["id"]}', 'agents', 5000)
+        yield from agents
+
+
+def ingest_agents(table_name, options):
     last_export_time = next(
         db.fetch(f'SELECT MAX(export_at) as time FROM data.{table_name}')
     )['TIME']
@@ -164,57 +164,30 @@ def ingest_agents(tio, table_name, options):
         last_export_time is None
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
-        agents = get_agent_data(tio, options['token'], options['secret'])
-        db.insert(
-            table=f'data.{table_name}',
-            values=[(agent, timestamp) for agent in agents],
-            select=db.derive_insert_select(AGENT_LANDING_TABLE),
-            columns=db.derive_insert_columns(AGENT_LANDING_TABLE),
-        )
+        agents = {a['uuid']: a for a in get_agent_data()}.values()
+        for page in groups_of(10000, agents):
+            db.insert(
+                table=f'data.{table_name}',
+                values=[(agent, timestamp) for agent in page],
+                select=db.derive_insert_select(AGENT_LANDING_TABLE),
+                columns=db.derive_insert_columns(AGENT_LANDING_TABLE),
+            )
     else:
         log.info('Not time to import Tenable Agents')
 
 
-def create_vuln_table(connection_name, options):
-    table_name = f'data.tenable_settings_{connection_name}_vuln_connection'
-
-    comment = yaml_dump(module='tenable_settings', **options)
-
-    db.create_table(table_name, cols=VULN_LANDING_TABLE, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
-
-
-def create_user_table(connection_name, options):
-    table_name = f'data.tenable_settings_{connection_name}_user_connection'
-    token = options['token']
-    secret = options['secret']
-    comment = f"""
----
-module: tenable_settings
-token: {token}
-secret: {secret}
-"""
-
-    db.create_table(table_name, cols=USER_LANDING_TABLE, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
-
-
-def create_agent_table(connection_name, options):
-    table_name = f'tenable_settings_{connection_name}_agent_connection'
-
-    comment = yaml_dump(module='tenable_settings', **options)
-
-    db.create_table(table_name, cols=AGENT_LANDING_TABLE, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON {table_name} TO ROLE {SA_ROLE}')
-
-
 def connect(connection_name, options):
-    if options['connection_type'] == 'user':
-        create_user_table(connection_name, options)
-    elif options['connection_type'] == 'agent':
-        create_agent_table(connection_name, options)
-    elif options['connection_type'] == 'vuln':
-        create_vuln_table(connection_name, options)
+    ctype = options['connection_type']
+    ctable = f'data.tenable_settings_{connection_name}_{ctype}_connection'
+    cols = {
+        'user': USER_LANDING_TABLE,
+        'agent': AGENT_LANDING_TABLE,
+        'vuln': VULN_LANDING_TABLE,
+    }[ctype]
+    comment = yaml_dump(module='tenable_settings', **options)
+
+    db.create_table(ctable, cols=cols, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON {ctable} TO ROLE {SA_ROLE}')
 
     return {
         'newStage': 'finalized',
@@ -223,10 +196,46 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options):
-    tio = TenableIO(options['token'], options['secret'])
+    token = options['token']
+    secret = options['secret']
+
+    global TIO, GET
+
+    TIO = TenableIO(token, secret)
+
+    def GET(resource, name, limit=100, offset=0):
+        response = requests.get(
+            url=f'https://cloud.tenable.com/scanners/1/{resource}',
+            params={
+                'limit': limit,
+                'offset': offset,
+            },
+            headers={
+                "X-ApiKeys": f"accessKey={token}; secretKey={secret}"
+            },
+        )
+        result = response.json()
+        elements = result.get(name)
+
+        if elements is None:
+            log.error(f'no {name} in :', result)
+            return
+
+        yield from elements
+
+        pages = result.get('pagination', {})
+        total = pages.get('total', 0)
+        limit = pages.get('limit', 0)
+        offset = pages.get('offset', 0)
+
+        if total > limit + offset:
+            yield from GET(resource, name, limit, offset + limit)
+
     if table_name.endswith('USER_CONNECTION'):
-        ingest_users(tio, table_name)
+        ingest_users(table_name)
+
     elif table_name.endswith('AGENT_CONNECTION'):
-        ingest_agents(tio, table_name, options)
+        ingest_agents(table_name, options)
+
     elif table_name.endswith('VULN_CONNECTION'):
-        ingest_vulns(tio, table_name)
+        ingest_vulns(table_name)
