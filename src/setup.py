@@ -13,7 +13,7 @@ setup(
         'snowflake-sqlalchemy==1.1.2',
         'pandas==0.24.1',
         'pybrake==0.4.0',
-        'rpy2==3.0.1',
+        'rpy2==3.2.0',
         'pytz==2018.9',
         'slackclient==1.3.1',
         'tzlocal==1.5.1',

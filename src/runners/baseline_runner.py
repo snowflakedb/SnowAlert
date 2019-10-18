@@ -5,9 +5,6 @@ from runners.config import DATA_SCHEMA
 
 from runners.helpers import db, log
 
-from rpy2 import robjects as ro
-from rpy2.robjects import pandas2ri
-
 import math
 import os
 import shutil
@@ -42,6 +39,8 @@ def unpack(data):
 
 
 def query_log_source(source, time_filter, time_column):
+    from rpy2.robjects import pandas2ri
+
     cutoff = f"DATEADD(day, -{time_filter}, CURRENT_TIMESTAMP())"
     query = f"SELECT * FROM {source} WHERE {time_column} > {cutoff};"
     try:
@@ -56,6 +55,7 @@ def query_log_source(source, time_filter, time_column):
 
 
 def run_baseline(name, comment):
+    from rpy2 import robjects as ro
     try:
         metadata = yaml.load(comment)
         assert type(metadata) is dict
