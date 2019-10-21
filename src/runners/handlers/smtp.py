@@ -43,8 +43,8 @@ def handle(
     else:
         smtp_use_tls = True
 
-    smtp_user = vault.decrypt_if_encrypted(os.environ['SMTP_USER'])
-    smtp_password = vault.decrypt_if_encrypted(os.environ['SMTP_PASSWORD'])
+    smtp_user = vault.decrypt_if_encrypted(envar='SMTP_USER')
+    smtp_password = vault.decrypt_if_encrypted(envar='SMTP_PASSWORD')
 
     if recipient_email is None:
         log.error(f"Cannot identify recipient email")
