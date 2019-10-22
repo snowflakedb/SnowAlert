@@ -11,7 +11,6 @@ WITH ip_login_fails AS (
     AND error_code IS NOT NULL
   GROUP BY client_ip, reported_client_type
 )
-
 SELECT *
 FROM ip_login_fails
 WHERE counts > 5
@@ -30,7 +29,6 @@ WITH user_login_fails AS (
     AND error_code IS NOT NULL
   GROUP BY user_name, reported_client_type
 )
-
 SELECT *
 FROM user_login_fails
 WHERE counts > 3
