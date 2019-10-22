@@ -1,0 +1,91 @@
+// Too many bad logins by a single IP
+with ip_login_fails as (
+    select 
+    client_ip,
+    reported_client_type,
+    array_agg(distinct error_code),
+    array_agg(distinct error_message),
+    count(event_id) as counts
+from account_usage.login_history where datediff(hour,event_timestamp,current_timestamp()) < 24 and error_code is not null group by 1,2)
+select * from ip_login_fails where counts > 5
+; 
+
+// Too many bad logins by a single User
+with user_login_fails as (
+    select 
+    user_name,
+    reported_client_type,
+    array_agg(distinct error_code),
+    array_agg(distinct error_message),
+    count(event_id) as counts
+from account_usage.login_history where datediff(hour,event_timestamp,current_timestamp()) < 12 and error_code is not null group by 1,2)
+select * from user_login_fails where counts > 3
+; 
+
+//  Modifications to sensitive roles
+select
+query_id,
+query_text,
+user_name,
+role_name,
+start_time
+from snowflake.account_usage.query_history
+where QUERY_TYPE = 'ALTER_USER'
+and QUERY_TEXT ilike '%ADMIN%'
+; 
+
+// Password changes
+select
+query_id,
+query_text,
+user_name,
+role_name,
+start_time
+from snowflake.account_usage.query_history
+where QUERY_TYPE = 'ALTER_USER' and QUERY_TEXT ilike '%password%'
+; 
+
+// New Users Created
+select
+query_id,
+query_text,
+user_name,
+role_name,
+start_time
+from snowflake.account_usage.query_history
+where QUERY_TYPE = 'CREATE_USER'
+; 
+
+// User not using Multi Factor Authentication
+select
+event_timestamp,
+user_name,
+client_IP,
+reported_client_type,
+first_authentication_factor,
+second_authentication_factor
+from snowflake.account_usage.login_history
+where second_authentication_factor is null
+and (reported_client_type = 'SNOWFLAKE_UI' or reported_client_type = 'OTHER')
+; 
+
+// Suspicious increase in queries by a user
+with average_queries as (
+    select
+    user_name,
+    count(query_id) as total_queries,
+    count(query_id)/28 as avg_queries
+    from snowflake.account_usage.query_history
+    where datediff(day,start_time,current_timestamp())<28
+    group by 1
+    )
+    select
+    w.user_name,
+    sum(w.query_id) as ld_queries,
+    a.avg_queries
+    from snowflake.account_usage.query_history w
+    join average_queries a on w.user_name = a.user_name
+    where datediff(day,start_time,current_timestamp())<2
+    group by 1,3
+    having ld_queries > (a.avg_queries * 10)
+;
