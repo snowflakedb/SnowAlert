@@ -26,7 +26,8 @@ WITH table_spend AS (
   WHERE DATEDIFF(HOUR, end_time, CURRENT_TIMESTAMP) < 5
   GROUP BY 1, 2
   ORDER BY 3 DESC)
-SELECT * FROM table_spend where credits > 10
+SELECT * FROM table_spend
+WHERE credits > 10
 ;
 
 -- Snowpipe spend
