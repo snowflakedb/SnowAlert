@@ -220,7 +220,7 @@ def test_alert_runners_processor_and_dispatcher(
     assert len(query_rule_run_record) == 7  # 3 from samples + 4 test alert queries
 
     assert query_rule_run_record[0]['QUERY_NAME'] == 'ACTIVITY_BY_ADMIN_ALERT_QUERY'
-    queries_by_admin = 57
+    queries_by_admin = 58
     assert query_rule_run_record[0]['NUM_ALERTS_CREATED'] == queries_by_admin
 
     assert (
