@@ -2,7 +2,7 @@
 -- this query finds tables where the automatic clustering spend has gone over 10 credits in the past 5 hours
 WITH table_spend AS (
   SELECT
-    table_ID,
+    table_id,
     table_name,
     SUM(credits_used) AS credits
   FROM snowflake.account_usage.automatic_clustering_history
