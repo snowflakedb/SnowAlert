@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple, Optional, Union, Iterator, Any
+from typing import List, Tuple, Optional, Union, Iterator, Any, DefaultDict, Set, Type
 from os import getpid
 from re import match
 import operator
@@ -303,8 +303,8 @@ def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[A
     )
 
 
-def determine_cols(values: List[dict]) -> Tuple[Tuple[str], List[str]]:
-    column_types = defaultdict(set)  # name: type
+def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
+    column_types: DefaultDict[str, Set[Type]] = defaultdict(set)  # name: type
     for val in values:
         for k, v in val.items():
             column_types[k].add(type(v))
@@ -314,7 +314,7 @@ def determine_cols(values: List[dict]) -> Tuple[Tuple[str], List[str]]:
     for i, cname in enumerate(column_types):
         col = column_types[cname]
         if len(col) > 1:
-            log.warning('col {cname} has multiple types: {col}')
+            log.info('col {cname} has multiple types: {col}')
             continue
 
         ctype = col.pop()
@@ -330,7 +330,7 @@ def determine_cols(values: List[dict]) -> Tuple[Tuple[str], List[str]]:
         selects.append(select)
         columns.append(cname)
 
-    return tuple(selects), columns
+    return selects, columns
 
 
 def insert(table, values, overwrite=False, select="", columns=[]):
@@ -341,7 +341,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         select, columns = determine_cols(values)
         values = [tuple(v.get(c) for c in columns) for v in values]
 
-    if type(select) is tuple:
+    if type(select) is (tuple, list):
         select = ', '.join(select)
 
     if select:
