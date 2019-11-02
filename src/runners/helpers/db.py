@@ -345,7 +345,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         select = ', '.join(select)
 
     if select:
-        select = f'SELECT {", ".join(select)} FROM '
+        select = f'SELECT {select} FROM '
 
     overwrite = ' OVERWRITE' if overwrite else ''
 
