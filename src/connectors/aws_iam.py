@@ -198,7 +198,7 @@ def aws_collect(client, method, entity_name, params=None):
         )
 
     except client.exceptions.NoSuchEntityException as e:
-        pages = [updated({entity: {}}, e.response)]
+        pages = [updated({entity_name: {}}, e.response)]
 
     for page in pages:
         entities = [entity_name] if type(entity_name) is str else entity_name
