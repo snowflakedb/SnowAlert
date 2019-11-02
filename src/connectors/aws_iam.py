@@ -216,13 +216,18 @@ def aws_collect(client, method, entity_name, params=None):
 
 def load_aws_iam(from_account_with_id) -> Dict[str, List[dict]]:
     account_arn = f'arn:aws:iam::{from_account_with_id}:role/{AUDIT_READER_ROLE}'
-    session = sts_assume_role(
-        src_role_arn=AUDIT_ASSUMER,
-        dest_role_arn=account_arn,
-        dest_external_id=READER_EIDS,
-    )
-    if session is None:
+
+    try:
+        session = sts_assume_role(
+            src_role_arn=AUDIT_ASSUMER,
+            dest_role_arn=account_arn,
+            dest_external_id=READER_EIDS,
+        )
+
+    except ClientError as e:
+        log.error(e)
         return {}
+
     iam = session.client('iam')
 
     account_info = {'AccountId': from_account_with_id}

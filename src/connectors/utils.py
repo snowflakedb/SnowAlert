@@ -18,19 +18,15 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
         aws_session_token=src_role['Credentials']['SessionToken'],
     ).client('sts')
 
-    try:
-        sts_role = (
-            sts_client.assume_role(
-                RoleArn=dest_role_arn,
-                RoleSessionName=session_name,
-                ExternalId=dest_external_id,
-            )
-            if dest_external_id
-            else sts_client.assume_role(RoleArn=dest_role_arn, RoleSessionName=session_name)
+    sts_role = (
+        sts_client.assume_role(
+            RoleArn=dest_role_arn,
+            RoleSessionName=session_name,
+            ExternalId=dest_external_id,
         )
-    except ClientError as e:
-        log.error(e)
-        return None
+        if dest_external_id
+        else sts_client.assume_role(RoleArn=dest_role_arn, RoleSessionName=session_name)
+    )
 
     return boto3.Session(
         aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
