@@ -1,9 +1,10 @@
 """Helper specific to SnowAlert connecting to the database"""
+from collections import defaultdict
 from datetime import datetime
 import json
 from threading import local
 import time
-from typing import List, Tuple, Optional, Union, Iterator, Any
+from typing import List, Tuple, Optional, Union, Iterator, Any, DefaultDict, Set, Type
 from os import getpid
 from re import match
 import operator
@@ -33,6 +34,7 @@ from runners import utils
 
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
+JSONY = (dict, list, tuple, Exception, datetime)
 
 
 def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_retry=0):
@@ -301,15 +303,49 @@ def derive_insert_columns(table_definition: List[Tuple[str, str]]) -> Iterator[A
     )
 
 
+def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
+    column_types: DefaultDict[str, Set[Type]] = defaultdict(set)  # name: type
+    for val in values:
+        for k, v in val.items():
+            column_types[k].add(type(v))
+
+    selects = []  # col1, PARSE_JSON(col2), etc.
+    columns = []  # col names
+    for i, cname in enumerate(column_types):
+        col = column_types[cname]
+        if len(col) > 1:
+            log.info('col {cname} has multiple types: {col}')
+            continue
+
+        ctype = col.pop()
+        select = f'column{i+1}'
+        select = (
+            f'TRY_TO_TIMESTAMP({select})'
+            if issubclass(ctype, datetime)
+            else f'PARSE_JSON({select})'
+            if issubclass(ctype, JSONY)
+            else select
+        )
+
+        selects.append(select)
+        columns.append(cname)
+
+    return selects, columns
+
+
 def insert(table, values, overwrite=False, select="", columns=[]):
     if len(values) == 0:
-        return
+        return {'number of rows inserted': 0}
 
-    if type(select) is tuple:
+    if type(values[0]) is dict:
+        select, columns = determine_cols(values)
+        values = [tuple(v.get(c) for c in columns) for v in values]
+
+    if type(select) is (tuple, list):
         select = ', '.join(select)
 
     if select:
-        select = f'SELECT {select} FROM '
+        select = f'SELECT {", ".join(select)} FROM '
 
     overwrite = ' OVERWRITE' if overwrite else ''
 
@@ -322,13 +358,12 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         f";"
     )
 
-    jsony = (dict, list, tuple, Exception, datetime)
     params_with_json = [
         [
             v.isoformat()
             if isinstance(v, datetime)
             else utils.json_dumps(v)
-            if isinstance(v, jsony)
+            if isinstance(v, JSONY)
             else utils.format_exception(v)
             if isinstance(v, Exception)
             else v
@@ -337,7 +372,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         for vp in values
     ]
 
-    return execute(sql, params=params_with_json, fix_errors=False)
+    return next(fetch(sql, params=params_with_json, fix_errors=False))
 
 
 def insert_alerts(alerts, ctx=None):

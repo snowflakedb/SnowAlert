@@ -22,7 +22,7 @@ def format_exception_only(e):
     return ''.join(traceback.format_exception_only(type(e), e)).strip()
 
 
-def json_dumps(obj):
+def json_dumps(obj, **kwargs):
     def default_json_dumps(x):
         if isinstance(x, Exception):
             return {
@@ -46,7 +46,7 @@ def json_dumps(obj):
 
         return repr(x)
 
-    return json.dumps(obj, default=default_json_dumps)
+    return json.dumps(obj, default=default_json_dumps, **kwargs)
 
 
 def apply_some(f, **kwargs):
