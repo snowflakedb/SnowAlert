@@ -229,7 +229,16 @@ def load_aws_iam(from_account_with_id) -> Generator[Dict[str, List[dict]], None,
     except ClientError as e:
         log.error(e)
         # record empty row in account summary table
-        yield {'get_account_summary': [account_info]}
+        yield {
+            'get_account_summary': [
+                updated(
+                    account_info,
+                    ResponseHeaderDate=parse_date(
+                        e.response['ResponseMetadata']['HTTPHeaders']['date']
+                    ),
+                )
+            ]
+        }
         return
 
     iam = session.client('iam')
@@ -396,7 +405,7 @@ def main(audit_assumer, master_reader, reader_eids, audit_reader_role):
         'audit_assumer': audit_assumer,
         'master_reader': master_reader,
         'reader_eids': reader_eids,
-        'audit_reader_role': audit_reader_role
+        'audit_reader_role': audit_reader_role,
     }))
 
 
