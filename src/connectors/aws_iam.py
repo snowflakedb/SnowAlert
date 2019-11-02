@@ -217,6 +217,7 @@ def aws_collect(client, method, entity_name, params=None):
 
 def load_aws_iam(from_account_with_id) -> Generator[Dict[str, List[dict]], None, None]:
     account_arn = f'arn:aws:iam::{from_account_with_id}:role/{AUDIT_READER_ROLE}'
+    account_info = {'AccountId': from_account_with_id}
 
     try:
         session = sts_assume_role(
@@ -227,12 +228,11 @@ def load_aws_iam(from_account_with_id) -> Generator[Dict[str, List[dict]], None,
 
     except ClientError as e:
         log.error(e)
-        yield {}
+        # record empty row in account summary table
+        yield {'get_account_summary': [account_info]}
         return
 
     iam = session.client('iam')
-
-    account_info = {'AccountId': from_account_with_id}
 
     yield {
         'get_account_summary': [
