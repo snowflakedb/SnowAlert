@@ -335,7 +335,7 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
 
 def insert(table, values, overwrite=False, select="", columns=[]):
     if len(values) == 0:
-        return
+        return {'number of rows inserted': 0}
 
     if type(values[0]) is dict:
         select, columns = determine_cols(values)
@@ -345,7 +345,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         select = ', '.join(select)
 
     if select:
-        select = f'SELECT {select} FROM '
+        select = f'SELECT {", ".join(select)} FROM '
 
     overwrite = ' OVERWRITE' if overwrite else ''
 
@@ -372,7 +372,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         for vp in values
     ]
 
-    return execute(sql, params=params_with_json, fix_errors=False)
+    return next(fetch(sql, params=params_with_json, fix_errors=False))
 
 
 def insert_alerts(alerts, ctx=None):
