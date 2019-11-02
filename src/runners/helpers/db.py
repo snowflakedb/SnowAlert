@@ -341,7 +341,7 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         select, columns = determine_cols(values)
         values = [tuple(v.get(c) for c in columns) for v in values]
 
-    if type(select) is (tuple, list):
+    if type(select) in (tuple, list):
         select = ', '.join(select)
 
     if select:
