@@ -1,7 +1,8 @@
+from botocore.exceptions import ClientError
 from dateutil.parser import parse as parse_date
 import fire
 from multiprocessing import Pool
-from typing import Dict, List
+from typing import Dict, List, Generator
 
 from connectors.utils import sts_assume_role
 from runners.helpers import db, log
@@ -214,7 +215,7 @@ def aws_collect(client, method, entity_name, params=None):
                 yield ent
 
 
-def load_aws_iam(from_account_with_id) -> Dict[str, List[dict]]:
+def load_aws_iam(from_account_with_id) -> Generator[Dict[str, List[dict]], None, None]:
     account_arn = f'arn:aws:iam::{from_account_with_id}:role/{AUDIT_READER_ROLE}'
 
     try:
@@ -226,7 +227,8 @@ def load_aws_iam(from_account_with_id) -> Dict[str, List[dict]]:
 
     except ClientError as e:
         log.error(e)
-        return {}
+        yield {}
+        return
 
     iam = session.client('iam')
 
@@ -385,7 +387,7 @@ def ingest(table_name, options):
     accounts = [a for a in aws_collect(org_client, 'list_accounts', 'Accounts')]
     retval = [insert_list('list_accounts', accounts, table_name=f'data.{table_name}')]
     if options.get('collect_aws_iam') == 'all':
-        retval += Pool(10).map(collect_aws_iam, [a['Id'] for a in accounts])
+        retval += Pool(100).map(collect_aws_iam, [a['Id'] for a in accounts])
     return retval
 
 
