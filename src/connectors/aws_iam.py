@@ -396,7 +396,7 @@ def ingest(table_name, options):
     accounts = [a for a in aws_collect(org_client, 'list_accounts', 'Accounts')]
     retval = [insert_list('list_accounts', accounts, table_name=f'data.{table_name}')]
     if options.get('collect_aws_iam') == 'all':
-        retval += Pool(100).map(collect_aws_iam, [a['Id'] for a in accounts])
+        retval += Pool(32).map(collect_aws_iam, [a['Id'] for a in accounts])
     return retval
 
 
