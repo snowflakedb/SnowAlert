@@ -2,7 +2,7 @@ import boto3
 import random
 import yaml
 
-from runners.helpers import db
+from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
@@ -11,19 +11,22 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
     src_role = boto3.client('sts').assume_role(
         RoleArn=src_role_arn, RoleSessionName=session_name
     )
+    sts_client = boto3.Session(
+        aws_access_key_id=src_role['Credentials']['AccessKeyId'],
+        aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
+        aws_session_token=src_role['Credentials']['SessionToken'],
+    ).client('sts')
+
     sts_role = (
-        boto3.Session(
-            aws_access_key_id=src_role['Credentials']['AccessKeyId'],
-            aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
-            aws_session_token=src_role['Credentials']['SessionToken'],
-        )
-        .client('sts')
-        .assume_role(
+        sts_client.assume_role(
             RoleArn=dest_role_arn,
             RoleSessionName=session_name,
             ExternalId=dest_external_id,
         )
+        if dest_external_id
+        else sts_client.assume_role(RoleArn=dest_role_arn, RoleSessionName=session_name)
     )
+
     return boto3.Session(
         aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
         aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
