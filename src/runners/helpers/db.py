@@ -333,7 +333,7 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
     return selects, columns
 
 
-def insert(table, values, overwrite=False, select="", columns=[]):
+def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     if len(values) == 0:
         return {'number of rows inserted': 0}
 
@@ -371,6 +371,10 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         ]
         for vp in values
     ]
+
+    if dryrun:
+        print('db.insert', table, values)
+        return {'number of rows inserted': len(values)}
 
     return next(fetch(sql, params=params_with_json, fix_errors=False))
 

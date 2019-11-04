@@ -1,9 +1,41 @@
 import boto3
 import random
 import yaml
+from multiprocessing import JoinableQueue, Process
 
-from runners.helpers import db, log
+from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+
+class PoolQueue(object):
+    def __init__(self, n):
+        self.num_procs = n
+
+    def map(self, f, args):
+        payloads = JoinableQueue()
+        procs = []
+
+        def add_task(arg):
+            payloads.put(arg)
+
+        def process_task():
+            while True:
+                payload = payloads.get()
+                try:
+                    f(payload, add_task)
+                finally:
+                    payloads.task_done()
+
+        for arg in args:
+            add_task(arg)
+
+        procs = [Process(target=process_task) for _ in range(self.num_procs)]
+        for p in procs:
+            p.start()
+
+        payloads.join()
+        for p in procs:
+            p.kill()
 
 
 def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
