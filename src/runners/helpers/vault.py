@@ -3,7 +3,7 @@ from base64 import b64decode, b64encode
 from typing import Optional
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, HTTPClientError
 
 from .dbconfig import SA_KMS_REGION
 
@@ -30,7 +30,22 @@ def decrypt_if_encrypted(
     try:
         res = None  # retry on incomplete response
         while res is None or 'Plaintext' not in res:
-            res = kms.decrypt(CiphertextBlob=ctBlob)
+            n = 10
+            try:
+                res = kms.decrypt(CiphertextBlob=ctBlob)
+            except HTTPClientError:
+                # An HTTP Client raised and unhandled exception:
+                # [(
+                #     'SSL routines',
+                #     'ssl3_get_record',
+                #     'decryption failed or bad record mac',
+                # )]
+                # fixed by waiting
+                import time
+                time.sleep(0.1)
+                n -= 1
+                if n == 0:
+                    raise
 
         return res['Plaintext'].decode()
 
