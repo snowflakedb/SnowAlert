@@ -1,41 +1,42 @@
 import boto3
 import random
 import yaml
-from multiprocessing import JoinableQueue, Process
+from gevent.queue import JoinableQueue
+from gevent import monkey, spawn
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+monkey.patch_socket()
 
 
-class PoolQueue(object):
-    def __init__(self, n):
-        self.num_procs = n
+def qmap(num_threads, f, args):
+    payloads = JoinableQueue()
+    results = []
+    procs = []
 
-    def map(self, f, args):
-        payloads = JoinableQueue()
-        procs = []
+    def add_task(arg):
+        payloads.put(arg)
 
-        def add_task(arg):
-            payloads.put(arg)
+    def process_task():
+        nonlocal results
+        while True:
+            payload = payloads.get()
+            try:
+                result = f(payload, add_task)
+                results += list(result)
+            finally:
+                payloads.task_done()
 
-        def process_task():
-            while True:
-                payload = payloads.get()
-                try:
-                    f(payload, add_task)
-                finally:
-                    payloads.task_done()
+    for arg in args:
+        add_task(arg)
 
-        for arg in args:
-            add_task(arg)
+    procs = [spawn(process_task) for _ in range(num_threads)]
 
-        procs = [Process(target=process_task) for _ in range(self.num_procs)]
-        for p in procs:
-            p.start()
+    payloads.join()
+    for p in procs:
+        p.kill()
 
-        payloads.join()
-        for p in procs:
-            p.kill()
+    return results
 
 
 def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
