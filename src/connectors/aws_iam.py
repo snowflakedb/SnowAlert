@@ -208,21 +208,17 @@ AWS_API_METHODS = {
                 'GroupName': 'group_name',
                 'GroupId': 'group_id',
             },
-            'PolicyUsers': [
-                {
-                    'PolicyArn': 'policy_arn',
-                    'UserName': 'user_name',
-                    'UserId': 'user_id',
-                }
-            ],
-            'PolicyRoles': [
-                {
-                    'PolicyArn': 'policy_arn',
-                    'RoleName': 'role_name',
-                    'RoleId': 'role_id',
-                }
-            ],
-        },
+            'PolicyUsers': {
+                'PolicyArn': 'policy_arn',
+                'UserName': 'user_name',
+                'UserId': 'user_id',
+            },
+            'PolicyRoles': {
+                'PolicyArn': 'policy_arn',
+                'RoleName': 'role_name',
+                'RoleId': 'role_id',
+            },
+        }
     },
     'get_policy_version': {
         'response': {
