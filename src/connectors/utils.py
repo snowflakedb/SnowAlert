@@ -3,13 +3,14 @@ import random
 import yaml
 from gevent.queue import JoinableQueue
 from gevent import monkey, spawn
+import multiprocessing as mp
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-monkey.patch_socket()
 
 
 def qmap(num_threads, f, args):
+    monkey.patch_socket()
     payloads = JoinableQueue()
     results = []
     procs = []
@@ -37,6 +38,33 @@ def qmap(num_threads, f, args):
         p.kill()
 
     return results
+
+
+def qmap_mp(num_threads, f, args):
+    payloads = mp.JoinableQueue()
+    procs = []
+
+    def add_task(arg):
+        payloads.put(arg)
+
+    def process_task():
+        while True:
+            payload = payloads.get()
+            try:
+                f(payload, add_task)
+            finally:
+                payloads.task_done()
+
+    for arg in args:
+        add_task(arg)
+
+    procs = [mp.Process(target=process_task) for _ in range(num_threads)]
+    for p in procs:
+        p.start()
+
+    payloads.join()
+    for p in procs:
+        p.kill()
 
 
 def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
