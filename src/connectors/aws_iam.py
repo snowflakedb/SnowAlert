@@ -299,7 +299,7 @@ def load_aws_iam(
     except ClientError as e:
         # record missing auditor role as empty account summary
         yield {
-            'get_account_summary': [
+            method: [
                 updated(
                     account_info,
                     recorded_at=parse_date(
@@ -332,7 +332,7 @@ def load_aws_iam(
         users = [updated(u, account_info) for u in aws_collect(iam, 'list_users')]
         yield {'list_users': users}
         for user in users:
-            add_task(
+            collect_aws_iam(
                 {
                     'account_id': account_id,
                     'methods': [
@@ -401,23 +401,29 @@ def load_aws_iam(
         policies = [updated(u, account_info) for u in aws_collect(iam, 'list_policies')]
         yield {'list_policies': policies}
         for policy in policies:
-            add_task(
+            collect_aws_iam(
                 {
                     'account_id': account_id,
-                    'methods': [
-                        'get_policy_version',
-                        'list_entities_for_policy',
-                    ],
+                    'method': 'get_policy_version',
                     'params': {
                         'PolicyArn': policy['arn'],
                         'VersionId': policy['default_version_id'],
                     },
                 }
             )
+            collect_aws_iam(
+                {
+                    'account_id': account_id,
+                    'method': 'list_entities_for_policy',
+                    'params': {
+                        'PolicyArn': policy['arn'],
+                    },
+                }
+            )
     if method == 'get_policy_version':
         yield {
             'get_policy_version': [
-                updated(version, account_info, {'policy_arn': policy['PolicyArn']})
+                updated(version, account_info, {'policy_arn': params['PolicyArn']})
                 for version in aws_collect(iam, 'get_policy_version', params)
             ]
         }
@@ -425,7 +431,7 @@ def load_aws_iam(
     if method == 'list_entities_for_policy':
         yield {
             'list_entities_for_policy': [
-                updated(entity, account_info, {'policy_arn': policy['PolicyArn']})
+                updated(entity, account_info, {'policy_arn': params['PolicyArn']})
                 for entity in aws_collect(iam, 'list_entities_for_policy', params)
             ]
         }
@@ -437,7 +443,8 @@ def insert_list(name, values, table_name=None):
     return db.insert(table_name, values)
 
 
-def collect_aws_iam(task, add_task):
+def collect_aws_iam(task, add_task=None):
+    log.info('processing', task)
     account_id = task['account_id']
     methods = task.get('methods')
     methods = [task['method']] if methods is None else methods
@@ -467,7 +474,7 @@ def ingest(table_name, options):
     accounts = [a for a in aws_collect(org_client, 'list_accounts')]
     insert_list('list_accounts', accounts, table_name=f'data.{table_name}')
     if options.get('collect_aws_iam') == 'all':
-        PoolQueue(32).map(
+        PoolQueue(64).map(
             collect_aws_iam,
             [
                 {'method': method, 'account_id': a['id']}
@@ -482,9 +489,10 @@ def ingest(table_name, options):
         )
 
 
-def main(audit_assumer, master_reader, reader_eids, audit_reader_role):
+def main(table_name, audit_assumer, master_reader, reader_eids, audit_reader_role):
     print(
         ingest(
+            table_name,
             {
                 'audit_assumer': audit_assumer,
                 'master_reader': master_reader,
