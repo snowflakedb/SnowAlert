@@ -1,9 +1,10 @@
 from botocore.exceptions import ClientError
+from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import fire
 from typing import Dict, List, Generator
 
-from connectors.utils import sts_assume_role, PoolQueue
+from connectors.utils import sts_assume_role, qmap
 from runners.helpers import db, log
 
 
@@ -58,7 +59,7 @@ AWS_API_METHODS = {
                 'JoinedMethod': 'joined_method',
                 'JoinedTimestamp': 'joined_timestamp',
             }
-        },
+        }
     },
     'list_users': {
         'response': {
@@ -70,7 +71,7 @@ AWS_API_METHODS = {
                 'UserName': 'user_name',
                 'PasswordLastUsed': 'password_last_used',
             }
-        },
+        }
     },
     'list_groups_for_user': {
         'response': {
@@ -82,7 +83,7 @@ AWS_API_METHODS = {
                 'GroupId': 'group_id',
                 'GroupName': 'group_name',
             }
-        },
+        }
     },
     'list_policies': {
         'response': {
@@ -98,7 +99,7 @@ AWS_API_METHODS = {
                 'DefaultVersionId': 'default_version_id',
                 'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
             }
-        },
+        }
     },
     'list_access_keys': {
         'response': {
@@ -108,7 +109,7 @@ AWS_API_METHODS = {
                 'Status': 'status',
                 'AccessKeyId': 'access_key_id',
             }
-        },
+        }
     },
     'get_login_profile': {
         'response': {
@@ -117,7 +118,7 @@ AWS_API_METHODS = {
                 'CreateDate': 'create_date',
                 'PasswordResetRequired': 'password_reset_required',
             }
-        },
+        }
     },
     'list_mfa_devices': {
         'response': {
@@ -126,7 +127,7 @@ AWS_API_METHODS = {
                 'SerialNumber': 'serial_number',
                 'EnableDate': 'enable_date',
             }
-        },
+        }
     },
     'list_attached_user_policies': {
         'response': {
@@ -135,7 +136,7 @@ AWS_API_METHODS = {
                 'PolicyName': 'policy_name',
                 'PolicyArn': 'policy_arn',
             }
-        },
+        }
     },
     'list_user_policies': {
         'response': {
@@ -144,7 +145,7 @@ AWS_API_METHODS = {
                 'UserName': 'user_name',
                 'PolicyName': 'policy_name',
             }
-        },
+        }
     },
     'get_account_password_policy': {
         'response': {
@@ -160,7 +161,7 @@ AWS_API_METHODS = {
                 'HardExpiry': 'hard_expiry',
                 'ExpirePasswords': 'expire_passwords',
             }
-        },
+        }
     },
     'get_account_summary': {
         'response': {
@@ -199,7 +200,7 @@ AWS_API_METHODS = {
                 'UserPolicySizeQuota': 'user_policy_size_quota',
                 'GlobalEndpointTokenVersion': 'global_endpoint_token_version',
             }
-        },
+        }
     },
     'list_entities_for_policy': {
         'response': {
@@ -229,7 +230,7 @@ AWS_API_METHODS = {
                 'Document': 'document',
                 'IsDefaultVersion': 'is_default_version',
             }
-        },
+        }
     },
 }
 
@@ -328,7 +329,7 @@ def load_aws_iam(
         users = [updated(u, account_info) for u in aws_collect(iam, 'list_users')]
         yield {'list_users': users}
         for user in users:
-            collect_aws_iam(
+            add_task(
                 {
                     'account_id': account_id,
                     'methods': [
@@ -397,7 +398,7 @@ def load_aws_iam(
         policies = [updated(u, account_info) for u in aws_collect(iam, 'list_policies')]
         yield {'list_policies': policies}
         for policy in policies:
-            collect_aws_iam(
+            add_task(
                 {
                     'account_id': account_id,
                     'method': 'get_policy_version',
@@ -407,13 +408,11 @@ def load_aws_iam(
                     },
                 }
             )
-            collect_aws_iam(
+            add_task(
                 {
                     'account_id': account_id,
                     'method': 'list_entities_for_policy',
-                    'params': {
-                        'PolicyArn': policy['arn'],
-                    },
+                    'params': {'PolicyArn': policy['arn']},
                 }
             )
     if method == 'get_policy_version':
@@ -440,15 +439,14 @@ def insert_list(name, values, table_name=None):
 
 
 def collect_aws_iam(task, add_task=None):
-    log.info('processing', task)
+    log.info(f'processing {task}')
     account_id = task['account_id']
     methods = task.get('methods')
     methods = [task['method']] if methods is None else methods
     params = task.get('params', {})
+
     for method in methods:
-        for lists in load_aws_iam(account_id, method, params, add_task):
-            for name, values in lists.items():
-                insert_list(name, values)
+        yield from load_aws_iam(account_id, method, params, add_task)
 
 
 def ingest(table_name, options):
@@ -470,7 +468,9 @@ def ingest(table_name, options):
     accounts = [a for a in aws_collect(org_client, 'list_accounts')]
     insert_list('list_accounts', accounts, table_name=f'data.{table_name}')
     if options.get('collect_aws_iam') == 'all':
-        PoolQueue(64).map(
+        results = defaultdict(list)
+        lists = qmap(
+            50,
             collect_aws_iam,
             [
                 {'method': method, 'account_id': a['id']}
@@ -483,6 +483,13 @@ def ingest(table_name, options):
                 ]
             ],
         )
+        for vs in lists:
+            for k, xs in vs.items():
+                results[k] += xs
+        for k, xs in results.items():
+            print(k, len(xs))
+        for k, xs in results.items():
+            insert_list(k, xs)
 
 
 def main(table_name, audit_assumer, master_reader, reader_eids, audit_reader_role):
@@ -494,7 +501,7 @@ def main(table_name, audit_assumer, master_reader, reader_eids, audit_reader_rol
                 'master_reader': master_reader,
                 'reader_eids': reader_eids,
                 'audit_reader_role': audit_reader_role,
-            }
+            },
         )
     )
 
