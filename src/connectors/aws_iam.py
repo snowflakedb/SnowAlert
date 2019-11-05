@@ -1,11 +1,11 @@
 from botocore.exceptions import ClientError
-from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import fire
 from typing import Dict, List, Generator
 
-from connectors.utils import sts_assume_role, qmap
+from connectors.utils import sts_assume_role, qmap_mp
 from runners.helpers import db, log
+from runners.utils import groups_of
 
 
 AUDIT_ASSUMER = ''
@@ -264,6 +264,7 @@ def aws_collect(client, method, params=None):
     for page in pages:
         for ent_key in ent_keys:
             ents = page[ent_key]
+            cols = updated({'ResponseHeaderDate': 'recorded_at'}, k2c[ent_key])
 
             # treat singular entities from get_* like list with one ent.
             ents = [ents] if type(ents) is dict else ents
@@ -273,11 +274,11 @@ def aws_collect(client, method, params=None):
                 if type(ent) is str and ent_key.endswith('s'):
                     ent = {ent_key[:-1]: ent}
 
-                ent['recorded_at'] = parse_date(
+                ent['ResponseHeaderDate'] = parse_date(
                     page['ResponseMetadata']['HTTPHeaders']['date']
                 )
 
-                yield {v: ent.get(k) for k, v in k2c[ent_key].items()}
+                yield {v: ent.get(k) for k, v in cols.items()}
 
 
 def load_aws_iam(
@@ -328,7 +329,7 @@ def load_aws_iam(
     if method == 'list_users':
         users = [updated(u, account_info) for u in aws_collect(iam, 'list_users')]
         yield {'list_users': users}
-        for user in users:
+        for user_group in groups_of(1000, users):
             add_task(
                 {
                     'account_id': account_id,
@@ -340,7 +341,7 @@ def load_aws_iam(
                         'list_user_policies',
                         'list_attached_user_policies',
                     ],
-                    'params': {'UserName': user['user_name']},
+                    'params': [{'UserName': user['user_name']} for user in user_group],
                 }
             )
 
@@ -397,22 +398,25 @@ def load_aws_iam(
     if method == 'list_policies':
         policies = [updated(u, account_info) for u in aws_collect(iam, 'list_policies')]
         yield {'list_policies': policies}
-        for policy in policies:
+        for policy_group in groups_of(1000, policies):
             add_task(
                 {
                     'account_id': account_id,
                     'method': 'get_policy_version',
-                    'params': {
-                        'PolicyArn': policy['arn'],
-                        'VersionId': policy['default_version_id'],
-                    },
+                    'params': [
+                        {
+                            'PolicyArn': policy['arn'],
+                            'VersionId': policy['default_version_id'],
+                        }
+                        for policy in policy_group
+                    ],
                 }
             )
             add_task(
                 {
                     'account_id': account_id,
                     'method': 'list_entities_for_policy',
-                    'params': {'PolicyArn': policy['arn']},
+                    'params': [{'PolicyArn': policy['arn']} for policy in policy_group],
                 }
             )
     if method == 'get_policy_version':
@@ -441,12 +445,17 @@ def insert_list(name, values, table_name=None):
 def collect_aws_iam(task, add_task=None):
     log.info(f'processing {task}')
     account_id = task['account_id']
-    methods = task.get('methods')
-    methods = [task['method']] if methods is None else methods
+    methods = task.get('methods') or [task['method']]
     params = task.get('params', {})
+    if type(params) is dict:
+        params = [params]
 
-    for method in methods:
-        yield from load_aws_iam(account_id, method, params, add_task)
+    for param in params:
+        for method in methods:
+            for lists in load_aws_iam(account_id, method, param, add_task):
+                for name, values in lists.items():
+                    response = insert_list(name, values)
+                    log.info(f'finished {response}')
 
 
 def ingest(table_name, options):
@@ -468,9 +477,8 @@ def ingest(table_name, options):
     accounts = [a for a in aws_collect(org_client, 'list_accounts')]
     insert_list('list_accounts', accounts, table_name=f'data.{table_name}')
     if options.get('collect_aws_iam') == 'all':
-        results = defaultdict(list)
-        lists = qmap(
-            50,
+        qmap_mp(
+            32,
             collect_aws_iam,
             [
                 {'method': method, 'account_id': a['id']}
@@ -483,13 +491,6 @@ def ingest(table_name, options):
                 ]
             ],
         )
-        for vs in lists:
-            for k, xs in vs.items():
-                results[k] += xs
-        for k, xs in results.items():
-            print(k, len(xs))
-        for k, xs in results.items():
-            insert_list(k, xs)
 
 
 def main(table_name, audit_assumer, master_reader, reader_eids, audit_reader_role):
