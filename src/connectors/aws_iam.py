@@ -163,6 +163,16 @@ AWS_API_METHODS = {
             }
         }
     },
+    'generate_credential_report': {
+        'response': {'State': 'state', 'Description': 'description'}
+    },
+    'get_credential_report': {
+        'response': {
+            'Content': 'content',
+            'ReportFormat': 'report_format',
+            'GeneratedTime': 'generated_time',
+        }
+    },
     'get_account_summary': {
         'response': {
             'SummaryMap': {
@@ -200,6 +210,18 @@ AWS_API_METHODS = {
                 'UserPolicySizeQuota': 'user_policy_size_quota',
                 'GlobalEndpointTokenVersion': 'global_endpoint_token_version',
             }
+        }
+    },
+    'list_buckets': {
+        'response': {
+            'Buckets': {
+                'Name': 'bucket_name',
+                'CreationDate': 'bucket_creation_date',
+            },
+            'Owner': {
+                'DisplayName': 'owner_display_name',
+                'ID': 'owner_id',
+            },
         }
     },
     'list_entities_for_policy': {
@@ -262,6 +284,17 @@ def aws_collect(client, method, params=None):
         pages = [updated({ent: {} for ent in ent_keys}, e.response)]
 
     for page in pages:
+        if all(type(v) is str for k, v in k2c.items()):
+            # e.g. *-credential-report methods
+            def to_str(x):
+                return x.decode() if type(x) is bytes else x
+
+            yield updated(
+                {v: to_str(page.get(k)) for k, v in k2c.items()},
+                recorded_at=parse_date(page['ResponseMetadata']['HTTPHeaders']['date']),
+            )
+            continue
+
         for ent_key in ent_keys:
             ents = page[ent_key]
             cols = updated({'ResponseHeaderDate': 'recorded_at'}, k2c[ent_key])
@@ -308,13 +341,21 @@ def load_aws_iam(
         }
         return
 
-    iam = session.client('iam')
+    client = session.client({'list_buckets': 's3'}.get(method, 'iam'))
+
+    if method == 'list_buckets':
+        yield {
+            'list_buckets': [
+                updated(u, account_info)
+                for u in aws_collect(client, 'list_buckets')
+            ]
+        }
 
     if method == 'get_account_summary':
         yield {
             'get_account_summary': [
                 updated(u, account_info)
-                for u in aws_collect(iam, 'get_account_summary')
+                for u in aws_collect(client, 'get_account_summary')
             ]
         }
 
@@ -322,12 +363,26 @@ def load_aws_iam(
         yield {
             'get_account_password_policy': [
                 updated(u, account_info)
-                for u in aws_collect(iam, 'get_account_password_policy')
+                for u in aws_collect(client, 'get_account_password_policy')
+            ]
+        }
+
+    if method == 'generate_credential_report':
+        yield {
+            'generate_credential_report': [
+                updated(u, account_info)
+                for u in aws_collect(client, 'generate_credential_report')
+            ]
+        }
+        yield {
+            'get_credential_report': [
+                updated(u, account_info)
+                for u in aws_collect(client, 'get_credential_report')
             ]
         }
 
     if method == 'list_users':
-        users = [updated(u, account_info) for u in aws_collect(iam, 'list_users')]
+        users = [updated(u, account_info) for u in aws_collect(client, 'list_users')]
         yield {'list_users': users}
         for user_group in groups_of(1000, users):
             add_task(
@@ -349,7 +404,7 @@ def load_aws_iam(
         yield {
             'list_groups_for_user': [
                 updated(group, account_info, {'user_name': params['UserName']})
-                for group in aws_collect(iam, 'list_groups_for_user', params)
+                for group in aws_collect(client, 'list_groups_for_user', params)
             ]
         }
 
@@ -357,7 +412,7 @@ def load_aws_iam(
         yield {
             'list_access_keys': [
                 updated(access_key, account_info, {'user_name': params['UserName']})
-                for access_key in aws_collect(iam, 'list_access_keys', params)
+                for access_key in aws_collect(client, 'list_access_keys', params)
             ]
         }
 
@@ -365,7 +420,7 @@ def load_aws_iam(
         yield {
             'get_login_profile': [
                 updated(login_profile, account_info, {'user_name': params['UserName']})
-                for login_profile in aws_collect(iam, 'get_login_profile', params)
+                for login_profile in aws_collect(client, 'get_login_profile', params)
             ]
         }
 
@@ -373,7 +428,7 @@ def load_aws_iam(
         yield {
             'list_mfa_devices': [
                 updated(mfa_device, account_info, {'user_name': params['UserName']})
-                for mfa_device in aws_collect(iam, 'list_mfa_devices', params)
+                for mfa_device in aws_collect(client, 'list_mfa_devices', params)
             ]
         }
 
@@ -382,7 +437,7 @@ def load_aws_iam(
             'list_attached_user_policies': [
                 updated(user_policy, account_info, {'user_name': params['UserName']})
                 for user_policy in aws_collect(
-                    iam, 'list_attached_user_policies', params
+                    client, 'list_attached_user_policies', params
                 )
             ]
         }
@@ -391,12 +446,14 @@ def load_aws_iam(
         yield {
             'list_user_policies': [
                 updated(user_policy, account_info, {'user_name': params['UserName']})
-                for user_policy in aws_collect(iam, 'list_user_policies', params)
+                for user_policy in aws_collect(client, 'list_user_policies', params)
             ]
         }
 
     if method == 'list_policies':
-        policies = [updated(u, account_info) for u in aws_collect(iam, 'list_policies')]
+        policies = [
+            updated(u, account_info) for u in aws_collect(client, 'list_policies')
+        ]
         yield {'list_policies': policies}
         for policy_group in groups_of(1000, policies):
             add_task(
@@ -423,7 +480,7 @@ def load_aws_iam(
         yield {
             'get_policy_version': [
                 updated(version, account_info, {'policy_arn': params['PolicyArn']})
-                for version in aws_collect(iam, 'get_policy_version', params)
+                for version in aws_collect(client, 'get_policy_version', params)
             ]
         }
 
@@ -431,7 +488,7 @@ def load_aws_iam(
         yield {
             'list_entities_for_policy': [
                 updated(entity, account_info, {'policy_arn': params['PolicyArn']})
-                for entity in aws_collect(iam, 'list_entities_for_policy', params)
+                for entity in aws_collect(client, 'list_entities_for_policy', params)
             ]
         }
 
@@ -488,6 +545,8 @@ def ingest(table_name, options):
                     'get_account_password_policy',
                     'list_users',
                     'list_policies',
+                    'list_buckets',
+                    'generate_credential_report',
                 ]
             ],
         )
