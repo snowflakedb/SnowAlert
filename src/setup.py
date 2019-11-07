@@ -28,7 +28,6 @@ setup(
         'google-api-python-client==1.7.10',
         'pyTenable==0.3.22',
         'boto3',
-        'gevent==1.4.0',
         'twilio==6.29.4',
     ],
 )
