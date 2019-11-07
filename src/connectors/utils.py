@@ -1,43 +1,10 @@
 import boto3
 import random
 import yaml
-from gevent.queue import JoinableQueue
-from gevent import monkey, spawn
 import multiprocessing as mp
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-
-
-def qmap(num_threads, f, args):
-    monkey.patch_socket()
-    payloads = JoinableQueue()
-    results = []
-    procs = []
-
-    def add_task(arg):
-        payloads.put(arg)
-
-    def process_task():
-        nonlocal results
-        while True:
-            payload = payloads.get()
-            try:
-                result = f(payload, add_task)
-                results += list(result)
-            finally:
-                payloads.task_done()
-
-    for arg in args:
-        add_task(arg)
-
-    procs = [spawn(process_task) for _ in range(num_threads)]
-
-    payloads.join()
-    for p in procs:
-        p.kill()
-
-    return results
 
 
 def qmap_mp(num_threads, f, args):
