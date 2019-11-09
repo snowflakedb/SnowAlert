@@ -1,3 +1,7 @@
+"""AWS Collect
+Load Inventory and Configuration of your Org
+"""
+
 from botocore.exceptions import ClientError
 from dateutil.parser import parse as parse_date
 import fire
@@ -48,7 +52,7 @@ CONNECTION_OPTIONS = [
 ]
 
 AWS_API_METHODS = {
-    'list_accounts': {
+    'organizations.list_accounts': {
         'response': {
             'Accounts': {
                 'Id': 'id',
@@ -61,7 +65,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_users': {
+    'iam.list_users': {
         'response': {
             'Users': {
                 'Arn': 'arn',
@@ -73,7 +77,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_groups_for_user': {
+    'iam.list_groups_for_user': {
         'response': {
             'Groups': {
                 'Arn': 'arn',
@@ -85,7 +89,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_policies': {
+    'iam.list_policies': {
         'response': {
             'Policies': {
                 'Arn': 'arn',
@@ -101,7 +105,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_access_keys': {
+    'iam.list_access_keys': {
         'response': {
             'AccessKeyMetadata': {
                 'CreateDate': 'create_date',
@@ -111,7 +115,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'get_login_profile': {
+    'iam.get_login_profile': {
         'response': {
             'LoginProfile': {
                 'UserName': 'user_name',
@@ -120,7 +124,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_mfa_devices': {
+    'iam.list_mfa_devices': {
         'response': {
             'MFADevices': {
                 'UserName': 'user_name',
@@ -129,7 +133,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_attached_user_policies': {
+    'iam.list_attached_user_policies': {
         'response': {
             'AttachedPolicies': {
                 'UserName': 'user_name',
@@ -138,7 +142,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_user_policies': {
+    'iam.list_user_policies': {
         'response': {
             'PolicyNames': {
                 'AccountID': 'account_id',
@@ -147,7 +151,7 @@ AWS_API_METHODS = {
             }
         }
     },
-    'get_account_password_policy': {
+    'iam.get_account_password_policy': {
         'response': {
             'PasswordPolicy': {
                 'AllowUsersToChangePassword': 'allow_users_to_change_password',
@@ -163,17 +167,20 @@ AWS_API_METHODS = {
             }
         }
     },
-    'generate_credential_report': {
+    'iam.generate_credential_report': {
         'response': {'State': 'state', 'Description': 'description'}
     },
-    'get_credential_report': {
+    'iam.get_credential_report': {
         'response': {
             'Content': 'content',
             'ReportFormat': 'report_format',
             'GeneratedTime': 'generated_time',
         }
     },
-    'get_account_summary': {
+    'iam.list_virtual_mfa_devices': {
+        'response': {'VirtualMFADevices': {'SerialNumber': 'serial_number'}}
+    },
+    'iam.get_account_summary': {
         'response': {
             'SummaryMap': {
                 'UsersQuota': 'users_quota',
@@ -212,19 +219,19 @@ AWS_API_METHODS = {
             }
         }
     },
-    'list_buckets': {
+    's3.list_buckets': {
         'response': {
-            'Buckets': {
-                'Name': 'bucket_name',
-                'CreationDate': 'bucket_creation_date',
-            },
-            'Owner': {
-                'DisplayName': 'owner_display_name',
-                'ID': 'owner_id',
-            },
+            'Buckets': {'Name': 'bucket_name', 'CreationDate': 'bucket_creation_date'},
+            'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
         }
     },
-    'list_entities_for_policy': {
+    's3.get_bucket_acl': {
+        'response': {
+            'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
+            'Grants': {'Grantee': 'grants_grantee', 'Permission': 'grants_permission'},
+        }
+    },
+    'iam.list_entities_for_policy': {
         'response': {
             'PolicyGroups': {
                 'PolicyArn': 'policy_arn',
@@ -243,7 +250,7 @@ AWS_API_METHODS = {
             },
         }
     },
-    'get_policy_version': {
+    'iam.get_policy_version': {
         'response': {
             'PolicyVersion': {
                 'PolicyArn': 'policy_arn',
@@ -273,14 +280,24 @@ def aws_collect(client, method, params=None):
     k2c = AWS_API_METHODS[method]['response']
     ent_keys = k2c.keys()  # we'll be expecting response to have these keys
 
-    try:
-        pages = (
-            client.get_paginator(method).paginate(**params)
-            if client.can_paginate(method)
-            else [getattr(client, method)(**params)]
-        )
+    client_name, method_name = method.split('.', 1)
 
-    except client.exceptions.NoSuchEntityException as e:
+    pages = (
+        client.get_paginator(method_name).paginate(**params)
+        if client.can_paginate(method_name)
+        else None
+    )
+
+    NotFoundExceptions = getattr(
+        client.exceptions,
+        'AccessDeniedException',
+        getattr(client.exceptions, 'NoSuchEntityException', None),
+    )
+
+    try:
+        if pages is None:
+            pages = [getattr(client, method_name)(**params)]
+    except NotFoundExceptions as e:
         pages = [updated({ent: {} for ent in ent_keys}, e.response)]
 
     for page in pages:
@@ -320,6 +337,8 @@ def load_aws_iam(
     account_arn = f'arn:aws:iam::{account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': account_id}
 
+    client_name, method = method.split('.', 1)
+
     try:
         session = sts_assume_role(
             src_role_arn=AUDIT_ASSUMER,
@@ -330,7 +349,7 @@ def load_aws_iam(
     except ClientError as e:
         # record missing auditor role as empty account summary
         yield {
-            method: [
+            f'{client_name}.{method}': [
                 updated(
                     account_info,
                     recorded_at=parse_date(
@@ -341,60 +360,70 @@ def load_aws_iam(
         }
         return
 
-    client = session.client({'list_buckets': 's3'}.get(method, 'iam'))
+    client = session.client(client_name)
 
     if method == 'list_buckets':
-        yield {
-            'list_buckets': [
-                updated(u, account_info)
-                for u in aws_collect(client, 'list_buckets')
-            ]
-        }
+        buckets = [
+            updated(u, account_info) for u in aws_collect(client, 's3.list_buckets')
+        ]
+        yield {'s3.list_buckets': buckets}
+        for bucket_group in groups_of(500, buckets):
+            add_task(
+                {
+                    'account_id': account_id,
+                    'method': 's3.get_bucket_acl',
+                    'params': [
+                        {'BucketName': bucket['bucket_name']}
+                        for bucket in bucket_group
+                        if 'bucket_name' in bucket
+                    ],
+                }
+            )
 
     if method == 'get_account_summary':
         yield {
-            'get_account_summary': [
+            'iam.get_account_summary': [
                 updated(u, account_info)
-                for u in aws_collect(client, 'get_account_summary')
+                for u in aws_collect(client, 'iam.get_account_summary')
             ]
         }
 
     if method == 'get_account_password_policy':
         yield {
-            'get_account_password_policy': [
+            'iam.get_account_password_policy': [
                 updated(u, account_info)
-                for u in aws_collect(client, 'get_account_password_policy')
+                for u in aws_collect(client, 'iam.get_account_password_policy')
             ]
         }
 
     if method == 'generate_credential_report':
         yield {
-            'generate_credential_report': [
+            'iam.generate_credential_report': [
                 updated(u, account_info)
-                for u in aws_collect(client, 'generate_credential_report')
+                for u in aws_collect(client, 'iam.generate_credential_report')
             ]
         }
         yield {
-            'get_credential_report': [
+            'iam.get_credential_report': [
                 updated(u, account_info)
-                for u in aws_collect(client, 'get_credential_report')
+                for u in aws_collect(client, 'iam.get_credential_report')
             ]
         }
 
     if method == 'list_users':
-        users = [updated(u, account_info) for u in aws_collect(client, 'list_users')]
-        yield {'list_users': users}
+        users = [updated(u, account_info) for u in aws_collect(client, 'iam.list_users')]
+        yield {'iam.list_users': users}
         for user_group in groups_of(1000, users):
             add_task(
                 {
                     'account_id': account_id,
                     'methods': [
-                        'list_groups_for_user',
-                        'list_access_keys',
-                        'get_login_profile',
-                        'list_mfa_devices',
-                        'list_user_policies',
-                        'list_attached_user_policies',
+                        'iam.list_groups_for_user',
+                        'iam.list_access_keys',
+                        'iam.get_login_profile',
+                        'iam.list_mfa_devices',
+                        'iam.list_user_policies',
+                        'iam.list_attached_user_policies',
                     ],
                     'params': [{'UserName': user['user_name']} for user in user_group],
                 }
@@ -402,39 +431,39 @@ def load_aws_iam(
 
     if method == 'list_groups_for_user':
         yield {
-            'list_groups_for_user': [
+            'iam.list_groups_for_user': [
                 updated(group, account_info, {'user_name': params['UserName']})
-                for group in aws_collect(client, 'list_groups_for_user', params)
+                for group in aws_collect(client, 'iam.list_groups_for_user', params)
             ]
         }
 
     if method == 'list_access_keys':
         yield {
-            'list_access_keys': [
+            'iam.list_access_keys': [
                 updated(access_key, account_info, {'user_name': params['UserName']})
-                for access_key in aws_collect(client, 'list_access_keys', params)
+                for access_key in aws_collect(client, 'iam.list_access_keys', params)
             ]
         }
 
     if method == 'get_login_profile':
         yield {
-            'get_login_profile': [
+            'iam.get_login_profile': [
                 updated(login_profile, account_info, {'user_name': params['UserName']})
-                for login_profile in aws_collect(client, 'get_login_profile', params)
+                for login_profile in aws_collect(client, 'iam.get_login_profile', params)
             ]
         }
 
     if method == 'list_mfa_devices':
         yield {
-            'list_mfa_devices': [
+            'iam.list_mfa_devices': [
                 updated(mfa_device, account_info, {'user_name': params['UserName']})
-                for mfa_device in aws_collect(client, 'list_mfa_devices', params)
+                for mfa_device in aws_collect(client, 'iam.list_mfa_devices', params)
             ]
         }
 
     if method == 'list_attached_user_policies':
         yield {
-            'list_attached_user_policies': [
+            'iam.list_attached_user_policies': [
                 updated(user_policy, account_info, {'user_name': params['UserName']})
                 for user_policy in aws_collect(
                     client, 'list_attached_user_policies', params
@@ -444,22 +473,22 @@ def load_aws_iam(
 
     if method == 'list_user_policies':
         yield {
-            'list_user_policies': [
+            'iam.list_user_policies': [
                 updated(user_policy, account_info, {'user_name': params['UserName']})
-                for user_policy in aws_collect(client, 'list_user_policies', params)
+                for user_policy in aws_collect(client, 'iam.list_user_policies', params)
             ]
         }
 
     if method == 'list_policies':
         policies = [
-            updated(u, account_info) for u in aws_collect(client, 'list_policies')
+            updated(u, account_info) for u in aws_collect(client, 'iam.list_policies')
         ]
-        yield {'list_policies': policies}
+        yield {'iam.list_policies': policies}
         for policy_group in groups_of(1000, policies):
             add_task(
                 {
                     'account_id': account_id,
-                    'method': 'get_policy_version',
+                    'method': 'iam.get_policy_version',
                     'params': [
                         {
                             'PolicyArn': policy['arn'],
@@ -472,34 +501,35 @@ def load_aws_iam(
             add_task(
                 {
                     'account_id': account_id,
-                    'method': 'list_entities_for_policy',
+                    'method': 'iam.list_entities_for_policy',
                     'params': [{'PolicyArn': policy['arn']} for policy in policy_group],
                 }
             )
     if method == 'get_policy_version':
         yield {
-            'get_policy_version': [
+            'iam.get_policy_version': [
                 updated(version, account_info, {'policy_arn': params['PolicyArn']})
-                for version in aws_collect(client, 'get_policy_version', params)
+                for version in aws_collect(client, 'iam.get_policy_version', params)
             ]
         }
 
     if method == 'list_entities_for_policy':
         yield {
-            'list_entities_for_policy': [
+            'iam.list_entities_for_policy': [
                 updated(entity, account_info, {'policy_arn': params['PolicyArn']})
-                for entity in aws_collect(client, 'list_entities_for_policy', params)
+                for entity in aws_collect(client, 'iam.list_entities_for_policy', params)
             ]
         }
 
 
 def insert_list(name, values, table_name=None):
-    table_name = table_name or f'data.aws_iam_{name}'
+    name = name.replace('.', '_')
+    table_name = table_name or f'data.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
     return db.insert(table_name, values)
 
 
-def collect_aws_iam(task, add_task=None):
+def aws_collect_task(task, add_task=None):
     log.info(f'processing {task}')
     account_id = task['account_id']
     methods = task.get('methods') or [task['method']]
@@ -531,22 +561,23 @@ def ingest(table_name, options):
         dest_external_id=READER_EIDS,
     ).client('organizations')
 
-    accounts = [a for a in aws_collect(org_client, 'list_accounts')]
-    insert_list('list_accounts', accounts, table_name=f'data.{table_name}')
-    if options.get('collect_aws_iam') == 'all':
+    accounts = [a for a in aws_collect(org_client, 'organizations.list_accounts')]
+    insert_list('organizations.list_accounts', accounts, table_name=f'data.{table_name}')
+    if options.get('collect_apis') == 'all':
         qmap_mp(
             32,
-            collect_aws_iam,
+            aws_collect_task,
             [
                 {'method': method, 'account_id': a['id']}
                 for a in accounts
                 for method in [
-                    'get_account_summary',
-                    'get_account_password_policy',
-                    'list_users',
-                    'list_policies',
-                    'list_buckets',
-                    'generate_credential_report',
+                    'iam.get_account_summary',
+                    'iam.get_account_password_policy',
+                    'iam.list_users',
+                    'iam.list_policies',
+                    's3.list_buckets',
+                    'iam.generate_credential_report',
+                    'iam.virtual_mfa_devices'
                 ]
             ],
         )
