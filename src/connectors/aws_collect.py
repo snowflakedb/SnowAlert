@@ -65,6 +65,16 @@ AWS_API_METHODS = {
             }
         }
     },
+    'ec2.describe_instances': {
+        'response': {
+            'Reservations': {
+                'Groups': 'groups',
+                'Instances': 'instances',
+                'OwnerId': 'owner_id',
+                'ReservationId': 'reservation_id',
+            }
+        }
+    },
     'ec2.describe_security_groups': {
         'response': {
             'SecurityGroups': {
@@ -486,6 +496,12 @@ def load_aws_iam(
         ]
         yield {'iam.list_virtual_mfa_devices': virtual_mfa_devices}
 
+    if method == 'describe_instances':
+        reservations = [
+            updated(u, account_info) for u in aws_collect(client, 'ec2.describe_instances')
+        ]
+        yield {'ec2.describe_instances': reservations}
+
     if method == 'describe_configuration_recorders':
         config_recorders = [
             updated(u, account_info) for u in aws_collect(client, 'config.describe_configuration_recorders')
@@ -770,17 +786,18 @@ def ingest(table_name, options):
                 {'method': method, 'account_id': a['id']}
                 for a in accounts
                 for method in [
-                    # 'iam.get_account_summary',
-                    # 'iam.get_account_password_policy',
-                    # 'iam.list_users',
-                    # 'iam.list_policies',
-                    # 's3.list_buckets',
-                    # 'iam.generate_credential_report',
-                    # 'iam.list_virtual_mfa_devices',
-                    # 'ec2.describe_security_groups',
-                    # 'cloudtrail.describe_trails',
-                    # 'kms.list_keys',
+                    'iam.get_account_summary',
+                    'iam.get_account_password_policy',
+                    'iam.list_users',
+                    'iam.list_policies',
+                    's3.list_buckets',
+                    'iam.generate_credential_report',
+                    'iam.list_virtual_mfa_devices',
+                    'ec2.describe_security_groups',
+                    'cloudtrail.describe_trails',
+                    'kms.list_keys',
                     'config.describe_configuration_recorders',
+                    'ec2.describe_instances',
                 ]
             ],
         )
