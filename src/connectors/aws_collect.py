@@ -65,6 +65,94 @@ AWS_API_METHODS = {
             }
         }
     },
+    'ec2.describe_security_groups': {
+        'response': {
+            'SecurityGroups': {
+                'Description': 'description',
+                'GroupName': 'group_name',
+                'IpPermissions': 'ip_permissions',
+                'OwnerId': 'owner_id',
+                'GroupId': 'group_id',
+                'IpPermissionsEgress': 'ip_permissions_egress',
+                'Tags': 'tags',
+                'VpcId': 'vpc_id',
+            }
+        }
+    },
+    'config.describe_configuration_recorders': {
+        'response': {
+            'ConfigurationRecorders': {
+                'name': 'name',
+                'roleARN': 'role_arn',
+                'recordingGroup': 'recording_group',
+            }
+        }
+    },
+    'kms.list_keys': {
+        'response': {
+            'Keys': {
+                'KeyId': 'key_id',
+                'KeyArn': 'key_arn',
+            }
+        }
+    },
+    'kms.get_key_rotation_status': {
+        'response': {
+            'KeyRotationEnabled': 'key_rotation_enabled',
+        }
+    },
+    'cloudtrail.get_event_selectors': {
+        'response': {
+            'TrailARN': 'trail_arn',
+            'EventSelectors': {
+                'ReadWriteType': 'read_write_type',
+                'IncludeManagementEvents': 'include_management_events',
+                'DataResources': 'data_resources',
+            }
+        }
+    },
+    'cloudtrail.describe_trails': {
+        'response': {
+            'trailList': {
+                'Name': 'name',
+                'S3BucketName': 's3_bucket_name',
+                'S3KeyPrefix': 's3_key_prefix',
+                'SnsTopicName': 'sns_topic_name',
+                'SnsTopicARN': 'sns_topic_arn',
+                'IncludeGlobalServiceEvents': 'include_global_service_events',
+                'IsMultiRegionTrail': 'is_multi_region_trail',
+                'HomeRegion': 'home_region',
+                'TrailARN': 'trail_arn',
+                'LogFileValidationEnabled': 'log_file_validation_enabled',
+                'CloudWatchLogsLogGroupArn': 'cloud_watch_logs_log_group_arn',
+                'CloudWatchLogsRoleArn': 'cloud_watch_logs_role_arn',
+                'KmsKeyId': 'kms_key_id',
+                'HasCustomEventSelectors': 'has_custom_event_selectors',
+                'IsOrganizationTrail': 'is_organization_trail',
+            }
+        }
+    },
+    'cloudtrail.get_trail_status': {
+        'response': {
+            'IsLogging': 'is_logging',
+            'LatestDeliveryError': 'latest_delivery_error',
+            'LatestNotificationError': 'latest_notification_error',
+            'LatestDeliveryTime': 'latest_delivery_time',
+            'LatestNotificationTime': 'latest_notification_time',
+            'StartLoggingTime': 'start_logging_time',
+            'StopLoggingTime': 'stop_logging_time',
+            'LatestCloudWatchLogsDeliveryError': 'latest_cloud_watch_logs_delivery_error',
+            'LatestCloudWatchLogsDeliveryTime': 'latest_cloud_watch_logs_delivery_time',
+            'LatestDigestDeliveryTime': 'latest_digest_delivery_time',
+            'LatestDigestDeliveryError': 'latest_digest_delivery_error',
+            'LatestDeliveryAttemptTime': 'latest_delivery_attempt_time',
+            'LatestNotificationAttemptTime': 'latest_notification_attempt_time',
+            'LatestNotificationAttemptSucceeded': 'latest_notification_attempt_succeeded',
+            'LatestDeliveryAttemptSucceeded': 'latest_delivery_attempt_succeeded',
+            'TimeLoggingStarted': 'time_logging_started',
+            'TimeLoggingStopped': 'time_logging_stopped',
+        }
+    },
     'iam.list_users': {
         'response': {
             'Users': {
@@ -316,14 +404,19 @@ def aws_collect(client, method, params=None):
         )
     )
 
+    # this is a bit crufty, may not be necessary now that the for loop below
+    # handles string values as {ent_key: cols} & {ent_key: ents}
+    inline_object_response = all(type(v) is str for k, v in k2c.items())
+
     try:
         if pages is None:
             pages = [getattr(client, method_name)(**params)]
     except NotFoundExceptions as e:
-        pages = [updated({ent: {} for ent in ent_keys}, e.response)]
+        blank = None if inline_object_response else {}
+        pages = [updated({ent: blank for ent in ent_keys}, e.response)]
 
     for page in pages:
-        if all(type(v) is str for k, v in k2c.items()):
+        if inline_object_response:
             # e.g. *-credential-report methods
             def to_str(x):
                 return x.decode() if type(x) is bytes else x
@@ -336,11 +429,13 @@ def aws_collect(client, method, params=None):
 
         for ent_key in ent_keys:
             ents = page.get(ent_key, {})
-
-            cols = updated({'ResponseHeaderDate': 'recorded_at'}, k2c[ent_key])
+            cols = k2c[ent_key]
+            cols = cols if type(cols) is dict else {ent_key: cols}
+            cols = updated({'ResponseHeaderDate': 'recorded_at'}, cols)
 
             # treat singular entities from get_* like list with one ent.
             ents = [ents] if type(ents) is dict else ents
+            ents = [{ent_key: ents}] if type(ents) is str else ents
 
             for ent in ents:
                 # ents = {"PolicyNames": ["p1"]} -> [{"PolicyName": "p1"}]
@@ -390,6 +485,53 @@ def load_aws_iam(
             updated(u, account_info) for u in aws_collect(client, 'iam.list_virtual_mfa_devices')
         ]
         yield {'iam.list_virtual_mfa_devices': virtual_mfa_devices}
+
+    if method == 'describe_configuration_recorders':
+        config_recorders = [
+            updated(u, account_info) for u in aws_collect(client, 'config.describe_configuration_recorders')
+        ]
+        yield {'config.describe_configuration_recorders': config_recorders}
+
+    if method == 'describe_security_groups':
+        security_groups = [
+            updated(u, account_info) for u in aws_collect(client, 'ec2.describe_security_groups')
+        ]
+        yield {'ec2.describe_security_groups': security_groups}
+
+    if method == 'list_keys':
+        keys = [
+            updated(u, account_info) for u in aws_collect(client, 'kms.list_keys')
+        ]
+        yield {'kms.list_keys': keys}
+        for key in keys:
+            params = {'KeyId': key['key_id']}
+            yield {
+                'kms.get_key_rotation_status': [
+                    updated(u, account_info, {'key_id': params['KeyId']})
+                    for u in aws_collect(client, 'kms.get_key_rotation_status', params)
+                ]
+            }
+
+    if method == 'describe_trails':
+        trails = [
+            updated(u, account_info) for u in aws_collect(client, 'cloudtrail.describe_trails')
+        ]
+        yield {'cloudtrail.describe_trails': trails}
+        for trail in trails:
+            params = {'Name': trail['name']}
+            yield {
+                'cloudtrail.get_trail_status': [
+                    updated(u, account_info, {'name': params['Name']})
+                    for u in aws_collect(client, 'cloudtrail.get_trail_status', params)
+                ]
+            }
+            params = {'TrailName': trail['name']}
+            yield {
+                'cloudtrail.get_event_selectors': [
+                    updated(u, account_info, {'name': params['TrailName']})
+                    for u in aws_collect(client, 'cloudtrail.get_event_selectors', params)
+                ]
+            }
 
     if method == 'list_buckets':
         buckets = [
@@ -628,13 +770,17 @@ def ingest(table_name, options):
                 {'method': method, 'account_id': a['id']}
                 for a in accounts
                 for method in [
-                    'iam.get_account_summary',
-                    'iam.get_account_password_policy',
-                    'iam.list_users',
-                    'iam.list_policies',
-                    's3.list_buckets',
-                    'iam.generate_credential_report',
-                    'iam.list_virtual_mfa_devices'
+                    # 'iam.get_account_summary',
+                    # 'iam.get_account_password_policy',
+                    # 'iam.list_users',
+                    # 'iam.list_policies',
+                    # 's3.list_buckets',
+                    # 'iam.generate_credential_report',
+                    # 'iam.list_virtual_mfa_devices',
+                    # 'ec2.describe_security_groups',
+                    # 'cloudtrail.describe_trails',
+                    # 'kms.list_keys',
+                    'config.describe_configuration_recorders',
                 ]
             ],
         )
