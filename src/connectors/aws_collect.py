@@ -178,7 +178,14 @@ AWS_API_METHODS = {
         }
     },
     'iam.list_virtual_mfa_devices': {
-        'response': {'VirtualMFADevices': {'SerialNumber': 'serial_number'}}
+        'response': {
+            'VirtualMFADevices': {
+                'SerialNumber': 'serial_number',
+                'Base32StringSeed': 'base32_string_seed',
+                'QRCodePNG': 'qr_code_png',
+                'User': 'user',
+            }
+        }
     },
     'iam.get_account_summary': {
         'response': {
@@ -229,6 +236,16 @@ AWS_API_METHODS = {
         'response': {
             'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
             'Grants': {'Grantee': 'grants_grantee', 'Permission': 'grants_permission'},
+        }
+    },
+    's3.get_bucket_policy': {'response': {'Policy': 'policy'}},
+    's3.get_bucket_logging': {
+        'response': {
+            'LoggingEnabled': {
+                'TargetBucket': 'target_bucket',
+                'TargetGrants': 'target_grants',
+                'TargetPrefix': 'target_prefix',
+            }
         }
     },
     'iam.list_entities_for_policy': {
@@ -288,10 +305,15 @@ def aws_collect(client, method, params=None):
         else None
     )
 
-    NotFoundExceptions = getattr(
-        client.exceptions,
-        'AccessDeniedException',
-        getattr(client.exceptions, 'NoSuchEntityException', None),
+    NotFoundExceptions = tuple(
+        filter(
+            None,
+            [
+                ClientError,
+                getattr(client.exceptions, 'AccessDeniedException', None),
+                getattr(client.exceptions, 'NoSuchEntityException', None),
+            ],
+        )
     )
 
     try:
@@ -313,7 +335,8 @@ def aws_collect(client, method, params=None):
             continue
 
         for ent_key in ent_keys:
-            ents = page[ent_key]
+            ents = page.get(ent_key, {})
+
             cols = updated({'ResponseHeaderDate': 'recorded_at'}, k2c[ent_key])
 
             # treat singular entities from get_* like list with one ent.
@@ -362,6 +385,12 @@ def load_aws_iam(
 
     client = session.client(client_name)
 
+    if method == 'list_virtual_mfa_devices':
+        virtual_mfa_devices = [
+            updated(u, account_info) for u in aws_collect(client, 'iam.list_virtual_mfa_devices')
+        ]
+        yield {'iam.list_virtual_mfa_devices': virtual_mfa_devices}
+
     if method == 'list_buckets':
         buckets = [
             updated(u, account_info) for u in aws_collect(client, 's3.list_buckets')
@@ -371,20 +400,40 @@ def load_aws_iam(
             add_task(
                 {
                     'account_id': account_id,
-                    'method': 's3.get_bucket_acl',
+                    'methods': [
+                        's3.get_bucket_acl',
+                        's3.get_bucket_policy',
+                        's3.get_bucket_logging',
+                    ],
                     'params': [
-                        {'BucketName': bucket['bucket_name']}
+                        {'Bucket': bucket['bucket_name']}
                         for bucket in bucket_group
                         if 'bucket_name' in bucket
                     ],
                 }
             )
 
-    if method == 'get_account_summary':
+    if method == 'get_bucket_policy':
         yield {
-            'iam.get_account_summary': [
-                updated(u, account_info)
-                for u in aws_collect(client, 'iam.get_account_summary')
+            's3.get_bucket_policy': [
+                updated(u, account_info, {'bucket': params['Bucket']})
+                for u in aws_collect(client, 's3.get_bucket_policy', params)
+            ]
+        }
+
+    if method == 'get_bucket_acl':
+        yield {
+            's3.get_bucket_acl': [
+                updated(u, account_info, {'bucket': params['Bucket']})
+                for u in aws_collect(client, 's3.get_bucket_acl', params)
+            ]
+        }
+
+    if method == 'get_bucket_logging':
+        yield {
+            's3.get_bucket_logging': [
+                updated(u, account_info, {'bucket': params['Bucket']})
+                for u in aws_collect(client, 's3.get_bucket_logging', params)
             ]
         }
 
@@ -411,7 +460,9 @@ def load_aws_iam(
         }
 
     if method == 'list_users':
-        users = [updated(u, account_info) for u in aws_collect(client, 'iam.list_users')]
+        users = [
+            updated(u, account_info) for u in aws_collect(client, 'iam.list_users')
+        ]
         yield {'iam.list_users': users}
         for user_group in groups_of(1000, users):
             add_task(
@@ -449,7 +500,9 @@ def load_aws_iam(
         yield {
             'iam.get_login_profile': [
                 updated(login_profile, account_info, {'user_name': params['UserName']})
-                for login_profile in aws_collect(client, 'iam.get_login_profile', params)
+                for login_profile in aws_collect(
+                    client, 'iam.get_login_profile', params
+                )
             ]
         }
 
@@ -517,7 +570,9 @@ def load_aws_iam(
         yield {
             'iam.list_entities_for_policy': [
                 updated(entity, account_info, {'policy_arn': params['PolicyArn']})
-                for entity in aws_collect(client, 'iam.list_entities_for_policy', params)
+                for entity in aws_collect(
+                    client, 'iam.list_entities_for_policy', params
+                )
             ]
         }
 
@@ -562,7 +617,9 @@ def ingest(table_name, options):
     ).client('organizations')
 
     accounts = [a for a in aws_collect(org_client, 'organizations.list_accounts')]
-    insert_list('organizations.list_accounts', accounts, table_name=f'data.{table_name}')
+    insert_list(
+        'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
+    )
     if options.get('collect_apis') == 'all':
         qmap_mp(
             32,
@@ -577,7 +634,7 @@ def ingest(table_name, options):
                     'iam.list_policies',
                     's3.list_buckets',
                     'iam.generate_credential_report',
-                    'iam.virtual_mfa_devices'
+                    'iam.list_virtual_mfa_devices'
                 ]
             ],
         )
