@@ -307,21 +307,6 @@ try {{
         sql=refresh_task_sql,
     )
 
-    select_statement_sql = {
-        'reg': (
-            f"SELECT value "
-            f"FROM data.{base_name}_external "
-            f"WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
-        ),
-        'gov': (
-            f"SELECT value FROM ("
-            f"  SELECT value AS a "
-            f"  FROM data.{base_name}_external"
-            f"  WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP())"
-            f"), LATERAL FLATTEN (INPUT => a:records)"
-        ),
-    }
-
     insert_task_sql = {
         'operation': f"""
 INSERT (
@@ -401,7 +386,9 @@ INSERT (
     ingest_task_sql = f"""
 MERGE INTO data.{base_name}_connection a
 USING (
-  {select_statement_sql[cloud_type]}
+    SELECT value
+    FROM data.{base_name}_external
+    WHERE timestamp_part >= DATEADD(HOUR, -2, CURRENT_TIMESTAMP)
 ) b
 ON a.raw = b.value
 WHEN NOT MATCHED THEN
