@@ -3,8 +3,10 @@ Load Inventory and Configuration of your Org
 """
 
 from botocore.exceptions import ClientError
+import csv
 from dateutil.parser import parse as parse_date
 import fire
+import io
 from typing import Dict, List, Generator
 
 from connectors.utils import sts_assume_role, qmap_mp
@@ -98,18 +100,9 @@ AWS_API_METHODS = {
             }
         }
     },
-    'kms.list_keys': {
-        'response': {
-            'Keys': {
-                'KeyId': 'key_id',
-                'KeyArn': 'key_arn',
-            }
-        }
-    },
+    'kms.list_keys': {'response': {'Keys': {'KeyId': 'key_id', 'KeyArn': 'key_arn'}}},
     'kms.get_key_rotation_status': {
-        'response': {
-            'KeyRotationEnabled': 'key_rotation_enabled',
-        }
+        'response': {'KeyRotationEnabled': 'key_rotation_enabled'}
     },
     'cloudtrail.get_event_selectors': {
         'response': {
@@ -118,7 +111,7 @@ AWS_API_METHODS = {
                 'ReadWriteType': 'read_write_type',
                 'IncludeManagementEvents': 'include_management_events',
                 'DataResources': 'data_resources',
-            }
+            },
         }
     },
     'cloudtrail.describe_trails': {
@@ -270,7 +263,7 @@ AWS_API_METHODS = {
     },
     'iam.get_credential_report': {
         'response': {
-            'Content': 'content',
+            'Content': ('csv', 'content'),
             'ReportFormat': 'report_format',
             'GeneratedTime': 'generated_time',
         }
@@ -416,7 +409,7 @@ def aws_collect(client, method, params=None):
 
     # this is a bit crufty, may not be necessary now that the for loop below
     # handles string values as {ent_key: cols} & {ent_key: ents}
-    inline_object_response = all(type(v) is str for k, v in k2c.items())
+    inline_object_response = all(type(v) in (str, tuple) for k, v in k2c.items())
 
     try:
         if pages is None:
@@ -431,8 +424,18 @@ def aws_collect(client, method, params=None):
             def to_str(x):
                 return x.decode() if type(x) is bytes else x
 
+            parsers = {
+                'csv': lambda v: [dict(x) for x in csv.DictReader(io.StringIO(v))]
+            }
+
             yield updated(
-                {v: to_str(page.get(k)) for k, v in k2c.items()},
+                {v: to_str(page.get(k)) for k, v in k2c.items() if type(v) is str},
+                {
+                    f'{t[1]}_{t[0]}_parsed': parsers[t[0]](to_str(page.get(k)))
+                    for k, t in k2c.items()
+                    if type(t) is tuple
+                },
+                {t[1]: to_str(page.get(k)) for k, t in k2c.items() if type(t) is tuple},
                 recorded_at=parse_date(page['ResponseMetadata']['HTTPHeaders']['date']),
             )
             continue
@@ -492,32 +495,34 @@ def load_aws_iam(
 
     if method == 'list_virtual_mfa_devices':
         virtual_mfa_devices = [
-            updated(u, account_info) for u in aws_collect(client, 'iam.list_virtual_mfa_devices')
+            updated(u, account_info)
+            for u in aws_collect(client, 'iam.list_virtual_mfa_devices')
         ]
         yield {'iam.list_virtual_mfa_devices': virtual_mfa_devices}
 
     if method == 'describe_instances':
         reservations = [
-            updated(u, account_info) for u in aws_collect(client, 'ec2.describe_instances')
+            updated(u, account_info)
+            for u in aws_collect(client, 'ec2.describe_instances')
         ]
         yield {'ec2.describe_instances': reservations}
 
     if method == 'describe_configuration_recorders':
         config_recorders = [
-            updated(u, account_info) for u in aws_collect(client, 'config.describe_configuration_recorders')
+            updated(u, account_info)
+            for u in aws_collect(client, 'config.describe_configuration_recorders')
         ]
         yield {'config.describe_configuration_recorders': config_recorders}
 
     if method == 'describe_security_groups':
         security_groups = [
-            updated(u, account_info) for u in aws_collect(client, 'ec2.describe_security_groups')
+            updated(u, account_info)
+            for u in aws_collect(client, 'ec2.describe_security_groups')
         ]
         yield {'ec2.describe_security_groups': security_groups}
 
     if method == 'list_keys':
-        keys = [
-            updated(u, account_info) for u in aws_collect(client, 'kms.list_keys')
-        ]
+        keys = [updated(u, account_info) for u in aws_collect(client, 'kms.list_keys')]
         yield {'kms.list_keys': keys}
         for key in keys:
             params = {'KeyId': key['key_id']}
@@ -530,7 +535,8 @@ def load_aws_iam(
 
     if method == 'describe_trails':
         trails = [
-            updated(u, account_info) for u in aws_collect(client, 'cloudtrail.describe_trails')
+            updated(u, account_info)
+            for u in aws_collect(client, 'cloudtrail.describe_trails')
         ]
         yield {'cloudtrail.describe_trails': trails}
         for trail in trails:
@@ -545,7 +551,9 @@ def load_aws_iam(
             yield {
                 'cloudtrail.get_event_selectors': [
                     updated(u, account_info, {'name': params['TrailName']})
-                    for u in aws_collect(client, 'cloudtrail.get_event_selectors', params)
+                    for u in aws_collect(
+                        client, 'cloudtrail.get_event_selectors', params
+                    )
                 ]
             }
 
@@ -610,6 +618,9 @@ def load_aws_iam(
                 for u in aws_collect(client, 'iam.generate_credential_report')
             ]
         }
+        add_task({'account_id': account_id, 'methods': 'iam.get_credential_report'})
+
+    if method == 'get_credential_report':
         yield {
             'iam.get_credential_report': [
                 updated(u, account_info)
@@ -792,6 +803,7 @@ def ingest(table_name, options):
                     'iam.list_policies',
                     's3.list_buckets',
                     'iam.generate_credential_report',
+                    'iam.get_credential_report',
                     'iam.list_virtual_mfa_devices',
                     'ec2.describe_security_groups',
                     'cloudtrail.describe_trails',
