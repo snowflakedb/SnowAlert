@@ -7,6 +7,17 @@ from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
+def updated(d=None, *ds, **kwargs):
+    """Shallow merges dictionaries together, mutating + returning first arg"""
+    if d is None:
+        d = {}
+    for new_d in ds:
+        d.update(new_d)
+    if kwargs:
+        d.update(kwargs)
+    return d
+
+
 def qmap_mp(num_threads, f, args):
     payloads = mp.JoinableQueue()
     procs = []
