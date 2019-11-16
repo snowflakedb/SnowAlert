@@ -59,7 +59,9 @@ async def main(table_name):
         db.insert(
             table_name,
             [
-                updated(c.get('computer'), computer_id=cid)
+                updated(
+                    c.get('computer'), computer_id=cid, recorded_at=c.get('recorded_at')
+                )
                 for cid, c in zip(cids, computers)
             ],
         )
