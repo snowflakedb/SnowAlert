@@ -9,7 +9,7 @@ import fire
 import io
 from typing import Dict, List, Generator
 
-from connectors.utils import sts_assume_role, qmap_mp
+from connectors.utils import sts_assume_role, qmap_mp, updated
 from runners.helpers import db, log
 from runners.utils import groups_of
 
@@ -371,14 +371,6 @@ AWS_API_METHODS = {
     },
 }
 
-
-def updated(d, *ds, **kwargs):
-    """Shallow merges dictionaries together, mutating + returning first arg"""
-    for new_d in ds:
-        d.update(new_d)
-    if kwargs:
-        d.update(kwargs)
-    return d
 
 
 def aws_collect(client, method, params=None):

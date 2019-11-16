@@ -6,6 +6,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        'aiohttp[speedups]',
         'fire==0.1.3',
         'jira==2.0.0',
         'PyYAML==4.2b1',
