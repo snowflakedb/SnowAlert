@@ -21,7 +21,7 @@ CONNECTION_OPTIONS = [
     }
 ]
 
-HEADERS = {}
+HEADERS: dict = {}
 REQUEST_SPREAD_IN_SECONDS = 180
 
 
