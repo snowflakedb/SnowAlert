@@ -680,7 +680,7 @@ def load_aws_iam(
             'iam.list_attached_user_policies': [
                 updated(user_policy, account_info, {'user_name': params['UserName']})
                 for user_policy in aws_collect(
-                    client, 'list_attached_user_policies', params
+                    client, 'iam.list_attached_user_policies', params
                 )
             ]
         }
