@@ -60,4 +60,4 @@ would be DEMO (note the upper-case). i.e.:
 
 Server-side authentication
 --------------------------
-If you would prefer to secure access to the WebUI, e.g. via network access controls, you can also authenticate the WebUI server with the same environment variables that the runners use (``SA_USER``, ``SA_ROLE``, ``SA_DATABASE``, ``SA_WAREHOUSE``, ``PRIVATE_KEY``, ``PRIVATE_KEY_PASSWORD``).
+We strongly recommend using OAuth for authentication. In a development environment, you can configure the application to use the "Runner" credentials stored in environment variables. (``SA_USER``, ``SA_ROLE``, ``SA_DATABASE``, ``SA_WAREHOUSE``, ``PRIVATE_KEY``, ``PRIVATE_KEY_PASSWORD``).
