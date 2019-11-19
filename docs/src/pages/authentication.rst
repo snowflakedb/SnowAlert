@@ -3,6 +3,18 @@
 SnowAlert WebUI Authentication
 ==============================
 
+Environment Variables
+---------------------
+The following environment variables are recommended for the SnowAlert server to be able to authenticate to Snowflake:
+
+- ``SNOWFLAKE_ACCOUNT`` specifies the name of the account at the start of your Snowflake URL
+- ``REGION`` specifies the region of your deployment (e.g. "us-east-1")
+- ``OAUTH_CLIENT_{{ACCOUNT}}`` see below
+- ``OAUTH_SECRET_{{ACCOUNT}}`` see below
+- ``SA_DATABASE`` (default "snowalert") the SnowAlert database in your account the WebUI should use
+- ``SA_KMS_KEY`` (optional) ARN of a key which allows your WebUI to encrypt secrets, e.g. connection passwords
+
+
 OAuth Setup
 -----------
 There are a few steps to complete to enable OAuth authentication from the SnowAlert WebUI.
@@ -45,3 +57,7 @@ would be DEMO (note the upper-case). i.e.:
 
     1. OAUTH_CLIENT_MYDEMO
     2. OAUTH_SECRET_MYDEMO
+
+Server-side authentication
+--------------------------
+If you would prefer to secure access to the WebUI, e.g. via network access controls, you can also authenticate the WebUI server with the same environment variables that the runners use (``SA_USER``, ``SA_ROLE``, ``SA_DATABASE``, ``SA_WAREHOUSE``, ``PRIVATE_KEY``, ``PRIVATE_KEY_PASSWORD``).
