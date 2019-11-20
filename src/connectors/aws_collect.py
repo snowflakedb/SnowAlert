@@ -100,7 +100,12 @@ AWS_API_METHODS = {
             }
         }
     },
-    'kms.list_keys': {'response': {'Keys': {'KeyId': 'key_id', 'KeyArn': 'key_arn'}}},
+    'kms.list_keys': {
+        'response': {'Keys': {'KeyId': 'key_id', 'KeyArn': 'key_arn'}},
+        'children': [
+            {'method': 'kms.get_key_rotation_status', 'params': {'KeyId': 'key_id'}}
+        ],
+    },
     'kms.get_key_rotation_status': {
         'response': {'KeyRotationEnabled': 'key_rotation_enabled'}
     },
@@ -133,7 +138,14 @@ AWS_API_METHODS = {
                 'HasCustomEventSelectors': 'has_custom_event_selectors',
                 'IsOrganizationTrail': 'is_organization_trail',
             }
-        }
+        },
+        'children': [
+            {'method': 'cloudtrail.get_trail_status', 'params': {'Name': 'trail_arn'}},
+            {
+                'method': 'cloudtrail.get_event_selectors',
+                'params': {'TrailName': 'trail_arn'},
+            },
+        ],
     },
     'cloudtrail.get_trail_status': {
         'response': {
@@ -166,7 +178,20 @@ AWS_API_METHODS = {
                 'UserName': 'user_name',
                 'PasswordLastUsed': 'password_last_used',
             }
-        }
+        },
+        'children': [
+            {
+                'methods': [
+                    'iam.list_groups_for_user',
+                    'iam.list_access_keys',
+                    'iam.get_login_profile',
+                    'iam.list_mfa_devices',
+                    'iam.list_user_policies',
+                    'iam.list_attached_user_policies',
+                ],
+                'params': {'UserName': 'user_name'},
+            }
+        ],
     },
     'iam.list_groups_for_user': {
         'response': {
@@ -194,7 +219,14 @@ AWS_API_METHODS = {
                 'DefaultVersionId': 'default_version_id',
                 'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
             }
-        }
+        },
+        'children': [
+            {
+                'method': 'iam.get_policy_version',
+                'params': {'PolicyArn': 'arn', 'VersionId': 'default_version_id'},
+            },
+            {'method': 'iam.list_entities_for_policy', 'params': {'PolicyArn': 'arn'}},
+        ],
     },
     'iam.list_access_keys': {
         'response': {
@@ -321,7 +353,17 @@ AWS_API_METHODS = {
         'response': {
             'Buckets': {'Name': 'bucket_name', 'CreationDate': 'bucket_creation_date'},
             'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
-        }
+        },
+        'children': [
+            {
+                'methods': [
+                    's3.get_bucket_acl',
+                    's3.get_bucket_policy',
+                    's3.get_bucket_logging',
+                ],
+                'params': {'Bucket': 'bucket_name'},
+            }
+        ],
     },
     's3.get_bucket_acl': {
         'response': {
@@ -370,7 +412,6 @@ AWS_API_METHODS = {
         }
     },
 }
-
 
 
 def aws_collect(client, method, params=None):
@@ -532,22 +573,38 @@ def load_aws_iam(
         ]
         yield {'cloudtrail.describe_trails': trails}
         for trail in trails:
-            params = {'Name': trail['name']}
+            params = {'Name': trail['trail_arn']}
             yield {
                 'cloudtrail.get_trail_status': [
-                    updated(u, account_info, {'name': params['Name']})
+                    updated(u, account_info, {'trail_arn': params['Name']})
                     for u in aws_collect(client, 'cloudtrail.get_trail_status', params)
                 ]
             }
-            params = {'TrailName': trail['name']}
+            params = {'TrailName': trail['trail_arn']}
             yield {
                 'cloudtrail.get_event_selectors': [
-                    updated(u, account_info, {'name': params['TrailName']})
+                    updated(u, account_info, {'trail_arn': params['TrailName']})
                     for u in aws_collect(
                         client, 'cloudtrail.get_event_selectors', params
                     )
                 ]
             }
+
+    if method == 'get_trail_status':
+        yield {
+            'cloudtrail.get_trail_status': [
+                updated(u, account_info, {'name': params['Name']})
+                for u in aws_collect(client, 'cloudtrail.get_trail_status', params)
+            ]
+        }
+
+    if method == 'get_event_selectors':
+        yield {
+            'cloudtrail.get_event_selectors': [
+                updated(u, account_info, {'name': params['TrailName']})
+                for u in aws_collect(client, 'cloudtrail.get_event_selectors', params)
+            ]
+        }
 
     if method == 'list_buckets':
         buckets = [
