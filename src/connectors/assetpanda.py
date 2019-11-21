@@ -14,8 +14,8 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from .utils import yaml_dump
 
-
-PAGE_SIZE = 1000
+# 50 is the max page size supported by the AssetPanda API for this endpoint currently.
+PAGE_SIZE = 50
 
 CONNECTION_OPTIONS = [
     {
