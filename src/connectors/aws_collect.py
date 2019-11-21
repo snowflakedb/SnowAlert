@@ -850,6 +850,7 @@ def ingest(table_name, options):
                     'iam.get_account_password_policy',
                     'iam.list_users',
                     'iam.list_policies',
+                    'iam.list_account_aliases',
                     's3.list_buckets',
                     'iam.generate_credential_report',
                     'iam.get_credential_report',
