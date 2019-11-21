@@ -274,6 +274,13 @@ AWS_API_METHODS = {
             }
         }
     },
+    'iam.list_account_aliases': {
+        'response': {
+            'AccountAliases': {
+                'AccountAliase': 'account_alias',
+            }
+        }
+    },
     'iam.get_account_password_policy': {
         'response': {
             'PasswordPolicy': {
@@ -532,6 +539,13 @@ def load_aws_iam(
             for u in aws_collect(client, 'iam.list_virtual_mfa_devices')
         ]
         yield {'iam.list_virtual_mfa_devices': virtual_mfa_devices}
+
+    if method == 'list_account_aliases':
+        account_aliases = [
+            updated(u, account_info)
+            for u in aws_collect(client, 'iam.list_account_aliases')
+        ]
+        yield {'iam.list_account_aliases': account_aliases}
 
     if method == 'describe_instances':
         reservations = [
