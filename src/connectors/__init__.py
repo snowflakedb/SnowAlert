@@ -10,7 +10,7 @@ from . import github_webhooks_s3
 from . import gsuite_logs
 from . import okta
 from . import osquery_log
-from . import tenable_settings
+from . import tenable_io
 from . import crowdstrike_devices
 from . import cisco_umbrella
 from . import meraki_devices
@@ -32,7 +32,7 @@ __all__ = [
     'meraki_devices',
     'okta',
     'osquery_log',
-    'tenable_settings',
+    'tenable_io',
     'crowdstrike_devices',
     'cisco_umbrella',
     'assetpanda',
@@ -54,7 +54,7 @@ connectors = {
     'meraki_devices': meraki_devices,
     'okta': okta,
     'osquery_log': osquery_log,
-    'tenable_settings': tenable_settings,
+    'tenable_io': tenable_io,
     'crowdstrike_devices': crowdstrike_devices,
     'cisco_umbrella': cisco_umbrella,
     'assetpanda': assetpanda,

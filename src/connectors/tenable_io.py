@@ -1,5 +1,5 @@
-"""Tenable Settings
-Collect Tenable Settings using a Service User’s API Key
+"""Tenable.io
+Collect Tenable.io Data using a Service User’s API Key
 """
 
 from datetime import datetime, timezone
@@ -22,8 +22,8 @@ CONNECTION_OPTIONS = [
         ],
         'default': 'user',
         'name': 'connection_type',
-        'title': "Settings Type",
-        'prompt': "The type of Tenable Settings information you are ingesting to Snowflake.",
+        'title': "Data Type",
+        'prompt': "The type of Tenable information you are ingesting to Snowflake.",
         'required': True,
     },
     {
@@ -178,13 +178,13 @@ def ingest_agents(table_name, options):
 
 def connect(connection_name, options):
     ctype = options['connection_type']
-    ctable = f'data.tenable_settings_{connection_name}_{ctype}_connection'
+    ctable = f'data.tenable_io_{connection_name}_{ctype}_connection'
     cols = {
         'user': USER_LANDING_TABLE,
         'agent': AGENT_LANDING_TABLE,
         'vuln': VULN_LANDING_TABLE,
     }[ctype]
-    comment = yaml_dump(module='tenable_settings', **options)
+    comment = yaml_dump(module='tenable_io', **options)
 
     db.create_table(ctable, cols=cols, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {ctable} TO ROLE {SA_ROLE}')
