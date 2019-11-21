@@ -1,5 +1,5 @@
-"""Tenable Settings
-Collect Tenable Settings using a Service User’s API Key
+"""Tenable.io
+Collect Tenable.io Data using a Service User’s API Key
 """
 
 from datetime import datetime, timezone
@@ -22,8 +22,8 @@ CONNECTION_OPTIONS = [
         ],
         'default': 'user',
         'name': 'connection_type',
-        'title': "Settings Type",
-        'prompt': "The type of Tenable Settings information you are ingesting to Snowflake.",
+        'title': "Data Type",
+        'prompt': "The type of Tenable information you are ingesting to Snowflake.",
         'required': True,
     },
     {
