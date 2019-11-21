@@ -178,13 +178,13 @@ def ingest_agents(table_name, options):
 
 def connect(connection_name, options):
     ctype = options['connection_type']
-    ctable = f'data.tenable_settings_{connection_name}_{ctype}_connection'
+    ctable = f'data.tenable_io_{connection_name}_{ctype}_connection'
     cols = {
         'user': USER_LANDING_TABLE,
         'agent': AGENT_LANDING_TABLE,
         'vuln': VULN_LANDING_TABLE,
     }[ctype]
-    comment = yaml_dump(module='tenable_settings', **options)
+    comment = yaml_dump(module='tenable_io', **options)
 
     db.create_table(ctable, cols=cols, comment=comment)
     db.execute(f'GRANT INSERT, SELECT ON {ctable} TO ROLE {SA_ROLE}')
