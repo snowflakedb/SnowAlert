@@ -46,13 +46,13 @@ if user and password:
     jira = JIRA(URL, basic_auth=(user, password))
 
 
-def jira_ticket_body(alert):
+def jira_ticket_body(alert, project):
     alert['SOURCES'] = ', '.join(alert['SOURCES'])
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
     sources = escaped_locals_strings['SOURCES']
     escaped_locals_strings[
         'SOURCES'
-    ] = f'[{sources}|{link_search_todos(f"Sources: {sources}")}]'
+    ] = f'[{sources}|{link_search_todos(f"Sources: {sources}", project)}]'
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     ticket_body = JIRA_TICKET_BODY_FMT.format(**jira_body)
     return ticket_body[:99000]
@@ -67,7 +67,7 @@ def escape_jira_strings(v):
     return escape_jira_strings(str(v))
 
 
-def append_to_body(id, alert):
+def append_to_body(id, alert, project):
     if not user:
         return
     issue = jira.issue(id)
@@ -82,15 +82,15 @@ def append_to_body(id, alert):
     sources = escaped_locals_strings['SOURCES']
     escaped_locals_strings[
         'SOURCES'
-    ] = f'[{sources}|{link_search_todos(f"SOURCES: {sources}")}]'
+    ] = f'[{sources}|{link_search_todos(f"SOURCES: {sources}", project)}]'
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     description = description + JIRA_TICKET_BODY_FMT.format(**jira_body)
 
     issue.update(description=description)
 
 
-def link_search_todos(description=None):
-    q = f'project = {PROJECT} ORDER BY created ASC'
+def link_search_todos(description=None, project=PROJECT):
+    q = f'project = {project} ORDER BY created ASC'
 
     if description:
         q = f'description ~ "{description}" AND {q}'
@@ -98,7 +98,7 @@ def link_search_todos(description=None):
     return f'{URL}/issues/?jql={quote(q)}'
 
 
-def create_jira_ticket(alert, assignee=None, custom_field=None):
+def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT):
     if not user:
         return
 
@@ -109,12 +109,12 @@ def create_jira_ticket(alert, assignee=None, custom_field=None):
     except Exception as e:
         log.error("Error while creating ticket", e)
 
-    body = jira_ticket_body(alert)
+    body = jira_ticket_body(alert, project)
 
-    log.info(f'Creating new JIRA ticket for "{alert["TITLE"]}" in project {PROJECT}')
+    log.info(f'Creating new JIRA ticket for "{alert["TITLE"]}" in project {project}')
 
     issue_params = {
-        'project': PROJECT,
+        'project': project,
         'issuetype': {'name': 'Story'},
         'summary': alert['TITLE'],
         'description': body,
@@ -174,9 +174,7 @@ def bail_out(alert_id):
 
 
 def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=None):
-    global PROJECT
-    PROJECT = project
-    if PROJECT == '':
+    if project == '':
         return "No Jira Project defined"
     if URL == '':
         return "No Jira URL defined."
@@ -206,13 +204,13 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
 
         if ticket_status == 'To Do':
             try:
-                append_to_body(ticket_id, alert)
+                append_to_body(ticket_id, alert, project)
             except Exception as e:
                 log.error(
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
                 try:
-                    ticket_id = create_jira_ticket(alert)
+                    ticket_id = create_jira_ticket(alert, project=project)
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     return e
@@ -220,7 +218,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert, assignee, custom_field)
+            ticket_id = create_jira_ticket(alert, assignee, custom_field, project=project)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             return e
