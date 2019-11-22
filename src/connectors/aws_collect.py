@@ -1,5 +1,5 @@
 """AWS Collect
-Load Inventory and Configuration of your Org
+Load Inventory and Configuration of all accounts in your Org using auditor Roles
 """
 
 from botocore.exceptions import ClientError
@@ -9,20 +9,22 @@ import fire
 import io
 from typing import Dict, List, Generator
 
-from connectors.utils import sts_assume_role, qmap_mp, updated
+from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+from connectors.utils import sts_assume_role, qmap_mp, updated, yaml_dump
 from runners.helpers import db, log
 from runners.utils import groups_of
 
 
-AUDIT_ASSUMER = ''
-MASTER_READER = ''
-READER_EIDS = ''
+AUDIT_ASSUMER_ARN = 'arn:aws:iam::1234567890987:role/audit-assumer'
+MASTER_READER_ARN = 'arn:aws:iam::987654321012:role/audit-reader'
 AUDIT_READER_ROLE = 'audit-reader'
+READER_EIDS = ''
 
 CONNECTION_OPTIONS = [
     {
         'type': 'str',
-        'name': 'audit_assumer',
+        'name': 'audit_assumer_arn',
         'title': "Audit Assumer ARN",
         'prompt': "The role that does the assuming in all the org's accounts",
         'placeholder': "arn:aws:iam::1234567890987:role/audit-assumer",
@@ -30,7 +32,7 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'master_reader',
+        'name': 'master_reader_arn',
         'title': "The reader role on Org's master account",
         'prompt': "Role to be assumed for auditing the master account",
         'placeholder': "arn:aws:iam::987654321012:role/audit-reader",
@@ -38,7 +40,7 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'audit_reader',
+        'name': 'audit_reader_role',
         'title': "The reader role in Org's accounts",
         'prompt': "Role to be assumed for auditing the other accounts",
         'placeholder': "audit-reader",
@@ -275,11 +277,7 @@ AWS_API_METHODS = {
         }
     },
     'iam.list_account_aliases': {
-        'response': {
-            'AccountAliases': {
-                'AccountAliase': 'account_alias',
-            }
-        }
+        'response': {'AccountAliases': {'AccountAliase': 'account_alias'}}
     },
     'iam.get_account_password_policy': {
         'response': {
@@ -420,6 +418,350 @@ AWS_API_METHODS = {
     },
 }
 
+LANDING_TABLE_COLUMNS = [
+    ('recorded_at', 'TIMESTAMP_NTZ'),
+    ('id', 'VARCHAR'),
+    ('arn', 'VARCHAR'),
+    ('email', 'VARCHAR'),
+    ('name', 'VARCHAR'),
+    ('status', 'VARCHAR'),
+    ('joined_method', 'VARCHAR'),
+    ('joined_timestamp', 'TIMESTAMP_NTZ'),
+]
+
+SUPPLEMENTARY_TABLES = {
+    'iam_generate_credential_report': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('state', 'VARCHAR'),
+        ('description', 'VARCHAR'),
+    ],
+    'iam_get_account_password_policy': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('allow_users_to_change_password', 'VARCHAR'),
+        ('require_lowercase_characters', 'VARCHAR'),
+        ('require_uppercase_characters', 'VARCHAR'),
+        ('minimum_password_length', 'NUMBER'),
+        ('password_reuse_prevention', 'NUMBER'),
+        ('max_password_age', 'NUMBER'),
+        ('require_numbers', 'VARCHAR'),
+        ('require_symbols', 'VARCHAR'),
+        ('hard_expiry', 'VARCHAR'),
+        ('expire_passwords', 'VARCHAR'),
+    ],
+    'iam_list_access_keys': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('status', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('access_key_id', 'VARCHAR'),
+    ],
+    'iam_get_account_summary': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('users_quota', 'NUMBER'),
+        ('groups_per_user_quota', 'NUMBER'),
+        ('attached_policies_per_group_quota', 'NUMBER'),
+        ('policies_quota', 'NUMBER'),
+        ('groups_quota', 'NUMBER'),
+        ('instance_profiles', 'NUMBER'),
+        ('signing_certificates_per_user_quota', 'NUMBER'),
+        ('policy_size_quota', 'NUMBER'),
+        ('policy_versions_in_use_quota', 'NUMBER'),
+        ('role_policy_size_quota', 'NUMBER'),
+        ('account_signing_certificates_present', 'NUMBER'),
+        ('users', 'NUMBER'),
+        ('server_certificates_quota', 'NUMBER'),
+        ('server_certificates', 'NUMBER'),
+        ('assume_role_policy_size_quota', 'NUMBER'),
+        ('groups', 'NUMBER'),
+        ('mfa_devices_in_use', 'NUMBER'),
+        ('roles_quota', 'NUMBER'),
+        ('versions_per_policy_quota', 'NUMBER'),
+        ('account_access_keys_present', 'NUMBER'),
+        ('roles', 'NUMBER'),
+        ('account_mfa_enabled', 'NUMBER'),
+        ('mfa_devices', 'NUMBER'),
+        ('policies', 'NUMBER'),
+        ('group_policy_size_quota', 'NUMBER'),
+        ('instance_profiles_quota', 'NUMBER'),
+        ('access_keys_per_user_quota', 'NUMBER'),
+        ('attached_policies_per_role_quota', 'NUMBER'),
+        ('policy_versions_in_use', 'NUMBER'),
+        ('providers', 'NUMBER'),
+        ('attached_policies_per_user_quota', 'NUMBER'),
+        ('user_policy_size_quota', 'NUMBER'),
+        ('global_endpoint_token_version', 'NUMBER'),
+    ],
+    'GRANTS': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('generated_time', 'VARCHAR'),
+        ('report_format', 'VARCHAR'),
+        ('content', 'VARCHAR'),
+        ('content_csv_parsed', 'VARIANT'),
+    ],
+    'iam_get_login_profile': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('password_reset_required', 'VARCHAR'),
+    ],
+    'iam_get_policy_version': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('policy_arn', 'VARCHAR'),
+        ('version_id', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('document', 'VARIANT'),
+        ('is_default_version', 'VARCHAR'),
+    ],
+    'iam_list_access_keys': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('status', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('access_key_id', 'VARCHAR'),
+    ],
+    'iam_list_attached_user_policies': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('policy_name', 'VARCHAR'),
+        ('policy_arn', 'VARCHAR'),
+    ],
+    'iam_list_entities_for_policy': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('policy_arn', 'VARCHAR'),
+        ('group_id', 'VARCHAR'),
+        ('group_name', 'VARCHAR'),
+        ('user_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('role_id', 'VARCHAR'),
+        ('role_name', 'VARCHAR'),
+    ],
+    'iam_list_groups_for_user': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('path', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('group_id', 'VARCHAR'),
+        ('arn', 'VARCHAR'),
+        ('group_name', 'VARCHAR'),
+    ],
+    'iam_list_mfa_devices': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('serial_number', 'VARCHAR'),
+        ('enable_date', 'TIMESTAMP_NTZ'),
+    ],
+    'iam_list_policies': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('policy_name', 'VARCHAR'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('attachment_count', 'NUMBER'),
+        ('is_attachable', 'VARCHAR'),
+        ('policy_id', 'VARCHAR'),
+        ('default_version_id', 'VARCHAR'),
+        ('path', 'VARCHAR'),
+        ('arn', 'VARCHAR'),
+        ('update_date', 'TIMESTAMP_NTZ'),
+        ('permissions_boundary_usage_count', 'NUMBER'),
+    ],
+    'iam_list_user_policies': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('policy_name', 'VARCHAR'),
+    ],
+    'iam_list_users': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('user_name', 'VARCHAR'),
+        ('password_last_used', 'TIMESTAMP_NTZ'),
+        ('create_date', 'TIMESTAMP_NTZ'),
+        ('user_id', 'VARCHAR'),
+        ('path', 'VARCHAR'),
+        ('arn', 'VARCHAR'),
+    ],
+    'iam_list_virtual_mfa_devices': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('serial_number', 'VARCHAR'),
+        ('base32_string_seed', 'VARCHAR'),
+        ('qr_code_png', 'VARCHAR'),
+        ('user', 'VARIANT'),
+    ],
+    's3_list_buckets': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('bucket_name', 'VARCHAR'),
+        ('bucket_creation_date', 'VARCHAR'),
+        ('owner_display_name', 'VARCHAR'),
+        ('owner_id', 'VARCHAR'),
+    ],
+    's3_get_bucket_acl': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'VARCHAR'),
+        ('bucket', 'VARCHAR'),
+        ('owner', 'VARCHAR'),
+        ('grants_grantee', 'VARIANT'),
+        ('grants_permission', 'VARCHAR'),
+        ('owner_display_name', 'VARCHAR'),
+        ('owner_id', 'VARCHAR'),
+    ],
+    's3_get_bucket_policy': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('policy', 'STRING'),
+    ],
+    's3_get_bucket_logging': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('target_bucket', 'STRING'),
+        ('target_grants', 'VARIANT'),
+        ('target_prefix', 'STRING'),
+    ],
+    'ec2_describe_security_groups': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('description', 'STRING'),
+        ('group_name', 'STRING'),
+        ('ip_permissions', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('group_id', 'STRING'),
+        ('ip_permissions_egress', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    'cloudtrail_describe_trails': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('name', 'STRING'),
+        ('s3_bucket_name', 'STRING'),
+        ('s3_key_prefix', 'STRING'),
+        ('sns_topic_name', 'STRING'),
+        ('sns_topic_arn', 'STRING'),
+        ('include_global_service_events', 'BOOLEAN'),
+        ('is_multi_region_trail', 'BOOLEAN'),
+        ('home_region', 'STRING'),
+        ('trail_arn', 'STRING'),
+        ('log_file_validation_enabled', 'BOOLEAN'),
+        ('cloud_watch_logs_log_group_arn', 'STRING'),
+        ('cloud_watch_logs_role_arn', 'STRING'),
+        ('kms_key_id', 'STRING'),
+        ('has_custom_event_selectors', 'BOOLEAN'),
+        ('is_organization_trail', 'BOOLEAN'),
+    ],
+    'cloudtrail_get_trail_status': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('trail_arn', 'STRING'),
+        ('is_logging', 'BOOLEAN'),
+        ('latest_delivery_error', 'STRING'),
+        ('latest_notification_error', 'STRING'),
+        ('latest_delivery_time', 'TIMESTAMP'),
+        ('latest_notification_time', 'TIMESTAMP'),
+        ('start_logging_time', 'TIMESTAMP'),
+        ('stop_logging_time', 'TIMESTAMP'),
+        ('latest_cloud_watch_logs_delivery_error', 'STRING'),
+        ('latest_cloud_watch_logs_delivery_time', 'TIMESTAMP'),
+        ('latest_digest_delivery_time', 'TIMESTAMP'),
+        ('latest_digest_delivery_error', 'STRING'),
+        ('latest_delivery_attempt_time', 'STRING'),
+        ('latest_notification_attempt_time', 'STRING'),
+        ('latest_notification_attempt_succeeded', 'STRING'),
+        ('latest_delivery_attempt_succeeded', 'STRING'),
+        ('time_logging_started', 'STRING'),
+        ('time_logging_stopped', 'STRING'),
+    ],
+    'cloudtrail_get_event_selectors': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('trail_arn', 'STRING'),
+        ('read_write_type', 'STRING'),
+        ('include_management_events', 'BOOLEAN'),
+        ('data_resources', 'VARIANT'),
+    ],
+    'kms_list_keys': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('key_id', 'STRING'),
+        ('key_arn', 'STRING'),
+    ],
+    'kms_get_key_rotation_status': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('key_id', 'STRING'),
+        ('key_rotation_enabled', 'BOOLEAN'),
+    ],
+    'config_describe_configuration_recorders': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('name', 'STRING'),
+        ('role_arn', 'STRING'),
+        ('recording_group', 'VARIANT'),
+    ],
+    'ec2_describe_instances': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('groups', 'VARIANT'),
+        ('instances', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('reservation_id', 'STRING'),
+    ],
+    'iam_list_account_aliases': [
+        ('recorded_at', 'TIMESTAMP_NTZ'),
+        ('account_id', 'STRING'),
+        ('account_alias', 'STRING'),
+    ],
+}
+
+
+def connect(connection_name, options):
+    table_prefix = f'aws_collect' + (
+        '' if connection_name in ('', 'default') else connection_name
+    )
+    table_name = f'{table_prefix}_iam_list_accounts_connection'
+    landing_table = f'data.{table_name}'
+
+    audit_assumer_arn = options['audit_assumer_arn']
+    master_reader_arn = options['master_reader_arn']
+    audit_reader_role = options['audit_reader_role']
+    reader_eids = options['reader_eids']
+
+    comment = yaml_dump(
+        module='aws_collect',
+        audit_assumer_arn=audit_assumer_arn,
+        master_reader_arn=master_reader_arn,
+        audit_reader_role=audit_reader_role,
+        reader_eids=reader_eids,
+        collect_apis='all'
+    )
+
+    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
+    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
+
+    for table_postfix, cols in SUPPLEMENTARY_TABLES.items():
+        supp_table = f'data.{table_prefix}_{table_postfix}'
+        db.create_table(name=supp_table, cols=cols)
+        db.execute(f'GRANT INSERT, SELECT ON {supp_table} TO ROLE {SA_ROLE}')
+
+    return {
+        'newStage': 'finalized',
+        'newMessage': "AWS Collect connector tables created.",
+    }
+
 
 def aws_collect(client, method, params=None):
     if params is None:
@@ -512,7 +854,7 @@ def load_aws_iam(
 
     try:
         session = sts_assume_role(
-            src_role_arn=AUDIT_ASSUMER,
+            src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=account_arn,
             dest_external_id=READER_EIDS,
         )
@@ -625,7 +967,7 @@ def load_aws_iam(
             updated(u, account_info) for u in aws_collect(client, 's3.list_buckets')
         ]
         yield {'s3.list_buckets': buckets}
-        for bucket_group in groups_of(500, buckets):
+        for bucket_group in groups_of(1000, buckets):
             add_task(
                 {
                     'account_id': account_id,
@@ -833,18 +1175,18 @@ def aws_collect_task(task, add_task=None):
 
 
 def ingest(table_name, options):
-    global AUDIT_ASSUMER
-    global MASTER_READER
-    global READER_EIDS
+    global AUDIT_ASSUMER_ARN
+    global MASTER_READER_ARN
     global AUDIT_READER_ROLE
-    AUDIT_ASSUMER = options.get('audit_assumer', '')
-    MASTER_READER = options.get('master_reader', '')
-    READER_EIDS = options.get('reader_eids', '')
+    global READER_EIDS
+    AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', '')
+    MASTER_READER_ARN = options.get('master_reader_arn', '')
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
+    READER_EIDS = options.get('reader_eids', '')
 
     org_client = sts_assume_role(
-        src_role_arn=AUDIT_ASSUMER,
-        dest_role_arn=MASTER_READER,
+        src_role_arn=AUDIT_ASSUMER_ARN,
+        dest_role_arn=MASTER_READER_ARN,
         dest_external_id=READER_EIDS,
     ).client('organizations')
 
@@ -879,13 +1221,13 @@ def ingest(table_name, options):
         )
 
 
-def main(table_name, audit_assumer, master_reader, reader_eids, audit_reader_role):
+def main(table_name, audit_assumer_ARN, master_reader_ARN, reader_eids, audit_reader_role):
     print(
         ingest(
             table_name,
             {
-                'audit_assumer': audit_assumer,
-                'master_reader': master_reader,
+                'audit_assumer_ARN': audit_assumer_ARN,
+                'master_reader_ARN': master_reader_ARN,
                 'reader_eids': reader_eids,
                 'audit_reader_role': audit_reader_role,
             },
