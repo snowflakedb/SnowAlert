@@ -22,7 +22,7 @@ CONNECTION_OPTIONS = [
         "type": "str",
         "secret": True,
         "required": True,
-    },    
+    },
     {
         "name": "host_airwatch",
         "title": "Airwatch Host",
@@ -31,7 +31,7 @@ CONNECTION_OPTIONS = [
         "secret": True,
         "required": True,
     },
-        {
+    {
         "name": "device_auth",
         "title": "Airwatch CMS Auth for Device URL",
         "prompt": "Your Airwatch CMS Auth for Device URL",
@@ -111,10 +111,11 @@ LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES = [
     ("SERIAL_NUMBER", "VARCHAR(256)"),
     ("ENROLLMENT_USER_NAME", "VARCHAR(256)"),
     ("ASSET_NUMBER", "VARCHAR(256)"),
-    ("CUSTOM_ATTRIBUTES", "VARIANT")
+    ("CUSTOM_ATTRIBUTES", "VARIANT"),
 ]
 
-def get_data(url: str, cms_auth: str, api_key: str, params: dict = {},) -> dict:
+
+def get_data(url: str, cms_auth: str, api_key: str, params: dict = {}) -> dict:
     headers: dict = {
         "Content-Type": "application/json",
         "aw-tenant-code": api_key,
@@ -131,9 +132,12 @@ def get_data(url: str, cms_auth: str, api_key: str, params: dict = {},) -> dict:
         raise
     return req.json()
 
+
 def connect(connection_name, options):
     landing_table_device = f'data.airwatch_devices_{connection_name}_device_connection'
-    landing_table_custom_attributes = f'data.airwatch_devices_{connection_name}_custom_attributes_connection'
+    landing_table_custom_attributes = (
+        f'data.airwatch_devices_{connection_name}_custom_attributes_connection'
+    )
 
     comment = yaml_dump(module='airwatch_devices', **options)
 
@@ -143,9 +147,13 @@ def connect(connection_name, options):
     db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=landing_table_custom_attributes, cols=LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES, comment=comment
+        name=landing_table_custom_attributes,
+        cols=LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES,
+        comment=comment,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table_custom_attributes} TO ROLE {SA_ROLE}')
+    db.execute(
+        f'GRANT INSERT, SELECT ON {landing_table_custom_attributes} TO ROLE {SA_ROLE}'
+    )
 
     return {'newStage': 'finalized', 'newMessage': "Airwatch ingestion tables created!"}
 
@@ -157,7 +165,9 @@ def ingest(table_name, options):
     device_auth = options['device_auth']
     custom_attributes_auth = options['custom_attributes_auth']
 
-    ingest_type = 'device' if table_name.endswith('_DEVICE_CONNECTION') else 'custom_attributes'
+    ingest_type = (
+        'device' if table_name.endswith('_DEVICE_CONNECTION') else 'custom_attributes'
+    )
 
     timestamp = datetime.utcnow()
     landing_table = f'data.{table_name}'
@@ -269,7 +279,9 @@ def ingest(table_name, options):
                     for device_attr in device_attributes
                 ],
                 select=db.derive_insert_select(LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES),
+                columns=db.derive_insert_columns(
+                    LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES
+                ),
             )
 
             log.info(f'Inserted {len(device_attributes)} rows ({landing_table}).')
