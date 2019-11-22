@@ -1,5 +1,6 @@
 CREATE OR REPLACE VIEW rules.VQ_QBYAC8Z2RBF_VIOLATION_QUERY COPY GRANTS
-  COMMENT='Queries 30d of CloudTrail records for non-support root account use
+  COMMENT='AWS CIS 1.3: Ensure credentials unused for 90 days or greater are disabled
+  queries 30d of CloudTrail records for non-support root account use
   @id QBYAC8Z2RBF
   @tags cis, aws, activity, user'
 AS
