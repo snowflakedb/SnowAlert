@@ -19,7 +19,7 @@ from runners.utils import groups_of
 AUDIT_ASSUMER_ARN = 'arn:aws:iam::1234567890987:role/audit-assumer'
 MASTER_READER_ARN = 'arn:aws:iam::987654321012:role/audit-reader'
 AUDIT_READER_ROLE = 'audit-reader'
-READER_EIDS = ''
+READER_EID = ''
 
 CONNECTION_OPTIONS = [
     {
@@ -48,9 +48,9 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'reader_eids',
-        'title': "Reader EIDs",
-        'prompt': "External Id's on the roles that need assuming",
+        'name': 'reader_eid',
+        'title': "Reader EID",
+        'prompt': "External Id on the roles that need assuming",
         'secret': True,
     },
 ]
@@ -738,14 +738,14 @@ def connect(connection_name, options):
     audit_assumer_arn = options['audit_assumer_arn']
     master_reader_arn = options['master_reader_arn']
     audit_reader_role = options['audit_reader_role']
-    reader_eids = options['reader_eids']
+    reader_eid = options['reader_eid']
 
     comment = yaml_dump(
         module='aws_collect',
         audit_assumer_arn=audit_assumer_arn,
         master_reader_arn=master_reader_arn,
         audit_reader_role=audit_reader_role,
-        reader_eids=reader_eids,
+        reader_eid=reader_eid,
         collect_apis='all'
     )
 
@@ -856,7 +856,7 @@ def load_aws_iam(
         session = sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=account_arn,
-            dest_external_id=READER_EIDS,
+            dest_external_id=READER_EID,
         )
 
     except ClientError as e:
@@ -1178,16 +1178,16 @@ def ingest(table_name, options):
     global AUDIT_ASSUMER_ARN
     global MASTER_READER_ARN
     global AUDIT_READER_ROLE
-    global READER_EIDS
+    global READER_EID
     AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', '')
     MASTER_READER_ARN = options.get('master_reader_arn', '')
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
-    READER_EIDS = options.get('reader_eids', '')
+    READER_EID = options.get('reader_eid', '')
 
     org_client = sts_assume_role(
         src_role_arn=AUDIT_ASSUMER_ARN,
         dest_role_arn=MASTER_READER_ARN,
-        dest_external_id=READER_EIDS,
+        dest_external_id=READER_EID,
     ).client('organizations')
 
     accounts = [a for a in aws_collect(org_client, 'organizations.list_accounts')]
@@ -1221,14 +1221,14 @@ def ingest(table_name, options):
         )
 
 
-def main(table_name, audit_assumer_ARN, master_reader_ARN, reader_eids, audit_reader_role):
+def main(table_name, audit_assumer_ARN, master_reader_ARN, reader_eid, audit_reader_role):
     print(
         ingest(
             table_name,
             {
                 'audit_assumer_ARN': audit_assumer_ARN,
                 'master_reader_ARN': master_reader_ARN,
-                'reader_eids': reader_eids,
+                'reader_eid': reader_eid,
                 'audit_reader_role': audit_reader_role,
             },
         )
