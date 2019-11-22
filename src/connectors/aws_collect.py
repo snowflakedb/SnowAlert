@@ -732,7 +732,7 @@ def connect(connection_name, options):
     table_prefix = f'aws_collect' + (
         '' if connection_name in ('', 'default') else connection_name
     )
-    table_name = f'{table_prefix}_iam_list_accounts_connection'
+    table_name = f'{table_prefix}_organizations_list_accounts_connection'
     landing_table = f'data.{table_name}'
 
     audit_assumer_arn = options['audit_assumer_arn']
