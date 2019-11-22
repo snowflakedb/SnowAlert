@@ -1,5 +1,5 @@
 """AWS Asset Inventory
-Collect AWS EC2, SG, ELB, AMI, and IAM assets using an Access Key or privileged Role
+Collect AWS EC2, SG, ELB, AMI, and IAM assets using an Access Key or Role
 """
 from datetime import datetime
 import json
