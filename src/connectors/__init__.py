@@ -1,5 +1,6 @@
 from . import aws_accounts
 from . import aws_cloudtrail
+from . import aws_collect
 from . import aws_config
 from . import aws_flow_log
 from . import aws_inventory
@@ -21,6 +22,7 @@ from . import ldap_log
 __all__ = [
     'aws_inventory',
     'aws_cloudtrail',
+    'aws_collect',
     'aws_config',
     'aws_accounts',
     'aws_flow_log',
@@ -43,6 +45,7 @@ __all__ = [
 connectors = {
     'aws_accounts': aws_accounts,
     'aws_cloudtrail': aws_cloudtrail,
+    'aws_collect': aws_collect,
     'aws_config': aws_config,
     'aws_flow_log': aws_flow_log,
     'aws_inventory': aws_inventory,
