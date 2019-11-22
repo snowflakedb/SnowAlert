@@ -6,10 +6,11 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
+        'aiohttp[speedups]',
         'fire==0.1.3',
         'jira==2.0.0',
         'PyYAML==4.2b1',
-        'snowflake-connector-python==2.0.3',
+        'snowflake-connector-python==2.0.4',
         'snowflake-sqlalchemy==1.1.2',
         'pandas==0.24.1',
         'pybrake==0.4.0',
@@ -27,7 +28,7 @@ setup(
         'azure-storage-common==2.1.0',
         'google-api-python-client==1.7.10',
         'pyTenable==0.3.22',
-        'boto3',
+        'boto3==1.10.24',
         'twilio==6.29.4',
     ],
 )

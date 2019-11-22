@@ -1,9 +1,48 @@
 import boto3
 import random
 import yaml
+import multiprocessing as mp
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+
+def updated(d=None, *ds, **kwargs):
+    """Shallow merges dictionaries together, mutating + returning first arg"""
+    if d is None:
+        d = {}
+    for new_d in ds:
+        d.update(new_d)
+    if kwargs:
+        d.update(kwargs)
+    return d
+
+
+def qmap_mp(num_threads, f, args):
+    payloads = mp.JoinableQueue()
+    procs = []
+
+    def add_task(arg):
+        payloads.put(arg)
+
+    def process_task():
+        while True:
+            payload = payloads.get()
+            try:
+                f(payload, add_task)
+            finally:
+                payloads.task_done()
+
+    for arg in args:
+        add_task(arg)
+
+    procs = [mp.Process(target=process_task) for _ in range(num_threads)]
+    for p in procs:
+        p.start()
+
+    payloads.join()
+    for p in procs:
+        p.kill()
 
 
 def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):

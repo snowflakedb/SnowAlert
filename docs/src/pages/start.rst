@@ -16,7 +16,7 @@ which configures your database, and
 
     docker run -it --env-file snowalert-{account}.envs snowsec/snowalert ./run
 
-which runs the SnowAlert functions.
+which runs the SnowAlert functions, using auth environment variables {``SA_ROLE`` ``SA_USER`` ``PRIVATE_KEY`` and ``PRIVATE_KEY_PASSWORD``} to authenticate and operational envars {``SNOWFLAKE_ACCOUNT`` ``REGION`` ``SA_DATABASE`` ``SA_WAREHOUSE``} to create the alerts.
 
 Finally, we have a SnowAlert Management WebUI, which you can use to edit your rules —
 
@@ -24,8 +24,7 @@ Finally, we have a SnowAlert Management WebUI, which you can use to edit your ru
 
     docker run -it -p 8000:8000 --env-file snowalert-{account}.envs snowsec/snowalert-webui
 
-This is a work in progress which supports some features still in Private Beta, like OAuth, so don't hesitate
-to ask your account manager or reach out to us with questions at snowalert@snowflake.com.
+This container requires the runner's operational environment variables. It can also support server-side authentication with the runner's auth vars, but we suggest you leave those blank and authenticate via OAuth. This is a work in progress so please don't hesitate to ask your account manager or reach out to us with questions at snowalert@snowflake.com.
 
 .. note::
 

@@ -312,12 +312,12 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
     selects = []  # col1, PARSE_JSON(col2), etc.
     columns = []  # col names
     for i, cname in enumerate(column_types):
-        col = column_types[cname]
+        col = column_types[cname] - {type(None)}
         if len(col) > 1:
-            log.info('col {cname} has multiple types: {col}')
+            log.info(f'col {cname} has multiple types: {col}')
             continue
 
-        ctype = col.pop()
+        ctype = col.pop() if col else type(None)
         select = f'column{i+1}'
         select = (
             f'TRY_TO_TIMESTAMP({select})'
@@ -333,7 +333,7 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
     return selects, columns
 
 
-def insert(table, values, overwrite=False, select="", columns=[]):
+def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     if len(values) == 0:
         return {'number of rows inserted': 0}
 
@@ -371,6 +371,10 @@ def insert(table, values, overwrite=False, select="", columns=[]):
         ]
         for vp in values
     ]
+
+    if dryrun:
+        print('db.insert', table, values)
+        return {'number of rows inserted': len(values)}
 
     return next(fetch(sql, params=params_with_json, fix_errors=False))
 

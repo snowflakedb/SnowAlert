@@ -570,6 +570,8 @@ def main(
             "Setting auth key on snowalert user",
             f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'",
         )
+    else:
+        print("Please ask account admin to run:\n\n", f"  ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
 
     aws_key, aws_secret = load_aws_config()
 
