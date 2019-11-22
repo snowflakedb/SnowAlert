@@ -16,111 +16,111 @@ PAGE_SIZE = 500
 
 CONNECTION_OPTIONS = [
     {
-        "name": "api_key",
-        "title": "Airwatch API Key",
-        "prompt": "Your Airwatch API Key",
-        "type": "str",
-        "secret": True,
-        "required": True,
+        'name': 'api_key',
+        'title': "Airwatch API Key",
+        'prompt': "Your Airwatch API Key",
+        'type': 'str',
+        'secret': True,
+        'required': True,
     },
     {
-        "name": "host_airwatch",
-        "title": "Airwatch Host",
-        "prompt": "Your Airwatch Host",
-        "type": "str",
-        "secret": True,
-        "required": True,
+        'name': 'host_airwatch',
+        'title': "Airwatch Host",
+        'prompt': "Your Airwatch Host",
+        'type': 'str',
+        'secret': True,
+        'required': True,
     },
     {
-        "name": "device_auth",
-        "title": "Airwatch CMS Auth for Device URL",
-        "prompt": "Your Airwatch CMS Auth for Device URL",
-        "type": "str",
-        "secret": True,
-        "required": True,
+        'name': 'device_auth',
+        'title': "Device URL",
+        'prompt': "Your Airwatch CMS Auth for Device URL",
+        'type': 'str',
+        'secret': True,
+        'required': True,
     },
     {
-        "name": "custom_attributes_auth",
-        "title": "Airwatch CMS Auth for Custom Attributes URL",
-        "prompt": "Your Airwatch CMS Auth for Custom Attributes URL",
-        "type": "str",
-        "secret": True,
-        "required": True,
+        'name': 'custom_attributes_auth',
+        'title': "Custom Attributes URL",
+        'prompt': "Your Airwatch CMS Auth for Custom Attributes URL",
+        'type': 'str',
+        'secret': True,
+        'required': True,
     },
 ]
 
 LANDING_TABLE_COLUMNS_DEVICE = [
-    ("INSERT_ID", "NUMBER IDENTITY START 1 INCREMENT 1"),
-    ("SNAPSHOT_AT", "TIMESTAMP_LTZ(9)"),
-    ("RAW", "VARIANT"),
-    ("EAS_IDS", "VARIANT"),
-    ("UDID", "VARCHAR(256)"),
-    ("SERIAL_NUMBER", "VARCHAR(256)"),
-    ("MAC_ADDRESS", "VARCHAR(256)"),
-    ("IMEI", "VARCHAR(256)"),
-    ("EAS_ID", "VARCHAR(256)"),
-    ("ASSET_NUMBER", "VARCHAR(256)"),
-    ("DEVICE_FRIENDLY_NAME", "VARCHAR(256)"),
-    ("LOCATION_GROUP_ID", "VARIANT"),
-    ("LOCATION_GROUP_NAME", "VARCHAR(256)"),
-    ("USER_ID", "VARIANT"),
-    ("USER_NAME", "VARCHAR(256)"),
-    ("DATA_PROTECTION_STATUS", "NUMBER(38,0)"),
-    ("USER_EMAIL_ADDRESS", "VARCHAR(256)"),
-    ("OWNERSHIP", "VARCHAR(256)"),
-    ("PLATFORM_ID", "VARIANT"),
-    ("PLATFORM", "VARCHAR(256)"),
-    ("MODEL_ID", "VARIANT"),
-    ("MODEL", "VARCHAR(256)"),
-    ("OPERATING_SYSTEM", "VARCHAR(256)"),
-    ("PHONE_NUMBER", "VARCHAR(256)"),
-    ("LAST_SEEN", "TIMESTAMP_LTZ(9)"),
-    ("ENROLLMENT_STATUS", "VARCHAR(256)"),
-    ("COMPLIANCE_STATUS", "VARCHAR(256)"),
-    ("COMPROMISED_STATUS", "BOOLEAN"),
-    ("LAST_ENROLLED_ON", "TIMESTAMP_LTZ(9)"),
-    ("LAST_COMPLIANCE_CHECK_ON", "TIMESTAMP_LTZ(9)"),
-    ("LAST_COMPROMISED_CHECK_ON", "TIMESTAMP_LTZ(9)"),
-    ("IS_SUPERVISED", "BOOLEAN"),
-    ("VIRTUAL_MEMORY", "NUMBER(38,0)"),
-    ("DEVICE_CAPACITY", "FLOAT"),
-    ("AVAILABLE_DEVICE_CAPACITY", "FLOAT"),
-    ("IS_DEVICE_DND_ENABLED", "BOOLEAN"),
-    ("IS_DEVICE_LOCATOR_ENABLED", "BOOLEAN"),
-    ("IS_CLOUD_BACKUP_ENABLED", "BOOLEAN"),
-    ("IS_ACTIVATION_LOCK_ENABLED", "BOOLEAN"),
-    ("IS_NETWORKTETHERED", "BOOLEAN"),
-    ("BATTERY_LEVEL", "VARCHAR(256)"),
-    ("IS_ROAMING", "BOOLEAN"),
-    ("SYSTEM_INTEGRITY_PROTECTION_ENABLED", "BOOLEAN"),
-    ("PROCESSOR_ARCHITECTURE", "NUMBER(38,0)"),
-    ("TOTAL_PHYSICAL_MEMORY", "NUMBER(38,0)"),
-    ("AVAILABLE_PHYSICAL_MEMORY", "NUMBER(38,0)"),
-    ("DEVICE_CELLULAR_NETWORK_INFO", "VARIANT"),
-    ("ENROLLMENT_USER_UUID", "VARCHAR(256)"),
-    ("ID", "VARIANT"),
-    ("UUID", "VARCHAR(256)"),
+    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
+    ('RAW', 'VARIANT'),
+    ('EAS_IDS', 'VARIANT'),
+    ('UDID', 'VARCHAR(256)'),
+    ('SERIAL_NUMBER', 'VARCHAR(256)'),
+    ('MAC_ADDRESS', 'VARCHAR(256)'),
+    ('IMEI', 'VARCHAR(256)'),
+    ('EAS_ID', 'VARCHAR(256)'),
+    ('ASSET_NUMBER', 'VARCHAR(256)'),
+    ('DEVICE_FRIENDLY_NAME', 'VARCHAR(256)'),
+    ('LOCATION_GROUP_ID', 'VARIANT'),
+    ('LOCATION_GROUP_NAME', 'VARCHAR(256)'),
+    ('USER_ID', 'VARIANT'),
+    ('USER_NAME', 'VARCHAR(256)'),
+    ('DATA_PROTECTION_STATUS', 'NUMBER(38,0)'),
+    ('USER_EMAIL_ADDRESS', 'VARCHAR(256)'),
+    ('OWNERSHIP', 'VARCHAR(256)'),
+    ('PLATFORM_ID', 'VARIANT'),
+    ('PLATFORM', 'VARCHAR(256)'),
+    ('MODEL_ID', 'VARIANT'),
+    ('MODEL', 'VARCHAR(256)'),
+    ('OPERATING_SYSTEM', 'VARCHAR(256)'),
+    ('PHONE_NUMBER', 'VARCHAR(256)'),
+    ('LAST_SEEN', 'TIMESTAMP_LTZ(9)'),
+    ('ENROLLMENT_STATUS', 'VARCHAR(256)'),
+    ('COMPLIANCE_STATUS', 'VARCHAR(256)'),
+    ('COMPROMISED_STATUS', 'BOOLEAN'),
+    ('LAST_ENROLLED_ON', 'TIMESTAMP_LTZ(9)'),
+    ('LAST_COMPLIANCE_CHECK_ON', 'TIMESTAMP_LTZ(9)'),
+    ('LAST_COMPROMISED_CHECK_ON', 'TIMESTAMP_LTZ(9)'),
+    ('IS_SUPERVISED', 'BOOLEAN'),
+    ('VIRTUAL_MEMORY', 'NUMBER(38,0)'),
+    ('DEVICE_CAPACITY', 'FLOAT'),
+    ('AVAILABLE_DEVICE_CAPACITY', 'FLOAT'),
+    ('IS_DEVICE_DND_ENABLED', 'BOOLEAN'),
+    ('IS_DEVICE_LOCATOR_ENABLED', 'BOOLEAN'),
+    ('IS_CLOUD_BACKUP_ENABLED', 'BOOLEAN'),
+    ('IS_ACTIVATION_LOCK_ENABLED', 'BOOLEAN'),
+    ('IS_NETWORKTETHERED', 'BOOLEAN'),
+    ('BATTERY_LEVEL', 'VARCHAR(256)'),
+    ('IS_ROAMING', 'BOOLEAN'),
+    ('SYSTEM_INTEGRITY_PROTECTION_ENABLED', 'BOOLEAN'),
+    ('PROCESSOR_ARCHITECTURE', 'NUMBER(38,0)'),
+    ('TOTAL_PHYSICAL_MEMORY', 'NUMBER(38,0)'),
+    ('AVAILABLE_PHYSICAL_MEMORY', 'NUMBER(38,0)'),
+    ('DEVICE_CELLULAR_NETWORK_INFO', 'VARIANT'),
+    ('ENROLLMENT_USER_UUID', 'VARCHAR(256)'),
+    ('ID', 'VARIANT'),
+    ('UUID', 'VARCHAR(256)'),
 ]
 
 LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES = [
-    ("INSERT_ID", "NUMBER IDENTITY START 1 INCREMENT 1"),
-    ("SNAPSHOT_AT", "TIMESTAMP_LTZ(9)"),
-    ("RAW", "VARIANT"),
-    ("DEVICE_ID", "INT"),
-    ("UDID", "VARCHAR(256)"),
-    ("SERIAL_NUMBER", "VARCHAR(256)"),
-    ("ENROLLMENT_USER_NAME", "VARCHAR(256)"),
-    ("ASSET_NUMBER", "VARCHAR(256)"),
-    ("CUSTOM_ATTRIBUTES", "VARIANT"),
+    ('INSERT_ID', 'NUMBER IDENTITY START 1 INCREMENT 1'),
+    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ(9)'),
+    ('RAW', 'VARIANT'),
+    ('DEVICE_ID', 'INT'),
+    ('UDID', 'VARCHAR(256)'),
+    ('SERIAL_NUMBER', 'VARCHAR(256)'),
+    ('ENROLLMENT_USER_NAME', 'VARCHAR(256)'),
+    ('ASSET_NUMBER', 'VARCHAR(256)'),
+    ('CUSTOM_ATTRIBUTES', 'VARIANT'),
 ]
 
 
 def get_data(url: str, cms_auth: str, api_key: str, params: dict = {}) -> dict:
     headers: dict = {
-        "Content-Type": "application/json",
-        "aw-tenant-code": api_key,
-        "Accept": "application/json",
-        "Authorization": cms_auth,
+        'Content-Type': 'application/json',
+        'aw-tenant-code': api_key,
+        'Accept': 'application/json',
+        'Authorization': cms_auth,
     }
     try:
         log.debug(f"Preparing GET: url={url} with params={params}")
@@ -174,13 +174,13 @@ def ingest(table_name, options):
 
     if ingest_type == 'device':
 
-        device_params: dict = {"PageSize": PAGE_SIZE, "Page": 0}
-        url = f"https://{host_airwatch}/api/mdm/devices/search"
+        device_params: dict = {'PageSize': PAGE_SIZE, 'Page': 0}
+        url = f'https://{host_airwatch}/api/mdm/devices/search'
 
         while 1:
             result: dict = get_data(url, device_auth, api_key, device_params)
 
-            devices = result["Devices"]
+            devices = result['Devices']
 
             db.insert(
                 landing_table,
@@ -246,22 +246,22 @@ def ingest(table_name, options):
 
             yield len(devices)
 
-            processed_total = (result["Page"] + 1) * result["PageSize"]
-            if processed_total >= result["Total"]:
+            processed_total = (result['Page'] + 1) * result['PageSize']
+            if processed_total >= result['Total']:
                 break
 
-            device_params["Page"] += 1
+            device_params['Page'] += 1
 
     else:
-        custom_device_params: dict = {"PageSize": PAGE_SIZE, "Page": 0}
-        url = f"https://{host_airwatch}/api/mdm/devices/customattribute/search"
+        custom_device_params: dict = {'PageSize': PAGE_SIZE, 'Page': 0}
+        url = f'https://{host_airwatch}/api/mdm/devices/customattribute/search'
 
         while 1:
             result: dict = get_data(
                 url, custom_attributes_auth, api_key, custom_device_params
             )
 
-            device_attributes = result["Devices"]
+            device_attributes = result['Devices']
 
             db.insert(
                 landing_table,
@@ -288,8 +288,8 @@ def ingest(table_name, options):
 
             yield len(device_attributes)
 
-            processed_total = (result["Page"] + 1) * result["PageSize"]
-            if processed_total >= result["Total"]:
+            processed_total = (result['Page'] + 1) * result['PageSize']
+            if processed_total >= result['Total']:
                 break
 
-            custom_device_params["Page"] += 1
+            custom_device_params['Page'] += 1
