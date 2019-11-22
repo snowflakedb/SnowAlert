@@ -18,6 +18,7 @@ from . import meraki_devices
 from . import assetpanda
 from . import nginx_log
 from . import ldap_log
+from . import airwatch_devices
 
 __all__ = [
     'aws_inventory',
@@ -40,6 +41,7 @@ __all__ = [
     'assetpanda',
     'ldap_log',
     'nginx_log',
+    'airwatch_devices',
 ]
 
 connectors = {
@@ -63,6 +65,7 @@ connectors = {
     'assetpanda': assetpanda,
     'nginx_log': nginx_log,
     'ldap_log': ldap_log,
+    'airwatch_devices': airwatch_devices,
 }
 
 CONNECTION_OPTIONS = [
