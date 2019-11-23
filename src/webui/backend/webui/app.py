@@ -10,6 +10,7 @@ from webui.api.oauth import oauth_api
 from webui.views import app_views
 
 from runners.utils import json_dumps
+from runners.helpers import db
 
 
 URL_EXTENSIONS_CACHED = ('js', 'woff2', 'css')
@@ -35,6 +36,9 @@ logger = logbook.Logger(__name__)
 app = SAFlask(__name__.split('.')[0], static_folder=None)  # type: ignore
 app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
+
+# clear db cache persisting between requests
+app.teardown_request(lambda _: setattr(db.CACHE, db.CONNECTION, None))
 
 app.register_blueprint(app_views)
 app.register_blueprint(data_api, url_prefix='/api/sa/data')
