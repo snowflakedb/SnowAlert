@@ -87,7 +87,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     def connect():
         return connect_db(
             account=oauth_account or ACCOUNT,
-            database=DATABASE,
+            database=None if oauth_account else DATABASE,
             user=oauth_username or USER,
             warehouse=None if oauth_access_token else WAREHOUSE,
             role=None if oauth_access_token else ROLE,
