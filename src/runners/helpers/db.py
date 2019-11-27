@@ -415,7 +415,10 @@ SELECT CURRENT_TIMESTAMP()
         )
       )
     ))
-  , OBJECT_CONSTRUCT(*)
+  , data.object_assign(
+      OBJECT_CONSTRUCT(*),
+      OBJECT_CONSTRUCT('QUERY_NAME', '{{query_name}}')
+    )
 FROM rules.{{query_name}}
 WHERE IFF(alert_time IS NOT NULL, alert_time > {{CUTOFF_TIME}}, TRUE)
 """
