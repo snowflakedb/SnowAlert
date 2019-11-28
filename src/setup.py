@@ -28,7 +28,7 @@ setup(
         'azure-storage-common==2.1.0',
         'google-api-python-client==1.7.10',
         'pyTenable==0.3.22',
-        'boto3==1.10.24',
+        'boto3==1.10.28',
         'twilio==6.29.4',
     ],
 )
