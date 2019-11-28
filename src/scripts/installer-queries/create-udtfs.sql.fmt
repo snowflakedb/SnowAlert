@@ -52,6 +52,6 @@ CREATE FUNCTION IF NOT EXISTS object_assign (o1 VARIANT, o2 VARIANT)
 RETURNS VARIANT
 LANGUAGE javascript
 AS '
-  return Object.assign(O1, O2);
+  return Object.assign(O1, O2)
 '
 ;
