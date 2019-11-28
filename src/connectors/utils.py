@@ -3,7 +3,7 @@ import random
 import yaml
 import multiprocessing as mp
 
-from runners.helpers import db, log
+from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
