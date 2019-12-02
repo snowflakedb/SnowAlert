@@ -77,6 +77,10 @@ def yaml_dump(**kwargs):
     return yaml.dump(kwargs, default_flow_style=False, explicit_start=True)
 
 
+def bytes_to_str(x):
+    return x.decode() if type(x) is bytes else x
+
+
 def create_metadata_table(table, cols, addition):
     db.create_table(table, cols, ifnotexists=True)
     db.execute(f"GRANT INSERT, SELECT ON {table} TO ROLE {SA_ROLE}")
