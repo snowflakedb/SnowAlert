@@ -23,8 +23,19 @@ Prerequisites:
 /SnowAlert/master/SNOWFLAKE_ACCOUNT
 ```
 
-Assume AWS CLI has been configured with default region and credentials, you can provision the stack like so:
+Assuming the AWS CLI has been configured with default region and credentials, for a role similar to Power User, you can provision the stack from the commandline like so.
+
+No Web UI:
 ```
-aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.mydomain.com ParameterKey=InstanceHostedZone,ParameterValue=mydomain.com.
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=DeployWebUi,ParameterValue=false
 ```
 
+With Web UI, internal VPC access only:
+```
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.myinternaldomain.com ParameterKey=InstanceHostedZone,ParameterValue=myinternaldomain.com. 
+```
+
+With Web UI, public facing:
+```
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.mydomain.com ParameterKey=InstanceHostedZone,ParameterValue=mydomain.com. ParameterKey=WebUiAlbScheme,ParameterValue=internet-facing
+```

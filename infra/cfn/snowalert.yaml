@@ -34,6 +34,11 @@ Parameters:
     Default: true
     Description: Flags whether or not to deploy the SnowAlert Web UI, which includes another Fargate cluster and ALB (with DNS + cert)
     AllowedValues: [true, false]
+  WebUiAlbScheme:
+    Type: String
+    Default: internal
+    Description: Determines whether or not the SnowAlert Web UI (if enabled) is internal or internet facing
+    AllowedValues: [internal, internet-facing]
   WebUiContainerCpu:
     Type: Number
     Default: 1024
@@ -77,7 +82,7 @@ Resources:
   EventRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: 'Trigger ECS Service according to the specified schedule'
+      Description: Trigger ECS Service according to the specified schedule
       ScheduleExpression: !Ref CronScheduleExpression
       State: ENABLED
       Targets:
@@ -87,8 +92,8 @@ Resources:
         EcsParameters:
           TaskDefinitionArn: !Ref AlertsTaskDefinition
           TaskCount: 1
-          LaunchType: 'FARGATE'
-          PlatformVersion: 'LATEST'
+          LaunchType: FARGATE
+          PlatformVersion: LATEST
           NetworkConfiguration:
             AwsVpcConfiguration:
               AssignPublicIp: ENABLED
@@ -99,7 +104,7 @@ Resources:
                 - !Ref 'SubnetTwo'
 
   SnowAlertTaskExecutionRole:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -109,11 +114,11 @@ Resources:
               Service:
                 - ecs-tasks.amazonaws.com
             Action:
-              - 'sts:AssumeRole'
+              - sts:AssumeRole
       Path: /
 
   SnowAlertExecutionPolicy:
-    Type: 'AWS::IAM::Policy'
+    Type: AWS::IAM::Policy
     Properties:
       PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'ExecutionPolicy'] ]
       PolicyDocument:
@@ -139,7 +144,7 @@ Resources:
         - !Ref 'SnowAlertTaskExecutionRole'
 
   SnowAlertDecryptionPolicy:
-    Type: 'AWS::IAM::Policy'
+    Type: AWS::IAM::Policy
     Properties:
       PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice','DecryptionPolicy'] ]
       PolicyDocument:
@@ -153,7 +158,7 @@ Resources:
         - !Ref 'SnowAlertTaskExecutionRole'
 
   SnowAlertRunTaskRole:
-    Type: 'AWS::IAM::Role'
+    Type: AWS::IAM::Role
     Properties:
       RoleName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice','RunTaskRole'] ]
       AssumeRolePolicyDocument:
@@ -168,7 +173,7 @@ Resources:
       Path: /
 
   SnowAlertRunTaskPolicy:
-    Type: 'AWS::IAM::Policy'
+    Type: AWS::IAM::Policy
     Properties:
       PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'RunTaskPolicy'] ]
       PolicyDocument:
@@ -194,7 +199,7 @@ Resources:
   SnowAlertKmsKey:
     Type: AWS::KMS::Key
     Properties: 
-      Description: "Used for encyption and audit of SnowAlert"
+      Description: Used for encyption and audit of SnowAlert
       Enabled: true
       EnableKeyRotation: true
       KeyPolicy: 
@@ -262,7 +267,6 @@ Resources:
   
   SnowAlertEcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: ShouldCreateWebUi
     Properties:
       GroupDescription: Access for the Fargate containers
       VpcId: !Ref 'Vpc'
@@ -381,82 +385,81 @@ Resources:
               awslogs-group: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'LogGroup'] ]
               awslogs-stream-prefix: webui
 
-
   WebUiAlbSg:
-    Type: "AWS::EC2::SecurityGroup"
+    Type: AWS::EC2::SecurityGroup
     Condition: ShouldCreateWebUi
     Properties:
-      GroupDescription: "Allows HTTPS through the SnowAlert Web UI load balancer"
+      GroupDescription: Allows HTTPS through the SnowAlert Web UI load balancer
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         -
-          Description: "HTTPS traffic"
-          IpProtocol: "tcp"
-          FromPort: "443"
-          ToPort: "443"
-          CidrIp: "0.0.0.0/0"
+          Description: HTTPS traffic
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
-        - Description: "Allow all outbound"
-          IpProtocol: 'tcp'
-          FromPort: "0"
-          ToPort: "65535"
-          CidrIp: '0.0.0.0/0'
+        - Description: Allow all outbound
+          IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          DestinationSecurityGroupId: !GetAtt SnowAlertEcsSecurityGroup.GroupId
 
   WebUiAlb:
-    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Condition: ShouldCreateWebUi
     Properties:
       Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiAlb'] ]
-      Scheme: "internet-facing"
+      Scheme: !Ref 'WebUiAlbScheme'
       Subnets:
-        - !Ref SubnetOne
-        - !Ref SubnetTwo
+        - !Ref 'SubnetOne'
+        - !Ref 'SubnetTwo'
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
-        Value: "300"
+        Value: 300
       - Key: deletion_protection.enabled
         Value: False
       SecurityGroups:
-        - !Ref WebUiAlbSg
+        - !Ref 'WebUiAlbSg'
 
   WebUiListenerHTTPS:
-    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Type: AWS::ElasticLoadBalancingV2::Listener
     Condition: ShouldCreateWebUi
     Properties:
       Certificates:
-        - CertificateArn: !Ref CertificateArn
+        - CertificateArn: !Ref 'CertificateArn'
       DefaultActions:
-        - TargetGroupArn: !Ref WebUiTargetGroupHTTPS
+        - TargetGroupArn: !Ref 'WebUiTargetGroupHTTPS'
           Type: forward
-      LoadBalancerArn: !Ref WebUiAlb
-      Port: "443"
-      Protocol: "HTTPS"
+      LoadBalancerArn: !Ref 'WebUiAlb'
+      Port: 443
+      Protocol: HTTPS
 
   WebUiTargetGroupHTTPS:
-    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Condition: ShouldCreateWebUi
     Properties:
       TargetType: ip
-      HealthCheckIntervalSeconds: "30"
-      HealthCheckPath: "/"
-      HealthCheckPort: "8000"
-      HealthCheckProtocol: "HTTP"
-      HealthCheckTimeoutSeconds: "10"
-      HealthyThresholdCount: "2"
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: 8000
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
       Matcher:
-        HttpCode: "200-401"
+        HttpCode: 200-401
       Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiHttpTarget'] ]
-      Port: "8000"
-      Protocol: "HTTP"
-      UnhealthyThresholdCount: "3"
-      VpcId: !Ref Vpc
+      Port: 8000
+      Protocol: HTTP
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref 'Vpc'
 
   WebUiRoute53Record:
     Type: AWS::Route53::RecordSet
     Condition: ShouldCreateWebUi
     Properties:
-      HostedZoneName: !Ref InstanceHostedZone
-      Name: !Ref InstanceFqdn
-      Type: "CNAME"
-      TTL: "30"
+      HostedZoneName: !Ref 'InstanceHostedZone'
+      Name: !Ref 'InstanceFqdn'
+      Type: CNAME
+      TTL: 30
       ResourceRecords: [ !GetAtt WebUiAlb.DNSName ]
