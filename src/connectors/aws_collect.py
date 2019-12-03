@@ -14,7 +14,7 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
-from typing import Tuple, Generator
+from typing import Tuple, AsyncGenerator
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -27,7 +27,7 @@ MASTER_READER_ARN = 'arn:aws:iam::987654321012:role/audit-reader'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
-_SESSION_CACHE = {}
+_SESSION_CACHE: dict = {}
 _TASKS_PER_SECOND = 100
 
 CONNECTION_OPTIONS = [
@@ -927,7 +927,7 @@ async def load_task_response(client, task):
             yield x
 
 
-async def process_task(task, add_task) -> Generator[Tuple[str, dict], None, None]:
+async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
     account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
 
