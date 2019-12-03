@@ -3,19 +3,22 @@ Load Inventory and Configuration of all accounts in your Org using auditor Roles
 """
 
 import asyncio
-import aioboto3
-from botocore.exceptions import BotoCoreError, ClientError, DataNotFoundError
+from botocore.exceptions import (
+    # BotoCoreError,
+    ClientError,
+    DataNotFoundError,
+)
 from collections import defaultdict, namedtuple
 import csv
 from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
-from typing import Tuple, List, Generator
+from typing import Tuple, Generator
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-from connectors.utils import sts_assume_role, qmap_mp, updated, yaml_dump, bytes_to_str
+from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
 from runners.helpers import db, log
 
 
@@ -23,6 +26,9 @@ AUDIT_ASSUMER_ARN = 'arn:aws:iam::1234567890987:role/audit-assumer'
 MASTER_READER_ARN = 'arn:aws:iam::987654321012:role/audit-reader'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
+
+_SESSION_CACHE = {}
+_TASKS_PER_SECOND = 100
 
 CONNECTION_OPTIONS = [
     {
@@ -874,7 +880,7 @@ def process_aws_response(task, page):
     if task.account_id:
         base_entity['account_id'] = task.account_id
 
-    if isinstance(page, BotoCoreError):
+    if isinstance(page, Exception):
         yield DBEntry(base_entity)
         return
 
@@ -900,40 +906,51 @@ def process_aws_response(task, page):
                 yield CollectTask(task.account_id, method, args)
 
 
-def load_task_response(client, task):
+async def load_task_response(client, task):
     args = task.args or {}
 
     client_name, method_name = task.method.split('.', 1)
 
-    pages = (
-        client.get_paginator(method_name).paginate(**args)
-        if client.can_paginate(method_name)
-        else None
-    )
+    try:
+        if client.can_paginate(method_name):
+            async for page in client.get_paginator(method_name).paginate(**args):
+                for x in process_aws_response(task, page):
+                    yield x
+        else:
+            for x in process_aws_response(
+                task, await getattr(client, method_name)(**args)
+            ):
+                yield x
 
-    if pages is None:
-        try:
-            pages = [getattr(client, method_name)(**args)]
-
-        except (ClientError, DataNotFoundError) as e:
-            pages = [e]
-
-    for page in pages:
-        yield from process_aws_response(task, page)
+    except (ClientError, DataNotFoundError) as e:
+        for x in process_aws_response(task, e):
+            yield x
 
 
-def process_task(task, add_task) -> Generator[Tuple[str, dict], None, None]:
+async def process_task(task, add_task) -> Generator[Tuple[str, dict], None, None]:
     account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
 
     client_name, method_name = task.method.split('.', 1)
 
     try:
-        session = sts_assume_role(
-            src_role_arn=AUDIT_ASSUMER_ARN,
-            dest_role_arn=account_arn,
-            dest_external_id=READER_EID,
+        session = _SESSION_CACHE[account_arn] = (
+            _SESSION_CACHE[account_arn]
+            if account_arn in _SESSION_CACHE
+            else await aio_sts_assume_role(
+                src_role_arn=AUDIT_ASSUMER_ARN,
+                dest_role_arn=account_arn,
+                dest_external_id=READER_EID,
+            )
         )
+        async with session.client(client_name) as client:
+            async for response in load_task_response(client, task):
+                if type(response) is DBEntry:
+                    yield (task.method, response.entity)
+                elif type(response) is CollectTask:
+                    add_task(response)
+                else:
+                    log.info('log response', response)
 
     except ClientError as e:
         # record missing auditor role as empty account summary
@@ -946,17 +963,6 @@ def process_task(task, add_task) -> Generator[Tuple[str, dict], None, None]:
                 ),
             ),
         )
-        return
-
-    client = session.client(client_name)
-
-    for response in load_task_response(client, task):
-        if type(response) is DBEntry:
-            yield (task.method, response.entity)
-        elif type(response) is CollectTask:
-            add_task(response)
-        else:
-            log.info('log response', response)
 
 
 def insert_list(name, values, table_name=None):
@@ -966,18 +972,17 @@ def insert_list(name, values, table_name=None):
     return db.insert(table_name, values)
 
 
-def aws_collect_task(task, add_task=None):
+async def aws_collect_task(task, wait=0.0, add_task=None):
     log.info(f'processing {task}')
     result_lists = defaultdict(list)
-    for k, v in process_task(task, add_task):
+    if wait:
+        await asyncio.sleep(wait)
+    async for k, v in process_task(task, add_task):
         result_lists[k].append(v)
-
-    for name, vs in result_lists.items():
-        response = insert_list(name, vs)
-        log.info(f'finished {response}')
+    return result_lists
 
 
-def ingest(table_name, options):
+async def aioingest(table_name, options):
     global AUDIT_ASSUMER_ARN
     global MASTER_READER_ARN
     global AUDIT_READER_ROLE
@@ -987,61 +992,81 @@ def ingest(table_name, options):
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
     READER_EID = options.get('reader_eid', '')
 
-    org_client = sts_assume_role(
+    session = await aio_sts_assume_role(
         src_role_arn=AUDIT_ASSUMER_ARN,
         dest_role_arn=MASTER_READER_ARN,
         dest_external_id=READER_EID,
-    ).client('organizations')
+    )
 
-    accounts = [
-        a.entity
-        for a in load_task_response(
-            org_client, CollectTask(None, 'organizations.list_accounts', {})
-        )
-    ]
+    async with session.client('organizations') as org_client:
+        accounts = [
+            a.entity
+            async for a in load_task_response(
+                org_client, CollectTask(None, 'organizations.list_accounts', {})
+            )
+        ]
+
     insert_list(
         'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
     )
     if options.get('collect_apis') == 'all':
-        qmap_mp(
-            32,
-            aws_collect_task,
-            [
-                CollectTask(a['id'], method, {})
-                for a in accounts
-                for method in [
-                    'iam.generate_credential_report',
-                    'iam.list_account_aliases',
-                    'iam.get_account_summary',
-                    'iam.get_account_password_policy',
-                    'ec2.describe_instances',
-                    'ec2.describe_security_groups',
-                    'config.describe_configuration_recorders',
-                    'iam.get_credential_report',
-                    'kms.list_keys',
-                    'iam.list_users',
-                    'iam.list_policies',
-                    'iam.list_virtual_mfa_devices',
-                    's3.list_buckets',
-                    'cloudtrail.describe_trails',
-                ]
-            ],
-        )
+        collection_tasks = [
+            CollectTask(a['id'], method, {})
+            for a in accounts
+            for method in [
+                # 'iam.generate_credential_report',
+                'iam.list_account_aliases',
+                'iam.get_account_summary',
+                'iam.get_account_password_policy',
+                'ec2.describe_instances',
+                'ec2.describe_security_groups',
+                'config.describe_configuration_recorders',
+                # 'iam.get_credential_report',
+                'kms.list_keys',
+                'iam.list_users',
+                'iam.list_policies',
+                'iam.list_virtual_mfa_devices',
+                's3.list_buckets',
+                'cloudtrail.describe_trails',
+            ]
+        ]
+
+        def add_task(t):
+            collection_tasks.append(t)
+
+        while collection_tasks:
+            coroutines = [
+                aws_collect_task(
+                    t, wait=(float(i) / _TASKS_PER_SECOND), add_task=add_task
+                )
+                for i, t in enumerate(collection_tasks)
+            ]
+            collection_tasks = []
+
+            all_results = defaultdict(list)
+            for result_lists in await asyncio.gather(*coroutines):
+                for k, vs in result_lists.items():
+                    all_results[k] += vs
+            for name, vs in all_results.items():
+                response = insert_list(name, vs)
+                log.info(f'finished {name} {response}')
+
+
+def ingest(table_name, options):
+    return asyncio.get_event_loop().run_until_complete(aioingest(table_name, options))
 
 
 def main(
-    table_name, audit_assumer_ARN, master_reader_ARN, reader_eid, audit_reader_role
+    table_name, audit_assumer_arn, master_reader_arn, reader_eid, audit_reader_role
 ):
-    print(
-        ingest(
-            table_name,
-            {
-                'audit_assumer_ARN': audit_assumer_ARN,
-                'master_reader_ARN': master_reader_ARN,
-                'reader_eid': reader_eid,
-                'audit_reader_role': audit_reader_role,
-            },
-        )
+    ingest(
+        table_name,
+        {
+            'audit_assumer_arn': audit_assumer_arn,
+            'master_reader_arn': master_reader_arn,
+            'reader_eid': reader_eid,
+            'audit_reader_role': audit_reader_role,
+        },
     )
 
 
