@@ -980,7 +980,7 @@ async def aws_collect_task(task, wait=0.0, add_task=None):
     if wait:
         await asyncio.sleep(wait)
 
-    log.info(f'processing {task}')
+    # log.info(f'processing {task}')
     result_lists = defaultdict(list)
     async for k, v in process_task(task, add_task):
         result_lists[k].append(v)
@@ -1017,23 +1017,23 @@ async def aioingest(table_name, options):
     if options.get('collect_apis') == 'all':
         collection_tasks = [
             CollectTask(a['id'], method, {})
-            for a in accounts
             for method in [
-                # 'iam.generate_credential_report',
+                'iam.generate_credential_report',
                 'iam.list_account_aliases',
                 'iam.get_account_summary',
                 'iam.get_account_password_policy',
                 'ec2.describe_instances',
                 'ec2.describe_security_groups',
                 'config.describe_configuration_recorders',
-                # 'iam.get_credential_report',
                 'kms.list_keys',
                 'iam.list_users',
                 'iam.list_policies',
                 'iam.list_virtual_mfa_devices',
                 's3.list_buckets',
                 'cloudtrail.describe_trails',
+                'iam.get_credential_report',
             ]
+            for a in accounts
         ]
 
         def add_task(t):
