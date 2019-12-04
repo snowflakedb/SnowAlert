@@ -849,7 +849,8 @@ def process_response_lists(coldict, page):
                 yield process_response_items(colname[0], x, {})
 
         if type(colname) is dict:
-            yield from process_response_lists(colname, response_value)
+            if response_value:
+                yield from process_response_lists(colname, response_value)
 
 
 def process_response_items(coldict, page, db_entry=None):
@@ -884,7 +885,7 @@ def process_aws_response(task, page):
 
     base_entity.update({v: task.args[k] for k, v in params.items()})
 
-    if isinstance(page, Exception):
+    if isinstance(page, (Exception, type(None))):
         yield DBEntry(base_entity)
         return
 
