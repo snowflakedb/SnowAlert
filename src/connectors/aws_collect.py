@@ -28,7 +28,8 @@ AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
 _SESSION_CACHE: dict = {}
-_TASKS_PER_SECOND = 100
+_REQUEST_PACE_PER_SECOND = 100
+_MAX_BATCH_SIZE = 500
 
 CONNECTION_OPTIONS = [
     {
@@ -758,7 +759,7 @@ AWS_API_METHOD_COLUMNS = {
         'children': [
             {
                 'method': 'cloudtrail.get_trail_status',
-                'args': {'TrailName': 'trail_arn'},
+                'args': {'Name': 'trail_arn'},
             },
             {
                 'method': 'cloudtrail.get_event_selectors',
@@ -865,8 +866,9 @@ def process_response_items(coldict, page, db_entry=None):
 
     elif type(coldict) is dict:
         for response_key, colname in coldict.items():
-            response_value = page.get(response_key)
-            db_entry.update(process_response_items(colname, response_value))
+            if page:  # e.g. sometimes get_login_profile returns None
+                response_value = page.get(response_key)
+                db_entry.update(process_response_items(colname, response_value))
 
     return db_entry
 
@@ -880,11 +882,12 @@ def process_aws_response(task, page):
     if task.account_id:
         base_entity['account_id'] = task.account_id
 
+    base_entity.update({v: task.args[k] for k, v in params.items()})
+
     if isinstance(page, Exception):
         yield DBEntry(base_entity)
         return
 
-    base_entity.update({v: task.args[k] for k, v in params.items()})
     base_entity.update(process_response_items(response_coldict, page))
 
     if 'ResponseMetadata' in page:
@@ -973,10 +976,11 @@ def insert_list(name, values, table_name=None):
 
 
 async def aws_collect_task(task, wait=0.0, add_task=None):
-    log.info(f'processing {task}')
-    result_lists = defaultdict(list)
     if wait:
         await asyncio.sleep(wait)
+
+    log.info(f'processing {task}')
+    result_lists = defaultdict(list)
     async for k, v in process_task(task, add_task):
         result_lists[k].append(v)
     return result_lists
@@ -1037,11 +1041,12 @@ async def aioingest(table_name, options):
         while collection_tasks:
             coroutines = [
                 aws_collect_task(
-                    t, wait=(float(i) / _TASKS_PER_SECOND), add_task=add_task
+                    t, wait=(float(i) / _REQUEST_PACE_PER_SECOND), add_task=add_task
                 )
-                for i, t in enumerate(collection_tasks)
+                for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
             ]
-            collection_tasks = []
+            del collection_tasks[:_MAX_BATCH_SIZE]
+            log.info(f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}')
 
             all_results = defaultdict(list)
             for result_lists in await asyncio.gather(*coroutines):

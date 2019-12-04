@@ -342,7 +342,7 @@ def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     #     expected at most 16,384, got 169,667
     for group in utils.groups_of(16384, values):
         num_rows_inserted += do_insert(
-            table, values, overwrite, select, columns, dryrun
+            table, group, overwrite, select, columns, dryrun
         )['number of rows inserted']
     return {'number of rows inserted': num_rows_inserted}
 
