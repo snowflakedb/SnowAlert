@@ -425,6 +425,7 @@ Resources:
   WebUiListenerHTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Condition: ShouldCreateWebUi
+    DependsOn : WebUiTargetGroupHTTPS
     Properties:
       Certificates:
         - CertificateArn: !Ref 'CertificateArn'
