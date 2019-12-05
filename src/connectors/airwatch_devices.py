@@ -1,5 +1,5 @@
 """Airwatch
-Collect Airwatch Device information using a API Key, Host, and CMSURL Authentication
+Collect Device information using API Key, Host, and CMSURL Authentication
 """
 
 from runners.helpers import log
