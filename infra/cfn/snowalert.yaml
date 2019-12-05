@@ -1,0 +1,454 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploys AWS infrastructure to support SnowAlert (https://github.com/snowflakedb/SnowAlert)
+Parameters:
+  ResourcesPrefix: 
+    Type: String
+    Default: SnowAlert
+    Description: A common prefix for all resource names
+  AlertsContainerCpu:
+    Type: Number
+    Default: 1024
+    Description: How much CPU to give the alert execution container. 1024 is 1 CPU
+  AlertsContainerMemory:
+    Type: Number
+    Default: 2048
+    Description: How much memory in megabytes to give the alert execution container
+  CronScheduleExpression:
+    Type: String
+    Default: cron(10 * * * ? *)
+    Description: The Cron schedule definition for triggering rule evaluation
+  Vpc:
+    Type: String
+    Default: ""
+    Description: The VPC ID to deploy to
+  SubnetOne:
+    Type: String
+    Default: ""
+    Description: First of two subnets to run tasks on within the VPC
+  SubnetTwo:
+    Type: String
+    Default: ""
+    Description: Second of two subnets to run tasks on within the VPC
+  DeployWebUi:
+    Type: String
+    Default: true
+    Description: Flags whether or not to deploy the SnowAlert Web UI, which includes another Fargate cluster and ALB (with DNS + cert)
+    AllowedValues: [true, false]
+  WebUiAlbScheme:
+    Type: String
+    Default: internal
+    Description: Determines whether or not the SnowAlert Web UI (if enabled) is internal or internet facing
+    AllowedValues: [internal, internet-facing]
+  WebUiContainerCpu:
+    Type: Number
+    Default: 1024
+    Description: How much CPU to give the Web UI container. 1024 is 1 CPU
+  WebUiContainerMemory:
+    Type: Number
+    Default: 2048
+    Description: How much memory in megabytes to give the Web UI container
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, the Arn of a certificate to use on the ALB of the SnowAlert Web UI. It should already have been issued and include the InstanceFqdn as a valid subject name.
+  InstanceFqdn:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, the fully qualified domain name of the instance (e.g. snowalert.mycompany.com)
+  InstanceHostedZone:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, the hosted DNS zone of the instance (e.g. mycompany.com). This must have already been set up in Route53.
+  Slice:
+    Type: String
+    Default: "master"
+    Description: Used to differentiate between multiple deployments within the one account, e.g. a test AWS account supporting multiple branch builds
+Conditions:
+  ShouldCreateWebUi:
+    !Equals [true, !Ref DeployWebUi]
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice','LogGroup'] ]
+      RetentionInDays: 7
+
+  AlertsECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'Runner'] ]
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Trigger ECS Service according to the specified schedule
+      ScheduleExpression: !Ref CronScheduleExpression
+      State: ENABLED
+      Targets:
+      - Arn: !GetAtt AlertsECSCluster.Arn
+        Id: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'FargateTask'] ]
+        RoleArn: !GetAtt SnowAlertTaskExecutionRole.Arn
+        EcsParameters:
+          TaskDefinitionArn: !Ref AlertsTaskDefinition
+          TaskCount: 1
+          LaunchType: FARGATE
+          PlatformVersion: LATEST
+          NetworkConfiguration:
+            AwsVpcConfiguration:
+              AssignPublicIp: ENABLED
+              SecurityGroups:
+                - Fn::GetAtt: [ SnowAlertEcsSecurityGroup, GroupId ]
+              Subnets:
+                - !Ref 'SubnetOne'
+                - !Ref 'SubnetTwo'
+
+  SnowAlertTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+
+  SnowAlertExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'ExecutionPolicy'] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+            - ecr:GetAuthorizationToken
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - cloudwatch:PutMetricData
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - ssm:GetParameters
+            - ssm:GetParameter
+            Resource:
+              - !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','*']]]]
+      Roles:
+        - !Ref 'SnowAlertTaskExecutionRole'
+
+  SnowAlertDecryptionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice','DecryptionPolicy'] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+            - kms:Decrypt
+            Resource: !GetAtt SnowAlertKmsKey.Arn
+      Roles:
+        - !Ref 'SnowAlertTaskExecutionRole'
+
+  SnowAlertRunTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice','RunTaskRole'] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  SnowAlertRunTaskPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'RunTaskPolicy'] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RunTask
+            Resource: !GetAtt AlertsECSCluster.Arn
+            Condition:
+              ArnLike:
+                ecs:cluster: !GetAtt AlertsECSCluster.Arn
+          - Effect: Allow
+            Action:
+            - iam:PassRole
+            Resource: '*'
+            Condition:
+              StringLike:
+                iam:PassedToService: 'ecs-tasks.amazonaws.com'
+      Roles:
+        - !Ref 'SnowAlertRunTaskRole'
+
+  SnowAlertKmsKey:
+    Type: AWS::KMS::Key
+    Properties: 
+      Description: Used for encyption and audit of SnowAlert
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy: 
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS:
+                !Join [":",["arn","aws","iam", '', !Ref 'AWS::AccountId', 'root'] ]
+            Action: 'kms:*'
+            Resource: '*'
+
+  AlertsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'AlertsECSService'] ]
+      Cpu: !Ref 'AlertsContainerCpu'
+      Memory: !Ref 'AlertsContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref 'SnowAlertTaskExecutionRole'
+      TaskRoleArn: !Ref 'SnowAlertRunTaskRole'
+      ContainerDefinitions:
+        - Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'AlertsECSService'] ]
+          Cpu: !Ref 'AlertsContainerCpu'
+          Memory: !Ref 'AlertsContainerMemory'
+          Image: 'snowsec/snowalert:latest'
+          EntryPoint:
+            - sh
+            - -c
+            - |
+              ./run alerts
+          Environment:
+            - Name: REGION
+              Value: !Ref 'AWS::Region'
+            - Name: CLOUDWATCH_METRICS
+              Value: 'True'
+            - Name: SA_KMS_KEY
+              Value: !GetAtt SnowAlertKmsKey.Arn
+          Secrets:
+            - Name: PRIVATE_KEY
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','PRIVATE_KEY']]]]
+            - Name: PRIVATE_KEY_PASSWORD
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','PRIVATE_KEY_PASSWORD']]]]
+            - Name: SA_USER
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_USER']]]]
+            - Name: SA_WAREHOUSE
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_WAREHOUSE']]]]
+            - Name: SA_DATABASE
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_DATABASE']]]]
+            - Name: SA_ROLE
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_ROLE']]]]
+            - Name: SLACK_API_TOKEN
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SLACK_API_TOKEN']]]]
+            - Name: SNOWFLAKE_ACCOUNT
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWFLAKE_ACCOUNT']]]]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'LogGroup'] ]
+              awslogs-stream-prefix: alerts
+  
+  SnowAlertEcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access for the Fargate containers
+      VpcId: !Ref 'Vpc'
+
+  SnowAlertSecurityGroupIngress8000:
+    Type: AWS::EC2::SecurityGroupIngress
+    Condition: ShouldCreateWebUi
+    Properties:
+      IpProtocol: tcp
+      FromPort: 8000
+      ToPort: 8000
+      SourceSecurityGroupId: !GetAtt WebUiAlbSg.GroupId
+      GroupId: !GetAtt SnowAlertEcsSecurityGroup.GroupId
+
+  SnowAlertSecurityGroupEgress80:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: ShouldCreateWebUi
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+      GroupId: !GetAtt SnowAlertEcsSecurityGroup.GroupId
+
+  SnowAlertSecurityGroupEgress443:
+    Type: AWS::EC2::SecurityGroupEgress
+    Condition: ShouldCreateWebUi
+    Properties:
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+      GroupId: !GetAtt SnowAlertEcsSecurityGroup.GroupId
+  
+  WebUiECSCluster:
+    Type: AWS::ECS::Cluster
+    Condition: ShouldCreateWebUi
+    Properties:
+      ClusterName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUi'] ]
+
+  Service:
+    Type: AWS::ECS::Service
+    Condition: ShouldCreateWebUi
+    DependsOn : WebUiListenerHTTPS
+    Properties:
+      ServiceName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiECSService'] ]
+      Cluster: !Ref 'WebUiECSCluster'
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: 1
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Fn::GetAtt: [ SnowAlertEcsSecurityGroup, GroupId ]
+          Subnets:
+            - !Ref 'SubnetOne'
+            - !Ref 'SubnetTwo'
+      TaskDefinition: !Ref 'WebUiTaskDefinition'
+      LoadBalancers:
+        - ContainerName: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiECSService'] ]
+          ContainerPort: 8000
+          TargetGroupArn: !Ref WebUiTargetGroupHTTPS
+
+  WebUiTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Condition: ShouldCreateWebUi
+    Properties:
+      Family: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiECSService'] ]
+      Cpu: !Ref 'WebUiContainerCpu'
+      Memory: !Ref 'WebUiContainerMemory'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !Ref 'SnowAlertTaskExecutionRole'
+      #TaskRoleArn: !Ref 'SnowAlertRunTaskRole'
+      ContainerDefinitions:
+        - Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiECSService'] ]
+          Cpu: !Ref 'WebUiContainerCpu'
+          Memory: !Ref 'WebUiContainerMemory'
+          Image: 'snowsec/snowalert-webui'
+          PortMappings:
+            - ContainerPort: 8000
+              HostPort: 8000
+              Protocol: tcp
+          Environment:
+            - Name: REGION
+              Value: !Ref 'AWS::Region'
+            - Name: CLOUDWATCH_METRICS
+              Value: 'True'
+            - Name: SA_KMS_KEY
+              Value: !GetAtt SnowAlertKmsKey.Arn
+          Secrets:
+            - Name: SLACK_API_TOKEN
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SLACK_API_TOKEN']]]]
+            - Name: SNOWFLAKE_ACCOUNT
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWFLAKE_ACCOUNT']]]]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'LogGroup'] ]
+              awslogs-stream-prefix: webui
+
+  WebUiAlbSg:
+    Type: AWS::EC2::SecurityGroup
+    Condition: ShouldCreateWebUi
+    Properties:
+      GroupDescription: Allows HTTPS through the SnowAlert Web UI load balancer
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        -
+          Description: HTTPS traffic
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - Description: Allow all outbound
+          IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          DestinationSecurityGroupId: !GetAtt SnowAlertEcsSecurityGroup.GroupId
+
+  WebUiAlb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Condition: ShouldCreateWebUi
+    Properties:
+      Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiAlb'] ]
+      Scheme: !Ref 'WebUiAlbScheme'
+      Subnets:
+        - !Ref 'SubnetOne'
+        - !Ref 'SubnetTwo'
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: 300
+      - Key: deletion_protection.enabled
+        Value: False
+      SecurityGroups:
+        - !Ref 'WebUiAlbSg'
+
+  WebUiListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: ShouldCreateWebUi
+    DependsOn : WebUiTargetGroupHTTPS
+    Properties:
+      Certificates:
+        - CertificateArn: !Ref 'CertificateArn'
+      DefaultActions:
+        - TargetGroupArn: !Ref 'WebUiTargetGroupHTTPS'
+          Type: forward
+      LoadBalancerArn: !Ref 'WebUiAlb'
+      Port: 443
+      Protocol: HTTPS
+
+  WebUiTargetGroupHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Condition: ShouldCreateWebUi
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /
+      HealthCheckPort: 8000
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-401
+      Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiHttpTarget'] ]
+      Port: 8000
+      Protocol: HTTP
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref 'Vpc'
+
+  WebUiRoute53Record:
+    Type: AWS::Route53::RecordSet
+    Condition: ShouldCreateWebUi
+    Properties:
+      HostedZoneName: !Ref 'InstanceHostedZone'
+      Name: !Ref 'InstanceFqdn'
+      Type: CNAME
+      TTL: 30
+      ResourceRecords: [ !GetAtt WebUiAlb.DNSName ]
