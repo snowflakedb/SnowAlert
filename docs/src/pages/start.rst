@@ -26,7 +26,7 @@ Finally, we have a SnowAlert Management WebUI, which you can use to edit your ru
 
     docker run -it -p 8000:8000 --env-file snowalert-{account}.envs snowsec/snowalert-webui
 
-This container may use the same environment variables as the runners to authenticate although we only recommend you do this when developing or running SnowAlert locally. When deploying to prod, please follow the instructions in :ref:`authentication`.
+Snowflake OAuth is the recommended authentication method for the WebUI. Storing credentials in the following environment variables will enable anyone with web access to manage the rules and data connectors. Please don't use these environment variables in production. While we recommend using OAuth for prod auth, locally or in an otherwise secured environment, you can configure the application to use the same credentials stored in environment variables as the runners do: ``SNOWFLAKE_ACCOUNT``, ``SA_USER``, ``SA_ROLE``, ``SA_DATABASE``, ``SA_WAREHOUSE``, ``PRIVATE_KEY``, ``PRIVATE_KEY_PASSWORD``. When deploying to prod, please follow the instructions in :ref:`authentication`.
 
 .. note::
 
