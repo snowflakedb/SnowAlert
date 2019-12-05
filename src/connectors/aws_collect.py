@@ -1065,7 +1065,7 @@ async def aioingest(table_name, options):
     return 0
 
 def ingest(table_name, options):
-    now = datetime.now().
+    now = datetime.now()
     if (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(aioingest(table_name, options))
     else:
