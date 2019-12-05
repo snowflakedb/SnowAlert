@@ -334,6 +334,20 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
 
 
 def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
+    num_rows_inserted = 0
+    # snowflake limits the number of rows inserted in a single statement:
+    #   snowflake.connector.errors.ProgrammingError: 001795 (42601):
+    #     SQL compilation error: error line 3 at position 158
+    #   maximum number of expressions in a list exceeded,
+    #     expected at most 16,384, got 169,667
+    for group in utils.groups_of(16384, values):
+        num_rows_inserted += do_insert(
+            table, group, overwrite, select, columns, dryrun
+        )['number of rows inserted']
+    return {'number of rows inserted': num_rows_inserted}
+
+
+def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     if len(values) == 0:
         return {'number of rows inserted': 0}
 
