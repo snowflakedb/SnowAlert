@@ -114,6 +114,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
           .map(r => new Suppression(Object.assign(r, {savedBody: r.body}))),
         isFetching: false,
       };
+    case RulesActions.LOAD_SNOWALERT_RULES_FAILURE: {
+      window.location.href = '/login';
+    }
 
     // saving rules
     case RulesActions.SAVE_RULE_REQUEST:

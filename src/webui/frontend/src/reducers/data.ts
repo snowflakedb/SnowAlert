@@ -34,10 +34,8 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case LOAD_SA_DATA_FAILURE: {
-      return {
-        ...state,
-        isFetching: false,
-      };
+      window.location.href = '/login';
+      break;
     }
     case LOAD_SA_DATA_SUCCESS: {
       const {connectors} = action.payload;
