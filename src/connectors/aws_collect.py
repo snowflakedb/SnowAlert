@@ -10,6 +10,7 @@ from botocore.exceptions import (
 )
 from collections import defaultdict, namedtuple
 import csv
+from datetime import datetime
 from dateutil.parser import parse as parse_date
 import json
 import fire
@@ -1039,6 +1040,7 @@ async def aioingest(table_name, options):
         def add_task(t):
             collection_tasks.append(t)
 
+        num_entires = 0
         while collection_tasks:
             coroutines = [
                 aws_collect_task(
@@ -1055,11 +1057,19 @@ async def aioingest(table_name, options):
                     all_results[k] += vs
             for name, vs in all_results.items():
                 response = insert_list(name, vs)
+                num_entires += len(vs)
                 log.info(f'finished {name} {response}')
 
+        return num_entries
+
+    return 0
 
 def ingest(table_name, options):
-    return asyncio.get_event_loop().run_until_complete(aioingest(table_name, options))
+    now = datetime.now().
+    if (now.hour % 3 == 0 and now.minute < 15):
+        return asyncio.get_event_loop().run_until_complete(aioingest(table_name, options))
+    else:
+        log.info('not time yett')
 
 
 def main(
