@@ -253,4 +253,5 @@ export type EditRulesActions =
   | RevertRuleAction
   | SaveRuleActions
   | UpdatePolicyTitleAction
-  | UpdatePolicyDescriptionAction;
+  | UpdatePolicyDescriptionAction
+  | LoadRulesActions;
