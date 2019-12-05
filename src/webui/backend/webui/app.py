@@ -37,8 +37,13 @@ app = SAFlask(__name__.split('.')[0], static_folder=None)  # type: ignore
 app.config.from_object(config.FlaskConfig)  # type: ignore
 app.debug = config.DEBUG
 
-# clear db cache persisting between requests
-app.teardown_request(lambda _: setattr(db.CACHE, db.CONNECTION, None))
+
+def clear_cache(request):
+    "clear db cache persisting between requests"
+    setattr(db.CACHE, db.CONNECTION, None)
+
+
+app.teardown_request(clear_cache)
 
 app.register_blueprint(app_views)
 app.register_blueprint(data_api, url_prefix='/api/sa/data')
