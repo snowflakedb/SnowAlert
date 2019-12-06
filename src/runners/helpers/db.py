@@ -65,6 +65,11 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     oauth_access_token = (
         oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
     )
+
+    if oauth_refresh_token and not oauth_access_token:
+        log.error('failed to connect with oauth creds provided')
+        return
+
     oauth_username = oauth.get('username')
     oauth_account = oauth.get('account')
 
