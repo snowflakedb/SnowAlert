@@ -1040,7 +1040,7 @@ async def aioingest(table_name, options):
         def add_task(t):
             collection_tasks.append(t)
 
-        num_entires = 0
+        num_entries = 0
         while collection_tasks:
             coroutines = [
                 aws_collect_task(
@@ -1057,12 +1057,13 @@ async def aioingest(table_name, options):
                     all_results[k] += vs
             for name, vs in all_results.items():
                 response = insert_list(name, vs)
-                num_entires += len(vs)
+                num_entries += len(vs)
                 log.info(f'finished {name} {response}')
 
         return num_entries
 
     return 0
+
 
 def ingest(table_name, options):
     now = datetime.now()
