@@ -14,23 +14,14 @@ logger = logbook.Logger(__name__)
 data_api = Blueprint('data', __name__)
 
 
-@data_api.route('/', methods=['GET'])
-def get_data():
-    return jsonify(connectors=CONNECTION_OPTIONS)
-
-
-@data_api.route('/connectors', methods=['GET'])
-def get_connectors():
-    return jsonify(CONNECTION_OPTIONS)
-
-
 def cache_oauth_connection(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         oauth = json.loads(request.headers.get('Authorization') or '{}')
         if not oauth and not dbconfig.PRIVATE_KEY:
-            return jsonify(success=False, message='please log in')
-        db.connect(oauth=oauth, set_cache=True)
+            raise RuntimeError('please log in')
+        if not db.connect(oauth=oauth, set_cache=True):
+            raise RuntimeError('please log in again')
         return f(*args, **kwargs)
 
     return wrapper
@@ -52,9 +43,16 @@ def jsonified(f):
     return wrapper
 
 
-@data_api.route('/connectors/<connector>/<name>', methods=['POST'])
-@cache_oauth_connection
+@data_api.route('/', methods=['GET'])
 @jsonified
+@cache_oauth_connection
+def get_data():
+    return {'connectors': CONNECTION_OPTIONS}
+
+
+@data_api.route('/connectors/<connector>/<name>', methods=['POST'])
+@jsonified
+@cache_oauth_connection
 def post_connector(connector, name):
     options = request.get_json()
     connector = importlib.import_module(f"connectors.{connector}")
@@ -98,16 +96,16 @@ def post_connector(connector, name):
 
 
 @data_api.route('/connectors/<connector>/<name>/finalize', methods=['POST'])
-@cache_oauth_connection
 @jsonified
+@cache_oauth_connection
 def post_connector_finalize(connector, name):
     connector = importlib.import_module(f"connectors.{connector}")
     return connector.finalize(name)
 
 
 @data_api.route('/connectors/<connector>/<name>/test', methods=['POST'])
-@cache_oauth_connection
 @jsonified
+@cache_oauth_connection
 def post_connector_test(connector, name):
     connector = importlib.import_module(f"connectors.{connector}")
     return list(connector.test(name))
