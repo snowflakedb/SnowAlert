@@ -159,6 +159,7 @@ SUPPLEMENTARY_TABLES = {
     'ec2_describe_instances': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('groups', 'VARIANT'),
         ('instances', 'VARIANT'),
         ('owner_id', 'STRING'),
@@ -169,6 +170,7 @@ SUPPLEMENTARY_TABLES = {
     'ec2_describe_security_groups': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('description', 'STRING'),
         ('group_name', 'STRING'),
         ('ip_permissions', 'VARIANT'),
@@ -182,6 +184,7 @@ SUPPLEMENTARY_TABLES = {
     'config_describe_configuration_recorders': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('name', 'STRING'),
         ('role_arn', 'STRING'),
         ('recording_group', 'VARIANT'),
@@ -199,6 +202,7 @@ SUPPLEMENTARY_TABLES = {
     'kms_list_keys': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('key_id', 'STRING'),
         ('key_arn', 'STRING'),
     ],
@@ -206,6 +210,7 @@ SUPPLEMENTARY_TABLES = {
     'kms_get_key_rotation_status': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('key_arn', 'STRING'),
         ('key_rotation_enabled', 'BOOLEAN'),
     ],
@@ -325,6 +330,7 @@ SUPPLEMENTARY_TABLES = {
     's3_list_buckets': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('bucket_name', 'STRING'),
         ('bucket_creation_date', 'TIMESTAMP_LTZ'),
         ('owner_display_name', 'STRING'),
@@ -334,6 +340,7 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_acl': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('bucket', 'STRING'),
         ('grants_grantee', 'STRING'),
         ('grants_permission', 'STRING'),
@@ -344,6 +351,7 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('bucket', 'STRING'),
         ('policy', 'STRING'),
         ('policy_json_parsed', 'VARIANT'),
@@ -352,6 +360,7 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('bucket', 'STRING'),
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
@@ -361,6 +370,7 @@ SUPPLEMENTARY_TABLES = {
     'cloudtrail_describe_trails': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('name', 'STRING'),
         ('s3_bucket_name', 'STRING'),
         ('s3_key_prefix', 'STRING'),
@@ -382,6 +392,7 @@ SUPPLEMENTARY_TABLES = {
     'cloudtrail_get_trail_status': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('trail_arn', 'STRING'),
         ('is_logging', 'BOOLEAN'),
         ('latest_delivery_error', 'STRING'),
@@ -405,6 +416,7 @@ SUPPLEMENTARY_TABLES = {
     'cloudtrail_get_event_selectors': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('trail_arn', 'STRING'),
         ('read_write_type', 'STRING'),
         ('include_management_events', 'BOOLEAN'),
@@ -949,13 +961,23 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
             )
         )
         async with session.client(client_name) as client:
-            async for response in load_task_response(client, task):
-                if type(response) is DBEntry:
-                    yield (task.method, response.entity)
-                elif type(response) is CollectTask:
-                    add_task(response)
-                else:
-                    log.info('log response', response)
+            if hasattr(client, 'describe_regions'):
+                response = await client.describe_regions()
+                region_names = [region['RegionName'] for region in response['Regions']]
+            else:
+                region_names = [None]
+
+        for rn in region_names:
+            async with session.client(client_name, region_name=rn) as client:
+                async for response in load_task_response(client, task):
+                    if type(response) is DBEntry:
+                        if rn is not None:
+                            response.entity['region'] = rn
+                        yield (task.method, response.entity)
+                    elif type(response) is CollectTask:
+                        add_task(response)
+                    else:
+                        log.info('log response', response)
 
     except ClientError as e:
         # record missing auditor role as empty account summary
