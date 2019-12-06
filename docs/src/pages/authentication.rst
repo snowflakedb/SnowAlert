@@ -31,8 +31,8 @@ There are a few steps to complete to enable OAuth authentication from the SnowAl
         OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE
     ;
 
-Change the URI to the location where the Snowalert WebUI is running: e.g. if it is running at `http://192.168.1.123:8000`
-then you should set the <uri> to be `http://192.168.1.123:8000/login`
+Change the URI to the location where the Snowalert WebUI is running: e.g. if it is running at ``http://192.168.1.123:8000``
+then you should set the ``OAUTH_REDIRECT_URI`` to be ``http://192.168.1.123:8000/login``
 
 2. Get the Client ID and the Client Secret
 
@@ -44,17 +44,17 @@ This will output a JSON document with the Client ID and 2 Client Secrets (two ar
 
 3. Wherever the SnowAlert WebUI is running set 2 environment variables
 
-    1. "OAUTH_CLIENT_" + account.toUpperCase()
-    2. "OAUTH_SECRET_" + account.toUpperCase()
+    1. ``"OAUTH_CLIENT_" + account.toUpperCase()``
+    2. ``"OAUTH_SECRET_" + account.toUpperCase()``
 
 Where account is the account name of your Snowflake instance for example:
 
-https://mydemo.us-east-1.snowflakecomputing.com
+``https://mydemo.us-east-1.snowflakecomputing.com``
 
-would be DEMO (note the upper-case). i.e.:
+would be ``DEMO`` (note the upper-case). i.e.:
 
-    1. OAUTH_CLIENT_MYDEMO
-    2. OAUTH_SECRET_MYDEMO
+    1. ``OAUTH_CLIENT_MYDEMO``
+    2. ``OAUTH_SECRET_MYDEMO``
 
 Server-side authentication
 --------------------------
