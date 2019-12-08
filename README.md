@@ -4,8 +4,7 @@
   <img height="300" src="https://raw.githubusercontent.com/snowflakedb/SnowAlert/master/docs/src/static/images/snowalert-logo.png">
 </p>
 
-SnowAlert is a security analytics framework that uses the Snowflake data warehouse for detecting security incidents
- and policy violations.
+SnowAlert is a security analytics framework that uses the Snowflake Cloud Data Platform to detect security incidents and policy violations.
 
 ## Data-Driven Security
 
