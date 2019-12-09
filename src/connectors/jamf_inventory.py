@@ -25,14 +25,19 @@ HEADERS: dict = {}
 REQUEST_SPREAD_IN_SECONDS = 180
 
 
-async def fetch(session, url, fetch_over=0):
+async def fetch(session, url, fetch_over=0) -> dict:
     if fetch_over:
         await asyncio.sleep(fetch_over * random())
     async with session.get(
         f'https://snowflake.jamfcloud.com/JSSResource{url}', headers=HEADERS
     ) as response:
         txt = await response.text()
-        result = {'recorded_at': parse_date(response.headers.get('Date'))}
+        date_header = response.headers.get('Date')
+        if date_header is None:
+            log.info(f'GET {url} -> status({response.status}) text({txt})')
+            return {}
+
+        result = {'recorded_at': parse_date(date_header)}
         try:
             return updated(result, json.loads(txt))
         except JSONDecodeError:
