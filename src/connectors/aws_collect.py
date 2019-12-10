@@ -278,6 +278,23 @@ SUPPLEMENTARY_TABLES = {
         ('policy_name', 'STRING'),
         ('policy_arn', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
+    'iam_list_roles': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('path', 'STRING'),
+        ('role_name', 'STRING'),
+        ('role_id', 'STRING'),
+        ('arn', 'STRING'),
+        ('create_date', 'TIMESTAMP_LTZ'),
+        ('assume_role_policy_document', 'STRING'),
+        ('description', 'STRING'),
+        ('max_session_duration', 'NUMBER'),
+        ('permissions_boundary_type', 'VARIANT'),
+        ('permissions_boundary_arn', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('role_last_used', 'VARIANT'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
     'iam_list_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -647,6 +664,28 @@ AWS_API_METHOD_COLUMNS = {
             ]
         },
     },
+    'iam.list_roles': {
+        'response': {
+            'Roles': [
+                {
+                    'Path': 'path',
+                    'RoleName': 'role_name',
+                    'RoleId': 'role_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
+                    'Description': 'description',
+                    'MaxSessionDuration': 'max_session_duration',
+                    'PermissionsBoundary': {
+                        'PermissionsBoundaryType': 'permissions_boundary_type',
+                        'PermissionsBoundaryArn': 'permissions_boundary_arn',
+                    },
+                    'Tags': 'tags',
+                    'RoleLastUsed': 'role_last_used',
+                }
+            ]
+        }
+    },
     'iam.list_policies': {
         'response': {
             'Policies': [
@@ -770,10 +809,7 @@ AWS_API_METHOD_COLUMNS = {
             ]
         },
         'children': [
-            {
-                'method': 'cloudtrail.get_trail_status',
-                'args': {'Name': 'trail_arn'},
-            },
+            {'method': 'cloudtrail.get_trail_status', 'args': {'Name': 'trail_arn'}},
             {
                 'method': 'cloudtrail.get_event_selectors',
                 'args': {'TrailName': 'trail_arn'},
@@ -1071,7 +1107,9 @@ async def aioingest(table_name, options):
                 for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
             ]
             del collection_tasks[:_MAX_BATCH_SIZE]
-            log.info(f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}')
+            log.info(
+                f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+            )
 
             all_results = defaultdict(list)
             for result_lists in await asyncio.gather(*coroutines):
@@ -1089,8 +1127,10 @@ async def aioingest(table_name, options):
 
 def ingest(table_name, options):
     now = datetime.now()
-    if (now.hour % 3 == 0 and now.minute < 15):
-        return asyncio.get_event_loop().run_until_complete(aioingest(table_name, options))
+    if now.hour % 3 == 0 and now.minute < 15:
+        return asyncio.get_event_loop().run_until_complete(
+            aioingest(table_name, options)
+        )
     else:
         log.info('not time yett')
 
