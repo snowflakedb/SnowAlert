@@ -295,6 +295,21 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('role_last_used', 'VARIANT'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-role-policies.html#output
+    'iam_list_role_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('role_name', 'STRING'),
+        ('policy_name', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-role-policy.html#output
+    'iam_get_role_policy': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('role_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_document', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
     'iam_list_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -684,7 +699,24 @@ AWS_API_METHOD_COLUMNS = {
                     'RoleLastUsed': 'role_last_used',
                 }
             ]
-        }
+        },
+        'children': [
+            {'method': 'iam.list_role_policies', 'args': {'RoleName': 'role_name'}}
+        ],
+    },
+    'iam.list_role_policies': {
+        'params': {'RoleName': 'role_name'},
+        'response': {'PolicyNames': ['policy_name']},
+        'children': [
+            {
+                'method': 'iam.get_role_policy',
+                'args': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
+            }
+        ],
+    },
+    'iam.get_role_policy': {
+        'params': {'RoleName': 'role_name'},
+        'response': {'PolicyNames': ['policy_name']},
     },
     'iam.list_policies': {
         'response': {
@@ -1091,6 +1123,7 @@ async def aioingest(table_name, options):
                 's3.list_buckets',
                 'cloudtrail.describe_trails',
                 'iam.get_credential_report',
+                'iam.list_roles',
             ]
             for a in accounts
         ]
@@ -1127,7 +1160,7 @@ async def aioingest(table_name, options):
 
 def ingest(table_name, options):
     now = datetime.now()
-    if now.hour % 3 == 0 and now.minute < 15:
+    if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(
             aioingest(table_name, options)
         )
@@ -1136,7 +1169,7 @@ def ingest(table_name, options):
 
 
 def main(
-    table_name, audit_assumer_arn, master_reader_arn, reader_eid, audit_reader_role
+    table_name, audit_assumer_arn, master_reader_arn, reader_eid, audit_reader_role, collect_apis, run_now=False
 ):
     ingest(
         table_name,
@@ -1145,6 +1178,8 @@ def main(
             'master_reader_arn': master_reader_arn,
             'reader_eid': reader_eid,
             'audit_reader_role': audit_reader_role,
+            'run_now': run_now,
+            'collect_apis': collect_apis,
         },
     )
 
