@@ -715,8 +715,8 @@ AWS_API_METHOD_COLUMNS = {
         ],
     },
     'iam.get_role_policy': {
-        'params': {'RoleName': 'role_name'},
-        'response': {'PolicyNames': ['policy_name']},
+        'params': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
+        'response': {'PolicyDocument': 'policy_document'},
     },
     'iam.list_policies': {
         'response': {
