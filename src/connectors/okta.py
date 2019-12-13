@@ -165,7 +165,6 @@ def ingest(table_name, options):
         params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z"), 'limit': 500}
 
         i = 0
-        print(params['since'])
         url = ingest_urls[ingest_type]
         while 1:
             response = requests.get(
