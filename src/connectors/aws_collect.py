@@ -1107,9 +1107,6 @@ async def aioingest(table_name, options):
         'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
     )
 
-    # Only collect for ACTIVE accounts
-    accounts = filter(lambda a: a.get('status') == 'ACTIVE', accounts)
-
     methods = [
         'iam.generate_credential_report',
         'iam.list_account_aliases',
