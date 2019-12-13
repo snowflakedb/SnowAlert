@@ -15,6 +15,7 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
+import itertools
 from typing import Tuple, AsyncGenerator
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -1105,27 +1106,32 @@ async def aioingest(table_name, options):
     insert_list(
         'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
     )
+
+    # Only collect for ACTIVE accounts
+    accounts = filter(lambda a: a.get('status') == 'ACTIVE', accounts)
+
+    methods = [
+        'iam.generate_credential_report',
+        'iam.list_account_aliases',
+        'iam.get_account_summary',
+        'iam.get_account_password_policy',
+        'ec2.describe_instances',
+        'ec2.describe_security_groups',
+        'config.describe_configuration_recorders',
+        'kms.list_keys',
+        'iam.list_users',
+        'iam.list_policies',
+        'iam.list_virtual_mfa_devices',
+        's3.list_buckets',
+        'cloudtrail.describe_trails',
+        'iam.get_credential_report',
+        'iam.list_roles',
+    ]
+
     if options.get('collect_apis') == 'all':
         collection_tasks = [
             CollectTask(a['id'], method, {})
-            for method in [
-                'iam.generate_credential_report',
-                'iam.list_account_aliases',
-                'iam.get_account_summary',
-                'iam.get_account_password_policy',
-                'ec2.describe_instances',
-                'ec2.describe_security_groups',
-                'config.describe_configuration_recorders',
-                'kms.list_keys',
-                'iam.list_users',
-                'iam.list_policies',
-                'iam.list_virtual_mfa_devices',
-                's3.list_buckets',
-                'cloudtrail.describe_trails',
-                'iam.get_credential_report',
-                'iam.list_roles',
-            ]
-            for a in accounts
+            for method, a in itertools.product(methods, accounts)
         ]
 
         def add_task(t):
@@ -1165,11 +1171,17 @@ def ingest(table_name, options):
             aioingest(table_name, options)
         )
     else:
-        log.info('not time yett')
+        log.info('not time yet')
 
 
 def main(
-    table_name, audit_assumer_arn, master_reader_arn, reader_eid, audit_reader_role, collect_apis, run_now=False
+    table_name,
+    audit_assumer_arn,
+    master_reader_arn,
+    reader_eid,
+    audit_reader_role,
+    collect_apis,
+    run_now=False,
 ):
     ingest(
         table_name,
