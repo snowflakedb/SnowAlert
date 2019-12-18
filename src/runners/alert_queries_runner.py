@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import fire
+
 import datetime
 import os
 from multiprocessing import Pool
@@ -158,4 +160,4 @@ def main(rule_name=None):
 
 
 if __name__ == '__main__':
-    main()
+    fire.Fire(main())
