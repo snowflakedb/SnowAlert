@@ -142,17 +142,14 @@ def connect(connection_name, options):
     comment = yaml_dump(module='airwatch_devices', **options)
 
     db.create_table(
-        name=landing_table_device, cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment
+        name=landing_table_device, cols=LANDING_TABLE_COLUMNS_DEVICE, comment=comment, rw_role=SA_ROLE
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table_device} TO ROLE {SA_ROLE}')
 
     db.create_table(
         name=landing_table_custom_attributes,
         cols=LANDING_TABLE_COLUMNS_CUSTOM_ATTRIBUTES,
         comment=comment,
-    )
-    db.execute(
-        f'GRANT INSERT, SELECT ON {landing_table_custom_attributes} TO ROLE {SA_ROLE}'
+        rw_role=SA_ROLE
     )
 
     return {'newStage': 'finalized', 'newMessage': "Airwatch ingestion tables created!"}

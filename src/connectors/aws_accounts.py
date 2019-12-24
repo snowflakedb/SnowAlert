@@ -3,9 +3,8 @@ Collects the AWS Accounts in your Organization
 """
 
 from runners.helpers import db
-from runners.helpers.dbconfig import ROLE as SA_ROLE
 
-from .utils import sts_assume_role, yaml_dump
+from .utils import sts_assume_role
 
 import datetime
 
@@ -46,28 +45,6 @@ LANDING_TABLE_COLUMNS = [
     ('account_alias', 'STRING(100)'),
     ('status', 'STRING(50)'),
 ]
-
-
-def connect(connection_name, options):
-    table_name = f'aws_accounts_{connection_name}_connection'
-    landing_table = f'data.{table_name}'
-    source_role_arn = options['source_role_arn']
-    destination_role_arn = options['destination_role_arn']
-    destination_role_external_id = options['destination_role_external_id']
-
-    comment = yaml_dump(
-        module='aws_accounts',
-        source_role_arn=source_role_arn,
-        destination_role_arn=destination_role_arn,
-        destination_role_external_id=destination_role_external_id,
-    )
-
-    db.create_table(name=landing_table, cols=LANDING_TABLE_COLUMNS, comment=comment)
-    db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
-    return {
-        'newStage': 'finalized',
-        'newMessage': "AWS Account ingestion table created!",
-    }
 
 
 def ingest(table_name, options):
