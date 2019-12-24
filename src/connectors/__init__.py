@@ -3,6 +3,7 @@ from . import aws_cloudtrail
 from . import aws_collect
 from . import aws_flow_log
 from . import aws_inventory
+from . import azure_collect
 from . import azure_log
 from . import github_webhooks_s3
 from . import gsuite_logs
@@ -21,6 +22,7 @@ __all__ = [
     'aws_cloudtrail',
     'aws_collect',
     'aws_flow_log',
+    'azure_collect',
     'azure_log',
     'github_webhooks_s3',
     'gsuite_logs',
@@ -42,6 +44,7 @@ connectors = {
     'aws_collect': aws_collect,
     'aws_flow_log': aws_flow_log,
     'aws_inventory': aws_inventory,
+    'azure_collect': azure_collect,
     'azure_log': azure_log,
     'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
