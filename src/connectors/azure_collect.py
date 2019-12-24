@@ -28,8 +28,8 @@ class KeyedDefaultDict(defaultdict):
             return ret
 
 
-CREDS = KeyedDefaultDict(
-    lambda xs: ServicePrincipalCredentials(
+CREDS = KeyedDefaultDict(  # type: ignore
+    lambda xs: ServicePrincipalCredentials(  # type: ignore
         client_id=xs[0], tenant=xs[1], secret=xs[2], resource=f'https://{xs[3]}'
     )
 )
@@ -129,7 +129,7 @@ SUPPLEMENTARY_TABLES = {
         ('name', 'VARCHAR(500)'),
         ('tags', 'VARIANT'),
         ('type', 'VARCHAR(1000)'),
-    ]
+    ],
 }
 
 
