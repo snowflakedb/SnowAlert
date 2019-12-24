@@ -9,7 +9,7 @@ import requests
 from azure.common.credentials import ServicePrincipalCredentials
 
 from connectors.utils import updated
-from runners.helpers import db
+from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from .utils import yaml_dump
 
@@ -291,6 +291,10 @@ def ingest(table_name, options):
         db.insert(f'data.{table_name}', subs)
 
         for s in subs:
+            if 'subscription_id' not in s:
+                log.debug('subscription without id', s)
+                continue
+
             db.insert(
                 f'{table_prefix}_subscriptions_locations',
                 GET('subscriptions/{subscription_id}/locations', **s),
