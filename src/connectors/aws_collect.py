@@ -1,4 +1,4 @@
-"""AWS Collect
+"""AWS Inventory and Configuration
 Load Inventory and Configuration of all accounts in your Org using auditor Roles
 """
 

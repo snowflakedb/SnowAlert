@@ -595,7 +595,7 @@ def create_stage(
     execute(query, fix_errors=False)
 
 
-def create_table(name, cols, replace=False, comment='', ifnotexists=False):
+def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_role=None):
     if type(comment) is tuple:
         comment = '\n'.join(comment)
     comment = comment.replace("'", r"\'")
@@ -607,6 +607,9 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False):
 
     query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
     execute(query, fix_errors=False)
+
+    if rw_role is not None:
+        execute(f'GRANT INSERT, SELECT ON {name} TO ROLE {rw_role}')
 
 
 def create_external_table(

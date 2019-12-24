@@ -189,15 +189,6 @@ LANDING_TABLES_COLUMNS = {
 }
 
 
-def connect(connection_name, options):
-    connection_type = options['connection_type']
-    columns = LANDING_TABLES_COLUMNS[connection_type]
-
-    msg = create_asset_table(connection_name, connection_type, columns, options)
-
-    return {'newStage': 'finalized', 'newMessage': msg}
-
-
 def create_asset_table(connection_name, asset_type, columns, options):
     # create the tables, based on the config type (i.e. SG, EC2, ELB)
     table_name = f'aws_asset_inv_{asset_type}_{connection_name}_connection'
