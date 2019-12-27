@@ -13,7 +13,8 @@ def updated(d=None, *ds, **kwargs):
     if d is None:
         d = {}
     for new_d in ds:
-        d.update(new_d)
+        if new_d is not None:
+            d.update(new_d)
     if kwargs:
         d.update(kwargs)
     return d
