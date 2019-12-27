@@ -5,6 +5,7 @@ Load Inventory and Configuration of accounts using Service Principals
 from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import requests
+from urllib.parse import urlencode
 
 from azure.common.credentials import ServicePrincipalCredentials
 
@@ -41,9 +42,9 @@ CONNECTION_OPTIONS = [
     {
         'name': 'credentials',
         'title': "Azure Auditor Service Principals",
-        'prompt': "JSON list of {client, tenant, secret, gov} objects",
+        'prompt': "JSON list of {client, tenant, secret} objects",
         'type': 'json',
-        'placeholder': """[{"client": "...", "tenant": "...", "secret": "...", "gov": false}, ...]""",
+        'placeholder': """[{"client": "...", "tenant": "...", "secret": "..."}, ...]""",
         'required': True,
         'secret': True,
     }
@@ -83,6 +84,7 @@ SUPPLEMENTARY_TABLES = {
     'subscriptions_locations': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('display_name', 'VARCHAR(500)'),
         ('id', 'VARCHAR(100)'),
@@ -95,6 +97,7 @@ SUPPLEMENTARY_TABLES = {
     'virtual_machines': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(500)'),
         ('identity', 'VARIANT'),
@@ -111,6 +114,7 @@ SUPPLEMENTARY_TABLES = {
     'managed_clusters': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(500)'),
         ('location', 'VARCHAR(500)'),
@@ -123,6 +127,7 @@ SUPPLEMENTARY_TABLES = {
     'vaults': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(500)'),
         ('location', 'VARCHAR(500)'),
@@ -158,7 +163,7 @@ def connect(connection_name, options):
 
 API_SPECS = {
     'subscriptions': {
-        'params': {'api-version': '2019-06-01'},
+        'request': {'url': 'subscriptions', 'api-version': '2019-06-01'},
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -171,8 +176,23 @@ API_SPECS = {
             'authorizationSource': 'authorization_source',
             'managedByTenants': 'managed_by_tenants',
         },
+        'children': [
+            {
+                'name': [
+                    'subscriptions_locations',
+                    'managed_clusters',
+                    'virtual_machines',
+                    'vaults',
+                ],
+                'args': {'subscriptionId': 'subscription_id'},
+            }
+        ],
     },
-    '/beta/reports/credentialUserRegistrationDetails': {
+    'reports_credential_user_registration_details': {
+        'request': {
+            'url': '/beta/reports/credentialUserRegistrationDetails',
+            'host': 'graph.microsoft.com',
+        },
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -185,13 +205,17 @@ API_SPECS = {
             'isEnabled': 'is_enabled',
             'isCapable': 'is_capable',
             'isMfaRegistered': 'is_mfa_registered',
-        }
+        },
     },
-    'subscriptions/{subscription_id}/locations': {
-        'params': {'api-version': '2019-06-01'},
+    'subscriptions_locations': {
+        'request': {
+            'url': 'subscriptions/{subscription_id}/locations',
+            'api-version': '2019-06-01',
+        },
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
             'error': 'error',
             'displayName': 'display_name',
             'id': 'id',
@@ -201,11 +225,15 @@ API_SPECS = {
             'subscriptionId': 'subscription_id',
         },
     },
-    'subscriptions/{subscription_id}/providers/Microsoft.Compute/virtualMachines': {
-        'params': {'api-version': '2019-03-01'},
+    'virtual_machines': {
+        'request': {
+            'url': 'subscriptions/{subscription_id}/providers/Microsoft.Compute/virtualMachines',
+            'api-version': '2019-03-01',
+        },
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
             'identity': 'identity',
@@ -219,11 +247,15 @@ API_SPECS = {
             'zones': 'zones',
         },
     },
-    'subscriptions/{subscription_id}/providers/Microsoft.ContainerService/managedClusters': {
-        'params': {'api-version': '2019-08-01'},
+    'managed_clusters': {
+        'request': {
+            'url': 'subscriptions/{subscription_id}/providers/Microsoft.ContainerService/managedClusters',
+            'api-version': '2019-08-01',
+        },
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
             'location': 'location',
@@ -233,11 +265,16 @@ API_SPECS = {
             'type': 'type',
         },
     },
-    "subscriptions/{subscription_id}/resources?$filter=resourceType eq 'Microsoft.KeyVault/vaults'": {
-        'params': {'api-version': '2018-02-14'},
+    'vaults': {
+        'request': {
+            'url': 'subscriptions/{subscription_id}/resources',
+            'qparams': {'$filter': 'resourceType eq \'Microsoft.KeyVault/vaults\''},
+            'api-version': '2018-02-14',
+        },
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
             'location': 'location',
@@ -249,14 +286,19 @@ API_SPECS = {
 }
 
 
-def GET(path, host='management.azure.com', cred='', **path_params):
-    spec = API_SPECS[path]
-    params = spec.get('params', {})
-    api_version = params.get('api-version')
-    qparams = f'?api-version={api_version}' if api_version else ''
+def GET(kind, params, host=None, cred=''):
+    sid = params.get('subscription_id')
+    spec = API_SPECS[kind]
+    host = spec.get('host', 'management.azure.com')
+    request_spec = spec['request']
+    path = request_spec['url'].format(**params)
+    api_version = request_spec.get('api-version')
+    qparams = '?' + urlencode(
+        updated({'api-version': api_version}, request_spec.get('params'))
+    )
     bearer_token = CREDS[(CLIENT, TENANT, SECRET, cred or host)].token['access_token']
     result = requests.get(
-        f'https://{host}/{path.format(**path_params)}{qparams}',
+        f'https://{host}/{path}{qparams}',
         headers={
             'Authorization': 'Bearer ' + bearer_token,
             'Content-Type': 'application/json',
@@ -267,7 +309,12 @@ def GET(path, host='management.azure.com', cred='', **path_params):
     # error values are recorded as rows with error but values empty
     # normal values are recorded with populated values and an empty error
     values = [
-        updated(v, headerDate=parse_date(result.headers['Date']), tenantId=TENANT)
+        updated(
+            v,
+            {'subscriptionId': sid} if sid else {},
+            headerDate=parse_date(result.headers['Date']),
+            tenantId=TENANT,
+        )
         for v in response.get('value', [response]) or [{}]
     ]
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
@@ -287,44 +334,23 @@ def ingest(table_name, options):
         table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
         table_prefix = f'data.azure_collect{table_name_part}'
 
-        subs = GET('subscriptions')
-        db.insert(f'data.{table_name}', subs)
+        def load_table(kind, params={}):
+            values = GET(kind, params)
+            kind = 'connection' if kind == 'subscriptions' else kind
+            db.insert(f'{table_prefix}_{kind}', values)
+            return values
+
+        subs = load_table('subscriptions')
 
         for s in subs:
-            if 'subscription_id' not in s:
+            sid = s.get('subscription_id')
+            if sid is None:
                 log.debug('subscription without id', s)
                 continue
 
-            db.insert(
-                f'{table_prefix}_subscriptions_locations',
-                GET('subscriptions/{subscription_id}/locations', **s),
-            )
-            db.insert(
-                f'{table_prefix}_virtual_machines',
-                GET(
-                    'subscriptions/{subscription_id}/providers/Microsoft.Compute/virtualMachines',
-                    **s,
-                ),
-            )
-            db.insert(
-                f'{table_prefix}_managed_clusters',
-                GET(
-                    'subscriptions/{subscription_id}/providers/Microsoft.ContainerService/managedClusters',
-                    **s,
-                ),
-            )
-            db.insert(
-                f'{table_prefix}_vaults',
-                GET(
-                    "subscriptions/{subscription_id}/resources?$filter=resourceType eq 'Microsoft.KeyVault/vaults'",
-                    **s,
-                ),
-            )
+            load_table('subscriptions_locations', {'subscription_id': sid})
+            load_table('virtual_machines', {'subscription_id': sid})
+            load_table('managed_clusters', {'subscription_id': sid})
+            load_table('vaults', {'subscription_id': sid})
 
-        db.insert(
-            f'{table_prefix}_reports_credential_user_registration_details',
-            GET(
-                '/beta/reports/credentialUserRegistrationDetails',
-                host='graph.microsoft.com',
-            ),
-        )
+        load_table('reports_credential_user_registration_details')
