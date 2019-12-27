@@ -135,6 +135,30 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'VARCHAR(1000)'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/keyvault/getkeys/getkeys#keyitem
+    'vaults_keys': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('d', 'VARCHAR(500)'),
+        ('error', 'VARIANT'),
+        ('attributes', 'VARIANT'),
+        ('kid', 'VARCHAR(1000)'),
+        ('managed', 'BOOLEAN'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/keyvault/getsecrets/getsecrets#secretitem
+    'vaults_secrets': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('d', 'VARCHAR(500)'),
+        ('error', 'VARIANT'),
+        ('attributes', 'VARIANT'),
+        ('kid', 'VARCHAR(1000)'),
+        ('managed', 'BOOLEAN'),
+        ('tags', 'VARIANT'),
+    ],
 }
 
 
@@ -163,7 +187,7 @@ def connect(connection_name, options):
 
 API_SPECS = {
     'subscriptions': {
-        'request': {'url': 'subscriptions', 'api-version': '2019-06-01'},
+        'request': {'path': 'subscriptions', 'api-version': '2019-06-01'},
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -190,7 +214,7 @@ API_SPECS = {
     },
     'reports_credential_user_registration_details': {
         'request': {
-            'url': '/beta/reports/credentialUserRegistrationDetails',
+            'path': '/beta/reports/credentialUserRegistrationDetails',
             'host': 'graph.microsoft.com',
         },
         'response': {
@@ -209,7 +233,7 @@ API_SPECS = {
     },
     'subscriptions_locations': {
         'request': {
-            'url': 'subscriptions/{subscription_id}/locations',
+            'path': 'subscriptions/{subscriptionId}/locations',
             'api-version': '2019-06-01',
         },
         'response': {
@@ -222,12 +246,11 @@ API_SPECS = {
             'latitude': 'latitude',
             'longitude': 'longitude',
             'name': 'name',
-            'subscriptionId': 'subscription_id',
         },
     },
     'virtual_machines': {
         'request': {
-            'url': 'subscriptions/{subscription_id}/providers/Microsoft.Compute/virtualMachines',
+            'path': 'subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines',
             'api-version': '2019-03-01',
         },
         'response': {
@@ -249,7 +272,7 @@ API_SPECS = {
     },
     'managed_clusters': {
         'request': {
-            'url': 'subscriptions/{subscription_id}/providers/Microsoft.ContainerService/managedClusters',
+            'path': 'subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/managedClusters',
             'api-version': '2019-08-01',
         },
         'response': {
@@ -267,9 +290,9 @@ API_SPECS = {
     },
     'vaults': {
         'request': {
-            'url': 'subscriptions/{subscription_id}/resources',
-            'qparams': {'$filter': 'resourceType eq \'Microsoft.KeyVault/vaults\''},
-            'api-version': '2018-02-14',
+            'path': 'subscriptions/{subscriptionId}/resources',
+            'params': {'$filter': 'resourceType eq \'Microsoft.KeyVault/vaults\''},
+            'api-version': '2019-11-01',
         },
         'response': {
             'headerDate': 'recorded_at',
@@ -282,38 +305,78 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
         },
+        'children': [{'name': 'vaults_keys', 'args': {'vaultName': 'name'}}],
+    },
+    'vaults_keys': {
+        'request': {
+            'host': '{vaultName}.vault.azure.net',
+            'path': 'keys',
+            'params': {'maxresults': '25'},
+            'api-version': '7.0',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vaultName': 'vault_name',
+            'error': 'error',
+            'attributes': 'attributes',
+            'kid': 'kid',
+            'managed': 'managed',
+            'tags': 'tags',
+        },
+    },
+    'vaults_secrets': {
+        'request': {
+            'host': '{vaultName}.vault.azure.net',
+            'path': 'secrets',
+            'params': {'maxresults': '25'},
+            'api-version': '7.0',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vaultName': 'vault_name',
+            'error': 'error',
+            'attributes': 'attributes',
+            'contentType': 'content_type',
+            'id': 'id',
+            'managed': 'managed',
+            'tags': 'tags',
+        },
     },
 }
 
 
-def GET(kind, params, host=None, cred=''):
-    sid = params.get('subscription_id')
+def GET(kind, params):
     spec = API_SPECS[kind]
-    host = spec.get('host', 'management.azure.com')
     request_spec = spec['request']
-    path = request_spec['url'].format(**params)
+    path = request_spec['path'].format(**params)
+    host = request_spec.get('host', 'management.azure.com').format(**params)
     api_version = request_spec.get('api-version')
-    qparams = '?' + urlencode(
-        updated({'api-version': api_version}, request_spec.get('params'))
+    query_params = '?' + urlencode(
+        updated(request_spec.get('params'), {'api-version': api_version})
     )
-    bearer_token = CREDS[(CLIENT, TENANT, SECRET, cred or host)].token['access_token']
+    aud = 'vault.azure.net' if host.endswith('vault.azure.net') else host
+    bearer_token = CREDS[(CLIENT, TENANT, SECRET, aud)].token['access_token']
+    url = f'https://{host}/{path}{query_params}'
+    log.debug(f'GET {url}')
     result = requests.get(
-        f'https://{host}/{path}{qparams}',
+        url,
         headers={
             'Authorization': 'Bearer ' + bearer_token,
             'Content-Type': 'application/json',
         },
     )
+    log.debug(f'<- {result.status_code}')
     response = result.json()
     # empty lists of values are recorded as empty rows
     # error values are recorded as rows with error but values empty
     # normal values are recorded with populated values and an empty error
     values = [
         updated(
-            v,
-            {'subscriptionId': sid} if sid else {},
-            headerDate=parse_date(result.headers['Date']),
-            tenantId=TENANT,
+            v, params, headerDate=parse_date(result.headers['Date']), tenantId=TENANT
         )
         for v in response.get('value', [response]) or [{}]
     ]
@@ -334,23 +397,24 @@ def ingest(table_name, options):
         table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
         table_prefix = f'data.azure_collect{table_name_part}'
 
-        def load_table(kind, params={}):
+        def load_table(kind, **params):
             values = GET(kind, params)
             kind = 'connection' if kind == 'subscriptions' else kind
             db.insert(f'{table_prefix}_{kind}', values)
             return values
 
-        subs = load_table('subscriptions')
-
-        for s in subs:
+        for s in load_table('subscriptions'):
             sid = s.get('subscription_id')
             if sid is None:
                 log.debug('subscription without id', s)
                 continue
 
-            load_table('subscriptions_locations', {'subscription_id': sid})
-            load_table('virtual_machines', {'subscription_id': sid})
-            load_table('managed_clusters', {'subscription_id': sid})
-            load_table('vaults', {'subscription_id': sid})
+            load_table('subscriptions_locations', subscriptionId=sid)
+            load_table('virtual_machines', subscriptionId=sid)
+            load_table('managed_clusters', subscriptionId=sid)
+            for v in load_table('vaults', subscriptionId=sid):
+                if 'name' in v:
+                    load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
+                    load_table('vaults_secrets', subscriptionId=sid, vaultName=v['name'])
 
         load_table('reports_credential_user_registration_details')
