@@ -55,8 +55,8 @@ CONNECTION_OPTIONS = [
 LANDING_TABLE_COLUMNS = [
     ('recorded_at', 'TIMESTAMP_LTZ'),
     ('tenant_id', 'VARCHAR(50)'),
-    ('id', 'VARCHAR(100)'),
     ('subscription_id', 'VARCHAR(50)'),
+    ('id', 'VARCHAR(100)'),
     ('display_name', 'VARCHAR(500)'),
     ('state', 'VARCHAR(50)'),
     ('subscription_policies', 'VARIANT'),
@@ -140,7 +140,7 @@ SUPPLEMENTARY_TABLES = {
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
         ('subscription_id', 'VARCHAR(50)'),
-        ('d', 'VARCHAR(500)'),
+        ('kid', 'VARCHAR(500)'),
         ('error', 'VARIANT'),
         ('attributes', 'VARIANT'),
         ('kid', 'VARCHAR(1000)'),
@@ -152,12 +152,54 @@ SUPPLEMENTARY_TABLES = {
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
         ('subscription_id', 'VARCHAR(50)'),
-        ('d', 'VARCHAR(500)'),
+        ('id', 'VARCHAR(500)'),
         ('error', 'VARIANT'),
         ('attributes', 'VARIANT'),
         ('kid', 'VARCHAR(1000)'),
         ('managed', 'BOOLEAN'),
         ('tags', 'VARIANT'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/resources/resourcegroups/list#resourcegroup
+    'resource_groups': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(500)'),
+        ('location', 'VARCHAR(500)'),
+        ('managed_by', 'VARCHAR(1000)'),
+        ('name', 'VARCHAR(1000)'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'VARCHAR(1000)'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/appservice/appserviceenvironments/list#appserviceenvironmentresource
+    'hosting_environments': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(500)'),
+        ('kind', 'VARCHAR(500)'),
+        ('location', 'VARCHAR(500)'),
+        ('name', 'VARCHAR(1000)'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'VARCHAR(1000)'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/appservice/appserviceenvironments/list#appserviceenvironmentresource
+    'webapps': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(500)'),
+        ('kind', 'VARCHAR(500)'),
+        ('location', 'VARCHAR(500)'),
+        ('name', 'VARCHAR(1000)'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'VARCHAR(1000)'),
     ],
 }
 
@@ -187,7 +229,7 @@ def connect(connection_name, options):
 
 API_SPECS = {
     'subscriptions': {
-        'request': {'path': 'subscriptions', 'api-version': '2019-06-01'},
+        'request': {'path': '/subscriptions', 'api-version': '2019-06-01'},
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -233,7 +275,7 @@ API_SPECS = {
     },
     'subscriptions_locations': {
         'request': {
-            'path': 'subscriptions/{subscriptionId}/locations',
+            'path': '/subscriptions/{subscriptionId}/locations',
             'api-version': '2019-06-01',
         },
         'response': {
@@ -250,7 +292,7 @@ API_SPECS = {
     },
     'virtual_machines': {
         'request': {
-            'path': 'subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines',
+            'path': '/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachines',
             'api-version': '2019-03-01',
         },
         'response': {
@@ -272,7 +314,7 @@ API_SPECS = {
     },
     'managed_clusters': {
         'request': {
-            'path': 'subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/managedClusters',
+            'path': '/subscriptions/{subscriptionId}/providers/Microsoft.ContainerService/managedClusters',
             'api-version': '2019-08-01',
         },
         'response': {
@@ -290,7 +332,7 @@ API_SPECS = {
     },
     'vaults': {
         'request': {
-            'path': 'subscriptions/{subscriptionId}/resources',
+            'path': '/subscriptions/{subscriptionId}/resources',
             'params': {'$filter': 'resourceType eq \'Microsoft.KeyVault/vaults\''},
             'api-version': '2019-11-01',
         },
@@ -310,7 +352,7 @@ API_SPECS = {
     'vaults_keys': {
         'request': {
             'host': '{vaultName}.vault.azure.net',
-            'path': 'keys',
+            'path': '/keys',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
         },
@@ -329,7 +371,7 @@ API_SPECS = {
     'vaults_secrets': {
         'request': {
             'host': '{vaultName}.vault.azure.net',
-            'path': 'secrets',
+            'path': '/secrets',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
         },
@@ -346,6 +388,71 @@ API_SPECS = {
             'tags': 'tags',
         },
     },
+    'resource_groups': {
+        'request': {
+            'path': '/subscriptions/{subscriptionId}/resourcegroups',
+            'api-version': '2019-08-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vaultName': 'vault_name',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'managedBy': 'managed_by',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'hosting_environments': {
+        'request': {
+            'path': '/subscriptions/{subscriptionId}/providers/Microsoft.Web/hostingEnvironments',
+            'api-version': '2019-08-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vaultName': 'vault_name',
+            'error': 'error',
+            'id': 'id',
+            'kind': 'kind',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'webapps': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/resourceGroups/{resourceGroupName}'
+                '/providers/Microsoft.Web/hostingEnvironments/{name}'
+                '/sites'
+            ),
+            'api-version': '2019-08-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vaultName': 'vault_name',
+            'error': 'error',
+            'id': 'id',
+            'kind': 'kind',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
 }
 
 
@@ -360,7 +467,7 @@ def GET(kind, params):
     )
     aud = 'vault.azure.net' if host.endswith('vault.azure.net') else host
     bearer_token = CREDS[(CLIENT, TENANT, SECRET, aud)].token['access_token']
-    url = f'https://{host}/{path}{query_params}'
+    url = f'https://{host}{path}{query_params}'
     log.debug(f'GET {url}')
     result = requests.get(
         url,
@@ -372,8 +479,8 @@ def GET(kind, params):
     log.debug(f'<- {result.status_code}')
     response = result.json()
     # empty lists of values are recorded as empty rows
-    # error values are recorded as rows with error but values empty
-    # normal values are recorded with populated values and an empty error
+    # error values are recorded as rows with error and empty value cols
+    # normal values are recorded with populated values and an empty error col
     values = [
         updated(
             v, params, headerDate=parse_date(result.headers['Date']), tenantId=TENANT
@@ -408,6 +515,20 @@ def ingest(table_name, options):
             if sid is None:
                 log.debug('subscription without id', s)
                 continue
+
+            for henv in load_table('hosting_environments', subscriptionId=sid):
+                if 'properties' in henv:
+                    rg_name = henv['properties']['resourceGroup']
+                    load_table(
+                        'webapps',
+                        subscriptionId=sid,
+                        resourceGroupName=rg_name,
+                        name=henv['name'],
+                    )
+
+            for rg in load_table('resource_groups', subscriptionId=sid):
+                if 'name' in rg:
+                    pass
 
             load_table('subscriptions_locations', subscriptionId=sid)
             load_table('virtual_machines', subscriptionId=sid)
