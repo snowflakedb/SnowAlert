@@ -201,6 +201,22 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'VARCHAR(1000)'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/storagerp/storageaccounts/list#storageaccount
+    'storage_accounts': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(500)'),
+        ('identity', 'VARIANT'),
+        ('kind', 'VARCHAR(50)'),
+        ('location', 'VARCHAR(500)'),
+        ('name', 'VARCHAR(1000)'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'VARCHAR(1000)'),
+    ],
 }
 
 
@@ -453,6 +469,30 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'storage_accounts': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Storage/storageAccounts'
+            ),
+            'api-version': '2019-06-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'identity': 'identity',
+            'kind': 'kind',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
 }
 
 
@@ -526,16 +566,20 @@ def ingest(table_name, options):
                         name=henv['name'],
                     )
 
-            for rg in load_table('resource_groups', subscriptionId=sid):
-                if 'name' in rg:
-                    pass
+            load_table('storage_accounts', subscriptionId=sid)
 
-            load_table('subscriptions_locations', subscriptionId=sid)
-            load_table('virtual_machines', subscriptionId=sid)
-            load_table('managed_clusters', subscriptionId=sid)
-            for v in load_table('vaults', subscriptionId=sid):
-                if 'name' in v:
-                    load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
-                    load_table('vaults_secrets', subscriptionId=sid, vaultName=v['name'])
+            # for rg in load_table('resource_groups', subscriptionId=sid):
+            #     if 'name' in rg:
+            #         pass
 
-        load_table('reports_credential_user_registration_details')
+            # load_table('subscriptions_locations', subscriptionId=sid)
+            # load_table('virtual_machines', subscriptionId=sid)
+            # load_table('managed_clusters', subscriptionId=sid)
+            # for v in load_table('vaults', subscriptionId=sid):
+            #     if 'name' in v:
+            #         load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
+            #         load_table(
+            #             'vaults_secrets', subscriptionId=sid, vaultName=v['name']
+            #         )
+
+        # load_table('reports_credential_user_registration_details')
