@@ -217,6 +217,21 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'VARCHAR(1000)'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/monitor/logprofiles/list#logprofileresource
+    'log_profiles': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('identity', 'STRING'),
+        ('kind', 'VARCHAR(50)'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ]
 }
 
 
@@ -493,6 +508,29 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'log_profiles': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/microsoft.insights/logprofiles'
+            ),
+            'api-version': '2016-03-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'identity': 'identity',
+            'kind': 'kind',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
 }
 
 
@@ -503,7 +541,7 @@ def GET(kind, params):
     host = request_spec.get('host', 'management.azure.com').format(**params)
     api_version = request_spec.get('api-version')
     query_params = '?' + urlencode(
-        updated(request_spec.get('params'), {'api-version': api_version})
+        updated({}, request_spec.get('params'), {'api-version': api_version})
     )
     aud = 'vault.azure.net' if host.endswith('vault.azure.net') else host
     bearer_token = CREDS[(CLIENT, TENANT, SECRET, aud)].token['access_token']
@@ -523,7 +561,7 @@ def GET(kind, params):
     # normal values are recorded with populated values and an empty error col
     values = [
         updated(
-            v, params, headerDate=parse_date(result.headers['Date']), tenantId=TENANT
+            {}, v, params, headerDate=parse_date(result.headers['Date']), tenantId=TENANT
         )
         for v in response.get('value', [response]) or [{}]
     ]
@@ -556,6 +594,8 @@ def ingest(table_name, options):
                 log.debug('subscription without id', s)
                 continue
 
+            load_table('log_profiles', subscriptionId=sid)
+
             for henv in load_table('hosting_environments', subscriptionId=sid):
                 if 'properties' in henv:
                     rg_name = henv['properties']['resourceGroup']
@@ -568,18 +608,18 @@ def ingest(table_name, options):
 
             load_table('storage_accounts', subscriptionId=sid)
 
-            # for rg in load_table('resource_groups', subscriptionId=sid):
-            #     if 'name' in rg:
-            #         pass
+            for rg in load_table('resource_groups', subscriptionId=sid):
+                if 'name' in rg:
+                    pass
 
-            # load_table('subscriptions_locations', subscriptionId=sid)
-            # load_table('virtual_machines', subscriptionId=sid)
-            # load_table('managed_clusters', subscriptionId=sid)
-            # for v in load_table('vaults', subscriptionId=sid):
-            #     if 'name' in v:
-            #         load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
-            #         load_table(
-            #             'vaults_secrets', subscriptionId=sid, vaultName=v['name']
-            #         )
+            load_table('subscriptions_locations', subscriptionId=sid)
+            load_table('virtual_machines', subscriptionId=sid)
+            load_table('managed_clusters', subscriptionId=sid)
+            for v in load_table('vaults', subscriptionId=sid):
+                if 'name' in v:
+                    load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
+                    load_table(
+                        'vaults_secrets', subscriptionId=sid, vaultName=v['name']
+                    )
 
-        # load_table('reports_credential_user_registration_details')
+        load_table('reports_credential_user_registration_details')
