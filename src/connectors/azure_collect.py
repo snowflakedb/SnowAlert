@@ -4,6 +4,8 @@ Load Inventory and Configuration of accounts using Service Principals
 
 from collections import defaultdict
 from dateutil.parser import parse as parse_date
+import fire
+import re
 import requests
 from urllib.parse import urlencode
 
@@ -12,7 +14,7 @@ from azure.common.credentials import ServicePrincipalCredentials
 from connectors.utils import updated
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from .utils import yaml_dump
+from connectors.utils import yaml_dump
 
 
 CLIENT = ''
@@ -35,8 +37,6 @@ CREDS = KeyedDefaultDict(  # type: ignore
     )
 )
 
-sid = 'f4b00c5f-f6bf-41d6-806b-e1cac4f1f36f'
-
 
 CONNECTION_OPTIONS = [
     {
@@ -44,7 +44,7 @@ CONNECTION_OPTIONS = [
         'title': "Azure Auditor Service Principals",
         'prompt': "JSON list of {client, tenant, secret} objects",
         'type': 'json',
-        'placeholder': """[{"client": "...", "tenant": "...", "secret": "..."}, ...]""",
+        'placeholder': """[{"client": "...", "tenant": "...", "secret": "...", "cloud": "azure" | "usgov"}, ...]""",
         'required': True,
         'secret': True,
     }
@@ -231,7 +231,7 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
-    ]
+    ],
 }
 
 
@@ -382,7 +382,10 @@ API_SPECS = {
     },
     'vaults_keys': {
         'request': {
-            'host': '{vaultName}.vault.azure.net',
+            'host': {
+                'azure': '{vaultName}.vault.azure.net',
+                'usgov': '{vaultName}.vault.usgovcloudapi.net',
+            },
             'path': '/keys',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
@@ -401,7 +404,10 @@ API_SPECS = {
     },
     'vaults_secrets': {
         'request': {
-            'host': '{vaultName}.vault.azure.net',
+            'host': {
+                'azure': '{vaultName}.vault.azure.net',
+                'usgov': '{vaultName}.vault.usgovcloudapi.net',
+            },
             'path': '/secrets',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
@@ -534,17 +540,24 @@ API_SPECS = {
 }
 
 
-def GET(kind, params):
+def GET(kind, params, cloud='azure'):
     spec = API_SPECS[kind]
     request_spec = spec['request']
     path = request_spec['path'].format(**params)
-    host = request_spec.get('host', 'management.azure.com').format(**params)
+    host = request_spec.get(
+        'host',
+        {'azure': 'management.azure.com', 'usgov': 'management.usgovcloudapi.net'},
+    )
+    if type(host) is dict:
+        host = host[cloud]
+
+    auth_aud = re.sub(r'^{.+}\.', '', host)  # auth audience is domain postfix
+    host = host.format(**params)
     api_version = request_spec.get('api-version')
     query_params = '?' + urlencode(
         updated({}, request_spec.get('params'), {'api-version': api_version})
     )
-    aud = 'vault.azure.net' if host.endswith('vault.azure.net') else host
-    bearer_token = CREDS[(CLIENT, TENANT, SECRET, aud)].token['access_token']
+    bearer_token = CREDS[(CLIENT, TENANT, SECRET, auth_aud)].token['access_token']
     url = f'https://{host}{path}{query_params}'
     log.debug(f'GET {url}')
     result = requests.get(
@@ -561,37 +574,47 @@ def GET(kind, params):
     # normal values are recorded with populated values and an empty error col
     values = [
         updated(
-            {}, v, params, headerDate=parse_date(result.headers['Date']), tenantId=TENANT
+            {},
+            v,
+            params,
+            headerDate=parse_date(result.headers['Date']),
+            tenantId=TENANT,
         )
         for v in response.get('value', [response]) or [{}]
     ]
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
 
 
-def ingest(table_name, options):
+def ingest(table_name, options, run_now=False, dryrun=False):
     global CLIENT
     global TENANT
     global SECRET
+
+    connection_name = options['name']
 
     for cred in options['credentials']:
         CLIENT = cred['client']
         TENANT = cred['tenant']
         SECRET = cred['secret']
 
-        connection_name = options['name']
+        cloud = (
+            cred['cloud']
+            if 'cloud' in cred
+            else ('usgov' if cred.get('gov') else 'azure')
+        )
         table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
         table_prefix = f'data.azure_collect{table_name_part}'
 
         def load_table(kind, **params):
-            values = GET(kind, params)
+            values = GET(kind, params, cloud=cloud)
             kind = 'connection' if kind == 'subscriptions' else kind
-            db.insert(f'{table_prefix}_{kind}', values)
+            db.insert(f'{table_prefix}_{kind}', values, dryrun=dryrun)
             return values
 
         for s in load_table('subscriptions'):
             sid = s.get('subscription_id')
             if sid is None:
-                log.debug('subscription without id', s)
+                log.debug(f'subscription without id: {s}')
                 continue
 
             load_table('log_profiles', subscriptionId=sid)
@@ -623,3 +646,20 @@ def ingest(table_name, options):
                     )
 
         load_table('reports_credential_user_registration_details')
+
+
+def main(table_name, tenant, client, secret, cloud, dryrun):
+    ingest(
+        table_name,
+        {
+            'name': 'default',
+            'credentials': [
+                {'tenant': tenant, 'client': client, 'secret': secret, 'cloud': cloud}
+            ],
+        },
+        dryrun=dryrun,
+    )
+
+
+if __name__ == '__main__':
+    fire.Fire(main)
