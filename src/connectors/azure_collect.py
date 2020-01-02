@@ -259,6 +259,16 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'STRING'),
         ('zones', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
+    'role_definitions': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
 }
 
 
@@ -612,6 +622,26 @@ API_SPECS = {
             'zones': 'zones',
         },
     },
+    'role_definitions': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Authorization/roleDefinitions'
+            ),
+            'api-version': '2015-07-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'displayName': 'display_name',
+            'id': 'id',
+            'name': 'name',
+            'properties': 'properties',
+            'type': 'type',
+        },
+    },
 }
 
 
@@ -706,6 +736,7 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                 log.debug(f'subscription without id: {s}')
                 continue
 
+            load_table('role_definitions', subscriptionId=sid)
             load_table('disks', subscriptionId=sid)
             load_table('log_profiles', subscriptionId=sid)
 
