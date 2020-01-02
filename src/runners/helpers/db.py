@@ -5,7 +5,7 @@ import json
 from threading import local
 import time
 from typing import List, Tuple, Optional, Union, Iterator, Any, DefaultDict, Set, Type
-from os import getpid
+from os import getpid, environ
 from re import match
 import operator
 
@@ -91,11 +91,16 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
 
     def connect():
         return connect_db(
+            # Role, Warehouse, and Database connection values are defined in the following order:
+            # 1) If not using OAuth, use the SA_* env variables with defaults to "snowalert" (see dbconfig.py)
+            # 2) If using OAuth and OAUTH_CONNECTION_* env vars have been set, use these
+            # 3) Let the OAuth user's defaults apply as defined per https://docs.snowflake.net/manuals/sql-reference/sql/alter-user.html
+
             account=oauth_account or ACCOUNT,
-            database=None if oauth_account else DATABASE,
+            database=environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE,
             user=oauth_username or USER,
-            warehouse=None if oauth_access_token else WAREHOUSE,
-            role=None if oauth_access_token else ROLE,
+            warehouse=environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE,
+            role=environ.get('OAUTH_CONNECTION_ROLE', None) if oauth_access_token else ROLE,
             token=oauth_access_token,
             private_key=pk,
             authenticator=authenticator,
