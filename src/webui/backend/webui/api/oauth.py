@@ -11,6 +11,11 @@ logger = logbook.Logger(__name__)
 
 oauth_api = Blueprint('oauth', __name__)
 
+OAUTH_CONNECTION_ROLE=environ.get('OAUTH_CONNECTION_ROLE', None)
+if OAUTH_CONNECTION_ROLE:
+    scope_role=f' session:role:{OAUTH_CONNECTION_ROLE}'
+else:
+    scope_role=''
 
 @oauth_api.route('/redirect', methods=['POST'])
 def oauth_redirect():
@@ -28,7 +33,7 @@ def oauth_redirect():
             {
                 'client_id': OAUTH_CLIENT_ID,
                 'response_type': 'code',
-                'scope': 'refresh_token',
+                'scope': f'refresh_token{scope_role}',
                 'redirect_uri': returnHref,
             }
         )
