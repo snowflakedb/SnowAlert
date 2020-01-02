@@ -6,7 +6,6 @@ from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import fire
 import json
-import re
 import requests
 from urllib.parse import urlencode
 import xmltodict
@@ -243,6 +242,22 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/compute/disks/list#disk
+    'disks': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('managedBy', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+        ('zones', 'VARIANT'),
     ],
 }
 
@@ -574,6 +589,29 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'disks': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}/providers/Microsoft.Compute/disks'
+            ),
+            'api-version': '2019-07-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'managedBy': 'managedBy',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'tags': 'tags',
+            'type': 'type',
+            'zones': 'zones',
+        },
+    },
 }
 
 
@@ -659,7 +697,7 @@ def ingest(table_name, options, run_now=False, dryrun=False):
         def load_table(kind, **params):
             values = GET(kind, params, cloud=cloud)
             kind = 'connection' if kind == 'subscriptions' else kind
-            db.insert(f'{table_prefix}_{kind}', values)
+            db.insert(f'{table_prefix}_{kind}', values, dryrun=dryrun)
             return values
 
         for s in load_table('subscriptions'):
@@ -668,6 +706,7 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                 log.debug(f'subscription without id: {s}')
                 continue
 
+            load_table('disks', subscriptionId=sid)
             load_table('log_profiles', subscriptionId=sid)
 
             for henv in load_table('hosting_environments', subscriptionId=sid):
