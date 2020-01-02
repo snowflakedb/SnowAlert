@@ -5,16 +5,18 @@ Load Inventory and Configuration of accounts using Service Principals
 from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import fire
+import json
 import re
 import requests
 from urllib.parse import urlencode
+import xmltodict
 
 from azure.common.credentials import ServicePrincipalCredentials
 
-from connectors.utils import updated
+from connectors.utils import updated, yaml_dump
+from runners.utils import json_dumps
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from connectors.utils import yaml_dump
 
 
 CLIENT = ''
@@ -217,6 +219,16 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'VARCHAR(1000)'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/storageservices/list-containers2
+    'storage_accounts_containers': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('account_name', 'VARCHAR(1000)'),
+        ('error', 'VARIANT'),
+        ('name', 'VARCHAR(1000)'),
+        ('properties', 'VARIANT'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/monitor/logprofiles/list#logprofileresource
     'log_profiles': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -408,6 +420,10 @@ API_SPECS = {
                 'azure': '{vaultName}.vault.azure.net',
                 'usgov': '{vaultName}.vault.usgovcloudapi.net',
             },
+            'auth_audience': {
+                'azure': 'vault.azure.net',
+                'usgov': 'vault.usgovcloudapi.net',
+            },
             'path': '/secrets',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
@@ -514,6 +530,27 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'storage_accounts_containers': {
+        'request': {
+            'path': '/',
+            'params': {'comp': 'list'},
+            'host': {
+                'azure': '{accountName}.blob.core.windows.net',
+                'usgov': '{accountName}.blob.core.usgovcloudapi.net',
+            },
+            'api-version': '2019-02-02',
+        },
+        'response_value_key': 'EnumerationResults.Containers.Container',
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'accountName': 'account_name',
+            'Error': 'error',  # upper case because response is XML
+            'Name': 'name',
+            'Properties': 'properties',
+        },
+    },
     'log_profiles': {
         'request': {
             'path': (
@@ -550,9 +587,8 @@ def GET(kind, params, cloud='azure'):
     )
     if type(host) is dict:
         host = host[cloud]
-
-    auth_aud = re.sub(r'^{.+}\.', '', host)  # auth audience is domain postfix
     host = host.format(**params)
+    auth_aud = request_spec.get('auth_audience', host)
     api_version = request_spec.get('api-version')
     query_params = '?' + urlencode(
         updated({}, request_spec.get('params'), {'api-version': api_version})
@@ -564,14 +600,29 @@ def GET(kind, params, cloud='azure'):
         url,
         headers={
             'Authorization': 'Bearer ' + bearer_token,
+            'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'x-ms-version': api_version,
         },
     )
     log.debug(f'<- {result.status_code}')
-    response = result.json()
+    response = json.loads(
+        json_dumps(xmltodict.parse(result.text.encode()))
+        if result.text.startswith('<?xml')
+        else result.text
+    )
+
     # empty lists of values are recorded as empty rows
     # error values are recorded as rows with error and empty value cols
     # normal values are recorded with populated values and an empty error col
+    def response_values(response):
+        for vk in spec.get('response_value_key', 'value').split('.'):
+            if response is None or vk not in response:
+                break
+            response = response[vk]
+
+        return response if type(response) is list else [{}]
+
     values = [
         updated(
             {},
@@ -580,7 +631,7 @@ def GET(kind, params, cloud='azure'):
             headerDate=parse_date(result.headers['Date']),
             tenantId=TENANT,
         )
-        for v in response.get('value', [response]) or [{}]
+        for v in response_values(response)
     ]
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
 
@@ -608,7 +659,7 @@ def ingest(table_name, options, run_now=False, dryrun=False):
         def load_table(kind, **params):
             values = GET(kind, params, cloud=cloud)
             kind = 'connection' if kind == 'subscriptions' else kind
-            db.insert(f'{table_prefix}_{kind}', values, dryrun=dryrun)
+            db.insert(f'{table_prefix}_{kind}', values)
             return values
 
         for s in load_table('subscriptions'):
@@ -629,7 +680,12 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                         name=henv['name'],
                     )
 
-            load_table('storage_accounts', subscriptionId=sid)
+            for sa in load_table('storage_accounts', subscriptionId=sid):
+                load_table(
+                    'storage_accounts_containers',
+                    subscriptionId=sid,
+                    accountName=sa['name'],
+                )
 
             for rg in load_table('resource_groups', subscriptionId=sid):
                 if 'name' in rg:
