@@ -15,27 +15,31 @@ Prerequisites:
 ```
 /SnowAlert/master/PRIVATE_KEY
 /SnowAlert/master/PRIVATE_KEY_PASSWORD
-/SnowAlert/master/SA_USER
-/SnowAlert/master/SA_WAREHOUSE
-/SnowAlert/master/SA_DATABASE
-/SnowAlert/master/SA_ROLE
 /SnowAlert/master/SLACK_API_TOKEN
-/SnowAlert/master/SNOWFLAKE_ACCOUNT
+/SnowAlert/master/JIRA_PASSWORD
+/SnowAlert/master/OAUTH_CLIENT_(snowflake_account_id)
+/SnowAlert/master/OAUTH_SECRET_(snowflake_account_id)
 ```
+_Note: The (snowflake_account_id) suffix from those last two parameters is set by the SnowflakeAccount cloudformation parameter_
+
+For optional parameters like `SLACK_API_TOKEN` and `JIRA_PASSWORD`, you must still set them but just leave them blank. ECS does not support optional secrets and Cloudformation cannot provide them conditionally.
+
+The remaining non-sensitive parameters (`SA_USER`,`SA_WAREHOUSE`,`SA_DATABASE`,`SA_ROLE`,`SNOWFLAKE_ACCOUNT`,`JIRA_USER`,`JIRA_URL`,`JIRA_PROJECT`) are configured as regular environment variables fed by Cloudformation parameters.
 
 Assuming the AWS CLI has been configured with default region and credentials, for a role similar to Power User, you can provision the stack from the commandline like so.
 
 No Web UI:
 ```
-aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=DeployWebUi,ParameterValue=false
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=DeployWebUi,ParameterValue=false ParameterKey=SnowflakeAccount,ParameterValue=ab1234567 
 ```
 
 With Web UI, internal VPC access only:
 ```
-aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.myinternaldomain.com ParameterKey=InstanceHostedZone,ParameterValue=myinternaldomain.com. 
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.myinternaldomain.com ParameterKey=InstanceHostedZone,ParameterValue=myinternaldomain.com. ParameterKey=SnowflakeAccount,ParameterValue=ab1234567 
 ```
 
-With Web UI, public facing:
+With Web UI, public facing and including Jira integration:
 ```
-aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.mydomain.com ParameterKey=InstanceHostedZone,ParameterValue=mydomain.com. ParameterKey=WebUiAlbScheme,ParameterValue=internet-facing
+aws cloudformation create-stack --template-body snowalert.yaml --stack-name SnowAlert-Prod --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=Vpc,ParameterValue=vpc-a1234567 ParameterKey=SubnetOne,ParameterValue=subnet-1ab23456 ParameterKey=SubnetTwo,ParameterValue=subnet-2cd34567 ParameterKey=CertificateArn,ParameterValue=arn:aws:acm:ap-southeast-2:123456789012:certificate/461b5dc1-443c-46ef-a5df-a6e6a7190d67 ParameterKey=InstanceFqdn,ParameterValue=snowalert.mydomain.com ParameterKey=InstanceHostedZone,ParameterValue=mydomain.com. ParameterKey=WebUiAlbScheme,ParameterValue=internet-facing ParameterKey=SnowflakeAccount,ParameterValue=ab1234567 ParameterKey=SnowAlertJiraUser,ParameterValue=snowalertuser ParameterKey=SnowAlertJiraUrl,ParameterValue=https://mydomain.atlassian.net/ ParameterKey=SnowAlertJiraProject,ParameterValue=SA 
 ```
+
