@@ -63,6 +63,39 @@ Parameters:
     Type: String
     Default: "master"
     Description: Used to differentiate between multiple deployments within the one account, e.g. a test AWS account supporting multiple branch builds
+  SnowflakeAccount:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, used to build the OAUTH_CLIENT_(account) and OAUTH_SECRET_(account) environment variables for the container. Must be just your Snowflake account id, e.g. "AB1234567", and per the SnowAlert documentation it must be uppercase.
+  SnowAlertDatabase:
+    Type: String
+    Default: "snowalert"
+    Description: Sets the SA_DATABASE environment variable for SnowAlert per https://snowalert.readthedocs.io/en/latest/pages/start.html#installing
+  SnowAlertUser:
+    Type: String
+    Default: "snowalert"
+    Description: Sets the SA_USER environment variable for SnowAlert per https://snowalert.readthedocs.io/en/latest/pages/start.html#installing
+  SnowAlertWarehouse:
+    Type: String
+    Default: "compute_wh"
+    Description: Sets the SA_WAREHOUSE environment variable for SnowAlert per https://snowalert.readthedocs.io/en/latest/pages/start.html#installing
+  SnowAlertRole:
+    Type: String
+    Default: "snowalert"
+    Description: Sets the SA_ROLE environment variable for SnowAlert per https://snowalert.readthedocs.io/en/latest/pages/start.html#installing
+  SnowAlertJiraUser:
+    Type: String
+    Default: ""
+    Description: Sets the Jira user, leave blank to disable Jira alerting
+  SnowAlertJiraUrl:
+    Type: String
+    Default: ""
+    Description: Sets the Jira Url, leave blank to disable Jira alerting
+  SnowAlertJiraProject:
+    Type: String
+    Default: ""
+    Description: Sets the Jira Project Key, leave blank to disable Jira alerting
+
 Conditions:
   ShouldCreateWebUi:
     !Equals [true, !Ref DeployWebUi]
@@ -88,7 +121,7 @@ Resources:
       Targets:
       - Arn: !GetAtt AlertsECSCluster.Arn
         Id: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'FargateTask'] ]
-        RoleArn: !GetAtt SnowAlertTaskExecutionRole.Arn
+        RoleArn: !GetAtt SnowAlertRunTaskRole.Arn
         EcsParameters:
           TaskDefinitionArn: !Ref AlertsTaskDefinition
           TaskCount: 1
@@ -153,6 +186,7 @@ Resources:
           - Effect: Allow
             Action:
             - kms:Decrypt
+            - kms:Encrypt
             Resource: !GetAtt SnowAlertKmsKey.Arn
       Roles:
         - !Ref 'SnowAlertTaskExecutionRole'
@@ -182,7 +216,7 @@ Resources:
           - Effect: Allow
             Action:
             - ecs:RunTask
-            Resource: !GetAtt AlertsECSCluster.Arn
+            Resource: !Ref 'AlertsTaskDefinition'
             Condition:
               ArnLike:
                 ecs:cluster: !GetAtt AlertsECSCluster.Arn
@@ -223,7 +257,7 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       ExecutionRoleArn: !Ref 'SnowAlertTaskExecutionRole'
-      TaskRoleArn: !Ref 'SnowAlertRunTaskRole'
+      TaskRoleArn: !Ref 'SnowAlertTaskExecutionRole'
       ContainerDefinitions:
         - Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'AlertsECSService'] ]
           Cpu: !Ref 'AlertsContainerCpu'
@@ -233,7 +267,7 @@ Resources:
             - sh
             - -c
             - |
-              ./run alerts
+              ./run all
           Environment:
             - Name: REGION
               Value: !Ref 'AWS::Region'
@@ -241,23 +275,33 @@ Resources:
               Value: 'True'
             - Name: SA_KMS_KEY
               Value: !GetAtt SnowAlertKmsKey.Arn
+            - Name: SA_KMS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: SNOWFLAKE_ACCOUNT
+              Value: !Ref 'SnowflakeAccount'
+            - Name: SA_DATABASE
+              Value: !Ref 'SnowAlertDatabase'
+            - Name: SA_USER
+              Value: !Ref 'SnowAlertUser'
+            - Name: SA_WAREHOUSE
+              Value: !Ref 'SnowAlertWarehouse'
+            - Name: SA_ROLE
+              Value: !Ref 'SnowAlertRole'
+            - Name: JIRA_USER
+              Value: !Ref 'SnowAlertJiraUser'
+            - Name: JIRA_URL
+              Value: !Ref 'SnowAlertJiraUrl'
+            - Name: JIRA_PROJECT
+              Value: !Ref 'SnowAlertJiraProject'
           Secrets:
             - Name: PRIVATE_KEY
               ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','PRIVATE_KEY']]]]
             - Name: PRIVATE_KEY_PASSWORD
               ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','PRIVATE_KEY_PASSWORD']]]]
-            - Name: SA_USER
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_USER']]]]
-            - Name: SA_WAREHOUSE
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_WAREHOUSE']]]]
-            - Name: SA_DATABASE
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_DATABASE']]]]
-            - Name: SA_ROLE
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SA_ROLE']]]]
             - Name: SLACK_API_TOKEN
               ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SLACK_API_TOKEN']]]]
-            - Name: SNOWFLAKE_ACCOUNT
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWFLAKE_ACCOUNT']]]]
+            - Name: JIRA_PASSWORD
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','JIRA_PASSWORD']]]]
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -344,7 +388,7 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       ExecutionRoleArn: !Ref 'SnowAlertTaskExecutionRole'
-      #TaskRoleArn: !Ref 'SnowAlertRunTaskRole'
+      TaskRoleArn: !Ref 'SnowAlertTaskExecutionRole'
       ContainerDefinitions:
         - Name: !Join ["-",[!Ref 'ResourcesPrefix', !Ref 'Slice', 'WebUiECSService'] ]
           Cpu: !Ref 'WebUiContainerCpu'
@@ -357,15 +401,23 @@ Resources:
           Environment:
             - Name: REGION
               Value: !Ref 'AWS::Region'
+            - Name: SA_KMS_REGION
+              Value: !Ref 'AWS::Region'
             - Name: CLOUDWATCH_METRICS
               Value: 'True'
             - Name: SA_KMS_KEY
               Value: !GetAtt SnowAlertKmsKey.Arn
+            - Name: SNOWFLAKE_ACCOUNT
+              Value: !Ref 'SnowflakeAccount'
+            - Name: SA_DATABASE
+              Value: !Ref 'SnowAlertDatabase'
           Secrets:
             - Name: SLACK_API_TOKEN
               ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SLACK_API_TOKEN']]]]
-            - Name: SNOWFLAKE_ACCOUNT
-              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWFLAKE_ACCOUNT']]]]
+            - Name: !Join ["_",['OAUTH_CLIENT',!Ref 'SnowflakeAccount'] ]
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWALERT_OAUTH_CLIENT']]]]
+            - Name: !Join ["_",['OAUTH_SECRET',!Ref 'SnowflakeAccount'] ]
+              ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SNOWALERT_OAUTH_SECRET']]]]
           LogConfiguration:
             LogDriver: awslogs
             Options:
