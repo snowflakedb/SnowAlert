@@ -269,6 +269,44 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('type', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networksecuritygroups/listall#networksecuritygroup
+    'network_security_groups': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('etag', 'STRING'),
+        ('name', 'STRING'),
+        ('location', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/network-watcher/networkwatchers/listall#networkwatcher
+    'network_watchers': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('etag', 'STRING'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/network-watcher/networkwatchers/getflowlogstatus#flowloginformation
+    'network_watcher_flow_log_status': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('network_watcher_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('flow_analytics_configuration', 'VARIANT'),
+        ('properties', 'VARIANT'),
+        ('target_resource_id', 'STRING'),
+    ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -892,6 +930,69 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'network_security_groups': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/networkSecurityGroups'
+            ),
+            'api-version': '2019-09-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'network_watchers': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/networkWatchers'
+            ),
+            'api-version': '2019-09-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'network_watcher_flow_log_status': {
+        'request': {
+            'method': 'POST',
+            'path': (
+                '{networkWatcherId}/queryFlowLogStatus'
+            ),
+            'api-version': '2019-09-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'subscriptionId': 'subscription_id',
+            'networkWatcherId': 'network_watcher_id',
+            'error': 'error',
+            'flowAnalyticsConfiguration': 'flow_analytics_configuration',
+            'properties': 'properties',
+            'tags': 'tags',
+            'targetResourceId': 'target_resource_id',
+        },
+    },
 }
 
 
@@ -947,10 +1048,9 @@ def GET(kind, params, cloud='azure'):
             if type(response) is list
             else [response]
             if type(response) is dict
-            else [{}]
-        )
+            else {'error': response}
+        ) or [{}]
 
-    print(response_values(response))
     values = [
         updated(
             {},
@@ -997,6 +1097,9 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                 continue
 
             load_table('role_definitions', subscriptionId=sid)
+            load_table('network_watchers', subscriptionId=sid)
+            load_table('network_security_groups', subscriptionId=sid)
+
             load_table('disks', subscriptionId=sid)
             load_table('log_profiles', subscriptionId=sid)
 
