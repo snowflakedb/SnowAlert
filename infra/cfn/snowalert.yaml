@@ -95,6 +95,18 @@ Parameters:
     Type: String
     Default: ""
     Description: Sets the Jira Project Key, leave blank to disable Jira alerting
+  SnowAlertOAuthConnectionRole:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, specifies the role to assume during all OAuth authorization flows (case sensitive).
+  SnowAlertOAuthConnectionDatabase:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, specifies the database to assume during all OAuth authorization flows (case sensitive).
+  SnowAlertOAuthConnectionWarehouse:
+    Type: String
+    Default: ""
+    Description: If deploying the Web UI, specifies the warehouse to assume during all OAuth authorization flows (case sensitive).
 
 Conditions:
   ShouldCreateWebUi:
@@ -411,6 +423,12 @@ Resources:
               Value: !Ref 'SnowflakeAccount'
             - Name: SA_DATABASE
               Value: !Ref 'SnowAlertDatabase'
+            - Name: OAUTH_CONNECTION_ROLE
+              Value: !Ref 'SnowAlertOAuthConnectionRole'
+            - Name: OAUTH_CONNECTION_DATABASE
+              Value: !Ref 'SnowAlertOAuthConnectionDatabase'
+            - Name: OAUTH_CONNECTION_WAREHOUSE
+              Value: !Ref 'SnowAlertOAuthConnectionWarehouse'
           Secrets:
             - Name: SLACK_API_TOKEN
               ValueFrom: !Join [':', ['arn:aws:ssm', !Ref 'AWS::Region', !Ref 'AWS::AccountId',!Join ['/', [ 'parameter', !Ref ResourcesPrefix, !Ref 'Slice','SLACK_API_TOKEN']]]]
