@@ -1048,7 +1048,7 @@ def GET(kind, params, cloud='azure'):
             if type(response) is list
             else [response]
             if type(response) is dict
-            else {'error': response}
+            else [{'error': response}]
         ) or [{}]
 
     values = [
