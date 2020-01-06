@@ -34,6 +34,7 @@ requests-oauthlib==1.0.0
 requests-toolbelt==0.8.0
 requests==2.20.1
 s3transfer==0.1.13
+simple_salesforce==0.74.3
 six==1.11.0
 snowflake-connector-python==2.1.0
 snowflake-sqlalchemy==1.1.2

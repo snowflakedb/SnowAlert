@@ -17,6 +17,7 @@ from . import assetpanda
 from . import nginx_log
 from . import ldap_log
 from . import airwatch_devices
+from . import salesforce_event_log
 
 __all__ = [
     'aws_cloudtrail',
@@ -36,6 +37,7 @@ __all__ = [
     'ldap_log',
     'nginx_log',
     'airwatch_devices',
+    'salesforce_event_log',
 ]
 
 connectors = {
@@ -58,6 +60,7 @@ connectors = {
     'nginx_log': nginx_log,
     'ldap_log': ldap_log,
     'airwatch_devices': airwatch_devices,
+    'salesforce_event_log': salesforce_event_log,
 }
 
 CONNECTION_OPTIONS = [
