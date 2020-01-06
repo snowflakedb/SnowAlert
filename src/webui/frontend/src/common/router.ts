@@ -1,4 +1,4 @@
-import pathToRegexp from 'path-to-regexp';
+import {pathToRegexp} from 'path-to-regexp';
 import * as React from 'react';
 import loadDynamicComponent from '../components/DynamicComponent';
 import * as routes from '../constants/routes';

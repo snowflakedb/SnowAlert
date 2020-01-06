@@ -1,6 +1,6 @@
 import {Icon, Layout, Menu} from 'antd';
 import * as _ from 'lodash';
-import pathToRegexp from 'path-to-regexp';
+import {pathToRegexp} from 'path-to-regexp';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import * as routes from '../../constants/routes';
