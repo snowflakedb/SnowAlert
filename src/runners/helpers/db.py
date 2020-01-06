@@ -31,6 +31,7 @@ from .dbconfig import (
 from .dbconnect import snowflake_connect
 
 from runners import utils
+from runners.config import DATA_SCHEMA
 
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
@@ -562,6 +563,16 @@ def create_table_and_upload_csv(
     execute(f"PUT file://{file_path} @{name}_stage")
     execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
 
+def copy_file_to_table_stage(
+    table_name, file_path
+):
+    execute(f"PUT file://{file_path} @{DATA_SCHEMA}.%{table_name}")
+
+def load_from_table_stage(
+    table_name
+):
+    execute(f"COPY INTO {DATA_SCHEMA}.{table_name} FROM @{DATA_SCHEMA}.%{table_name}")
+
 
 def create_stage(
     name,
@@ -600,7 +611,7 @@ def create_stage(
     execute(query, fix_errors=False)
 
 
-def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_role=None):
+def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_role=None, stage_file_format=None, stage_copy_options=None):
     if type(comment) is tuple:
         comment = '\n'.join(comment)
     comment = comment.replace("'", r"\'")
@@ -609,8 +620,9 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_ro
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
     columns = '(' + ', '.join(f'{a} {b}' for a, b in cols) + ')'
-
-    query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{comment}"
+    stage_file_format_clause = f' STAGE_FILE_FORMAT = ({stage_file_format})' if stage_file_format else ''
+    stage_copy_options_clause = f' STAGE_COPY_OPTIONS = ({stage_copy_options})' if stage_copy_options else ''
+    query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{stage_file_format_clause}{stage_copy_options_clause}{comment}"
     execute(query, fix_errors=False)
 
     if rw_role is not None:
