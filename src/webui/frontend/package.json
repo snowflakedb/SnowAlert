@@ -22,7 +22,7 @@
     "react-fittext": "^1.0.0",
     "react-redux": "^5.0.7",
     "react-router-redux": "^5.0.0-alpha.9",
-    "redux": "^4.0.0",
+    "redux": "^4.0.5",
     "redux-thunk": "^2.3.0",
     "url-pattern": "^1.0.3"
   },
@@ -52,11 +52,11 @@
     "@types/enquire.js": "^2.1.1",
     "@types/history": "^4.6.2",
     "@types/jwt-decode": "^2.2.1",
-    "@types/lodash": "^4.14.119",
+    "@types/lodash": "^4.14.149",
     "@types/node": "^12.7.11",
     "@types/react-document-title": "^2.0.2",
-    "@types/react-dom": "^16.0.11",
-    "@types/react-redux": "^7.1.4",
+    "@types/react-dom": "^16.9.4",
+    "@types/react-redux": "^7.1.5",
     "@types/react-router-redux": "^5.0.17",
     "@types/stylus": "^0.48.29",
     "fork-ts-checker-webpack-plugin": "^1.5.0",
@@ -68,14 +68,14 @@
     "react-app-rewired": "^1.5.2",
     "react-scripts-ts": "^3.1.0",
     "redux-devtools-extension": "^2.13.7",
-    "source-map-explorer": "^2.1.0",
+    "source-map-explorer": "^2.2.1",
     "stylus": "^0.54.5",
     "stylus-chokidar": "^0.0.3",
-    "ts-import-plugin": "^1.5.4",
-    "ts-loader": "^6.2.0",
-    "tslint": "^5.10.0",
+    "ts-import-plugin": "^1.6.2",
+    "ts-loader": "^6.2.1",
+    "tslint": "^5.20.1",
     "tslint-config-prettier": "^1.13.0",
     "tslint-react": "^4.1.0",
-    "typescript": "^3.2.2"
+    "typescript": "^3.7.4"
   }
 }

@@ -83,7 +83,7 @@ const NEW_RULE_BODY = (type: SnowAlertRule['type'], target: SnowAlertRule['targe
 };
 
 export const rules: Reducer<SnowAlertRulesState> = (
-  state = initialState,
+  state: SnowAlertRulesState = initialState,
   action:
     | RulesActions.LoadRulesActions
     | RulesActions.EditRulesActions
