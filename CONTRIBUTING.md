@@ -159,6 +159,8 @@ If a Connection requires regular ingestion via a Scheduled Task, you can do so u
 
 ### `test(connection_name)` (optional)
 
+> note: this is describing functionality which didn't get released. include it if you would like to be future-supportive.
+
 If a Connector would like to present this user with an option to test the connection, you can do so here. Must return `GeneratorType[dict]` with items of type
 
 ~~~
