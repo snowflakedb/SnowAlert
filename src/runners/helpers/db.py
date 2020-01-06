@@ -95,7 +95,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             # Role, Warehouse, and Database connection values are defined in the following order:
             # 1) If not using OAuth, use the SA_* env variables with defaults to "snowalert" (see dbconfig.py)
             # 2) If using OAuth and OAUTH_CONNECTION_* env vars have been set, use these
-            # 3) Let the OAuth user's defaults apply as defined per https://docs.snowflake.net/manuals/sql-reference/sql/alter-user.html
+            # 3) Else, use OAuth'd user's default namespace (see ALTER USER docs)
 
             account=oauth_account or ACCOUNT,
             database=environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE,
