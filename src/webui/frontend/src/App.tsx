@@ -2,11 +2,11 @@ import * as React from 'react';
 import URLSync from './components/UrlSync';
 import MainLayout from './layouts/MainLayout';
 
-const SamuiApp = () => (
+const SnowAlertWebUI = () => (
   <>
     <URLSync />
     <MainLayout />
   </>
 );
 
-export default SamuiApp;
+export default SnowAlertWebUI;
