@@ -1,7 +1,7 @@
 import {Location} from 'history';
 import * as React from 'react';
 import {connect} from 'react-redux';
-import {push} from 'react-router-redux';
+import {push} from 'connected-react-router';
 import {bindActionCreators, Dispatch} from 'redux';
 import {setViewport} from '../actions/viewport';
 import {getLocation} from '../reducers/router';
@@ -86,8 +86,5 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedURLSync = connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(URLSync);
+const ConnectedURLSync = connect<StateProps, DispatchProps>(mapStateToProps, mapDispatchToProps)(URLSync);
 export default ConnectedURLSync;

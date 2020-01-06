@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {RouterState} from 'react-router-redux';
+import {RouterState} from 'connected-react-router';
 import {Connector} from '../store/data';
 import {Policy, Query, Suppression} from '../store/rules';
 
@@ -107,8 +107,8 @@ export interface SADataState {
 }
 
 export interface State {
-  readonly auth: AuthState;
   readonly router: RouterState;
+  readonly auth: AuthState;
   readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;
   readonly data: SADataState;

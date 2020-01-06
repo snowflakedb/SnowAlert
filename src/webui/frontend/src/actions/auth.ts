@@ -1,4 +1,4 @@
-import {push} from 'react-router-redux';
+import {push} from 'connected-react-router';
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import * as routes from '../constants/routes';

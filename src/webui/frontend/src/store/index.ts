@@ -5,17 +5,11 @@ import {initialState as dataInitialState} from '../reducers/data';
 import devConfigureStore from './configureStore.dev';
 import prodConfigureStore from './configureStore.prod';
 
-const routerInitialState = {
-  location: null,
-};
+const configureStore = process.env.NODE_ENV !== 'production' ? devConfigureStore : prodConfigureStore;
 
-const initialState = {
+export const store = configureStore({
   auth: authInitialState,
-  router: routerInitialState,
   viewport: viewportInitialState,
   rules: rulesInitialState,
   data: dataInitialState,
-};
-
-export const store =
-  process.env.NODE_ENV !== 'production' ? devConfigureStore(initialState) : prodConfigureStore(initialState);
+});
