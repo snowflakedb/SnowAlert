@@ -1,14 +1,14 @@
-import {routerMiddleware} from 'react-router-redux';
+import {routerMiddleware} from 'connected-react-router';
 import {applyMiddleware, compose, createStore} from 'redux';
 import thunk from 'redux-thunk';
 import {rootReducer} from '../reducers/rootReducer';
-import {State} from '../reducers/types';
+// import {State} from '../reducers/types';
 import {history} from './history';
 
-const configureStore = (initialState: State) => {
+const configureStore = (preloadedState?: any) => {
   const router = routerMiddleware(history);
 
-  return createStore(rootReducer, initialState, compose(applyMiddleware(thunk, router)));
+  return createStore(rootReducer, preloadedState, compose(applyMiddleware(thunk, router)));
 };
 
 export default configureStore;
