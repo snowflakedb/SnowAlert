@@ -34,7 +34,7 @@
   "scripts": {
     "build-ts": "react-scripts build",
     "build-css": "stylus-chokidar src/",
-    "prepare": "npm run build-ts && npm run build-css",
+    "prepare": "npm run build-css && npm run build-ts",
     "watch-css": "npm run build-css && stylus-chokidar -w src/ --include-css",
     "start-ts": "react-app-rewired start --scripts-version react-scripts",
     "start": "npm-run-all -p watch-css start-ts",
