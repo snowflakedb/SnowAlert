@@ -859,6 +859,7 @@ API_SPECS = {
             'tenantId': 'tenant_id',
             'subscriptionId': 'subscription_id',
             'accountName': 'account_name',
+            'error': 'error',
             'Error': 'error',  # upper case because response is XML
             'Name': 'name',
             'Properties': 'properties',
