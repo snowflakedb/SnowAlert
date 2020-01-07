@@ -24,7 +24,6 @@ from runners.helpers import db, log
 
 
 AUDIT_ASSUMER_ARN = 'arn:aws:iam::1234567890987:role/audit-assumer'
-MASTER_READER_ARN = 'arn:aws:iam::987654321012:role/audit-reader'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
@@ -43,10 +42,10 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'master_reader_arn',
-        'title': "The reader role on Org's master account",
-        'prompt': "Role to be assumed for auditing the master account",
-        'placeholder': "arn:aws:iam::987654321012:role/audit-reader",
+        'name': 'org_account_ids',
+        'title': "Org Account(s)",
+        'prompt': "Comma-separated list of org master account id's",
+        'placeholder': "987654321012,876543210123",
         'required': True,
     },
     {
@@ -894,14 +893,14 @@ def connect(connection_name, options):
     landing_table = f'data.{table_name}'
 
     audit_assumer_arn = options['audit_assumer_arn']
-    master_reader_arn = options['master_reader_arn']
+    org_account_ids = options['org_account_ids']
     audit_reader_role = options['audit_reader_role']
     reader_eid = options['reader_eid']
 
     comment = yaml_dump(
         module='aws_collect',
         audit_assumer_arn=audit_assumer_arn,
-        master_reader_arn=master_reader_arn,
+        org_account_ids=org_account_ids,
         audit_reader_role=audit_reader_role,
         reader_eid=reader_eid,
         collect_apis='all',
@@ -1080,80 +1079,88 @@ async def aws_collect_task(task, wait=0.0, add_task=None):
 
 async def aioingest(table_name, options):
     global AUDIT_ASSUMER_ARN
-    global MASTER_READER_ARN
     global AUDIT_READER_ROLE
     global READER_EID
     AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', '')
-    MASTER_READER_ARN = options.get('master_reader_arn', '')
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
     READER_EID = options.get('reader_eid', '')
 
-    session = await aio_sts_assume_role(
-        src_role_arn=AUDIT_ASSUMER_ARN,
-        dest_role_arn=MASTER_READER_ARN,
-        dest_external_id=READER_EID,
-    )
+    for oid in options.get('org_account_ids', '').split(','):
+        master_reader_arn = (
+            options.get('master_reader_arn')
+            if oid == ''
+            else f'arn:aws:iam::{oid}:role/audit-reader'
+        )
 
-    async with session.client('organizations') as org_client:
-        accounts = [
-            a.entity
-            async for a in load_task_response(
-                org_client, CollectTask(None, 'organizations.list_accounts', {})
-            )
-        ]
+        if master_reader_arn is None:
+            log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-    insert_list(
-        'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
-    )
-    if options.get('collect_apis') == 'all':
-        collection_tasks = [
-            CollectTask(a['id'], method, {})
-            for method in [
-                'iam.generate_credential_report',
-                'iam.list_account_aliases',
-                'iam.get_account_summary',
-                'iam.get_account_password_policy',
-                'ec2.describe_instances',
-                'ec2.describe_security_groups',
-                'config.describe_configuration_recorders',
-                'kms.list_keys',
-                'iam.list_users',
-                'iam.list_policies',
-                'iam.list_virtual_mfa_devices',
-                's3.list_buckets',
-                'cloudtrail.describe_trails',
-                'iam.get_credential_report',
-                'iam.list_roles',
-            ]
-            for a in accounts
-        ]
+        session = await aio_sts_assume_role(
+            src_role_arn=AUDIT_ASSUMER_ARN,
+            dest_role_arn=master_reader_arn,
+            dest_external_id=READER_EID,
+        )
 
-        def add_task(t):
-            collection_tasks.append(t)
-
-        num_entries = 0
-        while collection_tasks:
-            coroutines = [
-                aws_collect_task(
-                    t, wait=(float(i) / _REQUEST_PACE_PER_SECOND), add_task=add_task
+        async with session.client('organizations') as org_client:
+            accounts = [
+                a.entity
+                async for a in load_task_response(
+                    org_client, CollectTask(None, 'organizations.list_accounts', {})
                 )
-                for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
             ]
-            del collection_tasks[:_MAX_BATCH_SIZE]
-            log.info(
-                f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
-            )
 
-            all_results = defaultdict(list)
-            for result_lists in await asyncio.gather(*coroutines):
-                for k, vs in result_lists.items():
-                    all_results[k] += vs
-            for name, vs in all_results.items():
-                response = insert_list(name, vs)
-                num_entries += len(vs)
-                log.info(f'finished {name} {response}')
+        insert_list(
+            'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
+        )
+        if options.get('collect_apis') == 'all':
+            collection_tasks = [
+                CollectTask(a['id'], method, {})
+                for method in [
+                    'iam.generate_credential_report',
+                    'iam.list_account_aliases',
+                    'iam.get_account_summary',
+                    'iam.get_account_password_policy',
+                    'ec2.describe_instances',
+                    'ec2.describe_security_groups',
+                    'config.describe_configuration_recorders',
+                    'kms.list_keys',
+                    'iam.list_users',
+                    'iam.list_policies',
+                    'iam.list_virtual_mfa_devices',
+                    's3.list_buckets',
+                    'cloudtrail.describe_trails',
+                    'iam.get_credential_report',
+                    'iam.list_roles',
+                ]
+                for a in accounts
+            ]
 
-        return num_entries
+            def add_task(t):
+                collection_tasks.append(t)
+
+            num_entries = 0
+            while collection_tasks:
+                coroutines = [
+                    aws_collect_task(
+                        t, wait=(float(i) / _REQUEST_PACE_PER_SECOND), add_task=add_task
+                    )
+                    for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
+                ]
+                del collection_tasks[:_MAX_BATCH_SIZE]
+                log.info(
+                    f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+                )
+
+                all_results = defaultdict(list)
+                for result_lists in await asyncio.gather(*coroutines):
+                    for k, vs in result_lists.items():
+                        all_results[k] += vs
+                for name, vs in all_results.items():
+                    response = insert_list(name, vs)
+                    num_entries += len(vs)
+                    log.info(f'finished {name} {response}')
+
+            return num_entries
 
     return 0
 
@@ -1169,13 +1176,19 @@ def ingest(table_name, options):
 
 
 def main(
-    table_name, audit_assumer_arn, master_reader_arn, reader_eid, audit_reader_role, collect_apis, run_now=False
+    table_name,
+    audit_assumer_arn,
+    org_account_ids,
+    reader_eid,
+    audit_reader_role,
+    collect_apis,
+    run_now=False,
 ):
     ingest(
         table_name,
         {
             'audit_assumer_arn': audit_assumer_arn,
-            'master_reader_arn': master_reader_arn,
+            'org_account_ids': org_account_ids,
             'reader_eid': reader_eid,
             'audit_reader_role': audit_reader_role,
             'run_now': run_now,
