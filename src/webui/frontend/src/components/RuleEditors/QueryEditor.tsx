@@ -100,7 +100,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
     const tagCounts: {
       [tagName: string]: number;
     } = _.flatMap(Array.from(qs), q => q.tags || []).reduce(
-      (ts, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}),
+      (ts: any, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}),
       {},
     );
 
@@ -229,9 +229,4 @@ const mapStateToProps = (state: State) => {
   };
 };
 
-export default Object.assign(
-  connect(
-    mapStateToProps,
-    mapDispatchToProps,
-  )(QueryEditor),
-);
+export default Object.assign(connect(mapStateToProps, mapDispatchToProps)(QueryEditor));

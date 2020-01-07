@@ -22,7 +22,7 @@ export default function loadDynamicComponent(config: ConfigType) {
   const LoadingComponent = config.LoadingComponent || defaultLoadingComponent;
 
   return class DynamicComponent extends React.PureComponent<Props, State> {
-    mounted: boolean;
+    mounted: boolean = false;
 
     constructor(props: any) {
       super(props);

@@ -16,7 +16,7 @@ interface Props {
 const Result = (props: Props) => {
   const {className, type, title, description, extra, actions} = props;
 
-  const iconMap = {
+  const iconMap: any = {
     error: <Icon className={'error'} type="close-circle" />,
     success: <Icon className={'success'} type="check-circle" />,
   };

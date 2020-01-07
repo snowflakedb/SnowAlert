@@ -106,8 +106,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedUserLayout = connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(UserLayout);
-export default ConnectedUserLayout;
+export default connect(mapStateToProps, mapDispatchToProps)(UserLayout);

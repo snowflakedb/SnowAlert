@@ -123,8 +123,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedLogin = connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Form.create()(LoginForm));
-export default ConnectedLogin;
+export default connect(mapStateToProps, mapDispatchToProps)(Form.create()(LoginForm));

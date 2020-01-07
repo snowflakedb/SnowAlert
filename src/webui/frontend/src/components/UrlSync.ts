@@ -86,5 +86,5 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedURLSync = connect<StateProps, DispatchProps>(mapStateToProps, mapDispatchToProps)(URLSync);
+const ConnectedURLSync = connect(mapStateToProps, mapDispatchToProps)(URLSync);
 export default ConnectedURLSync;

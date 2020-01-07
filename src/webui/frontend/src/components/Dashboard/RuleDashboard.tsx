@@ -1,7 +1,8 @@
 import {Col, Row} from 'antd';
 import * as React from 'react';
 import {RulesTree} from '../RulesTree';
-import {QueryEditor, QueryEditorColumn, RawEditor} from '../RuleEditors';
+import {QueryEditorColumn} from '../RuleEditors/QueryEditor';
+import {RawEditor, QueryEditor} from '../RuleEditors';
 import './RuleDashboard.css';
 import {Tabs} from 'antd';
 import {SnowAlertRule} from '../../reducers/types';
@@ -26,7 +27,7 @@ const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFiel
       <Col span={16}>
         <Tabs defaultActiveKey="1">
           <TabPane tab="Form Editor" key="1" disabled={!formEditorEnabled}>
-            <QueryEditor target={target} cols={formFields} />
+            <QueryEditor target={target} cols={formFields.slice()} />
           </TabPane>
           <TabPane tab="SQL Editor" key="2">
             <RawEditor />

@@ -78,9 +78,11 @@ export abstract class SQLBackedRule {
   isParsed: boolean;
 
   constructor(rule: stateTypes.SnowAlertRule) {
+    this._raw = rule;
     this.raw = rule;
     this.isSaving = false;
     this.isEditing = false;
+    this.isParsed = false;
   }
 
   copy(toMerge: any) {
@@ -138,9 +140,9 @@ export abstract class SQLBackedRule {
 }
 
 export class Policy extends SQLBackedRule {
-  views: string;
-  comment: string;
-  subpolicies: Subpolicy[];
+  views: string = '';
+  comment: string = '';
+  subpolicies: Subpolicy[] = [];
 
   static create() {
     const viewName = `PD_${Math.random()
@@ -184,8 +186,8 @@ export class Policy extends SQLBackedRule {
 
   load(sql: string, results: stateTypes.SnowAlertRule['results']) {
     const vnameRe = /^CREATE OR REPLACE VIEW [^.]+.[^.]+.([^\s]+) ?COPY GRANTS\s*\n/m;
-    const descrRe = /^  COMMENT='([^']+)'\nAS\n/gm;
-    const subplRe = /^  SELECT '((?:\\'|[^'])+)' AS title\n       , ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
+    const descrRe = /^ {2}COMMENT='([^']+)'\nAS\n/gm;
+    const subplRe = /^ {2}SELECT '((?:\\'|[^'])+)' AS title\n {7}, ([^;]+?) AS passing$(?:\n;|\nUNION ALL\n)?/m;
 
     const vnameMatch = vnameRe.exec(sql) || raise('no vname match');
     const vnameAfter = sql.substr(vnameMatch[0].length);
@@ -222,7 +224,7 @@ export class Policy extends SQLBackedRule {
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
-        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n` + `       , ${sp.condition} AS passing`)
+        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n {7}, ${sp.condition} AS passing`)
         .join('\nUNION ALL\n') +
       `\n;\n`
     );
@@ -239,9 +241,14 @@ interface QueryFields {
 }
 
 export class Query extends SQLBackedRule {
-  fields: QueryFields;
-  summary: string;
-  tags: string[];
+  fields: QueryFields = {
+    select: {},
+    from: '',
+    enabled: false,
+    where: '',
+  };
+  summary: string = '';
+  tags: string[] = [];
 
   get target() {
     return this.raw.target;
@@ -280,7 +287,7 @@ export class Query extends SQLBackedRule {
       };
     }
 
-    const fields = {
+    const fields: QueryFields = {
       select: {},
       from: '',
       enabled: false,
@@ -350,10 +357,10 @@ export class Query extends SQLBackedRule {
 }
 
 export class Suppression extends SQLBackedRule {
-  conditions: string[];
-  summary: string;
-  from: string;
-  tags: string[];
+  conditions: string[] = [];
+  summary: string = '';
+  from: string = '';
+  tags: string[] = [];
 
   get target() {
     return this.raw.target;

@@ -273,5 +273,4 @@ const mapStateToProps = (state: stateTypes.State) => {
   };
 };
 
-const ConnectedDrawerSiderMenu = connect<StateProps>(mapStateToProps)(SiderMenu);
-export default ConnectedDrawerSiderMenu;
+export default connect(mapStateToProps)(SiderMenu);

@@ -142,8 +142,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedGlobalHeader = connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(GlobalHeader);
-export default ConnectedGlobalHeader;
+export default connect(mapStateToProps, mapDispatchToProps)(GlobalHeader);
