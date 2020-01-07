@@ -252,7 +252,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-export default connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Connectors);
+export default connect(mapStateToProps, mapDispatchToProps)(Connectors);

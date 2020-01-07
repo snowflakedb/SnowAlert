@@ -70,9 +70,13 @@ export const dismissErrorMessage = () => async (dispatch: Dispatch, getState: Ge
     createAction(CHANGE_CONNECTION_STAGE, {
       newMessage: data.connectionMessage,
       newStage: {
+        start: null,
         creating: 'start',
+        created: null,
         finalizing: 'finalize',
         testing: 'test',
+        tested: null,
+        finalized: null,
       }[data.connectionStage],
     }),
   );

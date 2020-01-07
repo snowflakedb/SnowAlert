@@ -21,8 +21,8 @@ export default class HeaderSearch extends React.PureComponent<Props, State> {
     value: '',
   };
 
-  input: Input | null;
-  timeout: number;
+  input: Input | null = null;
+  timeout: number = 0;
 
   componentWillUnmount() {
     if (this.timeout) {
@@ -75,7 +75,7 @@ export default class HeaderSearch extends React.PureComponent<Props, State> {
           {...restProps}
           className={inputClass}
           value={this.state.value}
-          onChange={this.onChange}
+          onChange={e => this.onChange(String(e))}
         >
           <Input
             placeholder={placeholder}

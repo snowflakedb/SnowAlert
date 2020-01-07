@@ -34,5 +34,5 @@ const mapStateToProps = (state: stateTypes.State) => {
   };
 };
 
-const ConnectedMainLayout = connect<StateProps>(mapStateToProps)(MainLayout);
+const ConnectedMainLayout = connect(mapStateToProps)(MainLayout);
 export default ConnectedMainLayout;

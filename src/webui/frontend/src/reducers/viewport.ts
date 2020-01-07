@@ -7,7 +7,10 @@ export const initialState: ViewportState = {
   viewport: routes.DEFAULT,
 };
 
-export const viewport: Reducer<ViewportState> = (state = initialState, action: FromActions.ViewportActions) => {
+export const viewport: Reducer<ViewportState, FromActions.ViewportActions> = (
+  state = initialState,
+  action: FromActions.ViewportActions,
+) => {
   switch (action.type) {
     case FromActions.SET_VIEWPORT:
       return {

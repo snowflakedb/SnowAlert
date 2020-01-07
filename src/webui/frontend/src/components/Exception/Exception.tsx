@@ -19,7 +19,7 @@ interface ExceptionProps {
   actions?: ReadonlyArray<React.ReactNode>;
 }
 
-const config = {
+const config: any = {
   [exceptionTypes.UNAUTHORIZED_ACCESS_ERROR]: {
     desc: 'Unauthorized Access',
     img: unauthorizedAccessError,

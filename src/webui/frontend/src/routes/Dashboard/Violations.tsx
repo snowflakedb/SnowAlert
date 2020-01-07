@@ -218,7 +218,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-export default connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Violations);
+export default connect(mapStateToProps, mapDispatchToProps)(Violations);

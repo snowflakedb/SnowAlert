@@ -140,8 +140,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-const ConnectedBasicLayout = connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(BasicLayout);
-export default ConnectedBasicLayout;
+export default connect(mapStateToProps, mapDispatchToProps)(BasicLayout);

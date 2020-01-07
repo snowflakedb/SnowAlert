@@ -233,7 +233,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-export default connect<StateProps, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(AlertsDashboard);
+export default connect(mapStateToProps, mapDispatchToProps)(AlertsDashboard);

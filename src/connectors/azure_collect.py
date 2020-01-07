@@ -43,7 +43,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'credentials',
         'title': "Azure Auditor Service Principals",
-        'prompt': "JSON list of {client, tenant, secret} objects",
+        'prompt': "JSON list of {client, tenant, secret, cloud} objects",
         'type': 'json',
         'placeholder': """[{"client": "...", "tenant": "...", "secret": "...", "cloud": "azure" | "usgov"}, ...]""",
         'required': True,
@@ -1061,6 +1061,10 @@ def GET(kind, params, cloud='azure'):
         )
         for v in response_values(response)
     ]
+
+    if 'nextLink' in result:
+        log.info(f"nextLink {result['nextLink']}, len(data)={len(values)}")
+
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
 
 
@@ -1096,6 +1100,10 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                 log.debug(f'subscription without id: {s}')
                 continue
 
+            load_table('virtual_machines', subscriptionId=sid)
+            load_table('users', subscriptionId=sid)
+            load_table('groups', subscriptionId=sid)
+
             load_table('role_definitions', subscriptionId=sid)
             load_table('network_watchers', subscriptionId=sid)
             load_table('network_security_groups', subscriptionId=sid)
@@ -1125,7 +1133,6 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                     pass
 
             load_table('subscriptions_locations', subscriptionId=sid)
-            load_table('virtual_machines', subscriptionId=sid)
             load_table('managed_clusters', subscriptionId=sid)
             for v in load_table('vaults', subscriptionId=sid):
                 if 'name' in v:
@@ -1133,9 +1140,6 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                     load_table(
                         'vaults_secrets', subscriptionId=sid, vaultName=v['name']
                     )
-
-            load_table('users', subscriptionId=sid)
-            load_table('groups', subscriptionId=sid)
 
         load_table('service_principals')
         load_table('reports_credential_user_registration_details')
