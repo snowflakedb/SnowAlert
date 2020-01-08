@@ -66,7 +66,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     return (
       <div className={'login'}>
         <h1>
-          <img src="/icons/favicon.ico" style={{height: 50}} /> SnowAlert
+          <img src="/icons/favicon.ico" style={{height: 50}} alt="snowflake alert sign" /> SnowAlert
         </h1>
         {code ? (
           <div className={'main'}>

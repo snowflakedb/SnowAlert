@@ -214,6 +214,7 @@ class Connectors extends React.Component<ConnectorsProps, OwnState> {
             key={c.name}
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
+              // eslint-disable-next-line
               <a key={1} onClick={() => this.selectConnector(c.name)}>
                 <Icon type="api" /> Connect
               </a>,
