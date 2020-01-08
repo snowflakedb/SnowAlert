@@ -78,7 +78,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           <TreeNode title="Loading..." />
         ) : (
           queries
-            .filter(q => target === q.raw.target)
+            .filter(q => target === q.target)
             .filter(ruleFilter)
             .map(r => (
               <TreeNode
@@ -94,7 +94,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           <TreeNode title="Loading..." />
         ) : (
           suppressions
-            .filter(s => target === s.raw.target)
+            .filter(s => target === s.target)
             .filter(ruleFilter)
             .map(s => (
               <TreeNode
@@ -161,7 +161,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(RulesTree);
+export default connect(mapStateToProps, mapDispatchToProps)(RulesTree);

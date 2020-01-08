@@ -116,6 +116,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       };
     case RulesActions.LOAD_SNOWALERT_RULES_FAILURE: {
       window.location.href = '/login';
+      break;
     }
 
     // saving rules

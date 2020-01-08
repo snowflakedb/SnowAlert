@@ -36,7 +36,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           disabled={!rule || rule.isSaving}
           value={rule ? rule.raw.body : ''}
           spellCheck={false}
-          autosize={{minRows: 30}}
+          autoSize={{minRows: 30}}
           onChange={e => this.props.updateRuleBody(e.target.value)}
         />
         <Button
@@ -82,7 +82,4 @@ const mapStateToProps = (state: State) => {
   };
 };
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(RawEditor);
+export default connect(mapStateToProps, mapDispatchToProps)(RawEditor);

@@ -71,18 +71,17 @@ function parseComment(comment: string): {summary: string; decorations: {[name: s
 }
 
 export abstract class SQLBackedRule {
-  _raw: stateTypes.SnowAlertRule;
+  _raw!: stateTypes.SnowAlertRule;
 
   isSaving: boolean;
   isEditing: boolean;
-  isParsed: boolean;
+  isParsed!: boolean;
 
   constructor(rule: stateTypes.SnowAlertRule) {
-    this._raw = rule;
     this.raw = rule;
     this.isSaving = false;
     this.isEditing = false;
-    this.isParsed = false;
+    console.log('this', Object.assign({}, this));
   }
 
   copy(toMerge: any) {
@@ -132,7 +131,7 @@ export abstract class SQLBackedRule {
   }
 
   get isEdited() {
-    return this.raw.body !== this._raw.savedBody;
+    return this.body !== this._raw.savedBody;
   }
 
   abstract load(body: string, results?: stateTypes.SnowAlertRule['results']): void;
@@ -140,9 +139,9 @@ export abstract class SQLBackedRule {
 }
 
 export class Policy extends SQLBackedRule {
-  views: string = '';
-  comment: string = '';
-  subpolicies: Subpolicy[] = [];
+  views!: string;
+  comment!: string;
+  subpolicies!: Subpolicy[];
 
   static create() {
     const viewName = `PD_${Math.random()
@@ -224,7 +223,7 @@ export class Policy extends SQLBackedRule {
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
-        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n {7}, ${sp.condition} AS passing`)
+        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n       , ${sp.condition} AS passing`)
         .join('\nUNION ALL\n') +
       `\n;\n`
     );
@@ -241,17 +240,20 @@ interface QueryFields {
 }
 
 export class Query extends SQLBackedRule {
-  fields: QueryFields = {
-    select: {},
-    from: '',
-    enabled: false,
-    where: '',
-  };
-  summary: string = '';
-  tags: string[] = [];
+  fields!: QueryFields;
+  summary!: string;
+  tags!: string[];
+
+  constructor(rule: stateTypes.SnowAlertRule) {
+    super(rule);
+    // TODO(anfedorov): why doesn't the super() call ?
+    this.raw = rule;
+    this.isSaving = false;
+    this.isEditing = false;
+  }
 
   get target() {
-    return this.raw.target;
+    return this._raw.target;
   }
 
   load(body: string) {
@@ -287,7 +289,7 @@ export class Query extends SQLBackedRule {
       };
     }
 
-    const fields: QueryFields = {
+    const fields = {
       select: {},
       from: '',
       enabled: false,
@@ -310,7 +312,8 @@ export class Query extends SQLBackedRule {
     }
     do {
       const {field, value} = nextField;
-      fields.select[field] = value.replace(/\n       /g, '\n');
+      // @ts-ignore
+      fields.select[field] = value.replace(/\n {7}/g, '\n');
       nextField = stripField(nextField.rest);
     } while (nextField);
 
@@ -357,13 +360,21 @@ export class Query extends SQLBackedRule {
 }
 
 export class Suppression extends SQLBackedRule {
-  conditions: string[] = [];
-  summary: string = '';
-  from: string = '';
-  tags: string[] = [];
+  conditions!: string[];
+  summary!: string;
+  from!: string;
+  tags!: string[];
+
+  constructor(rule: stateTypes.SnowAlertRule) {
+    super(rule);
+    // TODO(anfedorov): why doesn't the super() call ?
+    this.raw = rule;
+    this.isSaving = false;
+    this.isEditing = false;
+  }
 
   get target() {
-    return this.raw.target;
+    return this._raw.target;
   }
 
   load(sql: string) {
@@ -372,12 +383,6 @@ export class Suppression extends SQLBackedRule {
       const m = sql.match(headRe);
       return m ? {rest: sql.substr(m[0].length), from: m[1]} : null;
     }
-
-    // function stripRule(sql: string): {rule: string; rest: string} | null {
-    //   const ruleRe = /^(\s*(AND[\s\S]*)\s*)$/im;
-    //   const m = sql.match(ruleRe);
-    //   return m ? {rule: m[2], rest: sql.substr(m[1].length)} : null;
-    // }
 
     const parsedComment = stripComment(sql);
     const {
@@ -391,17 +396,6 @@ export class Suppression extends SQLBackedRule {
     // hack until string array UI is ready
     const rulesString = rest.replace(/;\s*$/gm, '');
     this.conditions = [rulesString];
-
-    // const r = stripRule(rulesString) || raise(`err1 >${rulesString}<`);
-    // rest = r.rest;
-    // let {rule} = r;
-    // const conditions = [];
-    // while (rest.length > 1) {
-    //   conditions.push(rule);
-    //   const afterRule = stripRule(rest) || raise(`err2.${conditions.length} >${rest}<`);
-    //   rest = afterRule.rest;
-    //   rule = afterRule.rule;
-    // }
 
     this.tags = tags ? tags.split(', ') : [];
     this.summary = summary;

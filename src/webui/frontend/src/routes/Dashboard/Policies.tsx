@@ -107,6 +107,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                           onChange={e => this.props.updatePolicyTitle(policy.viewName, e.currentTarget.value)}
                         />
                       ) : (
+                        // eslint-disable-next-line
                         <a
                           onClick={() =>
                             this.props.changeRule(policy.viewName === currentRuleView ? '' : policy.viewName)
@@ -163,7 +164,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             policy.isEditing ? (
                               <Input.TextArea
                                 disabled={policy.isSaving}
-                                autosize={{minRows: 1, maxRows: 1}}
+                                autoSize={{minRows: 1, maxRows: 1}}
                                 value={text}
                                 onChange={e => this.props.editSubpolicy(policy.viewName, i, {title: e.target.value})}
                               />
@@ -179,7 +180,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             policy.isEditing ? (
                               <Input.TextArea
                                 disabled={policy.isSaving}
-                                autosize={{minRows: 1, maxRows: 1}}
+                                autoSize={{minRows: 1, maxRows: 1}}
                                 value={text}
                                 onChange={e =>
                                   this.props.editSubpolicy(policy.viewName, i, {condition: e.target.value})
