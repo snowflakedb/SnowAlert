@@ -8,6 +8,7 @@ docs/doctrees
 src/webui/frontend/src/**/*.css
 src/webui/frontend/src/**/*.js
 src/**/lib/
+src/pip-wheel-metadata/*
 
 *.pyc
 *.venv
