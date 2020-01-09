@@ -711,6 +711,10 @@ API_SPECS = {
                 'azure': '{vaultName}.vault.azure.net',
                 'usgov': '{vaultName}.vault.usgovcloudapi.net',
             },
+            'auth_audience': {
+                'azure': 'vault.azure.net',
+                'usgov': 'vault.usgovcloudapi.net',
+            },
             'path': '/keys',
             'params': {'maxresults': '25'},
             'api-version': '7.0',
