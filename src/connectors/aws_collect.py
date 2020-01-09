@@ -1059,11 +1059,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
         )
 
 
-def insert_list(name, values, table_name=None):
+def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
     table_name = table_name or f'data.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
-    return db.insert(table_name, values)
+    return db.insert(table_name, values, dryrun=dryrun)
 
 
 async def aws_collect_task(task, wait=0.0, add_task=None):
@@ -1077,7 +1077,7 @@ async def aws_collect_task(task, wait=0.0, add_task=None):
     return result_lists
 
 
-async def aioingest(table_name, options):
+async def aioingest(table_name, options, dryrun=False):
     global AUDIT_ASSUMER_ARN
     global AUDIT_READER_ROLE
     global READER_EID
@@ -1085,11 +1085,13 @@ async def aioingest(table_name, options):
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
     READER_EID = options.get('reader_eid', '')
 
-    for oid in options.get('org_account_ids', '').split(','):
+    oids = options.get('org_account_ids', '')
+    oids = oids.split(',') if type(oids) is str else oids
+    for oid in oids:
         master_reader_arn = (
             options.get('master_reader_arn')
             if oid == ''
-            else f'arn:aws:iam::{oid}:role/audit-reader'
+            else f'arn:aws:iam::{oid}:role/{AUDIT_READER_ROLE}'
         )
 
         if master_reader_arn is None:
@@ -1110,7 +1112,7 @@ async def aioingest(table_name, options):
             ]
 
         insert_list(
-            'organizations.list_accounts', accounts, table_name=f'data.{table_name}'
+            'organizations.list_accounts', accounts, table_name=f'data.{table_name}', dryrun=dryrun
         )
         if options.get('collect_apis') == 'all':
             collection_tasks = [
@@ -1156,7 +1158,7 @@ async def aioingest(table_name, options):
                     for k, vs in result_lists.items():
                         all_results[k] += vs
                 for name, vs in all_results.items():
-                    response = insert_list(name, vs)
+                    response = insert_list(name, vs, dryrun=dryrun)
                     num_entries += len(vs)
                     log.info(f'finished {name} {response}')
 
@@ -1165,11 +1167,11 @@ async def aioingest(table_name, options):
     return 0
 
 
-def ingest(table_name, options):
+def ingest(table_name, options, dryrun=False):
     now = datetime.now()
     if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(
-            aioingest(table_name, options)
+            aioingest(table_name, options, dryrun=dryrun)
         )
     else:
         log.info('not time yett')
@@ -1178,22 +1180,26 @@ def ingest(table_name, options):
 def main(
     table_name,
     audit_assumer_arn,
-    org_account_ids,
     reader_eid,
     audit_reader_role,
     collect_apis,
+    master_reader_arn='',
+    org_account_ids='',
     run_now=False,
+    dryrun=False,
 ):
     ingest(
         table_name,
         {
             'audit_assumer_arn': audit_assumer_arn,
+            'master_reader_arn': master_reader_arn,
             'org_account_ids': org_account_ids,
             'reader_eid': reader_eid,
             'audit_reader_role': audit_reader_role,
             'run_now': run_now,
             'collect_apis': collect_apis,
         },
+        dryrun=dryrun,
     )
 
 
