@@ -35,7 +35,7 @@ const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFiel
         </Tabs>
       </Col>
 
-      <Col span={6}>
+      <Col span={8} style={{overflow: 'scroll'}}>
         <RulesTree target={target} />
       </Col>
     </Row>
