@@ -1013,6 +1013,8 @@ def GET(kind, params, cloud='azure'):
         host = host[cloud]
     host = host.format(**params)
     auth_aud = request_spec.get('auth_audience', host)
+    if type(auth_aud) is dict:
+        auth_aud = auth_aud[cloud]
     api_version = request_spec.get('api-version')
     query_params = '?' + urlencode(
         updated(
