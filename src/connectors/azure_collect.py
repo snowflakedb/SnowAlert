@@ -1127,11 +1127,12 @@ def ingest(table_name, options, run_now=False, dryrun=False):
                     )
 
             for sa in load_table('storage_accounts', subscriptionId=sid):
-                load_table(
-                    'storage_accounts_containers',
-                    subscriptionId=sid,
-                    accountName=sa['name'],
-                )
+                if 'name' in sa:
+                    load_table(
+                        'storage_accounts_containers',
+                        subscriptionId=sid,
+                        accountName=sa['name'],
+                    )
 
             for rg in load_table('resource_groups', subscriptionId=sid):
                 if 'name' in rg:
