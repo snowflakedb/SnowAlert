@@ -23,7 +23,7 @@ from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_s
 from runners.helpers import db, log
 
 
-AUDIT_ASSUMER_ARN = 'arn:aws:iam::1234567890987:role/audit-assumer'
+AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
@@ -37,7 +37,7 @@ CONNECTION_OPTIONS = [
         'name': 'audit_assumer_arn',
         'title': "Audit Assumer ARN",
         'prompt': "The role that does the assuming in all the org's accounts",
-        'placeholder': "arn:aws:iam::1234567890987:role/audit-assumer",
+        'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
         'required': True,
     },
     {
@@ -45,7 +45,7 @@ CONNECTION_OPTIONS = [
         'name': 'org_account_ids',
         'title': "Org Account(s)",
         'prompt': "Comma-separated list of org master account id's",
-        'placeholder': "987654321012,876543210123",
+        'placeholder': "222222222222,333333333333",
         'required': True,
     },
     {
@@ -53,13 +53,13 @@ CONNECTION_OPTIONS = [
         'name': 'audit_reader_role',
         'title': "The reader role in Org's accounts",
         'prompt': "Role to be assumed for auditing the other accounts",
-        'placeholder': "audit-reader",
+        'placeholder': "security-local-auditor",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'reader_eid',
-        'title': "Reader EID",
+        'title': "Reader EID (optional)",
         'prompt': "External Id on the roles that need assuming",
         'secret': True,
     },
