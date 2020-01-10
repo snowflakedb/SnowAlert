@@ -2,11 +2,11 @@
 Load Inventory and Configuration of accounts using Service Principals
 """
 
-from collections import defaultdict
 from dateutil.parser import parse as parse_date
 import fire
 import json
 import requests
+from time import time
 from urllib.parse import urlencode
 import xmltodict
 
@@ -23,20 +23,17 @@ TENANT = ''
 SECRET = ''
 
 
-class KeyedDefaultDict(defaultdict):
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        else:
-            ret = self[key] = self.default_factory(key)
-            return ret
-
-
-CREDS = KeyedDefaultDict(  # type: ignore
-    lambda xs: ServicePrincipalCredentials(  # type: ignore
-        client_id=xs[0], tenant=xs[1], secret=xs[2], resource=f'https://{xs[3]}'
-    )
-)
+def access_token_cache(client_id, tenant, secret, resource, _creds={}):
+    key = (client_id, tenant, secret, resource)
+    cred = _creds.get(key)
+    if cred is None or cred.token['expires_on'] - time() < 60:
+        cred = _creds[key] = ServicePrincipalCredentials(
+            client_id=client_id,
+            tenant=tenant,
+            secret=secret,
+            resource=f'https://{resource}',
+        )
+    return cred.token['access_token']
 
 
 CONNECTION_OPTIONS = [
@@ -525,10 +522,7 @@ API_SPECS = {
         },
     },
     'groups': {
-        'request': {
-            'path': '/v1.0/{subscriptionId}/groups',
-            'host': 'graph.microsoft.com',
-        },
+        'request': {'path': '/v1.0/groups', 'host': 'graph.microsoft.com'},
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -564,10 +558,7 @@ API_SPECS = {
         },
     },
     'users': {
-        'request': {
-            'path': '/v1.0/{subscriptionId}/users',
-            'host': 'graph.microsoft.com',
-        },
+        'request': {'path': '/v1.0/users', 'host': 'graph.microsoft.com'},
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
@@ -982,9 +973,7 @@ API_SPECS = {
     'network_watcher_flow_log_status': {
         'request': {
             'method': 'POST',
-            'path': (
-                '{networkWatcherId}/queryFlowLogStatus'
-            ),
+            'path': '{networkWatcherId}/queryFlowLogStatus',
             'api-version': '2019-09-01',
         },
         'response': {
@@ -1016,14 +1005,14 @@ def GET(kind, params, cloud='azure'):
     if type(auth_aud) is dict:
         auth_aud = auth_aud[cloud]
     api_version = request_spec.get('api-version')
-    query_params = '?' + urlencode(
+    query_params = urlencode(
         updated(
             {'api-version': api_version} if api_version else {},
             request_spec.get('params'),
         )
     )
-    bearer_token = CREDS[(CLIENT, TENANT, SECRET, auth_aud)].token['access_token']
-    url = f'https://{host}{path}{query_params}'
+    bearer_token = access_token_cache(CLIENT, TENANT, SECRET, auth_aud)
+    url = f'https://{host}{path}' + (f'?{query_params}' if query_params else '')
     log.debug(f'GET {url}')
     result = requests.get(
         url,
