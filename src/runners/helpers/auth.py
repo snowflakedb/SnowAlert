@@ -33,6 +33,7 @@ def oauth_refresh(account: str, refresh_token: str) -> str:
     OAUTH_SECRET_ID = environ.get(
         f'OAUTH_SECRET_{account.partition(".")[0].upper()}', ''
     )
+    OAUTH_SECRET_ID = decrypt_if_encrypted(OAUTH_SECRET_ID)
 
     return (
         post(
