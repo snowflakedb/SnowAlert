@@ -81,7 +81,6 @@ export abstract class SQLBackedRule {
     this.raw = rule;
     this.isSaving = false;
     this.isEditing = false;
-    console.log('this', Object.assign({}, this));
   }
 
   copy(toMerge: any) {
@@ -131,7 +130,7 @@ export abstract class SQLBackedRule {
   }
 
   get isEdited() {
-    return this.body !== this._raw.savedBody;
+    return this.raw.body !== this._raw.savedBody;
   }
 
   abstract load(body: string, results?: stateTypes.SnowAlertRule['results']): void;
