@@ -67,7 +67,7 @@ export default class EditableTagGroup extends React.Component<Props, State> {
         {this.tags.map((tag: string, index: number) => {
           const isLongTag = tag.length > 20;
           const tagElem = (
-            <Tag key={tag} closable={true} afterClose={() => this.handleClose(tag)}>
+            <Tag key={tag} closable={true} onClose={() => this.handleClose(tag)}>
               {isLongTag ? `${tag.slice(0, 20)}...` : tag}
             </Tag>
           );

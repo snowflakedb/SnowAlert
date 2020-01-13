@@ -164,7 +164,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                   <h3>{field.title}</h3>
                   <Switch
                     disabled={q.isSaving}
-                    defaultChecked={field.getValue(q)}
+                    checked={field.getValue(q)}
                     onChange={e => updateRule(currentRuleView, field.setValue(q, e))}
                   >
                     {field.title}
