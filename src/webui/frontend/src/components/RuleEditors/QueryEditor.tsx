@@ -139,22 +139,14 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
         {cols.map((col, i) => (
           <Col key={`col-${i}`} span={col.span}>
             {col.fields.map((field, i) =>
-              field.type === 'string' ? (
+              field.type === 'text' || field.type === 'string' ? (
                 <div key={`col-${i}`}>
                   <h3>{field.title}</h3>
                   <Input.TextArea
                     disabled={q.isSaving}
                     spellCheck={false}
-                    value={field.getValue(q)}
-                    onChange={e => updateRule(currentRuleView, field.setValue(q, e.target.value))}
-                  />
-                </div>
-              ) : field.type === 'text' ? (
-                <div key={`col-${i}`}>
-                  <h3>{field.title}</h3>
-                  <Input.TextArea
-                    disabled={q.isSaving}
-                    spellCheck={false}
+                    autoSize={{minRows: 3}}
+                    style={{whiteSpace: 'nowrap'}}
                     value={field.getValue(q)}
                     onChange={e => updateRule(currentRuleView, field.setValue(q, e.target.value))}
                   />
