@@ -213,7 +213,7 @@ export class Policy extends SQLBackedRule {
   }
 
   get isEdited() {
-    return this.body !== this._raw.savedBody;
+    return this.raw.body !== this._raw.savedBody;
   }
 
   get body(): string {
