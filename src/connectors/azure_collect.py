@@ -440,7 +440,6 @@ SUPPLEMENTARY_TABLES = {
     'managed_devices': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'STRING'),
         ('user_id', 'STRING'),
@@ -711,7 +710,6 @@ API_SPECS = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
             'userId': 'user_id',
