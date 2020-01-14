@@ -13,7 +13,7 @@ oauth_api = Blueprint('oauth', __name__)
 
 OAUTH_CONNECTION_ROLE = environ.get('OAUTH_CONNECTION_ROLE', None)
 if OAUTH_CONNECTION_ROLE:
-    scope_role = f' session:role:{OAUTH_CONNECTION_ROLE}'
+    scope_role = f' session:role:{OAUTH_CONNECTION_ROLE.upper()}'
 else:
     scope_role = ''
 
