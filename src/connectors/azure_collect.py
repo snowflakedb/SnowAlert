@@ -89,7 +89,6 @@ SUPPLEMENTARY_TABLES = {
         ('latitude', 'VARCHAR(100)'),
         ('longitude', 'VARCHAR(100)'),
         ('name', 'VARCHAR(1000)'),
-        ('subscription_id', 'VARCHAR(50)'),
     ],
     # https://docs.virtual_machinesmicrosoft.com/en-us/rest/api/compute/virtualmachines/listall#virtualmachine
     'virtual_machines': [
