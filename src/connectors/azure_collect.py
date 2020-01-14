@@ -18,11 +18,6 @@ from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
-CLIENT = ''
-TENANT = ''
-SECRET = ''
-
-
 def access_token_cache(client_id, tenant, secret, resource, _creds={}):
     key = (client_id, tenant, secret, resource)
     cred = _creds.get(key)
@@ -292,16 +287,6 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
-    # https://docs.microsoft.com/en-us/rest/api/network-watcher/networkwatchers/getflowlogstatus#flowloginformation
-    'network_watcher_flow_log_status': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('subscription_id', 'VARCHAR(50)'),
-        ('network_watcher_id', 'VARCHAR(50)'),
-        ('error', 'VARIANT'),
-        ('flow_analytics_configuration', 'VARIANT'),
-        ('properties', 'VARIANT'),
-        ('target_resource_id', 'STRING'),
-    ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -530,17 +515,6 @@ API_SPECS = {
             'authorizationSource': 'authorization_source',
             'managedByTenants': 'managed_by_tenants',
         },
-        'children': [
-            {
-                'name': [
-                    'subscriptions_locations',
-                    'managed_clusters',
-                    'virtual_machines',
-                    'vaults',
-                ],
-                'args': {'subscriptionId': 'subscription_id'},
-            }
-        ],
     },
     'reports_credential_user_registration_details': {
         'request': {
@@ -834,7 +808,6 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
         },
-        'children': [{'name': 'vaults_keys', 'args': {'vaultName': 'name'}}],
     },
     'vaults_keys': {
         'request': {
@@ -853,7 +826,6 @@ API_SPECS = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'vaultName': 'vault_name',
             'error': 'error',
             'attributes': 'attributes',
@@ -1108,30 +1080,19 @@ API_SPECS = {
             'type': 'type',
         },
     },
-    'network_watcher_flow_log_status': {
-        'request': {
-            'method': 'POST',
-            'path': '{networkWatcherId}/queryFlowLogStatus',
-            'api-version': '2019-09-01',
-        },
-        'response': {
-            'headerDate': 'recorded_at',
-            'subscriptionId': 'subscription_id',
-            'networkWatcherId': 'network_watcher_id',
-            'error': 'error',
-            'flowAnalyticsConfiguration': 'flow_analytics_configuration',
-            'properties': 'properties',
-            'tags': 'tags',
-            'targetResourceId': 'target_resource_id',
-        },
-    },
 }
 
 
-def GET(kind, params, cloud='azure'):
+def GET(kind, params, cred):
     spec = API_SPECS[kind]
     request_spec = spec['request']
     path = request_spec['path'].format(**params)
+    cloud = (
+        cred['cloud']
+        if 'cloud' in cred
+        else ('usgov' if cred.get('gov') else 'azure')
+    )
+
     host = request_spec.get(
         'host',
         {'azure': 'management.azure.com', 'usgov': 'management.usgovcloudapi.net'},
@@ -1149,7 +1110,7 @@ def GET(kind, params, cloud='azure'):
             request_spec.get('params'),
         )
     )
-    bearer_token = access_token_cache(CLIENT, TENANT, SECRET, auth_aud)
+    bearer_token = access_token_cache(cred['client'], cred['tenant'], cred['secret'], auth_aud)
     url = f'https://{host}{path}' + (f'?{query_params}' if query_params else '')
     log.debug(f'GET {url}')
     result = requests.get(
@@ -1191,7 +1152,7 @@ def GET(kind, params, cloud='azure'):
             v,
             params,
             headerDate=parse_date(result.headers['Date']),
-            tenantId=TENANT,
+            tenantId=cred['tenant'],
         )
         for v in response_values(response)
     ]
@@ -1203,27 +1164,14 @@ def GET(kind, params, cloud='azure'):
 
 
 def ingest(table_name, options, run_now=False, dryrun=False):
-    global CLIENT
-    global TENANT
-    global SECRET
-
     connection_name = options['name']
 
     for cred in options['credentials']:
-        CLIENT = cred['client']
-        TENANT = cred['tenant']
-        SECRET = cred['secret']
-
-        cloud = (
-            cred['cloud']
-            if 'cloud' in cred
-            else ('usgov' if cred.get('gov') else 'azure')
-        )
         table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
         table_prefix = f'data.azure_collect{table_name_part}'
 
         def load_table(kind, **params):
-            values = GET(kind, params, cloud=cloud)
+            values = GET(kind, params, cred=cred)
             kind = 'connection' if kind == 'subscriptions' else kind
             db.insert(f'{table_prefix}_{kind}', values, dryrun=dryrun)
             return values
@@ -1275,9 +1223,9 @@ def ingest(table_name, options, run_now=False, dryrun=False):
             load_table('managed_clusters', subscriptionId=sid)
             for v in load_table('vaults', subscriptionId=sid):
                 if 'name' in v:
-                    load_table('vaults_keys', subscriptionId=sid, vaultName=v['name'])
+                    load_table('vaults_keys', vaultName=v['name'])
                     load_table(
-                        'vaults_secrets', subscriptionId=sid, vaultName=v['name']
+                        'vaults_secrets', vaultName=v['name']
                     )
 
 
