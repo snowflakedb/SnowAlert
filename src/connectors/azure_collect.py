@@ -136,8 +136,7 @@ SUPPLEMENTARY_TABLES = {
     'vaults_keys': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
-        ('kid', 'VARCHAR(500)'),
+        ('vault_name', 'VARCHAR(1000)'),
         ('error', 'VARIANT'),
         ('attributes', 'VARIANT'),
         ('kid', 'VARCHAR(1000)'),
@@ -148,11 +147,10 @@ SUPPLEMENTARY_TABLES = {
     'vaults_secrets': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
+        ('vault_name', 'VARCHAR(1000)'),
         ('id', 'VARCHAR(500)'),
         ('error', 'VARIANT'),
         ('attributes', 'VARIANT'),
-        ('kid', 'VARCHAR(1000)'),
         ('managed', 'BOOLEAN'),
         ('tags', 'VARIANT'),
     ],
@@ -844,7 +842,6 @@ API_SPECS = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'vaultName': 'vault_name',
             'error': 'error',
             'attributes': 'attributes',
@@ -908,7 +905,6 @@ API_SPECS = {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
             'subscriptionId': 'subscription_id',
-            'vaultName': 'vault_name',
             'error': 'error',
             'id': 'id',
             'kind': 'kind',
