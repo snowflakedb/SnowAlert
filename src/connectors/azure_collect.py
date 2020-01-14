@@ -479,7 +479,7 @@ SUPPLEMENTARY_TABLES = {
         ('phone_number', 'STRING'),
         ('android_security_patch_level', 'STRING'),
         ('user_display_name', 'STRING'),
-        ('configuration_manager_client_enabled_features', 'VARIANT(50)'),
+        ('configuration_manager_client_enabled_features', 'VARIANT'),
         ('wi_fi_mac_address', 'STRING'),
         ('device_health_attestation_state', 'VARIANT(50)'),
         ('subscriber_carrier', 'STRING'),
