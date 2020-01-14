@@ -487,7 +487,7 @@ SUPPLEMENTARY_TABLES = {
         ('total_storage_space_in_bytes', 'NUMBER'),
         ('free_storage_space_in_bytes', 'NUMBER'),
         ('managed_device_name', 'STRING'),
-        ('partner_reported_threat_state', 'VARIANT'),
+        ('partner_reported_threat_state', 'VARCHAR(100)'),
     ],
 }
 
