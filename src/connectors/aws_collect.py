@@ -36,22 +36,22 @@ CONNECTION_OPTIONS = [
         'type': 'str',
         'name': 'audit_assumer_arn',
         'title': "Audit Assumer ARN",
-        'prompt': "The role that does the assuming in all the org's accounts",
+        'prompt': "The auditor role that assumes local roles in your accounts",
         'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'org_account_ids',
-        'title': "Org Account(s)",
-        'prompt': "Comma-separated list of org master account id's",
+        'title': "Master Account(s)",
+        'prompt': "Comma-separated account id's to list-accounts in",
         'placeholder': "222222222222,333333333333",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'audit_reader_role',
-        'title': "The reader role in Org's accounts",
+        'title': "The name of the local auditor roles in your accounts",
         'prompt': "Role to be assumed for auditing the other accounts",
         'placeholder': "security-local-auditor",
         'required': True,
@@ -1086,7 +1086,7 @@ async def aioingest(table_name, options, dryrun=False):
     READER_EID = options.get('reader_eid', '')
 
     oids = options.get('org_account_ids', '')
-    oids = oids.split(',') if type(oids) is str else oids
+    oids = [oid.strip() for oid in oids.split(',')] if type(oids) is str else oids
     for oid in oids:
         master_reader_arn = (
             options.get('master_reader_arn')
@@ -1111,8 +1111,14 @@ async def aioingest(table_name, options, dryrun=False):
                 )
             ]
 
+        if accounts == [{}]:
+            accounts = [{'Id': oid}]
+
         insert_list(
-            'organizations.list_accounts', accounts, table_name=f'data.{table_name}', dryrun=dryrun
+            'organizations.list_accounts',
+            accounts,
+            table_name=f'data.{table_name}',
+            dryrun=dryrun,
         )
         if options.get('collect_apis') == 'all':
             collection_tasks = [
