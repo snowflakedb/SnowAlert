@@ -1,6 +1,7 @@
-from botocore.exceptions import BotoCoreError
-
 from collections import namedtuple
+from datetime import datetime
+
+from botocore.exceptions import BotoCoreError
 
 from connectors.aws_collect import process_aws_response, DBEntry, CollectTask
 
@@ -8,12 +9,19 @@ from connectors.aws_collect import process_aws_response, DBEntry, CollectTask
 Sample = namedtuple('Sample', ['task', 'response', 'entities', 'subrequests'])
 
 
+class AnyDate(object):
+    def __eq__(self, other):
+        return isinstance(other, datetime)
+
+
 TEST_DATA_REQUEST_RESPONSE = [
     # e.g. error
     Sample(
         CollectTask('1', 'iam.list_account_aliases', {}),
         BotoCoreError(),
-        [DBEntry({'account_id': '1'})],
+        [
+            DBEntry({'recorded_at': AnyDate(), 'account_id': '1'})
+        ],  # BotoErrors should record time
         [],
     ),
     # e.g. list-of-entities response
@@ -23,11 +31,29 @@ TEST_DATA_REQUEST_RESPONSE = [
             "Keys": [
                 {'KeyId': 'id1', 'KeyArn': 'arn1'},
                 {'KeyId': 'id2', 'KeyArn': 'arn2'},
-            ]
+            ],
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200,
+                'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
+            },
         },
         [
-            DBEntry({'account_id': '1', "key_id": "id1", "key_arn": "arn1"}),
-            DBEntry({'account_id': '1', "key_id": "id2", "key_arn": "arn2"}),
+            DBEntry(
+                {
+                    'recorded_at': AnyDate(),
+                    'account_id': '1',
+                    "key_id": "id1",
+                    "key_arn": "arn1",
+                }
+            ),
+            DBEntry(
+                {
+                    'recorded_at': AnyDate(),
+                    'account_id': '1',
+                    "key_id": "id2",
+                    "key_arn": "arn2",
+                }
+            ),
         ],
         [
             CollectTask('1', 'kms.get_key_rotation_status', {'KeyId': 'arn1'}),
@@ -37,10 +63,20 @@ TEST_DATA_REQUEST_RESPONSE = [
     # e.g. list-of-strings response
     Sample(
         CollectTask('1', 'iam.list_account_aliases', {}),
-        {'AccountAliases': ['one', 'two']},
+        {
+            'AccountAliases': ['one', 'two'],
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200,
+                'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
+            },
+        },
         [
-            DBEntry({'account_id': '1', 'account_alias': 'one'}),
-            DBEntry({'account_id': '1', 'account_alias': 'two'}),
+            DBEntry(
+                {'recorded_at': AnyDate(), 'account_id': '1', 'account_alias': 'one'}
+            ),
+            DBEntry(
+                {'recorded_at': AnyDate(), 'account_id': '1', 'account_alias': 'two'}
+            ),
         ],
         [],
     ),
@@ -51,10 +87,15 @@ TEST_DATA_REQUEST_RESPONSE = [
             'Content': 'col1,col2\nval11,val12\nval21,val22',
             'ReportFormat': 'csv',
             'GeneratedTime': '2019-11-30T12:13:14Z',
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200,
+                'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
+            },
         },
         [
             DBEntry(
                 {
+                    'recorded_at': AnyDate(),
                     'account_id': '1',
                     'generated_time': '2019-11-30T12:13:14Z',
                     'report_format': 'csv',
@@ -77,10 +118,15 @@ TEST_DATA_REQUEST_RESPONSE = [
                 {'Name': 'name1', 'CreationDate': 'date1'},
                 {'Name': 'name2', 'CreationDate': 'date2'},
             ],
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200,
+                'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
+            },
         },
         [
             DBEntry(
                 {
+                    'recorded_at': AnyDate(),
                     'account_id': '1',
                     'owner_display_name': 'dn1',
                     'owner_id': 'oid1',
@@ -90,6 +136,7 @@ TEST_DATA_REQUEST_RESPONSE = [
             ),
             DBEntry(
                 {
+                    'recorded_at': AnyDate(),
                     'account_id': '1',
                     'owner_display_name': 'dn1',
                     'owner_id': 'oid1',
@@ -122,8 +169,14 @@ TEST_DATA_REQUEST_RESPONSE = [
     # e.g. with parameter
     Sample(
         CollectTask('1', 'kms.get_key_rotation_status', {'KeyId': 'arn1'}),
-        {'KeyRotationEnabled': True},
-        [DBEntry({'account_id': '1', 'key_arn': 'arn1', 'key_rotation_enabled': True})],
+        {
+            'KeyRotationEnabled': True,
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200,
+                'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
+            },
+        },
+        [DBEntry({'recorded_at': AnyDate(), 'account_id': '1', 'key_arn': 'arn1', 'key_rotation_enabled': True})],
         [],
     ),
 ]
@@ -138,5 +191,5 @@ def test_process_aws_response():
                 db_entries.append(r)
             elif type(r) is CollectTask:
                 child_requests.append(r)
-        assert db_entries == sample.entities
-        assert child_requests == sample.subrequests
+        assert sample.entities == db_entries
+        assert sample.subrequests == child_requests
