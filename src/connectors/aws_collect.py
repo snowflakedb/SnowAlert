@@ -966,15 +966,17 @@ def process_aws_response(task, page):
     base_entity.update({v: task.args[k] for k, v in params.items()})
 
     if isinstance(page, (Exception, type(None))):
+        base_entity['recorded_at'] = datetime.now()
+        yield DBEntry(base_entity)
+        return
+
+    metadata = page['ResponseMetadata']
+    base_entity['recorded_at'] = parse_date(metadata['HTTPHeaders']['date'])
+    if metadata['HTTPStatusCode'] != 200:
         yield DBEntry(base_entity)
         return
 
     base_entity.update(process_response_items(response_coldict, page))
-
-    if 'ResponseMetadata' in page:
-        base_entity['recorded_at'] = parse_date(
-            page['ResponseMetadata']['HTTPHeaders']['date']
-        )
 
     iterated_entries = list(process_response_lists(response_coldict, page))
 
@@ -1007,7 +1009,7 @@ async def load_task_response(client, task):
                 yield x
 
     except (ClientError, DataNotFoundError) as e:
-        for x in process_aws_response(task, e):
+        for x in process_aws_response(task, e.response):
             yield x
 
 
@@ -1086,7 +1088,13 @@ async def aioingest(table_name, options, dryrun=False):
     READER_EID = options.get('reader_eid', '')
 
     oids = options.get('org_account_ids', '')
-    oids = [oid.strip() for oid in oids.split(',')] if type(oids) is str else oids
+    oids = (
+        [oid.strip() for oid in oids.split(',')]
+        if type(oids) is str
+        else [str(oids)]
+        if type(oids) is int
+        else oids
+    )
     for oid in oids:
         master_reader_arn = (
             options.get('master_reader_arn')
@@ -1111,8 +1119,11 @@ async def aioingest(table_name, options, dryrun=False):
                 )
             ]
 
-        if accounts == [{}]:
-            accounts = [{'Id': oid}]
+        for a in accounts:
+            # the response is a single datetime (error ocurred)
+            # then we treat it as a non-org account, and scan it alone
+            if 'id' not in a:
+                a['id'] = oid
 
         insert_list(
             'organizations.list_accounts',
