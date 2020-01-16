@@ -5,6 +5,7 @@ Load Inventory and Configuration of accounts using Service Principals
 from dateutil.parser import parse as parse_date
 import fire
 import json
+import re
 import requests
 from time import time
 from urllib.parse import urlencode
@@ -1111,52 +1112,74 @@ def GET(kind, params, cred):
     bearer_token = access_token_cache(cred['client'], cred['tenant'], cred['secret'], auth_aud)
     url = f'https://{host}{path}' + (f'?{query_params}' if query_params else '')
     log.debug(f'GET {url}')
-    result = requests.get(
-        url,
-        headers={
-            'Authorization': 'Bearer ' + bearer_token,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'x-ms-version': api_version,
-        },
-    )
-    log.debug(f'<- {result.status_code}')
-    response = json.loads(
-        json_dumps(xmltodict.parse(result.text.encode()))
-        if result.text.startswith('<?xml')
-        else result.text
-    )
 
-    # empty lists of values are recorded as empty rows
-    # error values are recorded as rows with error and empty value cols
-    # normal values are recorded with populated values and an empty error col
-    def response_values(response):
-        for vk in spec.get('response_value_key', 'value').split('.'):
-            if response is None or vk not in response:
-                break
-            response = response[vk]
-
-        return (
-            response
-            if type(response) is list
-            else [response]
-            if type(response) is dict
-            else [{'error': response}]
-        ) or [{}]
-
-    values = [
-        updated(
-            {},
-            v,
-            params,
-            headerDate=parse_date(result.headers['Date']),
-            tenantId=cred['tenant'],
+    nextUrl = url
+    values = []
+    while nextUrl:
+        result = requests.get(
+            nextUrl,
+            headers={
+                'Authorization': 'Bearer ' + bearer_token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'x-ms-version': api_version,
+            },
         )
-        for v in response_values(response)
-    ]
 
-    if 'nextLink' in result:
-        log.info(f"nextLink {result['nextLink']}, len(data)={len(values)}")
+        log.debug(f'<- {result.status_code}')
+
+        response = json.loads(
+            json_dumps(xmltodict.parse(result.text.encode()))
+            if result.text.startswith('<?xml')
+            else result.text
+        )
+
+        # empty lists of values are recorded as empty rows
+        # error values are recorded as rows with error and empty value cols
+        # normal values are recorded with populated values and an empty error col
+        def response_values(response):
+            for vk in spec.get('response_value_key', 'value').split('.'):
+                if response is None or vk not in response:
+                    break
+                response = response[vk]
+
+            return (
+                response
+                if type(response) is list
+                else [response]
+                if type(response) is dict
+                else [{'error': response}]
+            ) or [{}]
+
+        values += [
+            updated(
+                {},
+                v,
+                params,
+                headerDate=parse_date(result.headers['Date']),
+                tenantId=cred['tenant'],
+            )
+            for v in response_values(response)
+        ]
+
+        if 'nextLink' in response:
+            log.info(f"nextLink {response['nextLink']}, len(data)={len(values)}")
+            nextUrl = response['nextLink']
+            continue
+
+        if '@odata.nextLink' in response:
+            log.info(f"@odata.nextLink {response['@odata.nextLink']}, len(data)={len(values)}")
+            nextUrl = response['@odata.nextLink']
+            continue
+
+        if 'EnumerationResults' in response:
+            nextMarker = response['EnumerationResults'].get('NextMarker')
+            if nextMarker:
+                log.info(f"nextMarker {nextMarker}, len(data)={len(values)}")
+                nextUrl = re.sub(r'(&marker=.*)?$', f'&marker={nextMarker}', nextUrl)
+                continue
+
+        break
 
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
 
