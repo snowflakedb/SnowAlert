@@ -1163,19 +1163,16 @@ def GET(kind, params, cred):
         ]
 
         if 'nextLink' in response:
-            log.info(f"nextLink {response['nextLink']}, len(data)={len(values)}")
             nextUrl = response['nextLink']
             continue
 
         if '@odata.nextLink' in response:
-            log.info(f"@odata.nextLink {response['@odata.nextLink']}, len(data)={len(values)}")
             nextUrl = response['@odata.nextLink']
             continue
 
         if 'EnumerationResults' in response:
             nextMarker = response['EnumerationResults'].get('NextMarker')
             if nextMarker:
-                log.info(f"nextMarker {nextMarker}, len(data)={len(values)}")
                 nextUrl = re.sub(r'(&marker=.*)?$', f'&marker={nextMarker}', nextUrl)
                 continue
 
@@ -1194,7 +1191,9 @@ def ingest(table_name, options, run_now=False, dryrun=False):
         def load_table(kind, **params):
             values = GET(kind, params, cred=cred)
             kind = 'connection' if kind == 'subscriptions' else kind
-            db.insert(f'{table_prefix}_{kind}', values, dryrun=dryrun)
+            table_name = f'{table_prefix}_{kind}'
+            result = db.insert(table_name, values, dryrun=dryrun)
+            log.info(f'-> {table_name} {result}')
             return values
 
         load_table('users')
