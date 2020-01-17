@@ -8,7 +8,6 @@ from tenable.io import TenableIO
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from runners.utils import groups_of
 
 from .utils import yaml_dump
 
@@ -45,28 +44,28 @@ CONNECTION_OPTIONS = [
 ]
 
 USER_LANDING_TABLE = [
-    ('USERNAME', 'STRING(250)'),
-    ('ROLE', 'STRING(100)'),
-    ('RAW', 'VARIANT'),
-    ('SNAPSHOT_AT', 'TIMESTAMP_LTZ'),
-    ('UUID', 'STRING(100)'),
-    ('ID', 'STRING(100)'),
-    ('USER_NAME', 'STRING(250)'),
-    ('EMAIL', 'STRING(250)'),
-    ('TYPE', 'STRING(100)'),
-    ('PERMISSION', 'NUMBER'),
-    ('LAST_LOGIN_ATTEMPT', 'TIMESTAMP_LTZ'),
-    ('LOGIN_FAIL_COUNT', 'NUMBER'),
-    ('LOGIN_FAIL_TOTAL', 'NUMBER'),
-    ('ENABLED', 'BOOLEAN'),
-    ('TWO_FACTOR', 'VARIANT'),
-    ('LAST_LOGIN', 'TIMESTAMP_LTZ'),
-    ('UUID_ID', 'STRING(100)'),
+    ('username', 'STRING(250)'),
+    ('role', 'STRING(100)'),
+    ('raw', 'VARIANT'),
+    ('snapshot_at', 'TIMESTAMP_LTZ'),
+    ('uuid', 'STRING(100)'),
+    ('id', 'STRING(100)'),
+    ('user_name', 'STRING(250)'),
+    ('email', 'STRING(250)'),
+    ('type', 'STRING(100)'),
+    ('permission', 'NUMBER'),
+    ('last_login_attempt', 'TIMESTAMP_LTZ'),
+    ('login_fail_count', 'NUMBER'),
+    ('login_fail_total', 'NUMBER'),
+    ('enabled', 'BOOLEAN'),
+    ('two_factor', 'VARIANT'),
+    ('last_login', 'TIMESTAMP_LTZ'),
+    ('uuid_id', 'STRING(100)'),
 ]
 
-AGENT_LANDING_TABLE = [('RAW', 'VARIANT'), ('EXPORT_AT', 'TIMESTAMP_LTZ')]
+AGENT_LANDING_TABLE = [('raw', 'VARIANT'), ('export_at', 'TIMESTAMP_LTZ')]
 
-VULN_LANDING_TABLE = [('RAW', 'VARIANT'), ('EXPORT_AT', 'TIMESTAMP_LTZ')]
+VULN_LANDING_TABLE = [('raw', 'VARIANT'), ('export_at', 'TIMESTAMP_LTZ')]
 
 TIO = None  # connection created in `ingest` below
 GET = None
@@ -74,7 +73,7 @@ GET = None
 
 def ingest_vulns(table_name):
     last_export_time = next(
-        db.fetch(f'SELECT MAX(export_at) as time FROM data.{table_name}')
+        db.fetch(f'SELECT MAX(export_at) AS time FROM data.{table_name}')
     )['TIME']
     timestamp = datetime.now(timezone.utc)
 
@@ -82,16 +81,12 @@ def ingest_vulns(table_name):
         last_export_time is None
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
-        log.info("Exporting vulnerabilities...")
-        vulns = TIO.exports.vulns()
+        log.debug('TIO export vulns')
+        rows = [{'raw': v, 'export_at': timestamp} for v in TIO.exports.vulns()]
+        log.debug(f'got {len(rows)} vulns')
+        log.debug(f'e.g. {rows[0]}')
+        db.insert(f'data.{table_name}', rows)
 
-        for page in groups_of(10000, vulns):
-            db.insert(
-                table=f'data.{table_name}',
-                values=[(vuln, timestamp) for vuln in page],
-                select=db.derive_insert_select(VULN_LANDING_TABLE),
-                columns=db.derive_insert_columns(AGENT_LANDING_TABLE),
-            )
     else:
         log.info('Not time to import Tenable vulnerabilities yet')
 
@@ -143,14 +138,13 @@ def ingest_users(table_name):
     )
 
 
-def get_group_ids():
-    return GET('agent-groups', 'groups', 10, 0)
-
-
 def get_agent_data():
-    groups = get_group_ids()
-    for g in groups:
-        agents = GET(f'agent-groups/{g["id"]}', 'agents', 5000)
+    scanners = list(GET('scanners'))
+    log.debug(f'got {len(scanners)} scanners')
+    for s in scanners:
+        sid = s['id']
+        agents = list(GET(f'scanners/{sid}/agents', 'agents', 5000))
+        log.debug(f'scanner {sid} has {len(agents)} agents')
         yield from agents
 
 
@@ -164,14 +158,10 @@ def ingest_agents(table_name, options):
         last_export_time is None
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
-        agents = {a['uuid']: a for a in get_agent_data()}.values()
-        for page in groups_of(10000, agents):
-            db.insert(
-                table=f'data.{table_name}',
-                values=[(agent, timestamp) for agent in page],
-                select=db.derive_insert_select(AGENT_LANDING_TABLE),
-                columns=db.derive_insert_columns(AGENT_LANDING_TABLE),
-            )
+        unique_agents = {a['uuid']: a for a in get_agent_data()}.values()
+        rows = [{'raw': ua, 'export_at': timestamp} for ua in unique_agents]
+        log.debug(f'inserting {len(unique_agents)} unique (by uuid) agents')
+        db.insert(f'data.{table_name}', rows)
     else:
         log.info('Not time to import Tenable Agents')
 
@@ -203,22 +193,20 @@ def ingest(table_name, options):
 
     TIO = TenableIO(token, secret)
 
-    def GET(resource, name, limit=100, offset=0):
+    def GET(resource, key=None, limit=100, offset=0):
+        if key is None:
+            key = resource
+        log.debug(f'GET {resource} limit={limit} offset={offset}')
         response = requests.get(
-            url=f'https://cloud.tenable.com/scanners/1/{resource}',
-            params={
-                'limit': limit,
-                'offset': offset,
-            },
-            headers={
-                "X-ApiKeys": f"accessKey={token}; secretKey={secret}"
-            },
+            url=f'https://cloud.tenable.com/{resource}',
+            params={'limit': limit, 'offset': offset},
+            headers={"X-ApiKeys": f"accessKey={token}; secretKey={secret}"},
         )
         result = response.json()
-        elements = result.get(name)
+        elements = result.get(key)
 
         if elements is None:
-            log.error(f'no {name} in :', result)
+            log.error(f'no {key} in :', result)
             return
 
         yield from elements
@@ -229,7 +217,7 @@ def ingest(table_name, options):
         offset = pages.get('offset', 0)
 
         if total > limit + offset:
-            yield from GET(resource, name, limit, offset + limit)
+            yield from GET(resource, key, limit, offset + limit)
 
     if table_name.endswith('USER_CONNECTION'):
         ingest_users(table_name)
