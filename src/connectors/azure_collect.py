@@ -1087,9 +1087,7 @@ def GET(kind, params, cred):
     request_spec = spec['request']
     path = request_spec['path'].format(**params)
     cloud = (
-        cred['cloud']
-        if 'cloud' in cred
-        else ('usgov' if cred.get('gov') else 'azure')
+        cred['cloud'] if 'cloud' in cred else ('usgov' if cred.get('gov') else 'azure')
     )
 
     host = request_spec.get(
@@ -1109,7 +1107,9 @@ def GET(kind, params, cred):
             request_spec.get('params'),
         )
     )
-    bearer_token = access_token_cache(cred['client'], cred['tenant'], cred['secret'], auth_aud)
+    bearer_token = access_token_cache(
+        cred['client'], cred['tenant'], cred['secret'], auth_aud
+    )
     url = f'https://{host}{path}' + (f'?{query_params}' if query_params else '')
     log.debug(f'GET {url}')
 
