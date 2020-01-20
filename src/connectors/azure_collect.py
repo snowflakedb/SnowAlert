@@ -1181,7 +1181,7 @@ def GET(kind, params, cred):
     return [{spec['response'][k]: v for k, v in x.items()} for x in values]
 
 
-def ingest(table_name, options):
+def ingest(table_name, options, dryrun=False):
     connection_name = options['name']
 
     if options.get('schedule', '*') != '*':
@@ -1251,7 +1251,7 @@ def ingest(table_name, options):
                     load_table('vaults_secrets', vaultName=v['name'])
 
 
-def main(table_name, tenant, client, secret, cloud, dryrun, run_now=False):
+def main(table_name, tenant, client, secret, cloud, dryrun=True, run_now=False):
     now = datetime.now()
     schedule = '*' if run_now or (now.hour % 3 == 1 and now.minute < 15) else False
 
