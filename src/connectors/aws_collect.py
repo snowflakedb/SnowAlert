@@ -895,7 +895,7 @@ def connect(connection_name, options):
     audit_assumer_arn = options['audit_assumer_arn']
     org_account_ids = options['org_account_ids']
     audit_reader_role = options['audit_reader_role']
-    reader_eid = options['reader_eid']
+    reader_eid = options.get('reader_eid', '')
 
     comment = yaml_dump(
         module='aws_collect',
