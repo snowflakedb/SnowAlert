@@ -5,7 +5,6 @@ import os
 
 import snowflake.connector
 
-from runners.config import CONFIG_VARS
 from runners.helpers import db, dbconfig
 
 from flask import Blueprint, request, jsonify
@@ -22,15 +21,6 @@ def unindent(text):
     "if beginning and every newline followed by spaces, removes them"
     indent = min(len(x) for x in re.findall('^( *)', text, flags=re.M | re.I))
     return text if indent == 0 else re.sub(f'^{" " * indent}', '', text, flags=re.M)
-
-
-def replace_config_vals(rule_body: str) -> str:
-    for k, v in CONFIG_VARS:
-        vregex = v.replace('.', '\\.')
-        rule_body = re.sub(
-            f'\\b{vregex}\\b', f"{{{k}}}", rule_body, flags=re.IGNORECASE
-        )
-    return rule_body
 
 
 @rules_api.route('', methods=['GET'])
@@ -61,7 +51,7 @@ def get_rules():
                 ),
                 "target": rule['name'].split('_')[-2].upper(),
                 "type": rule['name'].split('_')[-1].upper(),
-                "body": replace_config_vals(rule['text']),
+                "body": rule['text'],
                 "results": (
                     list(db.fetch(ctx, f"SELECT * FROM rules.{rule['name']};"))
                     if rule['name'].endswith("_POLICY_DEFINITION")
@@ -88,9 +78,6 @@ def create_rule():
     )
     logger.info(f'Creating rule {rule_title}_{rule_target}_{rule_type}')
 
-    for name, value in CONFIG_VARS:
-        rule_body = rule_body.replace(f'{name}', value)
-
     # support for full queries with comments frontend sends comments
     rule_body = re.sub(r"^CREATE [^\n]+\n", "", rule_body, flags=re.I)
     m = re.match(r"^  COMMENT='((?:\\'|[^'])*)'\nAS\n", rule_body)
@@ -115,9 +102,6 @@ def create_rule():
             ).fetchall()
         except Exception:
             pass
-
-        if 'body' in data and 'savedBody' in data:
-            data['savedBody'] = replace_config_vals(rule_body)
 
         data['results'] = (
             list(db.fetch(ctx, f"SELECT * FROM {view_name};"))
