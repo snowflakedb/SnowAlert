@@ -82,9 +82,14 @@ def ingest_vulns(table_name):
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
         log.debug('TIO export vulns')
-        rows = [{'raw': v, 'export_at': timestamp} for v in TIO.exports.vulns()]
-        log.debug(f'got {len(rows)} vulns')
-        log.debug(f'e.g. {rows[0]}')
+
+        # insert empty row...
+        db.insert(f'data.{table_name}', [{'export_at': timestamp}])
+
+        # ...because this line takes awhile
+        vulns = TIO.exports.vulns()
+
+        rows = [{'raw': v, 'export_at': timestamp} for v in vulns]
         db.insert(f'data.{table_name}', rows)
 
     else:
