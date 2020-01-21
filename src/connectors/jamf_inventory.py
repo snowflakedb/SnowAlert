@@ -61,20 +61,20 @@ async def main(table_name):
         )
 
         log.info(f'inserting {len(computers)} computers into {table_name}')
-        db.insert(
-            table_name,
-            [
-                updated(
-                    c.get('computer'), computer_id=cid, recorded_at=c.get('recorded_at')
-                )
-                for cid, c in zip(cids, computers)
-            ],
-        )
+        rows = [
+            updated(
+                c.get('computer'), computer_id=cid, recorded_at=c.get('recorded_at')
+            )
+            for cid, c in zip(cids, computers)
+        ]
+        db.insert(table_name, rows)
+        return len(rows)
 
 
 def ingest(table_name, options):
     global HEADERS
     creds = options.get('credentials', '')
     HEADERS = {'Authorization': f'Basic {creds}', 'Accept': 'application/json'}
+    if options.get('run_now') or (now.hour % 2 == 0 and now.minute < 15):
+        return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
 
-    asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
