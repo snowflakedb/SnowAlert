@@ -96,12 +96,17 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             # 1) If not using OAuth, use the SA_* env variables with defaults to "snowalert" (see dbconfig.py)
             # 2) If using OAuth and OAUTH_CONNECTION_* env vars have been set, use these
             # 3) Else, use OAuth'd user's default namespace (see ALTER USER docs)
-
             account=oauth_account or ACCOUNT,
-            database=environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE,
+            database=environ.get('OAUTH_CONNECTION_DATABASE', None)
+            if oauth_account
+            else DATABASE,
             user=oauth_username or USER,
-            warehouse=environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE,
-            role=environ.get('OAUTH_CONNECTION_ROLE', None) if oauth_access_token else ROLE,
+            warehouse=environ.get('OAUTH_CONNECTION_WAREHOUSE', None)
+            if oauth_access_token
+            else WAREHOUSE,
+            role=environ.get('OAUTH_CONNECTION_ROLE', None)
+            if oauth_access_token
+            else ROLE,
             token=oauth_access_token,
             private_key=pk,
             authenticator=authenticator,
@@ -563,14 +568,12 @@ def create_table_and_upload_csv(
     execute(f"PUT file://{file_path} @{name}_stage")
     execute(f"COPY INTO {name} FROM (SELECT * FROM @{name}_stage)")
 
-def copy_file_to_table_stage(
-    table_name, file_path
-):
+
+def copy_file_to_table_stage(table_name, file_path):
     execute(f"PUT file://{file_path} @{DATA_SCHEMA}.%{table_name}")
 
-def load_from_table_stage(
-    table_name
-):
+
+def load_from_table_stage(table_name):
     execute(f"COPY INTO {DATA_SCHEMA}.{table_name} FROM @{DATA_SCHEMA}.%{table_name}")
 
 
@@ -611,7 +614,16 @@ def create_stage(
     execute(query, fix_errors=False)
 
 
-def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_role=None, stage_file_format=None, stage_copy_options=None):
+def create_table(
+    name,
+    cols,
+    replace=False,
+    comment='',
+    ifnotexists=False,
+    rw_role=None,
+    stage_file_format=None,
+    stage_copy_options=None,
+):
     if type(comment) is tuple:
         comment = '\n'.join(comment)
     comment = comment.replace("'", r"\'")
@@ -620,8 +632,12 @@ def create_table(name, cols, replace=False, comment='', ifnotexists=False, rw_ro
     comment = f"\nCOMMENT='{comment}' "
     ifnotexists = 'IF NOT EXISTS ' if ifnotexists else ''
     columns = '(' + ', '.join(f'{a} {b}' for a, b in cols) + ')'
-    stage_file_format_clause = f' STAGE_FILE_FORMAT = ({stage_file_format})' if stage_file_format else ''
-    stage_copy_options_clause = f' STAGE_COPY_OPTIONS = ({stage_copy_options})' if stage_copy_options else ''
+    stage_file_format_clause = (
+        f' STAGE_FILE_FORMAT = ({stage_file_format})' if stage_file_format else ''
+    )
+    stage_copy_options_clause = (
+        f' STAGE_COPY_OPTIONS = ({stage_copy_options})' if stage_copy_options else ''
+    )
     query = f"CREATE {replace}TABLE {ifnotexists}{name}{columns}{stage_file_format_clause}{stage_copy_options_clause}{comment}"
     execute(query, fix_errors=False)
 
