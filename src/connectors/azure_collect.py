@@ -1,7 +1,7 @@
 """Azure Inventory and Configuration
 Load Inventory and Configuration of accounts using Service Principals
 """
-
+from datetime import datetime
 from dateutil.parser import parse as parse_date
 import fire
 import json
@@ -1194,6 +1194,7 @@ def ingest(table_name, options, dryrun=False):
         table_prefix = f'data.azure_collect{table_name_part}'
 
         def load_table(kind, **params):
+            nonlocal num_loaded
             values = GET(kind, params, cred=cred)
             kind = 'connection' if kind == 'subscriptions' else kind
             table_name = f'{table_prefix}_{kind}'
