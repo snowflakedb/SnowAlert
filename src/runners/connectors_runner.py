@@ -16,6 +16,17 @@ from runners.helpers import db, log, vault
 from runners.config import RUN_ID, DC_METADATA_TABLE, DC_POOLSIZE
 
 
+def do_ingest(connector, table_name, options):
+    ingested = connector.ingest(table_name, options)
+    return (
+        sum(ingested)
+        if isinstance(ingested, GeneratorType)
+        else ingested
+        if isinstance(ingested, int)
+        else None
+    )
+
+
 def connection_run(connection_table):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
@@ -29,12 +40,7 @@ def connection_run(connection_table):
             module = options['module']
 
             metadata.update(
-                {
-                    'RUN_ID': RUN_ID,
-                    'TYPE': module,
-                    'LANDING_TABLE': table_name,
-                    'INGEST_COUNT': 0,
-                }
+                {'RUN_ID': RUN_ID, 'TYPE': module, 'LANDING_TABLE': table_name}
             )
 
             connector = importlib.import_module(f"connectors.{module}")
@@ -52,14 +58,12 @@ def connection_run(connection_table):
                     options[name] = int(options[name])
 
             if callable(getattr(connector, 'ingest', None)):
-                ingested = connector.ingest(table_name, options)
-                if isinstance(ingested, int):
-                    metadata['INGEST_COUNT'] += ingested
-                elif isinstance(ingested, GeneratorType):
-                    for n in ingested:
-                        metadata['INGEST_COUNT'] += n
+                db.record_metadata(metadata, table=DC_METADATA_TABLE)
+                result = do_ingest(connector, table_name, options)
+                if result is not None:
+                    metadata['INGEST_COUNT'] = result
                 else:
-                    metadata['INGESTED'] = ingested
+                    metadata['INGESTED'] = result
 
             db.record_metadata(metadata, table=DC_METADATA_TABLE)
 

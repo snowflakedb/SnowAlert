@@ -1186,8 +1186,9 @@ def ingest(table_name, options, dryrun=False):
 
     if options.get('schedule', '*') != '*':
         log.info('not time yet')
-        return
+        return 0
 
+    num_loaded = 0
     for cred in options['credentials']:
         table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
         table_prefix = f'data.azure_collect{table_name_part}'
@@ -1197,6 +1198,7 @@ def ingest(table_name, options, dryrun=False):
             kind = 'connection' if kind == 'subscriptions' else kind
             table_name = f'{table_prefix}_{kind}'
             result = db.insert(table_name, values, dryrun=dryrun)
+            num_loaded += len(values)
             log.info(f'-> {table_name} {result}')
             return values
 
@@ -1249,6 +1251,8 @@ def ingest(table_name, options, dryrun=False):
                 if 'name' in v:
                     load_table('vaults_keys', vaultName=v['name'])
                     load_table('vaults_secrets', vaultName=v['name'])
+
+    return num_loaded
 
 
 def main(table_name, tenant, client, secret, cloud, dryrun=True, run_now=False):
