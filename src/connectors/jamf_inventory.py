@@ -3,6 +3,7 @@ import aiohttp
 import json
 from json.decoder import JSONDecodeError
 from random import random
+from datetime import datetime
 from dateutil.parser import parse as parse_date
 
 from connectors.utils import updated
@@ -75,6 +76,7 @@ def ingest(table_name, options):
     global HEADERS
     creds = options.get('credentials', '')
     HEADERS = {'Authorization': f'Basic {creds}', 'Accept': 'application/json'}
+    now = datetime.now()
     if options.get('run_now') or (now.hour % 2 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
 
