@@ -1,6 +1,12 @@
 """AWS Asset Inventory
 Collect AWS EC2, SG, ELB, AMI, and IAM assets using an Access Key or Role
+
+!! DEPRECTATED !!
+please set up aws_collect, instead, and reach out if you need something
+it does not provide (e.g. limits on what is collected)
 """
+
+
 from datetime import datetime
 import json
 

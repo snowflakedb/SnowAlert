@@ -1,8 +1,6 @@
-from . import aws_accounts
 from . import aws_cloudtrail
 from . import aws_collect
 from . import aws_flow_log
-from . import aws_inventory
 from . import azure_collect
 from . import azure_log
 from . import github_webhooks_s3
@@ -41,11 +39,9 @@ __all__ = [
 ]
 
 connectors = {
-    'aws_accounts': aws_accounts,
     'aws_cloudtrail': aws_cloudtrail,
     'aws_collect': aws_collect,
     'aws_flow_log': aws_flow_log,
-    'aws_inventory': aws_inventory,
     'azure_collect': azure_collect,
     'azure_log': azure_log,
     'github_webhooks_s3': github_webhooks_s3,

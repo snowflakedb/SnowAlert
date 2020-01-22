@@ -1,5 +1,8 @@
 """Azure Subscription Inventory
 Collect Azure Subscriptions using a Service Principal (SP)
+
+!! DEPRECATED !!
+please use azure_collect instead
 """
 
 from dateutil.parser import parse

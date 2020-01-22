@@ -1,5 +1,9 @@
 """AWS Account List
 Collects the AWS Accounts in your Organization
+
+!! DEPRECTATED !!
+please set up aws_collect, instead, and reach out if you need something
+it does not provide (e.g. limits on what is collected)
 """
 
 from runners.helpers import db

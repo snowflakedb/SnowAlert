@@ -1,5 +1,8 @@
 """Azure VM Inventory
 Collect Azure VM Inventory using an SP and Subscription Inventory
+
+!! DEPRECATED !!
+please use azure_collect instead
 """
 
 from azure.common.client_factory import get_client_from_json_dict
