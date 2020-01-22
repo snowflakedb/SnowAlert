@@ -1095,6 +1095,7 @@ async def aioingest(table_name, options, dryrun=False):
         if type(oids) is int
         else oids
     )
+    num_entries = 0
     for oid in oids:
         master_reader_arn = (
             options.get('master_reader_arn')
@@ -1131,6 +1132,8 @@ async def aioingest(table_name, options, dryrun=False):
             table_name=f'data.{table_name}',
             dryrun=dryrun,
         )
+        num_entries += len(accounts)
+
         if options.get('collect_apis') == 'all':
             collection_tasks = [
                 CollectTask(a['id'], method, {})
@@ -1157,7 +1160,6 @@ async def aioingest(table_name, options, dryrun=False):
             def add_task(t):
                 collection_tasks.append(t)
 
-            num_entries = 0
             while collection_tasks:
                 coroutines = [
                     aws_collect_task(
@@ -1179,9 +1181,7 @@ async def aioingest(table_name, options, dryrun=False):
                     num_entries += len(vs)
                     log.info(f'finished {name} {response}')
 
-            return num_entries
-
-    return 0
+    return num_entries
 
 
 def ingest(table_name, options, dryrun=False):

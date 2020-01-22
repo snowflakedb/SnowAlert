@@ -91,9 +91,11 @@ def ingest_vulns(table_name):
 
         rows = [{'raw': v, 'export_at': timestamp} for v in vulns]
         db.insert(f'data.{table_name}', rows)
+        return len(rows)
 
     else:
         log.info('Not time to import Tenable vulnerabilities yet')
+        return 0
 
 
 def ingest_users(table_name):
@@ -142,6 +144,8 @@ def ingest_users(table_name):
         """,
     )
 
+    return len(users)
+
 
 def get_agent_data():
     scanners = list(GET('scanners'))
@@ -167,8 +171,10 @@ def ingest_agents(table_name, options):
         rows = [{'raw': ua, 'export_at': timestamp} for ua in unique_agents]
         log.debug(f'inserting {len(unique_agents)} unique (by uuid) agents')
         db.insert(f'data.{table_name}', rows)
+        return len(rows)
     else:
         log.info('Not time to import Tenable Agents')
+        return 0
 
 
 def connect(connection_name, options):
@@ -224,11 +230,11 @@ def ingest(table_name, options):
         if total > limit + offset:
             yield from GET(resource, key, limit, offset + limit)
 
-    if table_name.endswith('USER_CONNECTION'):
-        ingest_users(table_name)
+    if table_name.endswith('_USER_CONNECTION'):
+        return ingest_users(table_name)
 
-    elif table_name.endswith('AGENT_CONNECTION'):
-        ingest_agents(table_name, options)
+    elif table_name.endswith('_AGENT_CONNECTION'):
+        return ingest_agents(table_name, options)
 
-    elif table_name.endswith('VULN_CONNECTION'):
-        ingest_vulns(table_name)
+    elif table_name.endswith('_VULN_CONNECTION'):
+        return ingest_vulns(table_name)
