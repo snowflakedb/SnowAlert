@@ -519,10 +519,12 @@ def record_metadata(metadata, table, e=None):
         'ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0}
     )
 
-    metadata['END_TIME'] = datetime.utcnow()
-    metadata['DURATION'] = str(metadata['END_TIME'] - metadata['START_TIME'])
     metadata['START_TIME'] = str(metadata['START_TIME'])
-    metadata['END_TIME'] = str(metadata['END_TIME'])
+    metadata['END_TIME'] = str(datetime.utcnow())
+    metadata['DURATION'] = (
+        datetime.fromisoformat(metadata['END_TIME'])
+        - datetime.fromisoformat(metadata['START_TIME'])
+    ).total_seconds()
 
     record_type = metadata.get('QUERY_NAME', 'RUN')
 
