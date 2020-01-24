@@ -3,21 +3,17 @@ import enUS from 'antd/lib/locale-provider/en_US';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
-import {ConnectedRouter} from 'connected-react-router';
 import SnowAlertWebUI from './App';
 import './index.css';
 import {unregister} from './registerServiceWorker';
 import {store} from './store';
-import {history} from './store/history';
 
 const render = () =>
   ReactDOM.render(
     <Provider store={store}>
-      <ConnectedRouter history={history}>
-        <ConfigProvider locale={enUS}>
-          <SnowAlertWebUI />
-        </ConfigProvider>
-      </ConnectedRouter>
+      <ConfigProvider locale={enUS}>
+        <SnowAlertWebUI />
+      </ConfigProvider>
     </Provider>,
     document.getElementById('root'),
   );

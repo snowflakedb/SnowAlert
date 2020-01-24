@@ -15,6 +15,7 @@ import {
   State,
 } from './types';
 import {Connector} from '../store/data';
+import {navigate} from '@reach/router';
 
 export const initialState: SADataState = {
   isFetching: false,
@@ -34,7 +35,7 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       };
     }
     case LOAD_SA_DATA_FAILURE: {
-      window.location.href = '/login';
+      navigate('/login');
       break;
     }
     case LOAD_SA_DATA_SUCCESS: {

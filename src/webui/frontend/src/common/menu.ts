@@ -33,26 +33,6 @@ const menuData: stateTypes.MenuData = [
       }
     : null,
   {
-    name: 'User',
-    icon: 'user',
-    path: 'user',
-    hideInMenu: true,
-    children: [
-      {
-        name: 'Login',
-        path: 'login',
-      },
-      {
-        name: 'Register',
-        path: 'register',
-      },
-      {
-        name: 'Register Result',
-        path: 'register-result',
-      },
-    ],
-  },
-  {
     name: 'Exception',
     icon: 'exception',
     path: 'exception',

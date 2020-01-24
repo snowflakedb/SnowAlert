@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {RouterState} from 'connected-react-router';
 import {Connector} from '../store/data';
 import {Policy, Query, Suppression} from '../store/rules';
 
@@ -41,10 +40,6 @@ export interface OrganizationState {
   readonly errorMessage: string | null;
   readonly isFetching: boolean;
   readonly details: Organization | null;
-}
-
-export interface ViewportState {
-  readonly viewport: string;
 }
 
 export interface SnowAlertRule {
@@ -107,9 +102,7 @@ export interface SADataState {
 }
 
 export interface State {
-  readonly router: RouterState;
   readonly auth: AuthState;
-  readonly viewport: ViewportState;
   readonly rules: SnowAlertRulesState;
   readonly data: SADataState;
 }

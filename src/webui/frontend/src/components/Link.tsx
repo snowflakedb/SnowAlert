@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-import {setViewport} from '../actions/viewport';
+import {navigate} from '@reach/router';
 
 interface OwnProps {
   route: string;
@@ -11,9 +11,7 @@ interface OwnProps {
   style?: React.CSSProperties;
 }
 
-interface DispatchProps {
-  setViewport: typeof setViewport;
-}
+interface DispatchProps {}
 
 type LinkProps = OwnProps & DispatchProps;
 
@@ -24,7 +22,7 @@ const onClick = (event: React.MouseEvent<HTMLAnchorElement>, props: LinkProps) =
   if (props.onClick) {
     props.onClick(event);
   }
-  props.setViewport(props.route);
+  navigate(props.route);
 };
 
 const Link = (props: LinkProps) => (
@@ -43,16 +41,8 @@ const mapStateToProps = () => {
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {
-  return bindActionCreators(
-    {
-      setViewport,
-    },
-    dispatch,
-  );
+  return bindActionCreators({}, dispatch);
 };
 
-const ConnectedLink = connect<void, DispatchProps>(
-  mapStateToProps,
-  mapDispatchToProps,
-)(Link);
+const ConnectedLink = connect<void, DispatchProps>(mapStateToProps, mapDispatchToProps)(Link);
 export default ConnectedLink;
