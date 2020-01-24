@@ -72,7 +72,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
           <div className={'main'}>
             <h2>Acquiring Access Token</h2>
             <h5>Buckle up your seatbelt, Dorothy</h5>
-            <Icon type="loading" style={{marginLeft: 250, marginTop: 50}} />
+            <Icon type="loading" style={{marginLeft: 190, marginTop: 50}} />
           </div>
         ) : (
           <div className={'main'}>

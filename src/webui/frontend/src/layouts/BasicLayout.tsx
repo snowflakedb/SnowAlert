@@ -4,15 +4,11 @@ import DocumentTitle from 'react-document-title';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 import logo from '../assets/logo.png';
-import {setViewport} from '../actions/viewport';
 import {getMenuData} from '../common/menu';
-import AuthorizedRoute from '../components/AuthorizedRoute';
 import {GlobalFooter} from '../components/GlobalFooter';
 import {GlobalHeader} from '../components/GlobalHeader';
 import {DrawerSiderMenu} from '../components/SiderMenu';
-import * as routes from '../constants/routes';
 import * as stateTypes from '../reducers/types';
-import {getViewport} from '../reducers/viewport';
 import {enquireScreen, unenquireScreen} from '../utils/media';
 
 const {Content} = Layout;
@@ -23,16 +19,14 @@ enquireScreen(result => {
 });
 
 interface OwnProps {
-  routerData: stateTypes.RouterData;
+  routerData?: stateTypes.RouterData;
+  children: any;
+  path?: string;
 }
 
-interface StateProps {
-  viewport: stateTypes.ViewportState;
-}
+interface StateProps {}
 
-type DispatchProps = {
-  setViewport: typeof setViewport;
-};
+type DispatchProps = {};
 
 type BasicLayoutProps = OwnProps & StateProps & DispatchProps;
 
@@ -55,32 +49,10 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
         isMobile: mobile,
       });
     });
-
-    const {viewport} = this.props.viewport;
-
-    // Handle default.
-    if (viewport === '/') {
-      this.props.setViewport(routes.CONNECTORS);
-    } else if (!this.props.routerData[viewport]) {
-      // Handle invalid routes.
-      this.props.setViewport(routes.NOT_FOUND_ERROR);
-    }
   }
 
   componentWillUnmount() {
     unenquireScreen(this.enquireHandler);
-  }
-
-  getPageTitle() {
-    const {routerData} = this.props;
-    const {viewport} = this.props.viewport;
-
-    let title = 'SnowAlert';
-    const viewportData = routerData[viewport];
-    if (viewportData && viewportData.name) {
-      title = `${viewportData.name} - ${title}`;
-    }
-    return title;
   }
 
   handleMenuCollapse = (menuCollapsed: boolean) => {
@@ -90,11 +62,9 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
   };
 
   render() {
-    const {routerData} = this.props;
-    const content = routerData[this.props.viewport.viewport];
+    const {children} = this.props;
 
-    // Don't render anything, and wait for the 404 page redirect to happen.
-    if (!content) {
+    if (!children) {
       return false;
     }
 
@@ -113,31 +83,22 @@ class BasicLayout extends React.PureComponent<BasicLayoutProps, State> {
             isMobile={this.state.isMobile}
             onMenuCollapse={this.handleMenuCollapse}
           />
-          <Content style={{margin: '24px 24px 0', height: '100%'}}>
-            <AuthorizedRoute component={content.component} roles={content.roles} />
-          </Content>
+          <Content style={{margin: '24px 24px 0', height: '100%'}}>{children}</Content>
           <GlobalFooter copyright={<div />} />
         </Layout>
       </Layout>
     );
 
-    return <DocumentTitle title={this.getPageTitle()}>{layout}</DocumentTitle>;
+    return <DocumentTitle title={'SnowAlert'}>{layout}</DocumentTitle>;
   }
 }
 
 const mapStateToProps = (state: stateTypes.State) => {
-  return {
-    viewport: getViewport(state),
-  };
+  return {};
 };
 
 const mapDispatchToProps = (dispatch: Dispatch) => {
-  return bindActionCreators(
-    {
-      setViewport,
-    },
-    dispatch,
-  );
+  return bindActionCreators({}, dispatch);
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BasicLayout);

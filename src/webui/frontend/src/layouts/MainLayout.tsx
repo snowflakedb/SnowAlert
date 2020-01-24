@@ -1,38 +1,22 @@
 import * as React from 'react';
 import {connect} from 'react-redux';
-import {getRouterData} from '../common/router';
-import AuthorizedRoute from '../components/AuthorizedRoute';
-import * as roles from '../constants/roles';
-import * as routes from '../constants/routes';
 import * as stateTypes from '../reducers/types';
-import {getViewport} from '../reducers/viewport';
 
 interface StateProps {
-  viewport: stateTypes.ViewportState;
+  component: any;
+  path: string;
 }
 
 type MainLayoutProps = StateProps;
 
 const MainLayout = (props: MainLayoutProps) => {
-  const routerData = getRouterData();
-  const LoginLayout = routerData[routes.LOGIN].component;
-  const BasicLayout = routerData[routes.DEFAULT].component;
+  const Component = props.component;
 
-  const layout = '/' + props.viewport.viewport.split('/')[1];
-
-  switch (layout) {
-    case routes.LOGIN:
-      return <LoginLayout />;
-    default:
-      return <AuthorizedRoute component={BasicLayout} roles={[roles.USER, roles.ADMIN]} />;
-  }
+  return <Component />;
 };
 
 const mapStateToProps = (state: stateTypes.State) => {
-  return {
-    viewport: getViewport(state),
-  };
+  return {};
 };
 
-const ConnectedMainLayout = connect(mapStateToProps)(MainLayout);
-export default ConnectedMainLayout;
+export default connect(mapStateToProps)(MainLayout);

@@ -57,14 +57,6 @@ export const login = (email: string, password: string, remember: boolean) =>
     .then(handleResponse)
     .catch(handleError);
 
-export const validateToken = async (token: string) => 'authentication-override';
-// axios
-//   .post(`${BACKEND_URL}/user/validate`, {
-//     token,
-//   })
-//   .then(handleResponse)
-//   .catch(handleError);
-
 export const register = (name: string, email: string, organizationId: number, password: string) =>
   axios
     .post(`${BACKEND_URL}/user`, {

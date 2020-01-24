@@ -1,13 +1,11 @@
 import {Icon, Layout, Menu} from 'antd';
 import * as _ from 'lodash';
-import {pathToRegexp} from 'path-to-regexp';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import * as routes from '../../constants/routes';
 import {getAuthDetails} from '../../reducers/auth';
 import * as stateTypes from '../../reducers/types';
-import {getViewport} from '../../reducers/viewport';
-import Link from '../Link';
+import {Link} from '@reach/router';
 import './SiderMenu.css';
 
 const {Sider} = Layout;
@@ -37,64 +35,19 @@ interface OwnProps {
 
 interface StateProps {
   auth: stateTypes.AuthDetails;
-  viewport: stateTypes.ViewportState;
 }
 
 type SiderMenuProps = OwnProps & StateProps;
 
-type State = {
-  openKeys: string[];
-};
+type State = {};
 
 class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
   constructor(props: SiderMenuProps) {
     super(props);
-    this.state = {
-      openKeys: this.getDefaultCollapsedSubMenus(props.viewport.viewport),
-    };
+    this.state = {};
   }
 
-  componentDidUpdate(prevProps: SiderMenuProps) {
-    const prevPathname = prevProps.viewport.viewport;
-    const nextPathname = this.props.viewport.viewport;
-
-    if (prevPathname !== nextPathname) {
-      this.setState({
-        openKeys: this.getDefaultCollapsedSubMenus(nextPathname),
-      });
-    }
-  }
-
-  /**
-   * Convert pathname to openKeys
-   * /list/search/articles = > ['list','/list/search']
-   */
-  getDefaultCollapsedSubMenus(pathname: string) {
-    // eg. /list/search/articles = > ['','list','search','articles']
-    let snippets = pathname.split('/');
-    // Delete the end
-    // eg.  delete 'articles'
-    snippets.pop();
-    // Delete the head
-    // eg. delete ''
-    snippets.shift();
-    // eg. After the operation is completed, the array should be ['list','search']
-    // eg. Forward the array as ['list','list/search']
-    snippets = snippets.map((item, index) => {
-      // If the array length > 1
-      if (index > 0) {
-        // eg. search => ['list','search'].join('/')
-        return snippets.slice(0, index + 1).join('/');
-      }
-      // index 0 to not do anything
-      return item;
-    });
-    snippets = snippets.map(item => {
-      return this.getSelectedMenuKeys(`/${item}`)[0];
-    });
-    // eg. ['list','list/search']
-    return snippets;
-  }
+  componentDidUpdate(prevProps: SiderMenuProps) {}
 
   /**
    * Recursively flatten the data
@@ -117,17 +70,6 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
   }
 
   /**
-   * Get selected child nodes
-   * /user/chen => /user/:id
-   */
-  getSelectedMenuKeys = (path: string) => {
-    const flatMenuKeys = this.getFlatMenuKeys(this.props.menuData);
-    return flatMenuKeys.filter(item => {
-      return pathToRegexp(`/${item}`).test(path);
-    });
-  };
-
-  /**
    * Judge whether it is http link.return a or Link
    */
   getMenuItemPath = (item: stateTypes.MenuItem) => {
@@ -137,21 +79,14 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
     // Is it a http link
     if (/^https?:\/\//.test(itemPath)) {
       return (
-        <Link route={itemPath}>
+        <Link to={itemPath}>
           {icon}
           <span>{name}</span>
         </Link>
       );
     }
     return (
-      <Link
-        route={itemPath}
-        onClick={() => {
-          if (this.props.isMobile) {
-            this.props.onCollapse(true);
-          }
-        }}
-      >
+      <Link to={itemPath}>
         {icon}
         <span>{name}</span>
       </Link>
@@ -210,30 +145,13 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
     return ItemDom;
   };
 
-  handleOpenChange = (openKeys: string[]) => {
-    const lastOpenKey = openKeys[openKeys.length - 1];
-    const isMainMenu = this.props.menuData.some(
-      item => !_.isNil(lastOpenKey) && (item.key === lastOpenKey || item.path === lastOpenKey),
-    );
-    this.setState({
-      openKeys: isMainMenu ? [lastOpenKey] : [...openKeys],
-    });
-  };
-
   render() {
-    const {logo, collapsed, menuData, viewport, onCollapse} = this.props;
-    const {openKeys} = this.state;
+    const {logo, collapsed, menuData, onCollapse} = this.props;
     // Don't show popup menu when it is been collapsed
-    const menuProps = collapsed
-      ? {}
-      : {
-          openKeys,
-        };
+    const menuProps = collapsed ? {} : {};
+
+    // selectedKeys={selectedKeys}
     // if pathname can't match, use the nearest parent's key
-    let selectedKeys = this.getSelectedMenuKeys(viewport.viewport);
-    if (!selectedKeys.length) {
-      selectedKeys = [openKeys[openKeys.length - 1]];
-    }
     return (
       <Sider
         trigger={null}
@@ -245,20 +163,12 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
         className={'sider'}
       >
         <div className={'menu-logo'}>
-          <Link route={routes.DEFAULT}>
+          <Link to={routes.DEFAULT}>
             {logo && <img src={logo} alt="logo" />}
             <h1>SnowAlert</h1>
           </Link>
         </div>
-        <Menu
-          key="Menu"
-          theme="dark"
-          mode="inline"
-          {...menuProps}
-          onOpenChange={this.handleOpenChange}
-          selectedKeys={selectedKeys}
-          style={{padding: '16px 0', width: '100%'}}
-        >
+        <Menu key="Menu" theme="dark" mode="inline" {...menuProps} style={{padding: '16px 0', width: '100%'}}>
           {this.getNavMenuItems(menuData)}
         </Menu>
       </Sider>
@@ -269,7 +179,6 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
 const mapStateToProps = (state: stateTypes.State) => {
   return {
     auth: getAuthDetails(state),
-    viewport: getViewport(state),
   };
 };
 

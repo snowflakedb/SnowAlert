@@ -2,6 +2,7 @@ import {Reducer} from 'redux';
 import * as RulesActions from '../actions/rules';
 import {SnowAlertRule, SnowAlertRulesState, State} from './types';
 import {Query, Policy, Subpolicy, Suppression} from '../store/rules';
+import {navigate} from '@reach/router';
 
 export const initialState: SnowAlertRulesState = {
   currentRuleView: null,
@@ -115,7 +116,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
         isFetching: false,
       };
     case RulesActions.LOAD_SNOWALERT_RULES_FAILURE: {
-      window.location.href = '/login';
+      navigate('/login');
       break;
     }
 
