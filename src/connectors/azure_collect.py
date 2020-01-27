@@ -996,6 +996,7 @@ API_SPECS = {
                 'azure': '{accountName}.blob.core.windows.net',
                 'usgov': '{accountName}.blob.core.usgovcloudapi.net',
             },
+            'auth_audience': 'storage.azure.com',
             'api-version': '2019-02-02',
         },
         'response_value_key': 'EnumerationResults.Containers.Container',
