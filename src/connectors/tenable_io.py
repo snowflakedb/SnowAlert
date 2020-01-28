@@ -214,6 +214,10 @@ def ingest(table_name, options):
             params={'limit': limit, 'offset': offset},
             headers={"X-ApiKeys": f"accessKey={token}; secretKey={secret}"},
         )
+        if response.status_code != 200:
+            log.info(f'response status {response.status_code}: {response.text}')
+            return
+
         result = response.json()
         elements = result.get(key)
 
