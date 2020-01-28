@@ -218,7 +218,13 @@ def login(configuration=None):
     else:
         print(f"Loaded password: {'*' * len(password)}")
 
-    connect_kwargs = {'user': username, 'account': account, 'protocol': PROTOCOL, 'port': PORT}
+    connect_kwargs = {
+        'user': username,
+        'account': account,
+        'port': configuration.get('port', PORT),
+        'protocol': configuration.get('protocol', PROTOCOL),
+    }
+
     if password == '':
         connect_kwargs['authenticator'] = 'externalbrowser'
     else:
@@ -493,6 +499,8 @@ def main(
     jira=None,
     config_account=None,
     config_region=None,
+    config_port=None,
+    config_protocol=None,
     config_username=None,
     config_password=None,
     connection_name=None,
@@ -510,7 +518,11 @@ def main(
         connection_name
         if connection_name is not None
         else {
-            'region': config_region or environ.get('SNOWFLAKE_REGION', environ.get('REGION')),
+            'region': (
+                config_region or environ.get('SNOWFLAKE_REGION', environ.get('REGION'))
+            ),
+            'port': config_port or environ.get('SNOWFLAKE_PORT'),
+            'protocol': config_protocol or environ.get('SNOWFLAKE_PROTOCOL'),
             'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
             'username': config_username or environ.get('SA_ADMIN_USER'),
             'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
@@ -571,7 +583,10 @@ def main(
             f"ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'",
         )
     else:
-        print("Please ask account admin to run:\n\n", f"  ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'")
+        print(
+            "Please ask account admin to run:\n\n",
+            f"  ALTER USER {USER} SET rsa_public_key='{rsa_public_key}'",
+        )
 
     aws_key, aws_secret = load_aws_config()
 
