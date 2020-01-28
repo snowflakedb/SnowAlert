@@ -1,7 +1,5 @@
 import axios, {AxiosError, AxiosResponse} from 'axios';
-// import {logoutAndRedirect} from './actions/auth';
 import {SnowAlertRule} from './reducers/types';
-// import {store} from './store';
 
 const BACKEND_URL = '/api/v1';
 
@@ -34,10 +32,6 @@ const handleResponse = (response: AxiosResponse) => {
 const handleError = (error: AxiosError) => {
   if (error.response) {
     const status = error.response.status;
-
-    // if (status === 401) {
-    //   store.dispatch(logoutAndRedirect());
-    // }
 
     const actualError = error.response.data.error;
     if (actualError) {

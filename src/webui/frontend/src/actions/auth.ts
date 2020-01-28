@@ -3,7 +3,7 @@ import * as api from '../api';
 import * as routes from '../constants/routes';
 import {createAction} from './action-helpers';
 import {ActionsUnion} from './types';
-import {navigate} from '@reach/router';
+import {navigate} from '../store/history';
 
 export const LOGIN_REQUEST = 'LOGIN_REQUEST';
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
@@ -13,17 +13,12 @@ export const OAUTH_RETURN_REQUEST = 'OAUTH_RETURN_REQUEST';
 export const OAUTH_RETURN_SUCCESS = 'OAUTH_RETURN_SUCCESS';
 export const OAUTH_RETURN_FAILURE = 'OAUTH_RETURN_FAILURE';
 
-export const OAUTH_REDIRECT_REQUEST = 'OAUTH_REDIRECT_REQUEST';
 export const OAUTH_REDIRECT_SUCCESS = 'OAUTH_REDIRECT_SUCCESS';
-export const OAUTH_REDIRECT_FAILURE = 'OAUTH_REDIRECT_FAILURE';
 
 export const LoginActions = {
   loginRequest: () => createAction(LOGIN_REQUEST),
   loginSuccess: (token: string) => createAction(LOGIN_SUCCESS, token),
   loginFailure: (errorMessage: string) => createAction(LOGIN_FAILURE, errorMessage),
-
-  oauthRedirectRequest: (redirectArgs: {account: string}) => createAction(OAUTH_REDIRECT_REQUEST, redirectArgs),
-  oauthRedirectFailure: (errorMessage: string) => createAction(OAUTH_REDIRECT_FAILURE, errorMessage),
 
   oauthReturnRequest: (returnArgs: {code: string; account: string}) => createAction(OAUTH_RETURN_REQUEST, returnArgs),
   oauthReturnSuccess: (auth: any) => createAction(OAUTH_RETURN_SUCCESS, auth),
@@ -40,7 +35,7 @@ export const oauthRedirect = (account: string, returnHref: string) => async (dis
       navigate(response.url);
     }
   } catch (error) {
-    dispatch(LoginActions.oauthRedirectFailure(error.message));
+    console.log(error);
   }
 };
 

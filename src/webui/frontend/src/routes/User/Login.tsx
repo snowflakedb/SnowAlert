@@ -5,6 +5,7 @@ import {bindActionCreators, Dispatch} from 'redux';
 import {oauthLogin, oauthRedirect} from '../../actions/auth';
 import * as stateTypes from '../../reducers/types';
 import './Login.css';
+import {Location} from '@reach/router';
 
 interface OwnProps {
   errorMessage: string;
@@ -78,30 +79,34 @@ class LoginForm extends React.Component<LoginFormProps, State> {
           <div className={'main'}>
             <h2>Sign in to your account</h2>
             <h5>Enter your account's Snowflake URL</h5>
-            <Form className={'login'} onSubmit={this.login}>
-              <Form.Item>
-                {getFieldDecorator('account', {
-                  initialValue: account || '',
-                  rules: [
-                    {
-                      required: true,
-                      message: 'Enter your account name',
-                    },
-                  ],
-                })(
-                  <Input
-                    prefix={<Icon className={'prefix-icon'} type={'api'} />}
-                    placeholder={'your-account-url'}
-                    addonAfter={'.snowflakecomputing.com'}
-                  />,
-                )}
-              </Form.Item>
-              <Form.Item style={{marginBottom: '12px'}}>
-                <Button type={'primary'} size={'large'} htmlType={'submit'} className={'form-button'}>
-                  Continue &rarr;
-                </Button>
-              </Form.Item>
-            </Form>
+            <Location>
+              {({navigate}) => (
+                <Form className={'login'} onSubmit={e => this.login(e)}>
+                  <Form.Item>
+                    {getFieldDecorator('account', {
+                      initialValue: account || '',
+                      rules: [
+                        {
+                          required: true,
+                          message: 'Enter your account name',
+                        },
+                      ],
+                    })(
+                      <Input
+                        prefix={<Icon className={'prefix-icon'} type={'api'} />}
+                        placeholder={'your-account-url'}
+                        addonAfter={'.snowflakecomputing.com'}
+                      />,
+                    )}
+                  </Form.Item>
+                  <Form.Item style={{marginBottom: '12px'}}>
+                    <Button type={'primary'} size={'large'} htmlType={'submit'} className={'form-button'}>
+                      Continue &rarr;
+                    </Button>
+                  </Form.Item>
+                </Form>
+              )}
+            </Location>
           </div>
         )}
       </div>
