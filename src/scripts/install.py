@@ -221,8 +221,8 @@ def login(configuration=None):
     connect_kwargs = {
         'user': username,
         'account': account,
-        'port': configuration.get('port', PORT),
-        'protocol': configuration.get('protocol', PROTOCOL),
+        'port': config.get('port') or PORT,
+        'protocol': config.get('protocol') or PROTOCOL,
     }
 
     if password == '':
