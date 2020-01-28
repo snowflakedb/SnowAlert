@@ -7,18 +7,23 @@ import SnowAlertWebUI from './App';
 import './index.css';
 import {unregister} from './registerServiceWorker';
 import {store} from './store';
+import {history} from './store/history';
+import {LocationProvider} from '@reach/router';
+
+export const {navigate} = history;
 
 const render = () =>
   ReactDOM.render(
     <Provider store={store}>
       <ConfigProvider locale={enUS}>
-        <SnowAlertWebUI />
+        <LocationProvider history={history}>
+          <SnowAlertWebUI />
+        </LocationProvider>
       </ConfigProvider>
     </Provider>,
     document.getElementById('root'),
   );
 
-// We first render the application
 render();
 unregister();
 

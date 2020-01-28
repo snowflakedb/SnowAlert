@@ -2,7 +2,7 @@ import {Reducer} from 'redux';
 import * as RulesActions from '../actions/rules';
 import {SnowAlertRule, SnowAlertRulesState, State} from './types';
 import {Query, Policy, Subpolicy, Suppression} from '../store/rules';
-import {navigate} from '@reach/router';
+import {navigate} from '../store/history';
 
 export const initialState: SnowAlertRulesState = {
   currentRuleView: null,

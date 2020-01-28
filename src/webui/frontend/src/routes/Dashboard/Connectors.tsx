@@ -6,7 +6,7 @@ import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
 import {loadSAData, newConnection, finalizeConnection, testConnection, dismissErrorMessage} from '../../actions/data';
 import BasicLayout from '../../layouts/BasicLayout';
-import {navigate} from '@reach/router';
+import {navigate} from '../../store/history';
 
 import './Connectors.css';
 
@@ -58,7 +58,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         optionValues: Object.fromEntries(entries),
       });
     }
-    navigate(`/dashboard/connectors/${name || ''}`);
+    navigate('/dashboard/connectors' + (name ? `/${name}` : ''));
   }
 
   findConnector(name: string | null = null) {

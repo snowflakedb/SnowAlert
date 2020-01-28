@@ -15,7 +15,7 @@ import {
   State,
 } from './types';
 import {Connector} from '../store/data';
-import {navigate} from '@reach/router';
+import {navigate} from '../store/history';
 
 export const initialState: SADataState = {
   isFetching: false,

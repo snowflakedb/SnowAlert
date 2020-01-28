@@ -9,33 +9,33 @@ const menuData: stateTypes.MenuData = [
   {
     name: 'Data Connectors',
     icon: 'api',
-    path: 'dashboard/connectors',
+    path: '/dashboard/connectors',
     roles: [roles.ADMIN, roles.USER],
   },
   {
     name: 'Alerts',
     icon: 'alert',
-    path: 'dashboard/alerts',
+    path: '/dashboard/alerts',
     roles: [roles.ADMIN, roles.USER],
   },
   {
     name: 'Violations',
     icon: 'eye',
-    path: 'dashboard/violations',
+    path: '/dashboard/violations',
     roles: [roles.ADMIN, roles.USER],
   },
   localStorage.getItem('enable_policies')
     ? {
         name: 'Policies',
         icon: 'file-done',
-        path: 'dashboard/policies',
+        path: '/dashboard/policies',
         roles: [roles.ADMIN, roles.USER],
       }
     : null,
   {
     name: 'Exception',
     icon: 'exception',
-    path: 'exception',
+    path: '/exception',
     hideInMenu: true,
     children: [
       {

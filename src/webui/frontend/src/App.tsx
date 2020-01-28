@@ -12,7 +12,7 @@ import ViolationsDashboard from './routes/Dashboard/Violations';
 const SnowAlertWebUI = () => (
   <>
     <Router>
-      <Redirect from="/" to="dashboard/connectors" />
+      <Redirect noThrow from="/" to="dashboard/connectors" />
       <MainLayout path="login" component={LoginForm} />
 
       <ConnectorsDashboard path="dashboard/connectors/" />
