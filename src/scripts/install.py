@@ -32,7 +32,7 @@ from runners.config import VIOLATION_QUERY_POSTFIX
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
 
 from runners.helpers import log
-from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE
+from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE, PORT, PROTOCOL
 from runners.helpers.dbconnect import snowflake_connect
 
 
@@ -218,7 +218,7 @@ def login(configuration=None):
     else:
         print(f"Loaded password: {'*' * len(password)}")
 
-    connect_kwargs = {'user': username, 'account': account}
+    connect_kwargs = {'user': username, 'account': account, 'protocol': PROTOCOL, 'port': PORT}
     if password == '':
         connect_kwargs['authenticator'] = 'externalbrowser'
     else:
