@@ -510,7 +510,7 @@ def main(
         connection_name
         if connection_name is not None
         else {
-            'region': config_region or environ.get('REGION'),
+            'region': config_region or environ.get('SNOWFLAKE_REGION', environ.get('REGION')),
             'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
             'username': config_username or environ.get('SA_ADMIN_USER'),
             'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
