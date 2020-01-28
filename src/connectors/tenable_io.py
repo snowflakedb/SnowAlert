@@ -167,7 +167,8 @@ def ingest_agents(table_name, options):
         last_export_time is None
         or (timestamp - last_export_time).total_seconds() > 86400
     ):
-        unique_agents = {a['uuid']: a for a in get_agent_data()}.values()
+        all_agents = sorted(get_agent_data(), key=lambda a: a.get('last_connect', 0))
+        unique_agents = {a['uuid']: a for a in all_agents}.values()
         rows = [{'raw': ua, 'export_at': timestamp} for ua in unique_agents]
         log.debug(f'inserting {len(unique_agents)} unique (by uuid) agents')
         db.insert(f'data.{table_name}', rows)
