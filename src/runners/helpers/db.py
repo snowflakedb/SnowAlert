@@ -24,6 +24,8 @@ from .dbconfig import (
     DATABASE,
     USER,
     WAREHOUSE,
+    PORT,
+    PROTOCOL,
     PRIVATE_KEY,
     PRIVATE_KEY_PASSWORD,
     TIMEOUT,
@@ -97,6 +99,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             # 2) If using OAuth and OAUTH_CONNECTION_* env vars have been set, use these
             # 3) Else, use OAuth'd user's default namespace (see ALTER USER docs)
             account=oauth_account or ACCOUNT,
+            port=PORT,
+            protocol=PROTOCOL,
             database=environ.get('OAUTH_CONNECTION_DATABASE', None)
             if oauth_account
             else DATABASE,
