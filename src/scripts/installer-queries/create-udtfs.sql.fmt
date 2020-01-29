@@ -56,8 +56,8 @@ SELECT slice_start
 FROM TABLE(
   time_slices(
     num_slices,
-    DATEADD(sec, -seconds_in_slice * num_slices, CURRENT_TIMESTAMP),
-    CURRENT_TIMESTAMP
+    DATEADD(sec, -seconds_in_slice * num_slices, CURRENT_TIMESTAMP)::TIMESTAMP,
+    CURRENT_TIMESTAMP::TIMESTAMP
   )
 )
 '
