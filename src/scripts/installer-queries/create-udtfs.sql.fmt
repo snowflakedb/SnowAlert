@@ -19,7 +19,22 @@ AS '
 ;
 
 CREATE FUNCTION IF NOT EXISTS time_slices_before_t (num_slices NUMBER, seconds_in_slice NUMBER, t TIMESTAMP_NTZ)
-RETURNS TABLE ( slice_start TIMESTAMP, slice_end TIMESTAMP )
+RETURNS TABLE ( slice_start TIMESTAMP_NTZ, slice_end TIMESTAMP_NTZ )
+AS '
+SELECT slice_start
+     , slice_end
+FROM TABLE(
+  time_slices(
+    num_slices,
+    DATEADD(sec, -seconds_in_slice * num_slices, t),
+    t
+  )
+)
+'
+;
+
+CREATE FUNCTION IF NOT EXISTS time_slices_before_t (num_slices NUMBER, seconds_in_slice NUMBER, t TIMESTAMP_LTZ)
+RETURNS TABLE ( slice_start TIMESTAMP_LTZ, slice_end TIMESTAMP_LTZ )
 AS '
 SELECT slice_start
      , slice_end
@@ -41,8 +56,8 @@ SELECT slice_start
 FROM TABLE(
   time_slices(
     num_slices,
-    DATEADD(sec, -seconds_in_slice * num_slices, CURRENT_TIMESTAMP::TIMESTAMP_NTZ),
-    CURRENT_TIMESTAMP::TIMESTAMP_NTZ
+    DATEADD(sec, -seconds_in_slice * num_slices, CURRENT_TIMESTAMP),
+    CURRENT_TIMESTAMP
   )
 )
 '
