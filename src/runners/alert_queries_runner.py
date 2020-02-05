@@ -17,7 +17,8 @@ from runners.helpers import db, log
 
 
 ALERT_CUTOFF_MINUTES = os.environ.get('SA_ALERT_CUTOFF_MINUTES', -90)
-GROUPING_CUTOFF = f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())"
+ALERTS_TO_TIME = os.environ.get('SA_ALERT_TO_TIME', 'CURRENT_TIMESTAMP')
+ALERTS_FROM_TIME = f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, {ALERTS_TO_TIME})"
 
 RUN_ALERT_QUERY = f"""
 CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
@@ -107,12 +108,12 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
         db.execute(
             RUN_ALERT_QUERY.format(
                 query_name=rule_name,
-                from_time_sql=f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, CURRENT_TIMESTAMP())",
-                to_time_sql="CURRENT_TIMESTAMP()",
+                from_time_sql=ALERTS_FROM_TIME,
+                to_time_sql=ALERTS_TO_TIME,
             ),
             fix_errors=False,
         )
-        insert_count, update_count = merge_alerts(rule_name, GROUPING_CUTOFF)
+        insert_count, update_count = merge_alerts(rule_name, ALERTS_FROM_TIME)
         metadata['ROW_COUNT'] = {'INSERTED': insert_count, 'UPDATED': update_count}
         db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 
