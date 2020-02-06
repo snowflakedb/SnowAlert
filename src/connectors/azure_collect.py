@@ -289,6 +289,53 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/pricings/list#pricingtier
+    'pricings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/autoprovisioningsettings/list#autoprovisioningsettinglist
+    'auto_provisioning_settings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/resources/policyassignments/list#policyassignment
+    'policy_assignments': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('identity', 'VARIANT'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/securitycontacts/list#securitycontact
+    'security_contacts': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('type', 'STRING'),
+        ('properties', 'VARIANT'),
+    ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -1121,6 +1168,85 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'pricings': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/pricings'
+            ),
+            'api-version': '2018-06-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'auto_provisioning_settings': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/autoProvisioningSettings'
+            ),
+            'api-version': '2017-08-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'policy_assignments': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Authorization/policyAssignments'
+            ),
+            'api-version': '2019-09-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'identity': 'identity',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'type': 'type',
+        },
+    },
+    'security_contacts': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/securityContacts'
+            ),
+            'api-version': '2017-08-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'type': 'type',
+            'properties': 'properties',
+        },
+    },
 }
 
 
@@ -1256,6 +1382,11 @@ def ingest(table_name, options, dryrun=False):
             if sid is None:
                 log.debug(f'subscription without id: {s}')
                 continue
+
+            load_table('pricings', subscriptionId=sid)
+            load_table('auto_provisioning_settings', subscriptionId=sid)
+            load_table('policy_assignments', subscriptionId=sid)
+            load_table('security_contacts', subscriptionId=sid)
 
             load_table('virtual_machines', subscriptionId=sid)
 
