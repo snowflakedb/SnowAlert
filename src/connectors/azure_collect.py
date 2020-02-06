@@ -1284,7 +1284,7 @@ def GET(kind, params, cred):
     nextUrl = url
     values = []
     while nextUrl:
-        result = requests.get(
+        response = requests.get(
             nextUrl,
             headers={
                 'Authorization': 'Bearer ' + bearer_token,
@@ -1294,29 +1294,37 @@ def GET(kind, params, cred):
             },
         )
 
-        log.debug(f'<- {result.status_code}')
+        log.debug(f'<- {response.status_code}')
 
-        response = json.loads(
-            json_dumps(xmltodict.parse(result.text.encode()))
-            if result.text.startswith('<?xml')
-            else result.text
-        )
+        try:
+            result = json.loads(
+                json_dumps(xmltodict.parse(response.text.encode()))
+                if response.text.startswith('<?xml')
+                else response.text
+            )
+
+        except json.JSONDecodeError:
+            result = {
+                'error_type': 'JSONDecodeError',
+                'status_code': response.status_code,
+                'text': response.text,
+            }
 
         # empty lists of values are recorded as empty rows
         # error values are recorded as rows with error and empty value cols
         # normal values are recorded with populated values and an empty error col
-        def response_values(response):
+        def response_values(result):
             for vk in spec.get('response_value_key', 'value').split('.'):
-                if response is None or vk not in response:
+                if result is None or vk not in result:
                     break
-                response = response[vk]
+                result = result[vk]
 
             return (
-                response
-                if type(response) is list
-                else [response]
-                if type(response) is dict
-                else [{'error': response}]
+                result
+                if type(result) is list
+                else [result]
+                if type(result) is dict
+                else [{'error': result}]
             ) or [{}]
 
         values += [
@@ -1324,22 +1332,22 @@ def GET(kind, params, cred):
                 {},
                 v,
                 params,
-                headerDate=parse_date(result.headers['Date']),
+                headerDate=parse_date(response.headers['Date']),
                 tenantId=cred['tenant'],
             )
-            for v in response_values(response)
+            for v in response_values(result)
         ]
 
-        if 'nextLink' in response:
-            nextUrl = response['nextLink']
+        if 'nextLink' in result:
+            nextUrl = result['nextLink']
             continue
 
-        if '@odata.nextLink' in response:
-            nextUrl = response['@odata.nextLink']
+        if '@odata.nextLink' in result:
+            nextUrl = result['@odata.nextLink']
             continue
 
-        if 'EnumerationResults' in response:
-            nextMarker = response['EnumerationResults'].get('NextMarker')
+        if 'EnumerationResults' in result:
+            nextMarker = result['EnumerationResults'].get('NextMarker')
             if nextMarker:
                 nextUrl = re.sub(r'(&marker=.*)?$', f'&marker={nextMarker}', nextUrl)
                 continue
@@ -1363,7 +1371,12 @@ def ingest(table_name, options, dryrun=False):
 
         def load_table(kind, **params):
             nonlocal num_loaded
-            values = GET(kind, params, cred=cred)
+            values = db.retry(
+                f=lambda: GET(kind, params, cred=cred),
+                E=requests.exceptions.SSLError,
+                n=10,
+                sleep_seconds_btw_retry=3,
+            )
             kind = 'connection' if kind == 'subscriptions' else kind
             table_name = f'{table_prefix}_{kind}'
             result = db.insert(table_name, values, dryrun=dryrun)
