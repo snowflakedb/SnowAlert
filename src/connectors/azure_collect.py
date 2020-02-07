@@ -1399,7 +1399,7 @@ def ingest(table_name, options, dryrun=False):
             nonlocal num_loaded
             values = db.retry(
                 f=lambda: GET(kind, params, cred=cred),
-                E=requests.exceptions.SSLError,
+                E=(requests.exceptions.SSLError, requests.exceptions.ConnectionError),
                 n=10,
                 sleep_seconds_btw_retry=3,
             )
