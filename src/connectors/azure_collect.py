@@ -695,6 +695,32 @@ API_SPECS = {
         'request': {
             'path': '/v1.0/users',
             'host': {'usgov': 'graph.microsoft.us', 'azure': 'graph.microsoft.com'},
+            'params': {
+                '$select': (
+                    'accountEnabled,'
+                    'businessPhones,'
+                    'city,'
+                    'country,'
+                    'createdDateTime,'
+                    'department,'
+                    'displayName,'
+                    'employeeId,'
+                    'faxNumber,'
+                    'givenName,'
+                    'jobTitle,'
+                    'mail,'
+                    'id,'
+                    'lastPasswordChangeDateTime,'
+                    'mobilePhone,'
+                    'officeLocation,'
+                    'preferredLanguage,'
+                    'surname,'
+                    'passwordPolicies,'
+                    'passwordProfile,'
+                    'userPrincipalName,'
+                    'userType'
+                )
+            },
         },
         'response': {
             'headerDate': 'recorded_at',
