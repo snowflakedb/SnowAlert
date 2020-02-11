@@ -1,4 +1,3 @@
-import * as roles from '../constants/roles';
 import * as stateTypes from '../reducers/types';
 
 function isNotNull<T>(value: T | null): value is T {
@@ -10,26 +9,27 @@ const menuData: stateTypes.MenuData = [
     name: 'Data Connectors',
     icon: 'api',
     path: '/dashboard/connectors',
-    roles: [roles.ADMIN, roles.USER],
+  },
+  {
+    name: 'Baselines',
+    icon: 'line-chart',
+    path: '/dashboard/baselines',
   },
   {
     name: 'Alerts',
     icon: 'alert',
     path: '/dashboard/alerts',
-    roles: [roles.ADMIN, roles.USER],
   },
   {
     name: 'Violations',
     icon: 'eye',
     path: '/dashboard/violations',
-    roles: [roles.ADMIN, roles.USER],
   },
   localStorage.getItem('enable_policies')
     ? {
         name: 'Policies',
         icon: 'file-done',
         path: '/dashboard/policies',
-        roles: [roles.ADMIN, roles.USER],
       }
     : null,
   {
