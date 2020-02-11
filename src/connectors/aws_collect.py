@@ -1,6 +1,6 @@
-"""AWS Inventory and Configuration
+'''AWS Inventory and Configuration
 Load Inventory and Configuration of all accounts in your Org using auditor Roles
-"""
+'''
 
 import asyncio
 from botocore.exceptions import (
@@ -35,32 +35,32 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'audit_assumer_arn',
-        'title': "Audit Assumer ARN",
-        'prompt': "The auditor role that assumes local roles in your accounts",
-        'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
+        'title': 'Audit Assumer ARN',
+        'prompt': 'The auditor role that assumes local roles in your accounts',
+        'placeholder': 'arn:aws:iam::111111111111:role/security-auditor',
         'required': True,
     },
     {
         'type': 'str',
         'name': 'org_account_ids',
-        'title': "Master Account(s)",
-        'prompt': "Comma-separated account id's to list-accounts in",
-        'placeholder': "222222222222,333333333333",
+        'title': 'Master Account(s)',
+        'prompt': 'Comma-separated account id's to list-accounts in',
+        'placeholder': '222222222222,333333333333',
         'required': True,
     },
     {
         'type': 'str',
         'name': 'audit_reader_role',
-        'title': "The name of the local auditor roles in your accounts",
-        'prompt': "Role to be assumed for auditing the other accounts",
-        'placeholder': "security-local-auditor",
+        'title': 'The name of the local auditor roles in your accounts',
+        'prompt': 'Role to be assumed for auditing the other accounts',
+        'placeholder': 'security-local-auditor',
         'required': True,
     },
     {
         'type': 'str',
         'name': 'reader_eid',
-        'title': "Reader EID (optional)",
-        'prompt': "External Id on the roles that need assuming",
+        'title': 'Reader EID (optional)',
+        'prompt': 'External Id on the roles that need assuming',
         'secret': True,
     },
 ]
@@ -454,7 +454,28 @@ SUPPLEMENTARY_TABLES = {
         ('data_resources', 'VARIANT'),
         ('exclude_management_event_sources', 'VARIANT'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
+    'inspector_describe_findings': [
+        ('arn', 'STRING'),
+        # Missing: assetAttributes, has 'ipv4_addresses' 'schema_version' as keys in key-value pairs
+        ('asset_type', 'STRING'),
+        # Missing: attributes, a list
+        ('confidence', 'INT'),
+        ('created_at', 'TIMESTAMP_LTZ'),
+        ('description', 'STRING'),
+        ('indicator_of_compromise', 'BOOLEAN'),
+        ('numeric_severity', 'INT'),
+        ('recommendation', 'STRING'),
+        ('schema_version', 'INT'),
+        ('service', 'STRING'),
+        # Missing: serviceAttributes, has assessmentRunArn, rulesPackageArn, and schemaVersion as keys in key-value pairs
+        ('severity', 'STRING'),
+        ('title', 'STRING'),
+        ('updated_at', 'FLOAT'),
+        # Missing: userAttributes, a list
+    ],
 }
+
 
 AWS_API_METHOD_COLUMNS = {
     'organizations.list_accounts': {
@@ -882,8 +903,46 @@ AWS_API_METHOD_COLUMNS = {
             ],
         }
     },
+    'inspector.list-assessment-runs': {
+        'response': {'assessmentRunArns': 'assessment_run_arns'},
+        'children': [
+            {'method': 'inspector.describe-findings', 'args': 'assessmentRunArns'}
+        ]
+    },
+    'inspector.describe-findings': {
+        'params': {'assessmentRunArns': 'assessment_run_arns'}, # parent's 'response' value
+        'response': {
+            'failedItems': 'failed_items',
+            'findings': [
+                {
+                    'Arn': 'arn',
+                    'assetAttributes': {
+                        'ipv4Addresses': 'ipv4_addresses',
+                        'schemaVersion': 'schema_version'
+                    },
+                    'assetType': 'asset_type',
+                    'attributes': 'attributes',
+                    'confidence': 'confidence',
+                    'createdAt': 'created_at',
+                    'description': 'description',
+                    'indicatorOfCompromise': 'indicator_of_compromise',
+                    'numericSeverity': 'numeric_severity',
+                    'recommendation': 'recommendation',
+                    'schemaVersion': 'schema_version',
+                    'service': 'service',
+                    'serviceAttributes': {
+                        'assessmentRunArn': 'assessment_run_arn',
+                        'rulesPackageArn': 'rules_package_arn',
+                        'schemaVersion': 'schema_version'
+                    }
+                    'severity': 'severity',
+                    'title': 'title',
+                    'userAttributes': 'user_attributes'
+                }
+            ]
+        }
+    }
 }
-
 
 def connect(connection_name, options):
     table_prefix = f'aws_collect' + (
@@ -916,7 +975,7 @@ def connect(connection_name, options):
 
     return {
         'newStage': 'finalized',
-        'newMessage': "AWS Collect connector tables created.",
+        'newMessage': 'AWS Collect connector tables created.',
     }
 
 
@@ -1103,7 +1162,7 @@ async def aioingest(table_name, options, dryrun=False):
         )
 
         if master_reader_arn is None:
-            log.error("error: set 'master_reader_arn' or 'org_account_ids'")
+            log.error('error: set 'master_reader_arn' or 'org_account_ids'')
 
         session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
@@ -1150,6 +1209,8 @@ async def aioingest(table_name, options, dryrun=False):
                     'cloudtrail.describe_trails',
                     'iam.get_credential_report',
                     'iam.list_roles',
+                    'inspector.list-assessment-runs',
+                    'inspector.describe-findings'
                 ]
                 for a in accounts
             ]
