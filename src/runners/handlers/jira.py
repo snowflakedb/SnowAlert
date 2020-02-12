@@ -9,6 +9,7 @@ from runners.helpers import log, vault, db
 
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
+ISSUE_TYPE = environ.get('JIRA_ISSUE_TYPE', 'Story')
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -115,7 +116,7 @@ def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT)
 
     issue_params = {
         'project': project,
-        'issuetype': {'name': 'Story'},
+        'issuetype': {'name': ISSUE_TYPE},
         'summary': alert['TITLE'],
         'description': body,
     }
