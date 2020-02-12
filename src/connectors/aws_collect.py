@@ -59,8 +59,8 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'reader_eid',
-        'title': 'Reader EID (optional)',
-        'prompt': 'External Id on the roles that need assuming',
+        'title': "Reader EID (optional)",
+        'prompt': "External Id on the roles that need assuming",
         'secret': True,
     },
 ]
