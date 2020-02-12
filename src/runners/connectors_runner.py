@@ -19,15 +19,18 @@ from runners.config import RUN_ID, DC_METADATA_TABLE, DC_POOLSIZE
 def connection_run(connection_table):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
+    log.info(f"connection_table: {connection_table}")
+    log.info(f"table_comment: {table_comment}")
 
     log.info(f"-- START DC {table_name} --")
     try:
         metadata = {'START_TIME': datetime.utcnow()}
         options = yaml.load(table_comment) or {}
+        log.info(f"options: {options}")
 
         if 'module' in options:
             module = options['module']
-
+            log.info(f"module: {module}")
             metadata.update(
                 {
                     'RUN_ID': RUN_ID,
@@ -53,6 +56,7 @@ def connection_run(connection_table):
 
             if callable(getattr(connector, 'ingest', None)):
                 ingested = connector.ingest(table_name, options)
+                log.info(f"ingested value: {ingested}")
                 if isinstance(ingested, int):
                     metadata['INGEST_COUNT'] += ingested
                 elif isinstance(ingested, GeneratorType):

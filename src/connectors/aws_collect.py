@@ -88,859 +88,864 @@ LANDING_TABLE_COLUMNS = [
 ]
 
 SUPPLEMENTARY_TABLES = {
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/generate-credential-report.html#output
-    'iam_generate_credential_report': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('state', 'STRING'),
-        ('description', 'STRING'),
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/generate-credential-report.html#output
+    # 'iam_generate_credential_report': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('state', 'STRING'),
+    #     ('description', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-account-aliases.html#output
+    # 'iam_list_account_aliases': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('account_alias', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-summary.html#output
+    # 'iam_get_account_summary': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('users_quota', 'NUMBER'),
+    #     ('groups_per_user_quota', 'NUMBER'),
+    #     ('attached_policies_per_group_quota', 'NUMBER'),
+    #     ('policies_quota', 'NUMBER'),
+    #     ('groups_quota', 'NUMBER'),
+    #     ('instance_profiles', 'NUMBER'),
+    #     ('signing_certificates_per_user_quota', 'NUMBER'),
+    #     ('policy_size_quota', 'NUMBER'),
+    #     ('policy_versions_in_use_quota', 'NUMBER'),
+    #     ('role_policy_size_quota', 'NUMBER'),
+    #     ('account_signing_certificates_present', 'NUMBER'),
+    #     ('users', 'NUMBER'),
+    #     ('server_certificates_quota', 'NUMBER'),
+    #     ('server_certificates', 'NUMBER'),
+    #     ('assume_role_policy_size_quota', 'NUMBER'),
+    #     ('groups', 'NUMBER'),
+    #     ('mfa_devices_in_use', 'NUMBER'),
+    #     ('roles_quota', 'NUMBER'),
+    #     ('versions_per_policy_quota', 'NUMBER'),
+    #     ('account_access_keys_present', 'NUMBER'),
+    #     ('roles', 'NUMBER'),
+    #     ('account_mfa_enabled', 'NUMBER'),
+    #     ('mfa_devices', 'NUMBER'),
+    #     ('policies', 'NUMBER'),
+    #     ('group_policy_size_quota', 'NUMBER'),
+    #     ('instance_profiles_quota', 'NUMBER'),
+    #     ('access_keys_per_user_quota', 'NUMBER'),
+    #     ('attached_policies_per_role_quota', 'NUMBER'),
+    #     ('policy_versions_in_use', 'NUMBER'),
+    #     ('providers', 'NUMBER'),
+    #     ('attached_policies_per_user_quota', 'NUMBER'),
+    #     ('user_policy_size_quota', 'NUMBER'),
+    #     ('global_endpoint_token_version', 'NUMBER'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-password-policy.html#output
+    # 'iam_get_account_password_policy': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('minimum_password_length', 'NUMBER'),
+    #     ('require_symbols', 'BOOLEAN'),
+    #     ('require_numbers', 'BOOLEAN'),
+    #     ('require_uppercase_characters', 'BOOLEAN'),
+    #     ('require_lowercase_characters', 'BOOLEAN'),
+    #     ('allow_users_to_change_password', 'BOOLEAN'),
+    #     ('expire_passwords', 'BOOLEAN'),
+    #     ('max_password_age', 'NUMBER'),
+    #     ('password_reuse_prevention', 'NUMBER'),
+    #     ('hard_expiry', 'BOOLEAN'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#output
+    # 'ec2_describe_instances': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('groups', 'VARIANT'),
+    #     ('instances', 'VARIANT'),
+    #     ('owner_id', 'STRING'),
+    #     ('requester_id', 'STRING'),
+    #     ('reservation_id', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html#output
+    # 'ec2_describe_security_groups': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('description', 'STRING'),
+    #     ('group_name', 'STRING'),
+    #     ('ip_permissions', 'VARIANT'),
+    #     ('owner_id', 'STRING'),
+    #     ('group_id', 'STRING'),
+    #     ('ip_permissions_egress', 'VARIANT'),
+    #     ('tags', 'VARIANT'),
+    #     ('vpc_id', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
+    # 'config_describe_configuration_recorders': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('name', 'STRING'),
+    #     ('role_arn', 'STRING'),
+    #     ('recording_group', 'VARIANT'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-credential-report.html#output
+    # 'iam_get_credential_report': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('generated_time', 'TIMESTAMP_LTZ'),
+    #     ('report_format', 'STRING'),
+    #     ('content', 'STRING'),
+    #     ('content_csv_parsed', 'VARIANT'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/kms/list-keys.html#output
+    # 'kms_list_keys': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('key_id', 'STRING'),
+    #     ('key_arn', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/kms/get-key-rotation-status.html#output
+    # 'kms_get_key_rotation_status': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('key_arn', 'STRING'),
+    #     ('key_rotation_enabled', 'BOOLEAN'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-users.html#output
+    # 'iam_list_users': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('path', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('user_id', 'STRING'),
+    #     ('arn', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    #     ('password_last_used', 'TIMESTAMP_LTZ'),
+    #     ('permissions_boundary', 'VARIANT'),
+    #     ('tags', 'VARIANT'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-login-profile.html#output
+    # 'iam_get_login_profile': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    #     ('password_reset_required', 'BOOLEAN'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-mfa-devices.html#output
+    # 'iam_list_mfa_devices': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('serial_number', 'STRING'),
+    #     ('enable_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-access-keys.html#output
+    # 'iam_list_access_keys': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('access_key_id', 'STRING'),
+    #     ('status', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-groups-for-user.html#output
+    # 'iam_list_groups_for_user': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('path', 'STRING'),
+    #     ('group_name', 'STRING'),
+    #     ('group_id', 'STRING'),
+    #     ('arn', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-user-policies.html#output
+    # 'iam_list_user_policies': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('policy_name', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
+    # 'iam_list_attached_user_policies': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('policy_name', 'STRING'),
+    #     ('policy_arn', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
+    # 'iam_list_roles': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('path', 'STRING'),
+    #     ('role_name', 'STRING'),
+    #     ('role_id', 'STRING'),
+    #     ('arn', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    #     ('assume_role_policy_document', 'STRING'),
+    #     ('description', 'STRING'),
+    #     ('max_session_duration', 'NUMBER'),
+    #     ('permissions_boundary_type', 'VARIANT'),
+    #     ('permissions_boundary_arn', 'VARIANT'),
+    #     ('tags', 'VARIANT'),
+    #     ('role_last_used', 'VARIANT'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-role-policies.html#output
+    # 'iam_list_role_policies': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('role_name', 'STRING'),
+    #     ('policy_name', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-role-policy.html#output
+    # 'iam_get_role_policy': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('role_name', 'STRING'),
+    #     ('policy_name', 'STRING'),
+    #     ('policy_document', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
+    # 'iam_list_policies': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('policy_name', 'STRING'),
+    #     ('policy_id', 'STRING'),
+    #     ('arn', 'STRING'),
+    #     ('path', 'STRING'),
+    #     ('default_version_id', 'STRING'),
+    #     ('attachment_count', 'NUMBER'),
+    #     ('permissions_boundary_usage_count', 'NUMBER'),
+    #     ('is_attachable', 'BOOLEAN'),
+    #     ('description', 'STRING'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    #     ('update_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/get-policy-version.html#output
+    # 'iam_get_policy_version': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('policy_arn', 'STRING'),
+    #     ('document', 'STRING'),
+    #     ('version_id', 'STRING'),
+    #     ('is_default_version', 'BOOLEAN'),
+    #     ('create_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-entities-for-policy.html#output
+    # 'iam_list_entities_for_policy': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('policy_arn', 'STRING'),
+    #     ('group_id', 'STRING'),
+    #     ('group_name', 'STRING'),
+    #     ('user_id', 'STRING'),
+    #     ('user_name', 'STRING'),
+    #     ('role_id', 'STRING'),
+    #     ('role_name', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/iam/list-virtual-mfa-devices.html#output
+    # 'iam_list_virtual_mfa_devices': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('serial_number', 'STRING'),
+    #     ('base32_string_seed', 'STRING'),
+    #     ('qr_code_png', 'STRING'),
+    #     ('user', 'VARIANT'),
+    #     ('enable_date', 'TIMESTAMP_LTZ'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/s3api/list-buckets.html#output
+    # 's3_list_buckets': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('bucket_name', 'STRING'),
+    #     ('bucket_creation_date', 'TIMESTAMP_LTZ'),
+    #     ('owner_display_name', 'STRING'),
+    #     ('owner_id', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-acl.html#output
+    # 's3_get_bucket_acl': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('bucket', 'STRING'),
+    #     ('grants_grantee', 'STRING'),
+    #     ('grants_permission', 'STRING'),
+    #     ('owner_display_name', 'STRING'),
+    #     ('owner_id', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy.html#output
+    # 's3_get_bucket_policy': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('bucket', 'STRING'),
+    #     ('policy', 'STRING'),
+    #     ('policy_json_parsed', 'VARIANT'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-logging.html#output
+    # 's3_get_bucket_logging': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('bucket', 'STRING'),
+    #     ('target_bucket', 'STRING'),
+    #     ('target_grants', 'VARIANT'),
+    #     ('target_prefix', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
+    # 'cloudtrail_describe_trails': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('name', 'STRING'),
+    #     ('s3_bucket_name', 'STRING'),
+    #     ('s3_key_prefix', 'STRING'),
+    #     ('sns_topic_name', 'STRING'),
+    #     ('sns_topic_arn', 'STRING'),
+    #     ('include_global_service_events', 'BOOLEAN'),
+    #     ('is_multi_region_trail', 'BOOLEAN'),
+    #     ('home_region', 'STRING'),
+    #     ('trail_arn', 'STRING'),
+    #     ('log_file_validation_enabled', 'BOOLEAN'),
+    #     ('cloud_watch_logs_log_group_arn', 'STRING'),
+    #     ('cloud_watch_logs_role_arn', 'STRING'),
+    #     ('kms_key_id', 'STRING'),
+    #     ('has_custom_event_selectors', 'BOOLEAN'),
+    #     ('has_insight_selectors', 'BOOLEAN'),
+    #     ('is_organization_trail', 'BOOLEAN'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-trail-status.html#output
+    # 'cloudtrail_get_trail_status': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('trail_arn', 'STRING'),
+    #     ('is_logging', 'BOOLEAN'),
+    #     ('latest_delivery_error', 'STRING'),
+    #     ('latest_notification_error', 'STRING'),
+    #     ('latest_delivery_time', 'TIMESTAMP_NTZ'),
+    #     ('latest_notification_time', 'TIMESTAMP_NTZ'),
+    #     ('start_logging_time', 'TIMESTAMP_NTZ'),
+    #     ('stop_logging_time', 'TIMESTAMP_NTZ'),
+    #     ('latest_cloud_watch_logs_delivery_error', 'STRING'),
+    #     ('latest_cloud_watch_logs_delivery_time', 'TIMESTAMP_NTZ'),
+    #     ('latest_digest_delivery_time', 'TIMESTAMP_NTZ'),
+    #     ('latest_digest_delivery_error', 'STRING'),
+    #     ('latest_delivery_attempt_time', 'STRING'),
+    #     ('latest_notification_attempt_time', 'STRING'),
+    #     ('latest_notification_attempt_succeeded', 'STRING'),
+    #     ('latest_delivery_attempt_succeeded', 'STRING'),
+    #     ('time_logging_started', 'STRING'),
+    #     ('time_logging_stopped', 'STRING'),
+    # ],
+    # # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-event-selectors.html#output
+    # 'cloudtrail_get_event_selectors': [
+    #     ('recorded_at', 'TIMESTAMP_LTZ'),
+    #     ('account_id', 'STRING'),
+    #     ('region', 'STRING'),
+    #     ('trail_arn', 'STRING'),
+    #     ('read_write_type', 'STRING'),
+    #     ('include_management_events', 'BOOLEAN'),
+    #     ('data_resources', 'VARIANT'),
+    #     ('exclude_management_event_sources', 'VARIANT'),
+    # ],
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-assessment-runs.html
+    'inspector_list_assessment_runs': [
+        ('assessment_run_arns', 'VARIANT')
     ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-account-aliases.html#output
-    'iam_list_account_aliases': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('account_alias', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-summary.html#output
-    'iam_get_account_summary': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('users_quota', 'NUMBER'),
-        ('groups_per_user_quota', 'NUMBER'),
-        ('attached_policies_per_group_quota', 'NUMBER'),
-        ('policies_quota', 'NUMBER'),
-        ('groups_quota', 'NUMBER'),
-        ('instance_profiles', 'NUMBER'),
-        ('signing_certificates_per_user_quota', 'NUMBER'),
-        ('policy_size_quota', 'NUMBER'),
-        ('policy_versions_in_use_quota', 'NUMBER'),
-        ('role_policy_size_quota', 'NUMBER'),
-        ('account_signing_certificates_present', 'NUMBER'),
-        ('users', 'NUMBER'),
-        ('server_certificates_quota', 'NUMBER'),
-        ('server_certificates', 'NUMBER'),
-        ('assume_role_policy_size_quota', 'NUMBER'),
-        ('groups', 'NUMBER'),
-        ('mfa_devices_in_use', 'NUMBER'),
-        ('roles_quota', 'NUMBER'),
-        ('versions_per_policy_quota', 'NUMBER'),
-        ('account_access_keys_present', 'NUMBER'),
-        ('roles', 'NUMBER'),
-        ('account_mfa_enabled', 'NUMBER'),
-        ('mfa_devices', 'NUMBER'),
-        ('policies', 'NUMBER'),
-        ('group_policy_size_quota', 'NUMBER'),
-        ('instance_profiles_quota', 'NUMBER'),
-        ('access_keys_per_user_quota', 'NUMBER'),
-        ('attached_policies_per_role_quota', 'NUMBER'),
-        ('policy_versions_in_use', 'NUMBER'),
-        ('providers', 'NUMBER'),
-        ('attached_policies_per_user_quota', 'NUMBER'),
-        ('user_policy_size_quota', 'NUMBER'),
-        ('global_endpoint_token_version', 'NUMBER'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-password-policy.html#output
-    'iam_get_account_password_policy': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('minimum_password_length', 'NUMBER'),
-        ('require_symbols', 'BOOLEAN'),
-        ('require_numbers', 'BOOLEAN'),
-        ('require_uppercase_characters', 'BOOLEAN'),
-        ('require_lowercase_characters', 'BOOLEAN'),
-        ('allow_users_to_change_password', 'BOOLEAN'),
-        ('expire_passwords', 'BOOLEAN'),
-        ('max_password_age', 'NUMBER'),
-        ('password_reuse_prevention', 'NUMBER'),
-        ('hard_expiry', 'BOOLEAN'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#output
-    'ec2_describe_instances': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('groups', 'VARIANT'),
-        ('instances', 'VARIANT'),
-        ('owner_id', 'STRING'),
-        ('requester_id', 'STRING'),
-        ('reservation_id', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html#output
-    'ec2_describe_security_groups': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('description', 'STRING'),
-        ('group_name', 'STRING'),
-        ('ip_permissions', 'VARIANT'),
-        ('owner_id', 'STRING'),
-        ('group_id', 'STRING'),
-        ('ip_permissions_egress', 'VARIANT'),
-        ('tags', 'VARIANT'),
-        ('vpc_id', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
-    'config_describe_configuration_recorders': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('name', 'STRING'),
-        ('role_arn', 'STRING'),
-        ('recording_group', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-credential-report.html#output
-    'iam_get_credential_report': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('generated_time', 'TIMESTAMP_LTZ'),
-        ('report_format', 'STRING'),
-        ('content', 'STRING'),
-        ('content_csv_parsed', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/kms/list-keys.html#output
-    'kms_list_keys': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('key_id', 'STRING'),
-        ('key_arn', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/kms/get-key-rotation-status.html#output
-    'kms_get_key_rotation_status': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('key_arn', 'STRING'),
-        ('key_rotation_enabled', 'BOOLEAN'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-users.html#output
-    'iam_list_users': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('path', 'STRING'),
-        ('user_name', 'STRING'),
-        ('user_id', 'STRING'),
-        ('arn', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-        ('password_last_used', 'TIMESTAMP_LTZ'),
-        ('permissions_boundary', 'VARIANT'),
-        ('tags', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-login-profile.html#output
-    'iam_get_login_profile': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-        ('password_reset_required', 'BOOLEAN'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-mfa-devices.html#output
-    'iam_list_mfa_devices': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('serial_number', 'STRING'),
-        ('enable_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-access-keys.html#output
-    'iam_list_access_keys': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('access_key_id', 'STRING'),
-        ('status', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-groups-for-user.html#output
-    'iam_list_groups_for_user': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('path', 'STRING'),
-        ('group_name', 'STRING'),
-        ('group_id', 'STRING'),
-        ('arn', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-user-policies.html#output
-    'iam_list_user_policies': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('policy_name', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
-    'iam_list_attached_user_policies': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('policy_name', 'STRING'),
-        ('policy_arn', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
-    'iam_list_roles': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('path', 'STRING'),
-        ('role_name', 'STRING'),
-        ('role_id', 'STRING'),
-        ('arn', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-        ('assume_role_policy_document', 'STRING'),
-        ('description', 'STRING'),
-        ('max_session_duration', 'NUMBER'),
-        ('permissions_boundary_type', 'VARIANT'),
-        ('permissions_boundary_arn', 'VARIANT'),
-        ('tags', 'VARIANT'),
-        ('role_last_used', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-role-policies.html#output
-    'iam_list_role_policies': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('role_name', 'STRING'),
-        ('policy_name', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-role-policy.html#output
-    'iam_get_role_policy': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('role_name', 'STRING'),
-        ('policy_name', 'STRING'),
-        ('policy_document', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
-    'iam_list_policies': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('policy_name', 'STRING'),
-        ('policy_id', 'STRING'),
-        ('arn', 'STRING'),
-        ('path', 'STRING'),
-        ('default_version_id', 'STRING'),
-        ('attachment_count', 'NUMBER'),
-        ('permissions_boundary_usage_count', 'NUMBER'),
-        ('is_attachable', 'BOOLEAN'),
-        ('description', 'STRING'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-        ('update_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-policy-version.html#output
-    'iam_get_policy_version': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('policy_arn', 'STRING'),
-        ('document', 'STRING'),
-        ('version_id', 'STRING'),
-        ('is_default_version', 'BOOLEAN'),
-        ('create_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-entities-for-policy.html#output
-    'iam_list_entities_for_policy': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('policy_arn', 'STRING'),
-        ('group_id', 'STRING'),
-        ('group_name', 'STRING'),
-        ('user_id', 'STRING'),
-        ('user_name', 'STRING'),
-        ('role_id', 'STRING'),
-        ('role_name', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-virtual-mfa-devices.html#output
-    'iam_list_virtual_mfa_devices': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('serial_number', 'STRING'),
-        ('base32_string_seed', 'STRING'),
-        ('qr_code_png', 'STRING'),
-        ('user', 'VARIANT'),
-        ('enable_date', 'TIMESTAMP_LTZ'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/s3api/list-buckets.html#output
-    's3_list_buckets': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('bucket_name', 'STRING'),
-        ('bucket_creation_date', 'TIMESTAMP_LTZ'),
-        ('owner_display_name', 'STRING'),
-        ('owner_id', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-acl.html#output
-    's3_get_bucket_acl': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('bucket', 'STRING'),
-        ('grants_grantee', 'STRING'),
-        ('grants_permission', 'STRING'),
-        ('owner_display_name', 'STRING'),
-        ('owner_id', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy.html#output
-    's3_get_bucket_policy': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('bucket', 'STRING'),
-        ('policy', 'STRING'),
-        ('policy_json_parsed', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-logging.html#output
-    's3_get_bucket_logging': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('bucket', 'STRING'),
-        ('target_bucket', 'STRING'),
-        ('target_grants', 'VARIANT'),
-        ('target_prefix', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
-    'cloudtrail_describe_trails': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('name', 'STRING'),
-        ('s3_bucket_name', 'STRING'),
-        ('s3_key_prefix', 'STRING'),
-        ('sns_topic_name', 'STRING'),
-        ('sns_topic_arn', 'STRING'),
-        ('include_global_service_events', 'BOOLEAN'),
-        ('is_multi_region_trail', 'BOOLEAN'),
-        ('home_region', 'STRING'),
-        ('trail_arn', 'STRING'),
-        ('log_file_validation_enabled', 'BOOLEAN'),
-        ('cloud_watch_logs_log_group_arn', 'STRING'),
-        ('cloud_watch_logs_role_arn', 'STRING'),
-        ('kms_key_id', 'STRING'),
-        ('has_custom_event_selectors', 'BOOLEAN'),
-        ('has_insight_selectors', 'BOOLEAN'),
-        ('is_organization_trail', 'BOOLEAN'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-trail-status.html#output
-    'cloudtrail_get_trail_status': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('trail_arn', 'STRING'),
-        ('is_logging', 'BOOLEAN'),
-        ('latest_delivery_error', 'STRING'),
-        ('latest_notification_error', 'STRING'),
-        ('latest_delivery_time', 'TIMESTAMP_NTZ'),
-        ('latest_notification_time', 'TIMESTAMP_NTZ'),
-        ('start_logging_time', 'TIMESTAMP_NTZ'),
-        ('stop_logging_time', 'TIMESTAMP_NTZ'),
-        ('latest_cloud_watch_logs_delivery_error', 'STRING'),
-        ('latest_cloud_watch_logs_delivery_time', 'TIMESTAMP_NTZ'),
-        ('latest_digest_delivery_time', 'TIMESTAMP_NTZ'),
-        ('latest_digest_delivery_error', 'STRING'),
-        ('latest_delivery_attempt_time', 'STRING'),
-        ('latest_notification_attempt_time', 'STRING'),
-        ('latest_notification_attempt_succeeded', 'STRING'),
-        ('latest_delivery_attempt_succeeded', 'STRING'),
-        ('time_logging_started', 'STRING'),
-        ('time_logging_stopped', 'STRING'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-event-selectors.html#output
-    'cloudtrail_get_event_selectors': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('region', 'STRING'),
-        ('trail_arn', 'STRING'),
-        ('read_write_type', 'STRING'),
-        ('include_management_events', 'BOOLEAN'),
-        ('data_resources', 'VARIANT'),
-        ('exclude_management_event_sources', 'VARIANT'),
-    ],
-    # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
-    'inspector_describe_findings': [
-        ('arn', 'STRING'),
-        # Missing: assetAttributes, has 'ipv4_addresses' 'schema_version' as keys in key-value pairs
-        ('asset_type', 'STRING'),
-        # Missing: attributes, a list
-        ('confidence', 'INT'),
-        ('created_at', 'TIMESTAMP_LTZ'),
-        ('description', 'STRING'),
-        ('indicator_of_compromise', 'BOOLEAN'),
-        ('numeric_severity', 'INT'),
-        ('recommendation', 'STRING'),
-        ('schema_version', 'INT'),
-        ('service', 'STRING'),
-        # Missing: serviceAttributes, has assessmentRunArn, rulesPackageArn, and schemaVersion as keys in key-value pairs
-        ('severity', 'STRING'),
-        ('title', 'STRING'),
-        ('updated_at', 'FLOAT'),
-        # Missing: userAttributes, a list
-    ],
+
+    # # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
+    # 'inspector_describe_findings': [
+    #     ('arn', 'STRING'),
+    #     # Missing: assetAttributes, has 'ipv4_addresses' 'schema_version' as keys in key-value pairs
+    #     ('asset_type', 'STRING'),
+    #     # Missing: attributes, a list
+    #     ('confidence', 'INT'),
+    #     ('created_at', 'TIMESTAMP_LTZ'),
+    #     ('description', 'STRING'),
+    #     ('indicator_of_compromise', 'BOOLEAN'),
+    #     ('numeric_severity', 'INT'),
+    #     ('recommendation', 'STRING'),
+    #     ('schema_version', 'INT'),
+    #     ('service', 'STRING'),
+    #     # Missing: serviceAttributes, has assessmentRunArn, rulesPackageArn, and schemaVersion as keys in key-value pairs
+    #     ('severity', 'STRING'),
+    #     ('title', 'STRING'),
+    #     ('updated_at', 'FLOAT'),
+    #     # Missing: userAttributes, a list
+    # ],
 }
 
 AWS_API_METHOD_COLUMNS = {
-    'organizations.list_accounts': {
-        'response': {
-            'Accounts': [
-                {
-                    'Id': 'id',
-                    'Arn': 'arn',
-                    'Email': 'email',
-                    'Name': 'name',
-                    'Status': 'status',
-                    'JoinedMethod': 'joined_method',
-                    'JoinedTimestamp': 'joined_timestamp',
-                }
-            ]
-        }
-    },
-    'iam.list_account_aliases': {'response': {'AccountAliases': ['account_alias']}},
-    'iam.get_account_summary': {
-        'response': {
-            'SummaryMap': {
-                'GroupPolicySizeQuota': 'group_policy_size_quota',
-                'InstanceProfilesQuota': 'instance_profiles_quota',
-                'Policies': 'policies',
-                'GroupsPerUserQuota': 'groups_per_user_quota',
-                'InstanceProfiles': 'instance_profiles',
-                'AttachedPoliciesPerUserQuota': 'attached_policies_per_user_quota',
-                'Users': 'users',
-                'PoliciesQuota': 'policies_quota',
-                'Providers': 'providers',
-                'AccountMFAEnabled': 'account_mfa_enabled',
-                'AccessKeysPerUserQuota': 'access_keys_per_user_quota',
-                'AssumeRolePolicySizeQuota': 'assume_role_policy_size_quota',
-                'PolicyVersionsInUseQuota': 'policy_versions_in_use_quota',
-                'GlobalEndpointTokenVersion': 'global_endpoint_token_version',
-                'VersionsPerPolicyQuota': 'versions_per_policy_quota',
-                'AttachedPoliciesPerGroupQuota': 'attached_policies_per_group_quota',
-                'PolicySizeQuota': 'policy_size_quota',
-                'Groups': 'groups',
-                'AccountSigningCertificatesPresent': 'account_signing_certificates_present',
-                'UsersQuota': 'users_quota',
-                'ServerCertificatesQuota': 'server_certificates_quota',
-                'MFADevices': 'mfa_devices',
-                'UserPolicySizeQuota': 'user_policy_size_quota',
-                'PolicyVersionsInUse': 'policy_versions_in_use',
-                'ServerCertificates': 'server_certificates',
-                'Roles': 'roles',
-                'RolesQuota': 'roles_quota',
-                'SigningCertificatesPerUserQuota': 'signing_certificates_per_user_quota',
-                'MFADevicesInUse': 'mfa_devices_in_use',
-                'RolePolicySizeQuota': 'role_policy_size_quota',
-                'AttachedPoliciesPerRoleQuota': 'attached_policies_per_role_quota',
-                'AccountAccessKeysPresent': 'account_access_keys_present',
-                'GroupsQuota': 'groups_quota',
-            }
-        }
-    },
-    'iam.get_account_password_policy': {
-        'response': {
-            'PasswordPolicy': {
-                'MinimumPasswordLength': 'minimum_password_length',
-                'RequireSymbols': 'require_symbols',
-                'RequireNumbers': 'require_numbers',
-                'RequireUppercaseCharacters': 'require_uppercase_characters',
-                'RequireLowercaseCharacters': 'require_lowercase_characters',
-                'AllowUsersToChangePassword': 'allow_users_to_change_password',
-                'ExpirePasswords': 'expire_passwords',
-                'MaxPasswordAge': 'max_password_age',
-                'PasswordReusePrevention': 'password_reuse_prevention',
-                'HardExpiry': 'hard_expiry',
-            }
-        }
-    },
-    'ec2.describe_instances': {
-        'response': {
-            'Reservations': [
-                {
-                    'Groups': 'groups',
-                    'Instances': 'instances',
-                    'OwnerId': 'owner_id',
-                    'RequesterId': 'requester_id',
-                    'ReservationId': 'reservation_id',
-                }
-            ]
-        }
-    },
-    'ec2.describe_security_groups': {
-        'response': {
-            'SecurityGroups': [
-                {
-                    'Description': 'description',
-                    'GroupName': 'group_name',
-                    'IpPermissions': 'ip_permissions',
-                    'OwnerId': 'owner_id',
-                    'GroupId': 'group_id',
-                    'IpPermissionsEgress': 'ip_permissions_egress',
-                    'Tags': 'tags',
-                    'VpcId': 'vpc_id',
-                }
-            ]
-        }
-    },
-    'config.describe_configuration_recorders': {
-        'response': {
-            'ConfigurationRecorders': [
-                {
-                    'name': 'name',
-                    'roleARN': 'role_arn',
-                    'recordingGroup': 'recording_group',
-                }
-            ]
-        }
-    },
-    'kms.list_keys': {
-        'response': {'Keys': [{'KeyId': 'key_id', 'KeyArn': 'key_arn'}]},
-        'children': [
-            {'method': 'kms.get_key_rotation_status', 'args': {'KeyId': 'key_arn'}}
-        ],
-    },
-    'kms.get_key_rotation_status': {
-        'params': {'KeyId': 'key_arn'},
-        'response': {'KeyRotationEnabled': 'key_rotation_enabled'},
-    },
-    'iam.generate_credential_report': {
-        'response': {'State': 'state', 'Description': 'description'}
-    },
-    'iam.get_credential_report': {
-        'response': {
-            'Content': ParsedCol('csv', 'content', 'content_csv_parsed'),
-            'ReportFormat': 'report_format',
-            'GeneratedTime': 'generated_time',
-        }
-    },
-    'iam.list_users': {
-        'response': {
-            'Users': [
-                {
-                    'Arn': 'arn',
-                    'Path': 'path',
-                    'CreateDate': 'create_date',
-                    'UserId': 'user_id',
-                    'UserName': 'user_name',
-                    'PasswordLastUsed': 'password_last_used',
-                    'PermissionsBoundary': 'permissions_boundary',
-                    'Tags': 'tags',
-                }
-            ]
-        },
-        'children': [
-            {
-                'methods': [
-                    'iam.get_login_profile',
-                    'iam.list_mfa_devices',
-                    'iam.list_access_keys',
-                    'iam.list_groups_for_user',
-                    'iam.list_user_policies',
-                    'iam.list_attached_user_policies',
-                ],
-                'args': {'UserName': 'user_name'},
-            }
-        ],
-    },
-    'iam.list_groups_for_user': {
-        'params': {'UserName': 'user_name'},
-        'response': {
-            'Groups': [
-                {
-                    'Path': 'path',
-                    'GroupName': 'group_name',
-                    'GroupId': 'group_id',
-                    'Arn': 'arn',
-                    'CreateDate': 'create_date',
-                }
-            ]
-        },
-    },
-    'iam.list_access_keys': {
-        'params': {'UserName': 'user_name'},
-        'response': {
-            'AccessKeyMetadata': [
-                {
-                    'UserName': 'user_name',
-                    'AccessKeyId': 'access_key_id',
-                    'Status': 'status',
-                    'CreateDate': 'create_date',
-                }
-            ]
-        },
-    },
-    'iam.get_login_profile': {
-        'params': {'UserName': 'user_name'},
-        'response': {
-            'LoginProfile': {
-                'UserName': 'user_name',
-                'CreateDate': 'create_date',
-                'PasswordResetRequired': 'password_reset_required',
-            }
-        },
-    },
-    'iam.list_mfa_devices': {
-        'params': {'UserName': 'user_name'},
-        'response': {
-            'MFADevices': [
-                {
-                    'UserName': 'user_name',
-                    'SerialNumber': 'serial_number',
-                    'EnableDate': 'enable_date',
-                }
-            ]
-        },
-    },
-    'iam.list_user_policies': {
-        'params': {'UserName': 'user_name'},
-        'response': {'PolicyNames': ['policy_name']},
-    },
-    'iam.list_attached_user_policies': {
-        'params': {'UserName': 'user_name'},
-        'response': {
-            'AttachedPolicies': [
-                {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
-            ]
-        },
-    },
-    'iam.list_roles': {
-        'response': {
-            'Roles': [
-                {
-                    'Path': 'path',
-                    'RoleName': 'role_name',
-                    'RoleId': 'role_id',
-                    'Arn': 'arn',
-                    'CreateDate': 'create_date',
-                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
-                    'Description': 'description',
-                    'MaxSessionDuration': 'max_session_duration',
-                    'PermissionsBoundary': {
-                        'PermissionsBoundaryType': 'permissions_boundary_type',
-                        'PermissionsBoundaryArn': 'permissions_boundary_arn',
-                    },
-                    'Tags': 'tags',
-                    'RoleLastUsed': 'role_last_used',
-                }
-            ]
-        },
-        'children': [
-            {'method': 'iam.list_role_policies', 'args': {'RoleName': 'role_name'}}
-        ],
-    },
-    'iam.list_role_policies': {
-        'params': {'RoleName': 'role_name'},
-        'response': {'PolicyNames': ['policy_name']},
-        'children': [
-            {
-                'method': 'iam.get_role_policy',
-                'args': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
-            }
-        ],
-    },
-    'iam.get_role_policy': {
-        'params': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
-        'response': {'PolicyDocument': 'policy_document'},
-    },
-    'iam.list_policies': {
-        'response': {
-            'Policies': [
-                {
-                    'PolicyName': 'policy_name',
-                    'PolicyId': 'policy_id',
-                    'Arn': 'arn',
-                    'Path': 'path',
-                    'DefaultVersionId': 'default_version_id',
-                    'AttachmentCount': 'attachment_count',
-                    'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
-                    'IsAttachable': 'is_attachable',
-                    'Description': 'description',
-                    'CreateDate': 'create_date',
-                    'UpdateDate': 'update_date',
-                }
-            ]
-        },
-        'children': [
-            {
-                'method': 'iam.get_policy_version',
-                'args': {'PolicyArn': 'arn', 'VersionId': 'default_version_id'},
-            },
-            {'method': 'iam.list_entities_for_policy', 'args': {'PolicyArn': 'arn'}},
-        ],
-    },
-    'iam.get_policy_version': {
-        'params': {'PolicyArn': 'policy_arn'},
-        'response': {
-            'PolicyVersion': {
-                'Document': 'document',
-                'VersionId': 'version_id',
-                'CreateDate': 'create_date',
-                'IsDefaultVersion': 'is_default_version',
-            }
-        },
-    },
-    'iam.list_entities_for_policy': {
-        'params': {'PolicyArn': 'policy_arn'},
-        'response': {
-            'PolicyGroups': [{'GroupName': 'group_name', 'GroupId': 'group_id'}],
-            'PolicyUsers': [{'UserName': 'user_name', 'UserId': 'user_id'}],
-            'PolicyRoles': [{'RoleName': 'role_name', 'RoleId': 'role_id'}],
-        },
-    },
-    'iam.list_virtual_mfa_devices': {
-        'response': {
-            'VirtualMFADevices': [
-                {
-                    'SerialNumber': 'serial_number',
-                    'Base32StringSeed': 'base32_string_seed',
-                    'QRCodePNG': 'qr_code_png',
-                    'User': 'user',
-                    'EnableDate': 'enable_date',
-                }
-            ]
-        }
-    },
-    's3.list_buckets': {
-        'response': {
-            'Buckets': [
-                {'Name': 'bucket_name', 'CreationDate': 'bucket_creation_date'}
-            ],
-            'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
-        },
-        'children': [
-            {
-                'methods': [
-                    's3.get_bucket_acl',
-                    's3.get_bucket_policy',
-                    's3.get_bucket_logging',
-                ],
-                'args': {'Bucket': 'bucket_name'},
-            }
-        ],
-    },
-    's3.get_bucket_acl': {
-        'params': {'Bucket': 'bucket'},
-        'response': {
-            'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
-            'Grants': [
-                {'Grantee': 'grants_grantee', 'Permission': 'grants_permission'}
-            ],
-        },
-    },
-    's3.get_bucket_policy': {
-        'params': {'Bucket': 'bucket'},
-        'response': {'Policy': ParsedCol('json', 'policy', 'policy_json_parsed')},
-    },
-    's3.get_bucket_logging': {
-        'params': {'Bucket': 'bucket'},
-        'response': {
-            'LoggingEnabled': {
-                'TargetBucket': 'target_bucket',
-                'TargetGrants': 'target_grants',
-                'TargetPrefix': 'target_prefix',
-            }
-        },
-    },
-    'cloudtrail.describe_trails': {
-        'response': {
-            'trailList': [
-                {
-                    'Name': 'name',
-                    'S3BucketName': 's3_bucket_name',
-                    'S3KeyPrefix': 's3_key_prefix',
-                    'SnsTopicName': 'sns_topic_name',
-                    'SnsTopicARN': 'sns_topic_arn',
-                    'IncludeGlobalServiceEvents': 'include_global_service_events',
-                    'IsMultiRegionTrail': 'is_multi_region_trail',
-                    'HomeRegion': 'home_region',
-                    'TrailARN': 'trail_arn',
-                    'LogFileValidationEnabled': 'log_file_validation_enabled',
-                    'CloudWatchLogsLogGroupArn': 'cloud_watch_logs_log_group_arn',
-                    'CloudWatchLogsRoleArn': 'cloud_watch_logs_role_arn',
-                    'KmsKeyId': 'kms_key_id',
-                    'HasCustomEventSelectors': 'has_custom_event_selectors',
-                    'HasInsightSelectors': 'has_insight_selectors',
-                    'IsOrganizationTrail': 'is_organization_trail',
-                }
-            ]
-        },
-        'children': [
-            {'method': 'cloudtrail.get_trail_status', 'args': {'Name': 'trail_arn'}},
-            {
-                'method': 'cloudtrail.get_event_selectors',
-                'args': {'TrailName': 'trail_arn'},
-            },
-        ],
-    },
-    'cloudtrail.get_trail_status': {
-        'params': {'Name': 'trail_arn'},
-        'response': {
-            'IsLogging': 'is_logging',
-            'LatestDeliveryError': 'latest_delivery_error',
-            'LatestNotificationError': 'latest_notification_error',
-            'LatestDeliveryTime': 'latest_delivery_time',
-            'LatestNotificationTime': 'latest_notification_time',
-            'StartLoggingTime': 'start_logging_time',
-            'StopLoggingTime': 'stop_logging_time',
-            'LatestCloudWatchLogsDeliveryError': 'latest_cloud_watch_logs_delivery_error',
-            'LatestCloudWatchLogsDeliveryTime': 'latest_cloud_watch_logs_delivery_time',
-            'LatestDigestDeliveryTime': 'latest_digest_delivery_time',
-            'LatestDigestDeliveryError': 'latest_digest_delivery_error',
-            'LatestDeliveryAttemptTime': 'latest_delivery_attempt_time',
-            'LatestNotificationAttemptTime': 'latest_notification_attempt_time',
-            'LatestNotificationAttemptSucceeded': 'latest_notification_attempt_succeeded',
-            'LatestDeliveryAttemptSucceeded': 'latest_delivery_attempt_succeeded',
-            'TimeLoggingStarted': 'time_logging_started',
-            'TimeLoggingStopped': 'time_logging_stopped',
-        },
-    },
-    'cloudtrail.get_event_selectors': {
-        'response': {
-            'TrailARN': 'trail_arn',
-            'EventSelectors': [
-                {
-                    'ReadWriteType': 'read_write_type',
-                    'IncludeManagementEvents': 'include_management_events',
-                    'DataResources': 'data_resources',
-                    'ExcludeManagementEventSources': 'exclude_management_event_sources',
-                }
-            ],
-        }
-    },
-    'inspector.list-assessment-runs': {
+    # 'organizations.list_accounts': {
+    #     'response': {
+    #         'Accounts': [
+    #             {
+    #                 'Id': 'id',
+    #                 'Arn': 'arn',
+    #                 'Email': 'email',
+    #                 'Name': 'name',
+    #                 'Status': 'status',
+    #                 'JoinedMethod': 'joined_method',
+    #                 'JoinedTimestamp': 'joined_timestamp',
+    #             }
+    #         ]
+    #     }
+    # },
+    # 'iam.list_account_aliases': {'response': {'AccountAliases': ['account_alias']}},
+    # 'iam.get_account_summary': {
+    #     'response': {
+    #         'SummaryMap': {
+    #             'GroupPolicySizeQuota': 'group_policy_size_quota',
+    #             'InstanceProfilesQuota': 'instance_profiles_quota',
+    #             'Policies': 'policies',
+    #             'GroupsPerUserQuota': 'groups_per_user_quota',
+    #             'InstanceProfiles': 'instance_profiles',
+    #             'AttachedPoliciesPerUserQuota': 'attached_policies_per_user_quota',
+    #             'Users': 'users',
+    #             'PoliciesQuota': 'policies_quota',
+    #             'Providers': 'providers',
+    #             'AccountMFAEnabled': 'account_mfa_enabled',
+    #             'AccessKeysPerUserQuota': 'access_keys_per_user_quota',
+    #             'AssumeRolePolicySizeQuota': 'assume_role_policy_size_quota',
+    #             'PolicyVersionsInUseQuota': 'policy_versions_in_use_quota',
+    #             'GlobalEndpointTokenVersion': 'global_endpoint_token_version',
+    #             'VersionsPerPolicyQuota': 'versions_per_policy_quota',
+    #             'AttachedPoliciesPerGroupQuota': 'attached_policies_per_group_quota',
+    #             'PolicySizeQuota': 'policy_size_quota',
+    #             'Groups': 'groups',
+    #             'AccountSigningCertificatesPresent': 'account_signing_certificates_present',
+    #             'UsersQuota': 'users_quota',
+    #             'ServerCertificatesQuota': 'server_certificates_quota',
+    #             'MFADevices': 'mfa_devices',
+    #             'UserPolicySizeQuota': 'user_policy_size_quota',
+    #             'PolicyVersionsInUse': 'policy_versions_in_use',
+    #             'ServerCertificates': 'server_certificates',
+    #             'Roles': 'roles',
+    #             'RolesQuota': 'roles_quota',
+    #             'SigningCertificatesPerUserQuota': 'signing_certificates_per_user_quota',
+    #             'MFADevicesInUse': 'mfa_devices_in_use',
+    #             'RolePolicySizeQuota': 'role_policy_size_quota',
+    #             'AttachedPoliciesPerRoleQuota': 'attached_policies_per_role_quota',
+    #             'AccountAccessKeysPresent': 'account_access_keys_present',
+    #             'GroupsQuota': 'groups_quota',
+    #         }
+    #     }
+    # },
+    # 'iam.get_account_password_policy': {
+    #     'response': {
+    #         'PasswordPolicy': {
+    #             'MinimumPasswordLength': 'minimum_password_length',
+    #             'RequireSymbols': 'require_symbols',
+    #             'RequireNumbers': 'require_numbers',
+    #             'RequireUppercaseCharacters': 'require_uppercase_characters',
+    #             'RequireLowercaseCharacters': 'require_lowercase_characters',
+    #             'AllowUsersToChangePassword': 'allow_users_to_change_password',
+    #             'ExpirePasswords': 'expire_passwords',
+    #             'MaxPasswordAge': 'max_password_age',
+    #             'PasswordReusePrevention': 'password_reuse_prevention',
+    #             'HardExpiry': 'hard_expiry',
+    #         }
+    #     }
+    # },
+    # 'ec2.describe_instances': {
+    #     'response': {
+    #         'Reservations': [
+    #             {
+    #                 'Groups': 'groups',
+    #                 'Instances': 'instances',
+    #                 'OwnerId': 'owner_id',
+    #                 'RequesterId': 'requester_id',
+    #                 'ReservationId': 'reservation_id',
+    #             }
+    #         ]
+    #     }
+    # },
+    # 'ec2.describe_security_groups': {
+    #     'response': {
+    #         'SecurityGroups': [
+    #             {
+    #                 'Description': 'description',
+    #                 'GroupName': 'group_name',
+    #                 'IpPermissions': 'ip_permissions',
+    #                 'OwnerId': 'owner_id',
+    #                 'GroupId': 'group_id',
+    #                 'IpPermissionsEgress': 'ip_permissions_egress',
+    #                 'Tags': 'tags',
+    #                 'VpcId': 'vpc_id',
+    #             }
+    #         ]
+    #     }
+    # },
+    # 'config.describe_configuration_recorders': {
+    #     'response': {
+    #         'ConfigurationRecorders': [
+    #             {
+    #                 'name': 'name',
+    #                 'roleARN': 'role_arn',
+    #                 'recordingGroup': 'recording_group',
+    #             }
+    #         ]
+    #     }
+    # },
+    # 'kms.list_keys': {
+    #     'response': {'Keys': [{'KeyId': 'key_id', 'KeyArn': 'key_arn'}]},
+    #     'children': [
+    #         {'method': 'kms.get_key_rotation_status', 'args': {'KeyId': 'key_arn'}}
+    #     ],
+    # },
+    # 'kms.get_key_rotation_status': {
+    #     'params': {'KeyId': 'key_arn'},
+    #     'response': {'KeyRotationEnabled': 'key_rotation_enabled'},
+    # },
+    # 'iam.generate_credential_report': {
+    #     'response': {'State': 'state', 'Description': 'description'}
+    # },
+    # 'iam.get_credential_report': {
+    #     'response': {
+    #         'Content': ParsedCol('csv', 'content', 'content_csv_parsed'),
+    #         'ReportFormat': 'report_format',
+    #         'GeneratedTime': 'generated_time',
+    #     }
+    # },
+    # 'iam.list_users': {
+    #     'response': {
+    #         'Users': [
+    #             {
+    #                 'Arn': 'arn',
+    #                 'Path': 'path',
+    #                 'CreateDate': 'create_date',
+    #                 'UserId': 'user_id',
+    #                 'UserName': 'user_name',
+    #                 'PasswordLastUsed': 'password_last_used',
+    #                 'PermissionsBoundary': 'permissions_boundary',
+    #                 'Tags': 'tags',
+    #             }
+    #         ]
+    #     },
+    #     'children': [
+    #         {
+    #             'methods': [
+    #                 'iam.get_login_profile',
+    #                 'iam.list_mfa_devices',
+    #                 'iam.list_access_keys',
+    #                 'iam.list_groups_for_user',
+    #                 'iam.list_user_policies',
+    #                 'iam.list_attached_user_policies',
+    #             ],
+    #             'args': {'UserName': 'user_name'},
+    #         }
+    #     ],
+    # },
+    # 'iam.list_groups_for_user': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {
+    #         'Groups': [
+    #             {
+    #                 'Path': 'path',
+    #                 'GroupName': 'group_name',
+    #                 'GroupId': 'group_id',
+    #                 'Arn': 'arn',
+    #                 'CreateDate': 'create_date',
+    #             }
+    #         ]
+    #     },
+    # },
+    # 'iam.list_access_keys': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {
+    #         'AccessKeyMetadata': [
+    #             {
+    #                 'UserName': 'user_name',
+    #                 'AccessKeyId': 'access_key_id',
+    #                 'Status': 'status',
+    #                 'CreateDate': 'create_date',
+    #             }
+    #         ]
+    #     },
+    # },
+    # 'iam.get_login_profile': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {
+    #         'LoginProfile': {
+    #             'UserName': 'user_name',
+    #             'CreateDate': 'create_date',
+    #             'PasswordResetRequired': 'password_reset_required',
+    #         }
+    #     },
+    # },
+    # 'iam.list_mfa_devices': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {
+    #         'MFADevices': [
+    #             {
+    #                 'UserName': 'user_name',
+    #                 'SerialNumber': 'serial_number',
+    #                 'EnableDate': 'enable_date',
+    #             }
+    #         ]
+    #     },
+    # },
+    # 'iam.list_user_policies': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {'PolicyNames': ['policy_name']},
+    # },
+    # 'iam.list_attached_user_policies': {
+    #     'params': {'UserName': 'user_name'},
+    #     'response': {
+    #         'AttachedPolicies': [
+    #             {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
+    #         ]
+    #     },
+    # },
+    # 'iam.list_roles': {
+    #     'response': {
+    #         'Roles': [
+    #             {
+    #                 'Path': 'path',
+    #                 'RoleName': 'role_name',
+    #                 'RoleId': 'role_id',
+    #                 'Arn': 'arn',
+    #                 'CreateDate': 'create_date',
+    #                 'AssumeRolePolicyDocument': 'assume_role_policy_document',
+    #                 'Description': 'description',
+    #                 'MaxSessionDuration': 'max_session_duration',
+    #                 'PermissionsBoundary': {
+    #                     'PermissionsBoundaryType': 'permissions_boundary_type',
+    #                     'PermissionsBoundaryArn': 'permissions_boundary_arn',
+    #                 },
+    #                 'Tags': 'tags',
+    #                 'RoleLastUsed': 'role_last_used',
+    #             }
+    #         ]
+    #     },
+    #     'children': [
+    #         {'method': 'iam.list_role_policies', 'args': {'RoleName': 'role_name'}}
+    #     ],
+    # },
+    # 'iam.list_role_policies': {
+    #     'params': {'RoleName': 'role_name'},
+    #     'response': {'PolicyNames': ['policy_name']},
+    #     'children': [
+    #         {
+    #             'method': 'iam.get_role_policy',
+    #             'args': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
+    #         }
+    #     ],
+    # },
+    # 'iam.get_role_policy': {
+    #     'params': {'RoleName': 'role_name', 'PolicyName': 'policy_name'},
+    #     'response': {'PolicyDocument': 'policy_document'},
+    # },
+    # 'iam.list_policies': {
+    #     'response': {
+    #         'Policies': [
+    #             {
+    #                 'PolicyName': 'policy_name',
+    #                 'PolicyId': 'policy_id',
+    #                 'Arn': 'arn',
+    #                 'Path': 'path',
+    #                 'DefaultVersionId': 'default_version_id',
+    #                 'AttachmentCount': 'attachment_count',
+    #                 'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
+    #                 'IsAttachable': 'is_attachable',
+    #                 'Description': 'description',
+    #                 'CreateDate': 'create_date',
+    #                 'UpdateDate': 'update_date',
+    #             }
+    #         ]
+    #     },
+    #     'children': [
+    #         {
+    #             'method': 'iam.get_policy_version',
+    #             'args': {'PolicyArn': 'arn', 'VersionId': 'default_version_id'},
+    #         },
+    #         {'method': 'iam.list_entities_for_policy', 'args': {'PolicyArn': 'arn'}},
+    #     ],
+    # },
+    # 'iam.get_policy_version': {
+    #     'params': {'PolicyArn': 'policy_arn'},
+    #     'response': {
+    #         'PolicyVersion': {
+    #             'Document': 'document',
+    #             'VersionId': 'version_id',
+    #             'CreateDate': 'create_date',
+    #             'IsDefaultVersion': 'is_default_version',
+    #         }
+    #     },
+    # },
+    # 'iam.list_entities_for_policy': {
+    #     'params': {'PolicyArn': 'policy_arn'},
+    #     'response': {
+    #         'PolicyGroups': [{'GroupName': 'group_name', 'GroupId': 'group_id'}],
+    #         'PolicyUsers': [{'UserName': 'user_name', 'UserId': 'user_id'}],
+    #         'PolicyRoles': [{'RoleName': 'role_name', 'RoleId': 'role_id'}],
+    #     },
+    # },
+    # 'iam.list_virtual_mfa_devices': {
+    #     'response': {
+    #         'VirtualMFADevices': [
+    #             {
+    #                 'SerialNumber': 'serial_number',
+    #                 'Base32StringSeed': 'base32_string_seed',
+    #                 'QRCodePNG': 'qr_code_png',
+    #                 'User': 'user',
+    #                 'EnableDate': 'enable_date',
+    #             }
+    #         ]
+    #     }
+    # },
+    # 's3.list_buckets': {
+    #     'response': {
+    #         'Buckets': [
+    #             {'Name': 'bucket_name', 'CreationDate': 'bucket_creation_date'}
+    #         ],
+    #         'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
+    #     },
+    #     'children': [
+    #         {
+    #             'methods': [
+    #                 's3.get_bucket_acl',
+    #                 's3.get_bucket_policy',
+    #                 's3.get_bucket_logging',
+    #             ],
+    #             'args': {'Bucket': 'bucket_name'},
+    #         }
+    #     ],
+    # },
+    # 's3.get_bucket_acl': {
+    #     'params': {'Bucket': 'bucket'},
+    #     'response': {
+    #         'Owner': {'DisplayName': 'owner_display_name', 'ID': 'owner_id'},
+    #         'Grants': [
+    #             {'Grantee': 'grants_grantee', 'Permission': 'grants_permission'}
+    #         ],
+    #     },
+    # },
+    # 's3.get_bucket_policy': {
+    #     'params': {'Bucket': 'bucket'},
+    #     'response': {'Policy': ParsedCol('json', 'policy', 'policy_json_parsed')},
+    # },
+    # 's3.get_bucket_logging': {
+    #     'params': {'Bucket': 'bucket'},
+    #     'response': {
+    #         'LoggingEnabled': {
+    #             'TargetBucket': 'target_bucket',
+    #             'TargetGrants': 'target_grants',
+    #             'TargetPrefix': 'target_prefix',
+    #         }
+    #     },
+    # },
+    # 'cloudtrail.describe_trails': {
+    #     'response': {
+    #         'trailList': [
+    #             {
+    #                 'Name': 'name',
+    #                 'S3BucketName': 's3_bucket_name',
+    #                 'S3KeyPrefix': 's3_key_prefix',
+    #                 'SnsTopicName': 'sns_topic_name',
+    #                 'SnsTopicARN': 'sns_topic_arn',
+    #                 'IncludeGlobalServiceEvents': 'include_global_service_events',
+    #                 'IsMultiRegionTrail': 'is_multi_region_trail',
+    #                 'HomeRegion': 'home_region',
+    #                 'TrailARN': 'trail_arn',
+    #                 'LogFileValidationEnabled': 'log_file_validation_enabled',
+    #                 'CloudWatchLogsLogGroupArn': 'cloud_watch_logs_log_group_arn',
+    #                 'CloudWatchLogsRoleArn': 'cloud_watch_logs_role_arn',
+    #                 'KmsKeyId': 'kms_key_id',
+    #                 'HasCustomEventSelectors': 'has_custom_event_selectors',
+    #                 'HasInsightSelectors': 'has_insight_selectors',
+    #                 'IsOrganizationTrail': 'is_organization_trail',
+    #             }
+    #         ]
+    #     },
+    #     'children': [
+    #         {'method': 'cloudtrail.get_trail_status', 'args': {'Name': 'trail_arn'}},
+    #         {
+    #             'method': 'cloudtrail.get_event_selectors',
+    #             'args': {'TrailName': 'trail_arn'},
+    #         },
+    #     ],
+    # },
+    # 'cloudtrail.get_trail_status': {
+    #     'params': {'Name': 'trail_arn'},
+    #     'response': {
+    #         'IsLogging': 'is_logging',
+    #         'LatestDeliveryError': 'latest_delivery_error',
+    #         'LatestNotificationError': 'latest_notification_error',
+    #         'LatestDeliveryTime': 'latest_delivery_time',
+    #         'LatestNotificationTime': 'latest_notification_time',
+    #         'StartLoggingTime': 'start_logging_time',
+    #         'StopLoggingTime': 'stop_logging_time',
+    #         'LatestCloudWatchLogsDeliveryError': 'latest_cloud_watch_logs_delivery_error',
+    #         'LatestCloudWatchLogsDeliveryTime': 'latest_cloud_watch_logs_delivery_time',
+    #         'LatestDigestDeliveryTime': 'latest_digest_delivery_time',
+    #         'LatestDigestDeliveryError': 'latest_digest_delivery_error',
+    #         'LatestDeliveryAttemptTime': 'latest_delivery_attempt_time',
+    #         'LatestNotificationAttemptTime': 'latest_notification_attempt_time',
+    #         'LatestNotificationAttemptSucceeded': 'latest_notification_attempt_succeeded',
+    #         'LatestDeliveryAttemptSucceeded': 'latest_delivery_attempt_succeeded',
+    #         'TimeLoggingStarted': 'time_logging_started',
+    #         'TimeLoggingStopped': 'time_logging_stopped',
+    #     },
+    # },
+    # 'cloudtrail.get_event_selectors': {
+    #     'response': {
+    #         'TrailARN': 'trail_arn',
+    #         'EventSelectors': [
+    #             {
+    #                 'ReadWriteType': 'read_write_type',
+    #                 'IncludeManagementEvents': 'include_management_events',
+    #                 'DataResources': 'data_resources',
+    #                 'ExcludeManagementEventSources': 'exclude_management_event_sources',
+    #             }
+    #         ],
+    #     }
+    # },
+    'inspector.list_assessment_runs': {
         'response': {'assessmentRunArns': 'assessment_run_arns'},
-        'children': [
-            {'method': 'inspector.describe-findings', 'args': 'assessmentRunArns'}
-        ]
+        # 'children': [
+        #     {'method': 'inspector.describe_findings', 'args': 'assessmentRunArns'}
+        # ]
     },
-    'inspector.describe-findings': {
-        'params': {'assessmentRunArns': 'assessment_run_arns'}, # parent's 'response' value
-        'response': {
-            'failedItems': 'failed_items',
-            'findings': [
-                {
-                    'Arn': 'arn',
-                    'assetAttributes': {
-                        'ipv4Addresses': 'ipv4_addresses',
-                        'schemaVersion': 'schema_version'
-                    },
-                    'assetType': 'asset_type',
-                    'attributes': 'attributes',
-                    'confidence': 'confidence',
-                    'createdAt': 'created_at',
-                    'description': 'description',
-                    'indicatorOfCompromise': 'indicator_of_compromise',
-                    'numericSeverity': 'numeric_severity',
-                    'recommendation': 'recommendation',
-                    'schemaVersion': 'schema_version',
-                    'service': 'service',
-                    'serviceAttributes': {
-                        'assessmentRunArn': 'assessment_run_arn',
-                        'rulesPackageArn': 'rules_package_arn',
-                        'schemaVersion': 'schema_version'
-                    }
-                    'severity': 'severity',
-                    'title': 'title',
-                    'userAttributes': 'user_attributes'
-                }
-            ]
-        }
-    }
+    # 'inspector.describe_findings': {
+    #     'params': {'assessmentRunArns': 'assessment_run_arns'}, # parent's 'response' value
+    #     'response': {
+    #         'failedItems': 'failed_items',
+    #         'findings': [
+    #             {
+    #                 'Arn': 'arn',
+    #                 'assetAttributes': {
+    #                     'ipv4Addresses': 'ipv4_addresses',
+    #                     'schemaVersion': 'schema_version'
+    #                 },
+    #                 'assetType': 'asset_type',
+    #                 'attributes': 'attributes',
+    #                 'confidence': 'confidence',
+    #                 'createdAt': 'created_at',
+    #                 'description': 'description',
+    #                 'indicatorOfCompromise': 'indicator_of_compromise',
+    #                 'numericSeverity': 'numeric_severity',
+    #                 'recommendation': 'recommendation',
+    #                 'schemaVersion': 'schema_version',
+    #                 'service': 'service',
+    #                 'serviceAttributes': {
+    #                     'assessmentRunArn': 'assessment_run_arn',
+    #                     'rulesPackageArn': 'rules_package_arn',
+    #                     'schemaVersion': 'schema_version'
+    #                 },
+    #                 'severity': 'severity',
+    #                 'title': 'title',
+    #                 'userAttributes': 'user_attributes'
+    #             }
+    #         ]
+    #     }
+    # }
 }
 
 def connect(connection_name, options):
@@ -1153,7 +1158,9 @@ async def aioingest(table_name, options, dryrun=False):
         if type(oids) is int
         else oids
     )
+
     for oid in oids:
+
         master_reader_arn = (
             options.get('master_reader_arn')
             if oid == ''
@@ -1168,7 +1175,6 @@ async def aioingest(table_name, options, dryrun=False):
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,
         )
-
         async with session.client('organizations') as org_client:
             accounts = [
                 a.entity
@@ -1193,23 +1199,23 @@ async def aioingest(table_name, options, dryrun=False):
             collection_tasks = [
                 CollectTask(a['id'], method, {})
                 for method in [
-                    'iam.generate_credential_report',
-                    'iam.list_account_aliases',
-                    'iam.get_account_summary',
-                    'iam.get_account_password_policy',
-                    'ec2.describe_instances',
-                    'ec2.describe_security_groups',
-                    'config.describe_configuration_recorders',
-                    'kms.list_keys',
-                    'iam.list_users',
-                    'iam.list_policies',
-                    'iam.list_virtual_mfa_devices',
-                    's3.list_buckets',
-                    'cloudtrail.describe_trails',
-                    'iam.get_credential_report',
-                    'iam.list_roles',
+                    # 'iam.generate_credential_report',
+                    # 'iam.list_account_aliases',
+                    # 'iam.get_account_summary',
+                    # 'iam.get_account_password_policy',
+                    # 'ec2.describe_instances',
+                    # 'ec2.describe_security_groups',
+                    # 'config.describe_configuration_recorders',
+                    # 'kms.list_keys',
+                    # 'iam.list_users',
+                    # 'iam.list_policies',
+                    # 'iam.list_virtual_mfa_devices',
+                    # 's3.list_buckets',
+                    # 'cloudtrail.describe_trails',
+                    # 'iam.get_credential_report',
+                    # 'iam.list_roles',
                     'inspector.list-assessment-runs',
-                    'inspector.describe-findings'
+                    # 'inspector.describe-findings'
                 ]
                 for a in accounts
             ]
@@ -1246,7 +1252,7 @@ async def aioingest(table_name, options, dryrun=False):
 
 def ingest(table_name, options, dryrun=False):
     now = datetime.now()
-    if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
+    if True or options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(
             aioingest(table_name, options, dryrun=dryrun)
         )
