@@ -8,7 +8,7 @@ We are also actively working on a ``snowsec/snowalert-webui`` service container 
 Query Rules
 ===========
 
-Before creating new alerts, take a look at the alert configuration file ``packs/snowflake_query_pack.sql`` to see examples of useful Queries.
+Before creating new alerts, take a look at the `Snowflake Query Pack`_ to see examples of useful Queries.
 
 Note that each Query Rule defines a set set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the ``results`` schema in your Snowflake account.
 
@@ -63,3 +63,4 @@ Sometimes there are events you want to track and resolve, but which don't requir
 For cases like this, SnowAlert can manage violations, which are similar to alerts but can run less often (for example. daily instead of hourly). Violation queries are managed and suppressed identically to to Alert queries (so you might have ``USER_NO_MFA_VIOLATION_QUERY`` and ``USER_NO_MFA_VIOLATION_SUPPRESSION``), but the results are stored in a Violations table, which you can visualize and process using a BI tool like Sigma, Looker, or Superset.
 
 .. _on DockerHub: https://hub.docker.com/r/snowsec/snowalert
+.. _Snowflake Query Pack: https://github.com/snowflakedb/SnowAlert/blob/master/packs/snowflake_query_pack.sql
