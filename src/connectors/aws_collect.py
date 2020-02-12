@@ -1,6 +1,6 @@
-'''AWS Inventory and Configuration
+"""AWS Inventory and Configuration
 Load Inventory and Configuration of all accounts in your Org using auditor Roles
-'''
+"""
 
 import asyncio
 from botocore.exceptions import (
@@ -35,25 +35,25 @@ CONNECTION_OPTIONS = [
     {
         'type': 'str',
         'name': 'audit_assumer_arn',
-        'title': 'Audit Assumer ARN',
-        'prompt': 'The auditor role that assumes local roles in your accounts',
-        'placeholder': 'arn:aws:iam::111111111111:role/security-auditor',
+        'title': "Audit Assumer ARN",
+        'prompt': "The auditor role that assumes local roles in your accounts",
+        'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'org_account_ids',
-        'title': 'Master Account(s)',
-        'prompt': 'Comma-separated account id's to list-accounts in',
-        'placeholder': '222222222222,333333333333',
+        'title': "Master Account(s)",
+        'prompt': "Comma-separated account id's to list-accounts in",
+        'placeholder': "222222222222,333333333333",
         'required': True,
     },
     {
         'type': 'str',
         'name': 'audit_reader_role',
-        'title': 'The name of the local auditor roles in your accounts',
-        'prompt': 'Role to be assumed for auditing the other accounts',
-        'placeholder': 'security-local-auditor',
+        'title': "The name of the local auditor roles in your accounts",
+        'prompt': "Role to be assumed for auditing the other accounts",
+        'placeholder': "security-local-auditor",
         'required': True,
     },
     {
@@ -475,7 +475,6 @@ SUPPLEMENTARY_TABLES = {
         # Missing: userAttributes, a list
     ],
 }
-
 
 AWS_API_METHOD_COLUMNS = {
     'organizations.list_accounts': {
@@ -975,7 +974,7 @@ def connect(connection_name, options):
 
     return {
         'newStage': 'finalized',
-        'newMessage': 'AWS Collect connector tables created.',
+        'newMessage': "AWS Collect connector tables created.",
     }
 
 
@@ -1163,7 +1162,7 @@ async def aioingest(table_name, options, dryrun=False):
         )
 
         if master_reader_arn is None:
-            log.error('error: set 'master_reader_arn' or 'org_account_ids'')
+            log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
         session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
