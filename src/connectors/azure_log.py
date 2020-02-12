@@ -38,18 +38,6 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'str',
-        'name': 'cloud_type',
-        'options': [
-            {'value': 'reg', 'label': "Azure Cloud"},
-            {'value': 'gov', 'label': "Azure Gov Cloud"},
-        ],
-        'title': "Cloud Type",
-        'placeholder': "Choose Cloud Type",
-        'prompt': "Azure provides two types of clouds: regular and government",
-        'required': True,
-    },
-    {
-        'type': 'str',
         'name': 'connection_type',
         'options': [
             {'value': 'signin', 'label': "Active Directory (AD) Sign-in Logs"},
@@ -238,7 +226,6 @@ def connect(connection_name, options):
     account_name = options['account_name']
     container_name = options['container_name']
     suffix = options['suffix']
-    cloud_type = options['cloud_type']
     sas_token = options['sas_token']
 
     comment = yaml_dump(module='azure_log')
@@ -305,6 +292,7 @@ try {{
         warehouse=WAREHOUSE,
         schedule='5 minutes',
         sql=refresh_task_sql,
+        auto_resume=False
     )
 
     insert_task_sql = {
@@ -400,7 +388,10 @@ WHEN NOT MATCHED THEN
         warehouse=WAREHOUSE,
         schedule=f'AFTER data.{base_name}_refresh_task',
         sql=ingest_task_sql,
+        auto_resume=False
     )
+    db.execute(f"ALTER TASK data.{base_name}_refresh_task RESUME")
+    db.execute(f"ALTER TASK data.{base_name}_ingest_task RESUME")
 
     return {
         'newStage': 'finalized',
