@@ -8,28 +8,28 @@ const menuData: stateTypes.MenuData = [
   {
     name: 'Data Connectors',
     icon: 'api',
-    path: '/dashboard/connectors',
+    path: '/dashboard/connectors/',
   },
   {
     name: 'Baselines',
     icon: 'line-chart',
-    path: '/dashboard/baselines',
+    path: '/dashboard/baselines/',
   },
   {
     name: 'Alerts',
     icon: 'alert',
-    path: '/dashboard/alerts',
+    path: '/dashboard/alerts/',
   },
   {
     name: 'Violations',
     icon: 'eye',
-    path: '/dashboard/violations',
+    path: '/dashboard/violations/',
   },
   localStorage.getItem('enable_policies')
     ? {
         name: 'Policies',
         icon: 'file-done',
-        path: '/dashboard/policies',
+        path: '/dashboard/policies/',
       }
     : null,
   {

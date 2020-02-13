@@ -24,6 +24,8 @@ from .dbconfig import (
     DATABASE,
     USER,
     WAREHOUSE,
+    PORT,
+    PROTOCOL,
     PRIVATE_KEY,
     PRIVATE_KEY_PASSWORD,
     TIMEOUT,
@@ -97,6 +99,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             # 2) If using OAuth and OAUTH_CONNECTION_* env vars have been set, use these
             # 3) Else, use OAuth'd user's default namespace (see ALTER USER docs)
             account=oauth_account or ACCOUNT,
+            port=PORT,
+            protocol=PROTOCOL,
             database=environ.get('OAUTH_CONNECTION_DATABASE', None)
             if oauth_account
             else DATABASE,
@@ -707,7 +711,7 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
     execute(query, fix_errors=False)
 
 
-def create_task(name, schedule, warehouse, sql, replace='', comment=''):
+def create_task(name, schedule, warehouse, sql, replace='', comment='', auto_resume=True):
     replace = 'OR REPLACE ' if replace else ''
     if not schedule.startswith('AFTER'):
         schedule = f"SCHEDULE='{schedule}'\n"
@@ -715,7 +719,8 @@ def create_task(name, schedule, warehouse, sql, replace='', comment=''):
     comment = f"\nCOMMENT='{comment} '" if comment else ''
     query = f"CREATE {replace}TASK {name} {warehouse}{schedule} {comment} AS \n{sql}"
     execute(query, fix_errors=False)
-    execute(f"ALTER TASK {name} RESUME")
+    if auto_resume:
+        execute(f"ALTER TASK {name} RESUME")
 
 
 def create_stored_procedure(

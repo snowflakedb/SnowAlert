@@ -428,3 +428,5 @@ export class Suppression extends SQLBackedRule {
     );
   }
 }
+
+export type Rule = Query | Suppression | Policy;

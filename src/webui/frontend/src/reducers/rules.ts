@@ -21,7 +21,7 @@ AS
 SELECT 'E' AS environment
      , ARRAY_CONSTRUCT('S') AS sources
      , 'Predicate' AS object
-     , 'rule title' AS title
+     , 'New Alert Query' AS title
      , NULL AS event_time
      , CURRENT_TIMESTAMP() AS alert_time
      , 'S: Subject Verb Predicate at ' || alert_time AS description
@@ -35,12 +35,12 @@ SELECT 'E' AS environment
 FROM data.\nWHERE 1=1\n  AND 2=2\n;`;
 
 const violationQueryBody = (s: string, qid: string) => `CREATE OR REPLACE VIEW rules.${s}_VIOLATION_QUERY COPY GRANTS
-  COMMENT='Violation Rule Summary
+  COMMENT='Violation Query Summary
   @id ${qid}'
 AS
 SELECT 'E' AS environment
      , 'Predicate' AS object
-     , 'rule title' AS title
+     , 'New Violation Query' AS title
      , 'S: Subject state' AS description
      , CURRENT_TIMESTAMP() AS alert_time
      , OBJECT_CONSTRUCT(*) AS event_data
@@ -121,17 +121,15 @@ export const rules: Reducer<SnowAlertRulesState> = (
     }
 
     // saving rules
-    case RulesActions.SAVE_RULE_REQUEST:
+    case RulesActions.SAVE_RULE_REQUEST: {
+      const {viewName} = action.payload;
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === state.currentRuleView ? q.copy({isSaving: true}) : q)),
-        suppressions: state.suppressions.map(q =>
-          q.viewName === state.currentRuleView ? q.copy({isSaving: true}) : q,
-        ),
-        policies: state.policies.map(p =>
-          p.viewName === state.currentRuleView ? Object.assign(p, {isSaving: true}) : p,
-        ),
+        queries: state.queries.map(q => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
+        suppressions: state.suppressions.map(q => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
+        policies: state.policies.map(p => (p.viewName === viewName ? Object.assign(p, {isSaving: true}) : p)),
       };
+    }
 
     case RulesActions.SAVE_RULE_SUCCESS:
       const {target: savedTarget, type: savedType, title: savedTitle} = action.payload;
@@ -285,19 +283,21 @@ export const rules: Reducer<SnowAlertRulesState> = (
         newTitle: null,
       };
 
+      navigate(`${title}_${ruleTarget}_${ruleType}`);
+
       switch (ruleType) {
         case 'QUERY':
           return {
             ...state,
             currentRuleView: `${title}_${ruleTarget}_${ruleType}`,
-            queries: state.queries.concat([new Query(newRule)]),
+            queries: [new Query(newRule)].concat(state.queries),
           };
 
         case 'SUPPRESSION':
           return {
             ...state,
             currentRuleView: `${title}_${ruleTarget}_${ruleType}`,
-            suppressions: state.suppressions.concat([new Suppression(newRule)]),
+            suppressions: [new Suppression(newRule)].concat(state.suppressions),
           };
 
         default:
@@ -310,13 +310,11 @@ export const rules: Reducer<SnowAlertRulesState> = (
 
     // updating rule body
     case RulesActions.CHANGE_CURRENT_RULE_BODY: {
-      const newBody = action.payload;
+      const {view: viewName, body: newBody} = action.payload;
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === state.currentRuleView ? q.copy({raw: {body: newBody}}) : q)),
-        suppressions: state.suppressions.map(s =>
-          s.viewName === state.currentRuleView ? s.copy({raw: {body: newBody}}) : s,
-        ),
+        queries: state.queries.map(q => (q.viewName === viewName ? q.copy({raw: {body: newBody}}) : q)),
+        suppressions: state.suppressions.map(s => (s.viewName === viewName ? s.copy({raw: {body: newBody}}) : s)),
       };
     }
 
@@ -346,6 +344,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
         ...state,
       };
     case RulesActions.DELETE_RULE_SUCCESS:
+      navigate('./');
       return {
         ...state,
         currentRuleView: '',

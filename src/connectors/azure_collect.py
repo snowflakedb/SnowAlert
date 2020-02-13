@@ -110,6 +110,7 @@ SUPPLEMENTARY_TABLES = {
         ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(500)'),
+        ('identity', 'VARCHAR(500)'),
         ('location', 'VARCHAR(500)'),
         ('name', 'VARCHAR(500)'),
         ('properties', 'VARIANT'),
@@ -288,6 +289,53 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/pricings/list#pricingtier
+    'pricings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/autoprovisioningsettings/list#autoprovisioningsettinglist
+    'auto_provisioning_settings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/resources/policyassignments/list#policyassignment
+    'policy_assignments': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('identity', 'VARIANT'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/securitycenter/securitycontacts/list#securitycontact
+    'security_contacts': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('name', 'STRING'),
+        ('type', 'STRING'),
+        ('properties', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
@@ -648,6 +696,32 @@ API_SPECS = {
         'request': {
             'path': '/v1.0/users',
             'host': {'usgov': 'graph.microsoft.us', 'azure': 'graph.microsoft.com'},
+            'params': {
+                '$select': (
+                    'accountEnabled,'
+                    'businessPhones,'
+                    'city,'
+                    'country,'
+                    'createdDateTime,'
+                    'department,'
+                    'displayName,'
+                    'employeeId,'
+                    'faxNumber,'
+                    'givenName,'
+                    'jobTitle,'
+                    'mail,'
+                    'id,'
+                    'lastPasswordChangeDateTime,'
+                    'mobilePhone,'
+                    'officeLocation,'
+                    'preferredLanguage,'
+                    'surname,'
+                    'passwordPolicies,'
+                    'passwordProfile,'
+                    'userPrincipalName,'
+                    'userType'
+                )
+            },
         },
         'response': {
             'headerDate': 'recorded_at',
@@ -826,6 +900,7 @@ API_SPECS = {
             'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
+            'identity': 'identity',
             'location': 'location',
             'name': 'name',
             'properties': 'properties',
@@ -1121,6 +1196,85 @@ API_SPECS = {
             'type': 'type',
         },
     },
+    'pricings': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/pricings'
+            ),
+            'api-version': '2018-06-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'auto_provisioning_settings': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/autoProvisioningSettings'
+            ),
+            'api-version': '2017-08-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'policy_assignments': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Authorization/policyAssignments'
+            ),
+            'api-version': '2019-09-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'identity': 'identity',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'type': 'type',
+        },
+    },
+    'security_contacts': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Security/securityContacts'
+            ),
+            'api-version': '2017-08-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'type': 'type',
+            'properties': 'properties',
+        },
+    },
 }
 
 
@@ -1158,7 +1312,7 @@ def GET(kind, params, cred):
     nextUrl = url
     values = []
     while nextUrl:
-        result = requests.get(
+        response = requests.get(
             nextUrl,
             headers={
                 'Authorization': 'Bearer ' + bearer_token,
@@ -1168,29 +1322,37 @@ def GET(kind, params, cred):
             },
         )
 
-        log.debug(f'<- {result.status_code}')
+        log.debug(f'<- {response.status_code}')
 
-        response = json.loads(
-            json_dumps(xmltodict.parse(result.text.encode()))
-            if result.text.startswith('<?xml')
-            else result.text
-        )
+        try:
+            result = json.loads(
+                json_dumps(xmltodict.parse(response.text.encode()))
+                if response.text.startswith('<?xml')
+                else response.text
+            )
+
+        except json.JSONDecodeError:
+            result = {
+                'error_type': 'JSONDecodeError',
+                'status_code': response.status_code,
+                'text': response.text,
+            }
 
         # empty lists of values are recorded as empty rows
         # error values are recorded as rows with error and empty value cols
         # normal values are recorded with populated values and an empty error col
-        def response_values(response):
+        def response_values(result):
             for vk in spec.get('response_value_key', 'value').split('.'):
-                if response is None or vk not in response:
+                if result is None or vk not in result:
                     break
-                response = response[vk]
+                result = result[vk]
 
             return (
-                response
-                if type(response) is list
-                else [response]
-                if type(response) is dict
-                else [{'error': response}]
+                result
+                if type(result) is list
+                else [result]
+                if type(result) is dict
+                else [{'error': result}]
             ) or [{}]
 
         values += [
@@ -1198,22 +1360,22 @@ def GET(kind, params, cred):
                 {},
                 v,
                 params,
-                headerDate=parse_date(result.headers['Date']),
+                headerDate=parse_date(response.headers['Date']),
                 tenantId=cred['tenant'],
             )
-            for v in response_values(response)
+            for v in response_values(result)
         ]
 
-        if 'nextLink' in response:
-            nextUrl = response['nextLink']
+        if 'nextLink' in result:
+            nextUrl = result['nextLink']
             continue
 
-        if '@odata.nextLink' in response:
-            nextUrl = response['@odata.nextLink']
+        if '@odata.nextLink' in result:
+            nextUrl = result['@odata.nextLink']
             continue
 
-        if 'EnumerationResults' in response:
-            nextMarker = response['EnumerationResults'].get('NextMarker')
+        if 'EnumerationResults' in result:
+            nextMarker = result['EnumerationResults'].get('NextMarker')
             if nextMarker:
                 nextUrl = re.sub(r'(&marker=.*)?$', f'&marker={nextMarker}', nextUrl)
                 continue
@@ -1237,7 +1399,12 @@ def ingest(table_name, options, dryrun=False):
 
         def load_table(kind, **params):
             nonlocal num_loaded
-            values = GET(kind, params, cred=cred)
+            values = db.retry(
+                f=lambda: GET(kind, params, cred=cred),
+                E=(requests.exceptions.SSLError, requests.exceptions.ConnectionError),
+                n=10,
+                sleep_seconds_btw_retry=3,
+            )
             kind = 'connection' if kind == 'subscriptions' else kind
             table_name = f'{table_prefix}_{kind}'
             result = db.insert(table_name, values, dryrun=dryrun)
@@ -1256,6 +1423,11 @@ def ingest(table_name, options, dryrun=False):
             if sid is None:
                 log.debug(f'subscription without id: {s}')
                 continue
+
+            load_table('pricings', subscriptionId=sid)
+            load_table('auto_provisioning_settings', subscriptionId=sid)
+            load_table('policy_assignments', subscriptionId=sid)
+            load_table('security_contacts', subscriptionId=sid)
 
             load_table('virtual_machines', subscriptionId=sid)
 
