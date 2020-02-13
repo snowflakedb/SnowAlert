@@ -9,6 +9,7 @@ import {getRules} from '../../reducers/rules';
 import * as stateTypes from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
 import BasicLayout from '../../layouts/BasicLayout';
+import {history, navigate} from '../../store/history';
 
 import './Alerts.css';
 
@@ -30,21 +31,32 @@ type Props = OwnProps & StateProps & DispatchProps;
 
 class AlertsDashboard extends React.PureComponent<Props> {
   render() {
-    const {queries, suppressions, currentRuleView} = this.props.rules;
-    const currentRule = queries.find(q => q.viewName === currentRuleView);
+    const {
+      selected,
+      newRule,
+      rules: {queries, suppressions},
+    } = this.props;
+    const allRules = [...queries, ...suppressions];
+    const selectedRule =
+      allRules.find(r => r.viewName === selected) ||
+      queries.find(q => `'${selected}'` === ((q.fields || {}).select || {}).query_id);
+
+    if (history.location.pathname === '/dashboard/alerts') {
+      navigate('alerts/', {replace: true});
+    }
 
     return (
       <BasicLayout>
         <Card
           className={'card'}
-          title={!currentRule ? 'Alerts Dashboard' : <h3>{currentRule.title}</h3>}
+          title={!selectedRule ? 'Alerts Dashboard' : <h3>{selectedRule.title}</h3>}
           extra={
             <div>
-              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'QUERY')}>
+              <Button type="primary" onClick={() => newRule('ALERT', 'QUERY')}>
                 + QUERY
               </Button>
               &nbsp;
-              <Button type="primary" onClick={() => this.props.newRule('ALERT', 'SUPPRESSION')}>
+              <Button type="primary" onClick={() => newRule('ALERT', 'SUPPRESSION')}>
                 + SUPPRESSION
               </Button>
             </div>
@@ -57,9 +69,9 @@ class AlertsDashboard extends React.PureComponent<Props> {
                 target="ALERT"
                 queries={queries}
                 suppressions={suppressions}
-                currentRuleView={currentRuleView || null}
+                currentRuleView={selectedRule ? selectedRule.viewName : null}
                 formFields={
-                  currentRule && currentRule.type === 'QUERY'
+                  selectedRule && selectedRule.type === 'QUERY'
                     ? [
                         {
                           span: 24,

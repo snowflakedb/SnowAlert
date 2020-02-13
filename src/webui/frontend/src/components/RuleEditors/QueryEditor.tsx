@@ -78,6 +78,7 @@ interface TagGroupFieldDefinition {
 interface OwnProps {
   cols: QueryEditorColumn[];
   target: RuleTarget;
+  currentRuleView: string | null;
 }
 
 interface DispatchProps {
@@ -118,8 +119,8 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
   }
 
   render() {
-    const {updateRule, updateRuleBody, cols, saveRule} = this.props;
-    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const {currentRuleView, updateRule, updateRuleBody, cols, saveRule} = this.props;
+    const {queries, suppressions} = this.props.rules;
     const rules = [...queries, ...suppressions].filter(q => q.target === this.props.target);
     const q = rules.find(q => q.viewName === currentRuleView);
 
@@ -178,17 +179,13 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
           </Col>
         ))}
         <Col span={24}>
-          <Button
-            type="primary"
-            disabled={q.isSaving || (!q.isEdited && q.isSaved)}
-            onClick={() => q && saveRule(q.raw)}
-          >
+          <Button type="primary" disabled={q.isSaving || (!q.isEdited && q.isSaved)} onClick={() => q && saveRule(q)}>
             {q && q.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
           </Button>
           <Button
             type="default"
             disabled={q.isSaving || (!q.isEdited && q.isSaved)}
-            onClick={() => q && updateRuleBody(q.raw.savedBody)}
+            onClick={() => q && updateRuleBody(q.viewName, q.raw.savedBody)}
           >
             <Icon type="rollback" theme="outlined" /> Revert
           </Button>

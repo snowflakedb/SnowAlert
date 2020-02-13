@@ -1,7 +1,7 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
 import {SnowAlertRule, State} from '../reducers/types';
-import {Policy, Query, Suppression} from '../store/rules';
+import {Policy, Query, Suppression, Rule} from '../store/rules';
 import {Action, ActionWithPayload, createAction, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -132,9 +132,9 @@ export const changeRule = (ruleTitle?: string) => async (dispatch: Dispatch) => 
 
 // updating rule body
 export const CHANGE_CURRENT_RULE_BODY = 'CHANGE_CURRENT_RULE_BODY';
-export type ChangeRuleBodyAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE_BODY, string>;
-export const updateRuleBody = (ruleBody: string | null) => async (dispatch: Dispatch) => {
-  dispatch(createAction(CHANGE_CURRENT_RULE_BODY, ruleBody));
+export type ChangeRuleBodyAction = ActionWithPayload<typeof CHANGE_CURRENT_RULE_BODY, {view: string; body: string}>;
+export const updateRuleBody = (ruleView: string, ruleBody: string | null) => async (dispatch: Dispatch) => {
+  dispatch(createAction(CHANGE_CURRENT_RULE_BODY, {body: ruleBody, view: ruleView}));
 };
 
 // updating filter
@@ -164,17 +164,17 @@ export const SAVE_RULE_SUCCESS = 'SAVE_RULE_SUCCESS';
 export const SAVE_RULE_FAILURE = 'SAVE_RULE_FAILURE';
 
 export const SaveRuleAction = {
-  saveRuleRequest: () => createAction(SAVE_RULE_REQUEST),
+  saveRuleRequest: (rule: Rule) => createAction(SAVE_RULE_REQUEST, rule),
   saveRuleSuccess: (response: SnowAlertRule) => createAction(SAVE_RULE_SUCCESS, response),
   saveRuleFailure: (error: {message: string; rule: SnowAlertRule}) => createAction(SAVE_RULE_FAILURE, error),
 };
 
 export type SaveRuleActions = ActionsUnion<typeof SaveRuleAction>;
 
-export const saveRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) => {
+export const saveRule = (rule: Rule) => async (dispatch: Dispatch) => {
   dispatch(createAction(SAVE_RULE_REQUEST, rule));
   try {
-    const response = await api.saveRule(rule);
+    const response = await api.saveRule(rule.raw);
     if (response.success) {
       dispatch(SaveRuleAction.saveRuleSuccess(response.rule));
     } else {

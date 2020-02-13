@@ -103,6 +103,9 @@ def create_rule():
         except Exception:
             pass
 
+        if 'body' in data and 'savedBody' in data:
+            data['savedBody'] = rule_body
+
         data['results'] = (
             list(db.fetch(ctx, f"SELECT * FROM {view_name};"))
             if view_name.endswith("_POLICY_DEFINITION")

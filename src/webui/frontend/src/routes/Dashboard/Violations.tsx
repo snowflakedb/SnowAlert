@@ -10,6 +10,7 @@ import * as stateTypes from '../../reducers/types';
 import {newRule, renameRule} from '../../actions/rules';
 import {Query, Suppression} from '../../store/rules';
 import BasicLayout from '../../layouts/BasicLayout';
+import {history, navigate} from '../../store/history';
 
 import './Violations.css';
 
@@ -32,13 +33,23 @@ type ViolationsProps = OwnProps & StateProps & DispatchProps;
 
 class Violations extends React.PureComponent<ViolationsProps> {
   render() {
-    const {currentRuleView, queries, suppressions} = this.props.rules;
-    const currentRule = [...queries, ...suppressions].find(r => r.viewName === currentRuleView);
+    const {
+      selected,
+      rules: {queries, suppressions},
+    } = this.props;
+    const allRules = [...queries, ...suppressions];
+    const selectedRule =
+      allRules.find(r => r.viewName === selected) ||
+      queries.find(q => `'${selected}'` === ((q.fields || {}).select || {}).query_id);
+
+    if (history.location.pathname === '/dashboard/alerts') {
+      navigate('alerts/', {replace: true});
+    }
 
     return (
       <BasicLayout>
         <Card
-          title={!currentRule ? 'Violations Dashboard' : <h3>{currentRule.title}</h3>}
+          title={!selectedRule ? 'Violations Dashboard' : <h3>{selectedRule.title}</h3>}
           className={'card'}
           bordered={true}
           extra={
@@ -59,9 +70,9 @@ class Violations extends React.PureComponent<ViolationsProps> {
                 target="VIOLATION"
                 queries={queries}
                 suppressions={suppressions}
-                currentRuleView={currentRuleView}
+                currentRuleView={selectedRule ? selectedRule.viewName : null}
                 formFields={
-                  currentRule && currentRule.type === 'QUERY'
+                  selectedRule && selectedRule.type === 'QUERY'
                     ? [
                         {
                           span: 24,
