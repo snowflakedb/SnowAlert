@@ -99,7 +99,7 @@ def link_search_todos(description=None, project=PROJECT):
     return f'{URL}/issues/?jql={quote(q)}'
 
 
-def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT):
+def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT, issue_type=ISSUE_TYPE):
     if not user:
         return
 
@@ -116,7 +116,7 @@ def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT)
 
     issue_params = {
         'project': project,
-        'issuetype': {'name': ISSUE_TYPE},
+        'issuetype': {'name': issue_type},
         'summary': alert['TITLE'],
         'description': body,
     }
