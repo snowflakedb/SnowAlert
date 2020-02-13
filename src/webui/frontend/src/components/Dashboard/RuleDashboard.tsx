@@ -27,16 +27,16 @@ const RuleDashboard = ({target, currentRuleView, queries, suppressions, formFiel
       <Col span={16}>
         <Tabs defaultActiveKey="1">
           <TabPane tab="Form Editor" key="1" disabled={!formEditorEnabled}>
-            <QueryEditor target={target} cols={formFields.slice()} />
+            <QueryEditor target={target} cols={formFields.slice()} currentRuleView={currentRuleView} />
           </TabPane>
           <TabPane tab="SQL Editor" key="2">
-            <RawEditor />
+            <RawEditor currentRuleView={currentRuleView} />
           </TabPane>
         </Tabs>
       </Col>
 
       <Col span={8} style={{overflow: 'scroll'}}>
-        <RulesTree target={target} />
+        <RulesTree target={target} currentRuleView={currentRuleView} />
       </Col>
     </Row>
   );

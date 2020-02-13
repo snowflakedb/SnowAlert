@@ -44,9 +44,9 @@ export const getRouterData = () => {
     [routes.DEFAULT]: {
       component: dynamicWrapper(() => import('../layouts/BasicLayout')),
     },
-    [routes.ALERTS]: {
-      component: dynamicWrapper(() => import('../routes/Dashboard/Alerts')),
-    },
+    // [routes.ALERTS]: {
+    //   component: dynamicWrapper(() => import('../routes/Dashboard/Alerts')),
+    // },
     [routes.VIOLATIONS]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Violations')),
     },

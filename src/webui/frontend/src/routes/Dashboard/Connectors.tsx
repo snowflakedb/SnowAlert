@@ -58,7 +58,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         optionValues: Object.fromEntries(entries),
       });
     }
-    navigate('/dashboard/connectors' + (name ? `/${name}` : ''));
+    navigate('/dashboard/connectors' + (name ? `/${name}` : '/'));
   }
 
   findConnector(name: string | null = null) {

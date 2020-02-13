@@ -4,6 +4,8 @@ import * as _ from 'lodash';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
 
+import {navigate} from '../../store/history';
+
 import {loadSnowAlertRules, changeRule, changeFilter} from '../../actions/rules';
 import {getRules} from '../../reducers/rules';
 
@@ -35,6 +37,7 @@ function allMatchedCaptures(regexp: RegExp, s: string): string[][] {
 }
 
 interface OwnProps {
+  currentRuleView: string | null;
   target: SnowAlertRule['target'];
 }
 
@@ -53,7 +56,6 @@ type RulesTreeProps = OwnProps & DispatchProps & StateProps;
 class RulesTree extends React.PureComponent<RulesTreeProps> {
   componentDidMount() {
     this.props.loadSnowAlertRules();
-    this.props.changeRule('');
   }
 
   generateTree = (
@@ -110,6 +112,8 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
 
   render() {
     const {
+      currentRuleView,
+      changeFilter,
       target,
       rules: {queries, suppressions, filter},
     } = this.props;
@@ -119,9 +123,14 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           style={{width: 200}}
           placeholder={`${target} Query Name`}
           value={filter}
-          onChange={e => this.props.changeFilter(e.target.value)}
+          onChange={e => changeFilter(e.target.value)}
         />
-        <Tree showLine defaultExpandAll onSelect={x => this.props.changeRule(x[0] || '')}>
+        <Tree
+          showLine
+          defaultExpandAll
+          onSelect={x => navigate(x[0] || '.')}
+          selectedKeys={currentRuleView ? [currentRuleView] : []}
+        >
           {this.generateTree(queries, suppressions, target, filter)}
         </Tree>
         <Button

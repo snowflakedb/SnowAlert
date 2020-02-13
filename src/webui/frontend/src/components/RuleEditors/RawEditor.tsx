@@ -10,7 +10,9 @@ import {State, SnowAlertRulesState} from '../../reducers/types';
 
 import './RawEditor.css';
 
-interface OwnProps {}
+interface OwnProps {
+  currentRuleView: string | null;
+}
 
 interface DispatchProps {
   updateRuleBody: typeof updateRuleBody;
@@ -26,7 +28,8 @@ type RawEditorProps = OwnProps & DispatchProps & StateProps;
 
 class RawEditor extends React.PureComponent<RawEditorProps> {
   render() {
-    const {currentRuleView, queries, suppressions} = this.props.rules;
+    const {currentRuleView, deleteRule, saveRule, updateRuleBody} = this.props;
+    const {queries, suppressions} = this.props.rules;
     const rules = [...queries, ...suppressions];
     const rule = rules.find(r => r.viewName === currentRuleView);
 
@@ -37,27 +40,23 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           value={rule ? rule.raw.body : ''}
           spellCheck={false}
           autoSize={{minRows: 30}}
-          onChange={e => this.props.updateRuleBody(e.target.value)}
+          onChange={e => rule && updateRuleBody(rule.viewName, e.target.value)}
         />
         <Button
           type="primary"
           disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
-          onClick={() => rule && this.props.saveRule(rule.raw)}
+          onClick={() => rule && saveRule(rule)}
         >
           {rule && rule.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
         </Button>
         <Button
           type="default"
           disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
-          onClick={() => rule && this.props.updateRuleBody(rule.raw.savedBody)}
+          onClick={() => rule && updateRuleBody(rule.viewName, rule.raw.savedBody)}
         >
           <Icon type="rollback" theme="outlined" /> Revert
         </Button>
-        <Button
-          type="default"
-          disabled={!rule || rule.isSaving}
-          onClick={() => rule && this.props.deleteRule(rule.raw)}
-        >
+        <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && deleteRule(rule.raw)}>
           <Icon type="delete" theme="outlined" /> Delete
         </Button>
       </div>
