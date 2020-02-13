@@ -53,9 +53,6 @@ export const getRouterData = () => {
     [routes.POLICIES]: {
       component: dynamicWrapper(() => import('../routes/Dashboard/Policies')),
     },
-    // [routes.CONNECTORS]: {
-    //   component: dynamicWrapper(() => import('../routes/Dashboard/Connectors')),
-    // },
     [routes.LOGIN]: {
       component: dynamicWrapper(() => import('../routes/User/Login')),
     },

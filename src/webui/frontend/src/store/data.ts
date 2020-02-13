@@ -1,4 +1,4 @@
-import {ConnectorPayload} from '../reducers/types';
+import {BaselinePayload, ConnectorPayload} from '../reducers/types';
 
 export class Connector {
   raw: ConnectorPayload;
@@ -23,5 +23,21 @@ export class Connector {
     this.maskOnScreen = payload.mask_on_screen;
     this.prompt = payload.prompt;
     this.placeholder = payload.placeholder;
+  }
+}
+
+export class Baseline {
+  raw: BaselinePayload;
+  title: string;
+  baseline: string;
+  description: string;
+  options: any[];
+
+  constructor(bl: BaselinePayload) {
+    this.raw = bl;
+    this.baseline = bl.baseline;
+    this.options = bl.options.slice();
+    this.title = (bl.docstring || 'title missing').replace(/\n.*/g, '');
+    this.description = (bl.docstring || '').replace(/^[^\n]*\n/g, '');
   }
 }

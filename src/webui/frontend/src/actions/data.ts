@@ -1,6 +1,6 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
-import {ConnectionStage, ConnectorPayload, State} from '../reducers/types';
+import {BaselinePayload, ConnectionStage, ConnectorPayload, State} from '../reducers/types';
 import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -14,6 +14,7 @@ export const LOAD_SA_DATA_SUCCESS = 'LOAD_SA_DATA_SUCCESS';
 export const LOAD_SA_DATA_FAILURE = 'LOAD_SA_DATA_FAILURE';
 
 export type LoadDataPayload = {
+  baselines: ReadonlyArray<BaselinePayload>;
   connectors: ReadonlyArray<ConnectorPayload>;
   flows: ReadonlyArray<ConnectorPayload>;
 };
@@ -41,6 +42,30 @@ export const loadSAData = () => async (dispatch: Dispatch, getState: GetState) =
     } catch (error) {
       dispatch(LoadDataActions.loadDataFailure(error.message));
     }
+  }
+};
+
+// select baseline
+export const CHANGE_BASELINE_SELECTION = 'CHANGE_BASELINE_SELECTION';
+type ChangeBaselineSelectionAction = ActionWithPayload<typeof CHANGE_BASELINE_SELECTION, string | null>;
+export const selectBaseline = (name: string | null) => async (dispatch: Dispatch) => {
+  dispatch(createAction(CHANGE_BASELINE_SELECTION, name));
+};
+
+// create new baseline
+export const CREATE_BASELINE = 'CREATE_BASELINE';
+export const CREATE_BASELINE_SUCCESS = 'CREATE_BASELINE_SUCCESS';
+export const CREATE_BASELINE_ERROR = 'CREATE_BASELINE_ERROR';
+type CreateBaselineAction = ActionWithPayload<typeof CREATE_BASELINE, {baseline: string; options: any}>;
+type CreateBaselineSuccessAction = ActionWithPayload<typeof CREATE_BASELINE_SUCCESS, {newResults: any}>;
+type CreateBaselineErrorAction = ActionWithPayload<typeof CREATE_BASELINE_ERROR, {message: string}>;
+export const createBaseline = (baseline: string, options: any) => async (dispatch: Dispatch) => {
+  dispatch(createAction(CREATE_BASELINE, {baseline, options}));
+  const response = await api.createBaseline(baseline, options);
+  if (response.success) {
+    dispatch(createAction(CREATE_BASELINE_SUCCESS, {newResults: response.results}));
+  } else {
+    dispatch(createAction(CREATE_BASELINE_ERROR, {message: response.errorMessage}));
   }
 };
 
@@ -123,6 +148,10 @@ export const testConnection = (connector: string, name: string) => async (dispat
 
 export type DataActions =
   | LoadDataActions
+  | ChangeBaselineSelectionAction
+  | CreateBaselineAction
+  | CreateBaselineSuccessAction
+  | CreateBaselineErrorAction
   | ChangeConnectorSelectionAction
   | NewConnectionAction
   | FinalizeConnectionAction
