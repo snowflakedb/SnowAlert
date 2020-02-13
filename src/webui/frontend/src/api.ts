@@ -133,3 +133,9 @@ export const oauthRedirect = (redirectArgs: any) =>
     .post('/api/sa/oauth/redirect', redirectArgs)
     .then(handleResponse)
     .catch(handleError);
+
+export const createBaseline = (baseline: string, options: any) =>
+  axios
+    .post(`/api/sa/data/baselines/${baseline}`, options, {headers: authHeader()})
+    .then(handleResponse)
+    .catch(handleError);

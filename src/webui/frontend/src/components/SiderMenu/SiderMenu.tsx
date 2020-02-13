@@ -71,7 +71,7 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
                   <Menu.Item
                     key={item.path}
                     onClick={() => {
-                      navigate(item.path, {replace: true});
+                      navigate(item.path);
                     }}
                   >
                     {getIcon(item.icon)}

@@ -1,13 +1,17 @@
 from flask import Blueprint, jsonify, request
 from functools import wraps
+from os import environ
 
 import json
 import logbook
 import importlib
 
 from connectors import CONNECTION_OPTIONS
+from baselines import BASELINE_OPTIONS
 from runners.helpers import db, dbconfig, vault, log
 from runners.utils import format_exception_only
+
+SECRET = environ.get("SA_SECRET", "")
 
 logger = logbook.Logger(__name__)
 
@@ -47,7 +51,7 @@ def jsonified(f):
 @jsonified
 @cache_oauth_connection
 def get_data():
-    return {'connectors': CONNECTION_OPTIONS}
+    return {'connectors': CONNECTION_OPTIONS, 'baselines': BASELINE_OPTIONS}
 
 
 @data_api.route('/connectors/<connector>/<name>', methods=['POST'])
@@ -109,3 +113,32 @@ def post_connector_finalize(connector, name):
 def post_connector_test(connector, name):
     connector = importlib.import_module(f"connectors.{connector}")
     return list(connector.test(name))
+
+
+@data_api.route('/baselines/<baseline>', methods=['POST'])
+@cache_oauth_connection
+@jsonified
+def create_baseline(baseline):
+    options_from_request = request.get_json()
+
+    if 'base_table' not in options_from_request:
+        raise RuntimeError('please specify a target table')
+
+    baseline = importlib.import_module(f"baselines.{baseline}")
+    options = {o['name']: o['default'] for o in baseline.OPTIONS if 'default' in o}
+    options.update(options_from_request)
+
+    required_options = {o['name']: o for o in baseline.OPTIONS if o.get('required')}
+    missing_option_names = set(required_options) - set(options)
+    if missing_option_names:
+        missing_options = [required_options[n] for n in missing_option_names]
+        missing_titles = set(o.get('title', o['name']) for o in missing_options)
+        missing_titles_str = '\n  - ' + '\n  - '.join(missing_titles)
+        return {
+            'success': False,
+            'errorMessage': f"Missing required configuration options:{missing_titles_str}",
+        }
+
+    return {
+        'results': baseline.create(options)
+    }
