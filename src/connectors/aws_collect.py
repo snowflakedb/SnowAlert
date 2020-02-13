@@ -909,9 +909,9 @@ AWS_API_METHOD_COLUMNS = {
     },
     'inspector.list_assessment_runs': {
         'response': {'assessmentRunArns': 'assessment_run_arns'},
-        'children': [
-            {'method': 'inspector.describe_findings', 'args': 'assessmentRunArns'}
-        ]
+        # 'children': [
+        #     {'method': 'inspector.describe_findings', 'args': 'assessmentRunArns'}
+        # ]
     },
     'inspector.describe_findings': {
         'params': {'assessmentRunArns': 'assessment_run_arns'}, # parent's 'response' value
@@ -1182,7 +1182,6 @@ async def aioingest(table_name, options, dryrun=False):
                     org_client, CollectTask(None, 'organizations.list_accounts', {})
                 )
             ]
-        print(f"accounts: {accounts}")
         for a in accounts:
             # the response is a single datetime (error ocurred)
             # then we treat it as a non-org account, and scan it alone
@@ -1214,8 +1213,8 @@ async def aioingest(table_name, options, dryrun=False):
                     # 'cloudtrail.describe_trails',
                     # 'iam.get_credential_report',
                     # 'iam.list_roles',
-                    # 'inspector.list-assessment-runs',
-                    # 'inspector.describe-findings'
+                    'inspector.list_assessment_runs',
+                    # 'inspector.describe_findings'
                 ]
                 for a in accounts
             ]

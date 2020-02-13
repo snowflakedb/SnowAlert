@@ -77,9 +77,7 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
     session_name = ''.join(random.choice('0123456789ABCDEF') for i in range(16))
-    print(f"session_name: {session_name}")
     async with aioboto3.client('sts') as sts:
-        print(f"client sts: src_role_arn is {src_role_arn} and session_name is {session_name}")
         src_role = await sts.assume_role(
             RoleArn=src_role_arn, RoleSessionName=session_name
         )

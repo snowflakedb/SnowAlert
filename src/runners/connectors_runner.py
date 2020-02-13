@@ -75,6 +75,7 @@ def connection_run(connection_table):
 
 def main(connection_table="%_CONNECTION"):
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
+    log.info(f"tables: {tables}")
     if len(tables) == 1:
         connection_run(tables[0])
     else:
