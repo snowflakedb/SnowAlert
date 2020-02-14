@@ -463,10 +463,11 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
     'inspector_describe_findings': [
         ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('finding_arns', 'VARIANT'),
         ('failed_items', 'VARIANT'),
         ('arn', 'STRING'),
-        ('ipv4_addresses', 'VARIANT'),
+        ('asset_attributes', 'VARIANT'),
         ('asset_type', 'STRING'),
         ('attributes', 'VARIANT'),
         ('confidence', 'INT'),
@@ -477,8 +478,7 @@ SUPPLEMENTARY_TABLES = {
         ('recommendation', 'STRING'),
         ('schema_version', 'INT'),
         ('service', 'STRING'),
-        ('assessment_run_arn', 'STRING'),
-        ('rules_package_arn', 'STRING'),
+        ('service_attributes', 'VARIANT'),
         ('severity', 'STRING'),
         ('title', 'STRING'),
         ('user_attributes', 'VARIANT'),
@@ -924,10 +924,7 @@ AWS_API_METHOD_COLUMNS = {
             'findings': [
                 {
                     'arn': 'arn',
-                    'assetAttributes': {
-                        'ipv4Addresses': 'ipv4_addresses',
-                        'schemaVersion': 'schema_version'
-                    },
+                    'assetAttributes': 'asset_attributes',
                     'assetType': 'asset_type',
                     'attributes': 'attributes',
                     'confidence': 'confidence',
@@ -938,11 +935,7 @@ AWS_API_METHOD_COLUMNS = {
                     'recommendation': 'recommendation',
                     'schemaVersion': 'schema_version',
                     'service': 'service',
-                    'serviceAttributes': {
-                        'assessmentRunArn': 'assessment_run_arn',
-                        'rulesPackageArn': 'rules_package_arn',
-                        'schemaVersion': 'schema_version'
-                    },
+                    'serviceAttributes': 'service_attributes',
                     'severity': 'severity',
                     'title': 'title',
                     'userAttributes': 'user_attributes'
