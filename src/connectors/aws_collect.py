@@ -1131,7 +1131,6 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
         )
 
 def insert_list(name, values, table_name=None, dryrun=False):
-    log.info(f"aws_collect insert_list, name={name}")
     name = name.replace('.', '_')
     table_name = table_name or f'data.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
@@ -1168,7 +1167,6 @@ async def aioingest(table_name, options, dryrun=False):
     )
     num_entries = 0
     for oid in oids:
-
         master_reader_arn = (
             options.get('master_reader_arn')
             if oid == ''
@@ -1208,23 +1206,22 @@ async def aioingest(table_name, options, dryrun=False):
             collection_tasks = [
                 CollectTask(a['id'], method, {})
                 for method in [
-                    # 'iam.generate_credential_report',
-                    # 'iam.list_account_aliases',
-                    # 'iam.get_account_summary',
-                    # 'iam.get_account_password_policy',
-                    # 'ec2.describe_instances',
-                    # 'ec2.describe_security_groups',
-                    # 'config.describe_configuration_recorders',
-                    # 'kms.list_keys',
-                    # 'iam.list_users',
-                    # 'iam.list_policies',
-                    # 'iam.list_virtual_mfa_devices',
-                    # 's3.list_buckets',
-                    # 'cloudtrail.describe_trails',
-                    # 'iam.get_credential_report',
-                    # 'iam.list_roles',
+                    'iam.generate_credential_report',
+                    'iam.list_account_aliases',
+                    'iam.get_account_summary',
+                    'iam.get_account_password_policy',
+                    'ec2.describe_instances',
+                    'ec2.describe_security_groups',
+                    'config.describe_configuration_recorders',
+                    'kms.list_keys',
+                    'iam.list_users',
+                    'iam.list_policies',
+                    'iam.list_virtual_mfa_devices',
+                    's3.list_buckets',
+                    'cloudtrail.describe_trails',
+                    'iam.get_credential_report',
+                    'iam.list_roles',
                     'inspector.list_findings',
-                    # 'inspector.describe_findings'
                 ]
                 for a in accounts
             ]
@@ -1249,8 +1246,6 @@ async def aioingest(table_name, options, dryrun=False):
                     for k, vs in result_lists.items():
                         all_results[k] += vs
                 for name, vs in all_results.items():
-                    print(f"len(vs): {len(vs)}")
-                    print(f"name: {name}") # inspector.list_findings
                     response = insert_list(name, vs, dryrun=dryrun)
                     num_entries += len(vs)
                     log.info(f'finished {name} {response}')

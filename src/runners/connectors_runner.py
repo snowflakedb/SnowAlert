@@ -43,7 +43,6 @@ def connection_run(connection_table):
             )
 
             connector = importlib.import_module(f"connectors.{module}")
-            log.info(f"connector imported: connectors.{module}")
             for module_option in connector.CONNECTION_OPTIONS:
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
