@@ -1130,7 +1130,6 @@ def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
     table_name = table_name or f'data.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
-    log.info(f"values[0] to be inserted: {values[0]}")
     return db.insert(table_name, values, dryrun=dryrun)
 
 
