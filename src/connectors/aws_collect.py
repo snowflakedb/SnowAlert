@@ -952,6 +952,7 @@ AWS_API_METHOD_COLUMNS = {
     }
 }
 
+
 def connect(connection_name, options):
     table_prefix = f'aws_collect' + (
         '' if connection_name in ('', 'default') else connection_name
@@ -1118,6 +1119,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                         add_task(response)
                     else:
                         log.info('log response', response)
+
     except ClientError as e:
         # record missing auditor role as empty account summary
         yield (
@@ -1129,6 +1131,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 ),
             ),
         )
+
 
 def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
@@ -1181,6 +1184,7 @@ async def aioingest(table_name, options, dryrun=False):
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,
         )
+
         async with session.client('organizations') as org_client:
             accounts = [
                 a.entity
@@ -1188,6 +1192,7 @@ async def aioingest(table_name, options, dryrun=False):
                     org_client, CollectTask(None, 'organizations.list_accounts', {})
                 )
             ]
+
         for a in accounts:
             # the response is a single datetime (error ocurred)
             # then we treat it as a non-org account, and scan it alone
@@ -1255,7 +1260,7 @@ async def aioingest(table_name, options, dryrun=False):
 
 def ingest(table_name, options, dryrun=False):
     now = datetime.now()
-    if True or options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
+    if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(
             aioingest(table_name, options, dryrun=dryrun)
         )
