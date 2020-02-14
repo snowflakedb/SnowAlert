@@ -30,23 +30,20 @@ def do_ingest(connector, table_name, options):
 def connection_run(connection_table):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
-    log.info(f"connection_table: {connection_table}")
-    log.info(f"table_comment: {table_comment}")
 
     log.info(f"-- START DC {table_name} --")
     try:
         metadata = {'START_TIME': datetime.utcnow()}
         options = yaml.load(table_comment) or {}
-        log.info(f"options: {options}")
 
         if 'module' in options:
             module = options['module']
-            log.info(f"module: {module}")
             metadata.update(
                 {'RUN_ID': RUN_ID, 'TYPE': module, 'LANDING_TABLE': table_name}
             )
 
             connector = importlib.import_module(f"connectors.{module}")
+            log.info(f"connector imported: connectors.{module}")
             for module_option in connector.CONNECTION_OPTIONS:
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
@@ -78,7 +75,7 @@ def connection_run(connection_table):
 
 def main(connection_table="%_CONNECTION"):
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
-    log.info(f"tables: {tables}")
+    log.info(f"main() function tables: {tables}")
     if len(tables) == 1:
         connection_run(tables[0])
     else:

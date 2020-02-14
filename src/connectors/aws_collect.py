@@ -7,6 +7,7 @@ from botocore.exceptions import (
     # BotoCoreError,
     ClientError,
     DataNotFoundError,
+    ParamValidationError
 )
 from collections import defaultdict, namedtuple
 import csv
@@ -454,30 +455,33 @@ SUPPLEMENTARY_TABLES = {
         ('data_resources', 'VARIANT'),
         ('exclude_management_event_sources', 'VARIANT'),
     ],
-    # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-assessment-runs.html
-    'inspector_list_assessment_runs': [
-        ('assessment_run_arns', 'VARIANT')
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-findings.html
+    'inspector_list_findings': [
+        ('finding_arns', 'VARIANT')
     ],
 
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
     'inspector_describe_findings': [
+        ('account_id', 'STRING'),
+        ('finding_arns', 'VARIANT'),
+        ('failed_items', 'VARIANT'),
         ('arn', 'STRING'),
-        # Missing: assetAttributes, has 'ipv4_addresses' 'schema_version' as keys in key-value pairs
+        ('ipv4_addresses', 'VARIANT'),
         ('asset_type', 'STRING'),
-        # Missing: attributes, a list
+        ('attributes', 'VARIANT'),
         ('confidence', 'INT'),
         ('created_at', 'TIMESTAMP_LTZ'),
         ('description', 'STRING'),
         ('indicator_of_compromise', 'BOOLEAN'),
-        ('numeric_severity', 'INT'),
+        ('numeric_severity', 'FLOAT'),
         ('recommendation', 'STRING'),
         ('schema_version', 'INT'),
         ('service', 'STRING'),
-        # Missing: serviceAttributes, has assessmentRunArn, rulesPackageArn, and schemaVersion as keys in key-value pairs
+        ('assessment_run_arn', 'STRING'),
+        ('rules_package_arn', 'STRING'),
         ('severity', 'STRING'),
         ('title', 'STRING'),
-        ('updated_at', 'FLOAT'),
-        # Missing: userAttributes, a list
+        ('user_attributes', 'VARIANT'),
     ],
 }
 
@@ -907,19 +911,19 @@ AWS_API_METHOD_COLUMNS = {
             ],
         }
     },
-    'inspector.list_assessment_runs': {
-        'response': {'assessmentRunArns': 'assessment_run_arns'},
-        # 'children': [
-        #     {'method': 'inspector.describe_findings', 'args': 'assessmentRunArns'}
-        # ]
+    'inspector.list_findings': {
+        'response': {'findingArns': 'finding_arns'},
+        'children': [
+            {'method': 'inspector.describe_findings', 'args': {'findingArns': 'finding_arns'}}
+        ]
     },
     'inspector.describe_findings': {
-        'params': {'assessmentRunArns': 'assessment_run_arns'}, # parent's 'response' value
+        'params': {'findingArns': 'finding_arns'},
         'response': {
             'failedItems': 'failed_items',
             'findings': [
                 {
-                    'Arn': 'arn',
+                    'arn': 'arn',
                     'assetAttributes': {
                         'ipv4Addresses': 'ipv4_addresses',
                         'schemaVersion': 'schema_version'
@@ -1071,6 +1075,10 @@ async def load_task_response(client, task):
             ):
                 yield x
 
+    except ParamValidationError as e:
+        # hack(aku): Should do something about e
+        pass
+
     except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e.response):
             yield x
@@ -1110,7 +1118,6 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                         add_task(response)
                     else:
                         log.info('log response', response)
-
     except ClientError as e:
         # record missing auditor role as empty account summary
         yield (
@@ -1123,11 +1130,12 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
             ),
         )
 
-
 def insert_list(name, values, table_name=None, dryrun=False):
+    log.info(f"aws_collect insert_list, name={name}")
     name = name.replace('.', '_')
     table_name = table_name or f'data.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
+    log.info(f"values[0] to be inserted: {values[0]}")
     return db.insert(table_name, values, dryrun=dryrun)
 
 
@@ -1215,7 +1223,7 @@ async def aioingest(table_name, options, dryrun=False):
                     # 'cloudtrail.describe_trails',
                     # 'iam.get_credential_report',
                     # 'iam.list_roles',
-                    'inspector.list_assessment_runs',
+                    'inspector.list_findings',
                     # 'inspector.describe_findings'
                 ]
                 for a in accounts
@@ -1241,6 +1249,8 @@ async def aioingest(table_name, options, dryrun=False):
                     for k, vs in result_lists.items():
                         all_results[k] += vs
                 for name, vs in all_results.items():
+                    print(f"len(vs): {len(vs)}")
+                    print(f"name: {name}") # inspector.list_findings
                     response = insert_list(name, vs, dryrun=dryrun)
                     num_entries += len(vs)
                     log.info(f'finished {name} {response}')
