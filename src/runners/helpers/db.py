@@ -372,9 +372,6 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
     if select:
         select = f'SELECT {select} FROM '
 
-    log.info(f"values[0] in do_insert: {values[0]}")
-    log.info(f"columns in do_insert: {columns}")
-
     overwrite = ' OVERWRITE' if overwrite else ''
 
     columns = f' ({", ".join(columns)})' if columns else ''
@@ -385,7 +382,6 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
         f"  {select}VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
-    log.info(f"sql: {sql}")
     params_with_json = [
         [
             v.isoformat()

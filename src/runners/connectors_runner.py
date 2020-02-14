@@ -37,7 +37,6 @@ def connection_run(connection_table):
             )
 
             connector = importlib.import_module(f"connectors.{module}")
-            log.info(f"connector imported: connectors.{module}")
             for module_option in connector.CONNECTION_OPTIONS:
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
@@ -51,9 +50,7 @@ def connection_run(connection_table):
                     options[name] = int(options[name])
 
             if callable(getattr(connector, 'ingest', None)):
-                log.info(f"callable function called")
                 ingested = connector.ingest(table_name, options)
-                log.info(f"ingested value: {ingested}")
                 if isinstance(ingested, int):
                     metadata['INGEST_COUNT'] += ingested
                 elif isinstance(ingested, GeneratorType):
