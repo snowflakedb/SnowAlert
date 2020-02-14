@@ -27,6 +27,7 @@ def connection_run(connection_table):
 
         if 'module' in options:
             module = options['module']
+
             metadata.update(
                 {
                     'RUN_ID': RUN_ID,
@@ -37,6 +38,7 @@ def connection_run(connection_table):
             )
 
             connector = importlib.import_module(f"connectors.{module}")
+
             for module_option in connector.CONNECTION_OPTIONS:
                 name = module_option['name']
                 if module_option.get('secret') and name in options:
@@ -70,7 +72,6 @@ def connection_run(connection_table):
 
 def main(connection_table="%_CONNECTION"):
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
-    log.info(f"main() function tables: {tables}")
     if len(tables) == 1:
         connection_run(tables[0])
     else:

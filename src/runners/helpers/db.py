@@ -382,6 +382,7 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
         f"  {select}VALUES {sql_value_placeholders(len(values))}\n"
         f";"
     )
+
     params_with_json = [
         [
             v.isoformat()
