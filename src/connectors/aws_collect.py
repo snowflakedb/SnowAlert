@@ -457,6 +457,9 @@ SUPPLEMENTARY_TABLES = {
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-findings.html
     'inspector_list_findings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('finding_arns', 'VARIANT')
     ],
 
@@ -1070,7 +1073,6 @@ async def load_task_response(client, task):
                 yield x
 
     except ParamValidationError as e:
-        # hack(aku): Should do something about e
         pass
 
     except (ClientError, DataNotFoundError) as e:
@@ -1252,7 +1254,7 @@ async def aioingest(table_name, options, dryrun=False):
 
 def ingest(table_name, options, dryrun=False):
     now = datetime.now()
-    if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
+    if True or options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
         return asyncio.get_event_loop().run_until_complete(
             aioingest(table_name, options, dryrun=dryrun)
         )
