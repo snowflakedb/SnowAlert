@@ -15,7 +15,7 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
-from typing import Tuple, AsyncGenerator
+from typing import Tuple, AsyncGenerator, Dict
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -490,7 +490,7 @@ SUPPLEMENTARY_TABLES = {
     ],
 }
 
-API_METHOD_SPECS = {
+API_METHOD_SPECS: Dict[str, dict] = {
     'organizations.list_accounts': {
         'response': {
             'Accounts': [
@@ -1139,10 +1139,8 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
-            elif 'regions' in API_METHOD_SPECS[task.method]:
-                region_names = API_METHOD_SPECS[task.method].get('regions')
             else:
-                region_names = [None]
+                region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
             async with session.client(client_name, region_name=rn) as client:
