@@ -7,6 +7,7 @@ from botocore.exceptions import (
     # BotoCoreError,
     ClientError,
     DataNotFoundError,
+    ParamValidationError
 )
 from collections import defaultdict, namedtuple
 import csv
@@ -454,6 +455,37 @@ SUPPLEMENTARY_TABLES = {
         ('data_resources', 'VARIANT'),
         ('exclude_management_event_sources', 'VARIANT'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-findings.html
+    'inspector_list_findings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('finding_arns', 'VARIANT')
+    ],
+
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
+    'inspector_describe_findings': [
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('finding_arns', 'VARIANT'),
+        ('failed_items', 'VARIANT'),
+        ('arn', 'STRING'),
+        ('asset_attributes', 'VARIANT'),
+        ('asset_type', 'STRING'),
+        ('attributes', 'VARIANT'),
+        ('confidence', 'INT'),
+        ('created_at', 'TIMESTAMP_LTZ'),
+        ('description', 'STRING'),
+        ('indicator_of_compromise', 'BOOLEAN'),
+        ('numeric_severity', 'FLOAT'),
+        ('recommendation', 'STRING'),
+        ('schema_version', 'INT'),
+        ('service', 'STRING'),
+        ('service_attributes', 'VARIANT'),
+        ('severity', 'STRING'),
+        ('title', 'STRING'),
+        ('user_attributes', 'VARIANT'),
+    ],
 }
 
 AWS_API_METHOD_COLUMNS = {
@@ -882,6 +914,38 @@ AWS_API_METHOD_COLUMNS = {
             ],
         }
     },
+    'inspector.list_findings': {
+        'response': {'findingArns': 'finding_arns'},
+        'children': [
+            {'method': 'inspector.describe_findings', 'args': {'findingArns': 'finding_arns'}}
+        ]
+    },
+    'inspector.describe_findings': {
+        'params': {'findingArns': 'finding_arns'},
+        'response': {
+            'failedItems': 'failed_items',
+            'findings': [
+                {
+                    'arn': 'arn',
+                    'assetAttributes': 'asset_attributes',
+                    'assetType': 'asset_type',
+                    'attributes': 'attributes',
+                    'confidence': 'confidence',
+                    'createdAt': 'created_at',
+                    'description': 'description',
+                    'indicatorOfCompromise': 'indicator_of_compromise',
+                    'numericSeverity': 'numeric_severity',
+                    'recommendation': 'recommendation',
+                    'schemaVersion': 'schema_version',
+                    'service': 'service',
+                    'serviceAttributes': 'service_attributes',
+                    'severity': 'severity',
+                    'title': 'title',
+                    'userAttributes': 'user_attributes'
+                }
+            ]
+        }
+    }
 }
 
 
@@ -1007,6 +1071,9 @@ async def load_task_response(client, task):
                 task, await getattr(client, method_name)(**args)
             ):
                 yield x
+
+    except ParamValidationError as e:
+        pass
 
     except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e.response):
@@ -1153,6 +1220,7 @@ async def aioingest(table_name, options, dryrun=False):
                     'cloudtrail.describe_trails',
                     'iam.get_credential_report',
                     'iam.list_roles',
+                    'inspector.list_findings',
                 ]
                 for a in accounts
             ]
