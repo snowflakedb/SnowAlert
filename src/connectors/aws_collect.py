@@ -7,7 +7,7 @@ from botocore.exceptions import (
     # BotoCoreError,
     ClientError,
     DataNotFoundError,
-    ParamValidationError
+    ParamValidationError,
 )
 from collections import defaultdict, namedtuple
 import csv
@@ -460,35 +460,37 @@ SUPPLEMENTARY_TABLES = {
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
-        ('finding_arns', 'VARIANT')
+        ('finding_arns', 'VARIANT'),
     ],
-
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
     'inspector_describe_findings': [
         ('account_id', 'STRING'),
         ('region', 'STRING'),
-        ('finding_arns', 'VARIANT'),
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('finding_arns', 'STRING'),
         ('failed_items', 'VARIANT'),
         ('arn', 'STRING'),
-        ('asset_attributes', 'VARIANT'),
-        ('asset_type', 'STRING'),
-        ('attributes', 'VARIANT'),
-        ('confidence', 'INT'),
-        ('created_at', 'TIMESTAMP_LTZ'),
-        ('description', 'STRING'),
-        ('indicator_of_compromise', 'BOOLEAN'),
-        ('numeric_severity', 'FLOAT'),
-        ('recommendation', 'STRING'),
-        ('schema_version', 'INT'),
+        ('schema_version', 'INTEGER'),
         ('service', 'STRING'),
         ('service_attributes', 'VARIANT'),
-        ('severity', 'STRING'),
+        ('asset_type', 'STRING'),
+        ('asset_attributes', 'VARIANT'),
+        ('id', 'STRING'),
         ('title', 'STRING'),
+        ('description', 'STRING'),
+        ('recommendation', 'STRING'),
+        ('severity', 'STRING'),
+        ('numeric_severity', 'DOUBLE'),
+        ('confidence', 'INTEGER'),
+        ('indicator_of_compromise', 'BOOLEAN'),
+        ('attributes', 'VARAINT'),
         ('user_attributes', 'VARIANT'),
+        ('created_at', 'TIMESTAMP_NTZ'),
+        ('updated_at', 'TIMESTAMP_NTZ'),
     ],
 }
 
-AWS_API_METHOD_COLUMNS = {
+API_METHOD_SPECS = {
     'organizations.list_accounts': {
         'response': {
             'Accounts': [
@@ -915,10 +917,30 @@ AWS_API_METHOD_COLUMNS = {
         }
     },
     'inspector.list_findings': {
+        # for unknown reasons, client.describe_regions does not seem to work w/
+        # Inspector client. seems like a boto3 bug. the below is a work-around.
+        'regions': [
+            'us-east-1',
+            'us-east-2',
+            'us-west-1',
+            'us-west-2',
+            'ap-south-1',
+            'ap-northeast-2',
+            'ap-southeast-2',
+            'ap-northeast-1',
+            'eu-central-1',
+            'eu-west-1',
+            'eu-west-2',
+            'eu-north-1',
+        ],
         'response': {'findingArns': 'finding_arns'},
         'children': [
-            {'method': 'inspector.describe_findings', 'args': {'findingArns': 'finding_arns'}}
-        ]
+            {
+                'method': 'inspector.describe_findings',
+                'args': {'findingArns': 'finding_arns'},
+                'required_args': ['finding_arns']
+            }
+        ],
     },
     'inspector.describe_findings': {
         'params': {'findingArns': 'finding_arns'},
@@ -926,6 +948,24 @@ AWS_API_METHOD_COLUMNS = {
             'failedItems': 'failed_items',
             'findings': [
                 {
+                    'arn': 'arn',
+                    'schemaVersion': 'schema_version',
+                    'service': 'service',
+                    'serviceAttributes': 'service_attributes',
+                    'assetType': 'asset_type',
+                    'assetAttributes': 'asset_attributes',
+                    'id': 'id',
+                    'title': 'title',
+                    'description': 'description',
+                    'recommendation': 'recommendation',
+                    'severity': 'severity',
+                    'numericSeverity': 'numeric_severity',
+                    'confidence': 'confidence',
+                    'indicatorOfCompromise': 'indicator_of_compromise',
+                    'attributes': 'attributes',
+                    'userAttributes': 'user_attributes',
+                    'createdAt': 'created_at',
+                    'updatedAt': 'updated_at',
                     'arn': 'arn',
                     'assetAttributes': 'asset_attributes',
                     'assetType': 'asset_type',
@@ -941,11 +981,11 @@ AWS_API_METHOD_COLUMNS = {
                     'serviceAttributes': 'service_attributes',
                     'severity': 'severity',
                     'title': 'title',
-                    'userAttributes': 'user_attributes'
+                    'userAttributes': 'user_attributes',
                 }
-            ]
-        }
-    }
+            ],
+        },
+    },
 }
 
 
@@ -1019,9 +1059,9 @@ def process_response_items(coldict, page, db_entry=None):
 
 
 def process_aws_response(task, page):
-    response_coldict = AWS_API_METHOD_COLUMNS[task.method]['response']
-    children_list = AWS_API_METHOD_COLUMNS[task.method].get('children', [])
-    params = AWS_API_METHOD_COLUMNS[task.method].get('params', {})
+    response_coldict = API_METHOD_SPECS[task.method]['response']
+    children_list = API_METHOD_SPECS[task.method].get('children', [])
+    params = API_METHOD_SPECS[task.method].get('params', {})
 
     base_entity = {}
     if task.account_id:
@@ -1052,6 +1092,8 @@ def process_aws_response(task, page):
                 req_args = child.get('args', {})
                 if any(v not in db_entry.entity for v in req_args.values()):
                     continue
+                if not all(db_entry.entity.get(k) for k in child.get('required_args')):
+                    continue
                 args = {k: db_entry.entity[v] for k, v in req_args.items()}
                 yield CollectTask(task.account_id, method, args)
 
@@ -1071,9 +1113,6 @@ async def load_task_response(client, task):
                 task, await getattr(client, method_name)(**args)
             ):
                 yield x
-
-    except ParamValidationError as e:
-        pass
 
     except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e.response):
@@ -1100,6 +1139,8 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
+            elif 'regions' in API_METHOD_SPECS[task.method]:
+                region_names = API_METHOD_SPECS[task.method].get('regions')
             else:
                 region_names = [None]
 
@@ -1221,6 +1262,7 @@ async def aioingest(table_name, options, dryrun=False):
                     'iam.get_credential_report',
                     'iam.list_roles',
                     'inspector.list_findings',
+                    'inspector.list_findings'
                 ]
                 for a in accounts
             ]
