@@ -1387,10 +1387,18 @@ def GET(kind, params, cred):
 
 def ingest(table_name, options, dryrun=False):
     connection_name = options['name']
+    schedule = options.get('schedule', '*')
 
-    if options.get('schedule', '*') != '*':
+    if schedule not in ['*', '0 *']:
         log.info('not time yet')
         return 0
+
+    if schedule == '0 *':  # hourly
+        # todo(anf): robust cron using run metadata
+        now = datetime.now()
+        if now.minute > 15:
+            log.info('not time yet')
+            return 0
 
     num_loaded = 0
     for cred in options['credentials']:
