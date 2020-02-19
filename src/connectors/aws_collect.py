@@ -1089,12 +1089,13 @@ def process_aws_response(task, page):
         yield db_entry
         for child in children_list:
             for method in child.get('methods', [child.get('method')]):
-                req_args = child.get('args', {})
-                if any(v not in db_entry.entity for v in req_args.values()):
+                request_args = child.get('args', {})
+                required_args = child.get('required_args', [])
+                if any(v not in db_entry.entity for v in request_args.values()):
                     continue
-                if not all(db_entry.entity.get(k) for k in child.get('required_args')):
+                if not all(db_entry.entity.get(k) for k in required_args):
                     continue
-                args = {k: db_entry.entity[v] for k, v in req_args.items()}
+                args = {k: db_entry.entity[v] for k, v in request_args.items()}
                 yield CollectTask(task.account_id, method, args)
 
 
