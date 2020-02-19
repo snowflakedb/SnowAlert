@@ -7,7 +7,6 @@ from botocore.exceptions import (
     # BotoCoreError,
     ClientError,
     DataNotFoundError,
-    ParamValidationError,
 )
 from collections import defaultdict, namedtuple
 import csv
@@ -462,6 +461,7 @@ SUPPLEMENTARY_TABLES = {
         ('region', 'STRING'),
         ('finding_arns', 'VARIANT'),
     ],
+
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
     'inspector_describe_findings': [
         ('account_id', 'STRING'),
@@ -1114,6 +1114,9 @@ async def load_task_response(client, task):
             ):
                 yield x
 
+    except ParamValidationError as e:
+        pass
+
     except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e.response):
             yield x
@@ -1262,7 +1265,6 @@ async def aioingest(table_name, options, dryrun=False):
                     'iam.get_credential_report',
                     'iam.list_roles',
                     'inspector.list_findings',
-                    'inspector.list_findings'
                 ]
                 for a in accounts
             ]
