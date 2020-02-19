@@ -1114,9 +1114,6 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    except ParamValidationError as e:
-        pass
-
     except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e.response):
             yield x
