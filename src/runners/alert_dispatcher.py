@@ -23,7 +23,7 @@ def get_new_alerts(ctx):
 
 def record_status(results, alert_id):
     query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
-    print('Updating alert table:', query)
+    log.info('Updating alert table:', query)
     try:
         db.execute(query, params=json_dumps(results))
     except Exception as e:
