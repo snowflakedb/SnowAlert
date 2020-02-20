@@ -184,7 +184,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
     SELECT *
     FROM results.alerts
     WHERE correlation_id = '{correlation_id}'
-      AND iff(alert:HANDLERS is null, ticket is not null, handled is not null)
+      AND ticket IS NOT NULL
     ORDER BY EVENT_TIME DESC
     LIMIT 1
     """
@@ -201,7 +201,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
             ticket_status = check_ticket_status(ticket_id)
         except Exception:
             log.error(f"Failed to get ticket status for {ticket_id}")
-            return
+            raise
 
         if ticket_status == 'To Do':
             try:
@@ -214,7 +214,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
                     ticket_id = create_jira_ticket(alert, project=project)
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
-                    return e
+                    raise
     else:
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
@@ -222,7 +222,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
             ticket_id = create_jira_ticket(alert, assignee, custom_field, project=project)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
-            return e
+            raise
 
     record_ticket_id(ticket_id, alert_id)
     return ticket_id

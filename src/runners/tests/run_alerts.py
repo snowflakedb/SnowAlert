@@ -233,7 +233,7 @@ def test_alert_runners_processor_and_dispatcher(
         query_rule_run_record[2]['QUERY_NAME']
         == 'SNOWFLAKE_RESOURCE_CREATION_ALERT_QUERY'
     )
-    # unclear why this value is non-deterministic in test suite
+    # non-deterministic since alerts run in parallel
     resource_creations = query_rule_run_record[2]['NUM_ALERTS_CREATED']
     assert resource_creations >= 40
 
