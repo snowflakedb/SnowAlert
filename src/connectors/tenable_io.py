@@ -2,7 +2,7 @@
 Collect Tenable.io Data using a Service User’s API Key
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 from tenable.io import TenableIO
 
@@ -75,21 +75,21 @@ def ingest_vulns(table_name):
     last_export_time = next(
         db.fetch(f'SELECT MAX(export_at) AS time FROM data.{table_name}')
     )['TIME']
-    timestamp = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
 
     if (
         last_export_time is None
-        or (timestamp - last_export_time).total_seconds() > 86400
+        or (now - last_export_time) > timedelta(days=1)
     ):
         log.debug('TIO export vulns')
 
         # insert empty row...
-        db.insert(f'data.{table_name}', [{'export_at': timestamp}])
+        db.insert(f'data.{table_name}', [{'export_at': now}])
 
         # ...because this line takes awhile
         vulns = TIO.exports.vulns()
 
-        rows = [{'raw': v, 'export_at': timestamp} for v in vulns]
+        rows = [{'raw': v, 'export_at': now} for v in vulns]
         db.insert(f'data.{table_name}', rows)
         return len(rows)
 
