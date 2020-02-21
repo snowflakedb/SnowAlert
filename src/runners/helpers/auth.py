@@ -12,6 +12,13 @@ from requests.auth import HTTPBasicAuth
 from .vault import decrypt_if_encrypted
 
 
+PROTOCOL = environ.get('SNOWFLAKE_PROTOCOL', 'https')
+PORT = environ.get('SNOWFLAKE_PORT', '443')
+URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
+    '' if PORT == '443' else f':{PORT}'
+)
+
+
 def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> _RSAPrivateKey:
     """Loads the rsa private key instead of just the bytes, using password
     decrypted with KMS. Required for the snowpipe SimpleIngestManager
@@ -37,7 +44,7 @@ def oauth_refresh(account: str, refresh_token: str) -> str:
 
     return (
         post(
-            f'https://{account}.snowflakecomputing.com/oauth/token-request',
+            f"{URL_PREFIX}/oauth/token-request".format(account=account),
             auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={'grant_type': 'refresh_token', 'refresh_token': refresh_token},
