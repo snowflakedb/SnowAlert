@@ -18,6 +18,13 @@ else:
     scope_role = ''
 
 
+PROTOCOL = environ.get('SNOWFLAKE_PROTOCOL', 'https')
+PORT = environ.get('SNOWFLAKE_PORT', '443')
+URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
+    '' if PORT == '443' else f':{PORT}'
+)
+
+
 @oauth_api.route('/redirect', methods=['POST'])
 def oauth_redirect():
     json = request.get_json()
@@ -29,7 +36,7 @@ def oauth_redirect():
     )
 
     return jsonify(
-        url=f"https://{account}.snowflakecomputing.com/oauth/authorize?"
+        url=f"{URL_PREFIX}/oauth/authorize?".format(account=account)
         + urlencode(
             {
                 'client_id': OAUTH_CLIENT_ID,
@@ -56,7 +63,7 @@ def oauth_return():
     )
 
     response = requests.post(
-        f'https://{account}.snowflakecomputing.com/oauth/token-request',
+        f"{URL_PREFIX}/oauth/token-request".format(account=account),
         auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
         headers={'Content-Type': 'application/x-www-form-urlencoded'},
         data={
