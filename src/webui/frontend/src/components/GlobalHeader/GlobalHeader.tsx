@@ -1,7 +1,7 @@
 import {
   Avatar,
   Button,
-  // Divider,
+  Checkbox,
   Dropdown,
   Icon,
   Layout,
@@ -67,6 +67,17 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     }
   };
 
+  toggleFeatureFlag (feature: string, toggle: boolean) {
+    if (toggle) {
+      localStorage.setItem(`enable_${feature}`, "yes")
+    } else {
+      localStorage.removeItem(`enable_${feature}`)
+    }
+    window.setTimeout(() => {
+      window.location.reload()
+    }, 150)
+  }
+
   render() {
     const account = localStorage.getItem('account') || '';
     type Auth = {
@@ -92,6 +103,27 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
                   <Menu.Item disabled={true} style={{color: 'rgba(0, 0, 0, 0.65)', cursor: 'default'}}>
                     Account {auth.account}
                   </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.SubMenu title='Feature Flags'>
+                    {/*
+                    <Menu.Item disabled={true}>
+                      <Checkbox
+                        defaultChecked={localStorage.getItem('enable_policies') === 'yes'}
+                        onChange={(e) => this.toggleFeatureFlag('policies', e.target.checked)}
+                      >
+                        Policies
+                      </Checkbox>
+                    </Menu.Item>
+                    */}
+                    <Menu.Item disabled={true}>
+                      <Checkbox
+                        defaultChecked={localStorage.getItem('enable_baselines') === 'yes'}
+                        onChange={(e) => this.toggleFeatureFlag('baselines', e.target.checked)}
+                      >
+                        Baselines
+                      </Checkbox>
+                    </Menu.Item>
+                  </Menu.SubMenu>
                   <Menu.Divider />
                   <Menu.Item>
                     <a href="https://snowalert.readthedocs.io/en/latest/">Documentation</a>
