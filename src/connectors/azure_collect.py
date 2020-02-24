@@ -1411,7 +1411,7 @@ def ingest(table_name, options, dryrun=False):
                 f=lambda: GET(kind, params, cred=cred),
                 E=(requests.exceptions.SSLError, requests.exceptions.ConnectionError),
                 n=10,
-                sleep_seconds_btw_retry=3,
+                sleep_seconds_btw_retry=30,
             )
             kind = 'connection' if kind == 'subscriptions' else kind
             table_name = f'{table_prefix}_{kind}'
