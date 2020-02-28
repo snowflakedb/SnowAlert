@@ -390,8 +390,8 @@ WHEN NOT MATCHED THEN
         sql=ingest_task_sql,
         auto_resume=False
     )
-    db.execute(f"ALTER TASK data.{base_name}_refresh_task RESUME")
     db.execute(f"ALTER TASK data.{base_name}_ingest_task RESUME")
+    db.execute(f"ALTER TASK data.{base_name}_refresh_task RESUME")
 
     return {
         'newStage': 'finalized',
