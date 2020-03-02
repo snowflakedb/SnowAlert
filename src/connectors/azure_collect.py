@@ -377,6 +377,7 @@ SUPPLEMENTARY_TABLES = {
         ('saml_metadata_url', 'STRING'),
         ('service_principal_names', 'VARIANT'),
         ('tags', 'VARIANT'),
+        ('verified_publisher', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0#properties
     'groups': [
@@ -645,6 +646,7 @@ API_SPECS = {
             'samlMetadataUrl': 'saml_metadata_url',
             'servicePrincipalNames': 'service_principal_names',
             'tags': 'tags',
+            'verifiedPublisher': 'verified_publisher',
         },
     },
     'groups': {
