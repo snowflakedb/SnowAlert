@@ -766,7 +766,7 @@ WHERE 1=1
   )
 ;
 
-CREATE OR REPLACE VIEW rules.AZURE_CIS_2_16_VIOLATION_QUERY COPY GRANTS
+CREATE OR REPLACE VIEW rules.AZURE_CIS_2_17_VIOLATION_QUERY COPY GRANTS
   COMMENT='security contact should have email set
   @id JBD8BU7YWHJ
   @tags cis, azure, security-center'
