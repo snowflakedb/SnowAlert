@@ -4,7 +4,7 @@ CREATE OR REPLACE VIEW rules.AZURE_CIS_1_3_VIOLATION_QUERY COPY GRANTS
   @tags cis, azure, iam'
 AS
 SELECT 'PLSEUOLMOH' AS query_id
-     , 'Azure CIS 1.3: that there are no guest users' AS title
+     , 'Azure CIS 1.3: there are no guest users' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
          'account', tenant_id
