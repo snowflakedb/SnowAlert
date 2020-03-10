@@ -172,7 +172,7 @@ SELECT '6QL7YIUFM6L' AS query_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
-         'in tenant `' || tenant_id || '`,' ||
+         'in tenant `' || tenant_id || '`, ' ||
          'named "' || name || '"'
        ) AS object
      , 'Subscription in violation of AZ CIS 2.3—15: ' || object AS description
