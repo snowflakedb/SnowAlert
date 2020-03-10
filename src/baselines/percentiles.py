@@ -41,7 +41,7 @@ OPTIONS = [
 ]
 
 COUNT_HOURLY_TABLE_SQL = """
-CREATE OR REPLACE TABLE {base_table}_count_hourly (
+CREATE OR REPLACE TABLE {base_table}_counts (
   slice_start timestamp_ltz,
   slice_end timestamp_ltz,
   groups variant,
@@ -51,7 +51,7 @@ CREATE OR REPLACE TABLE {base_table}_count_hourly (
 """
 
 COUNT_HOURLY_MERGE_SQL = """
-MERGE INTO {base_table}_count_hourly stored
+MERGE INTO {base_table}_counts stored
 USING (
   -- calculate sums
   SELECT COUNT(*) n
@@ -94,7 +94,7 @@ VALUES (
 """
 
 COUNT_HOURLY_TASK_SQL = f"""
-CREATE OR REPLACE TASK {{base_table}}_count_hourly
+CREATE OR REPLACE TASK {{base_table}}_count
   SCHEDULE='USING CRON 0 * * * * UTC'
   WAREHOUSE={WAREHOUSE}
 AS
@@ -120,13 +120,13 @@ SELECT * FROM (
          , groups
          , slice_start
          , slice_end
-    FROM {base_table}_count_hourly
+    FROM {base_table}_counts
     RIGHT JOIN (
       -- zero filled matrix of (groups X slices)
       SELECT groups, slice_start, slice_end
       FROM (
         SELECT DISTINCT groups
-        FROM {base_table}_count_hourly
+        FROM {base_table}_counts
       ) g
       CROSS JOIN (
         SELECT slice_start, slice_end
@@ -143,7 +143,7 @@ SELECT * FROM (
 )
 WHERE hour = (
   SELECT MAX(slice_start)
-  FROM {base_table}_count_hourly
+  FROM {base_table}_counts
 )
 ORDER BY n DESC
 """
@@ -168,12 +168,12 @@ SELECT * FROM (
          , ZEROIFNULL(n) n
          , groups
          , pct
-    FROM {base_table}_count_hourly
+    FROM {base_table}_counts
     RIGHT OUTER JOIN (
       SELECT groups
            , DATE_TRUNC(HOUR, CURRENT_TIMESTAMP) current_hour
            , APPROX_PERCENTILE_ACCUMULATE(n) OVER (PARTITION BY GROUPS) pct
-      FROM data.cloudtrail_user_iam_actions_count_hourly
+      FROM data.{base_table}_counts
       WHERE slice_start BETWEEN DATEADD(HOUR, -24 * {days} - 1, current_hour)
                             AND DATEADD(HOUR, -1, current_hour)
     )
@@ -212,13 +212,13 @@ SELECT * FROM (
            , groups
            , slice_start
            , slice_end
-      FROM {base_table}_count_hourly
+      FROM {base_table}_counts
       RIGHT JOIN (
         -- zero filled matrix of (groups X slices)
         SELECT groups, slice_start, slice_end
         FROM (
           SELECT DISTINCT groups
-          FROM {base_table}_count_hourly
+          FROM {base_table}_counts
         ) g
         CROSS JOIN (
           SELECT slice_start, slice_end
@@ -235,7 +235,7 @@ SELECT * FROM (
 )
 WHERE hour = (
   SELECT MAX(slice_start)
-  FROM {base_table}_count_hourly
+  FROM {base_table}_counts
 )
 ORDER BY n DESC
 """
@@ -254,7 +254,7 @@ def generate_baseline_sql(
             groups=db.dict_to_sql({g: g for g in groups or []}, indent=11),
             days=days,
         ),
-        f'ALTER TASK {base_table}_count_hourly RESUME',
+        f'ALTER TASK {base_table}_count RESUME',
         BASIC_BASELINE_VIEW_NO_ZEROS.format(base_table=base_table, days=days)
         if sparcity_reduction == 'drop_zeros'
         else BASIC_BASELINE_VIEW_WITH_WINDOW
