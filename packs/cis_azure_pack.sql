@@ -718,55 +718,8 @@ WHERE 1=1
   AND IFNULL(params:sqlEncryptionMonitoringEffect, 'Disabled') = 'Disabled'
 ;
 
-CREATE OR REPLACE VIEW rules.AZURE_CIS_2_16_VIOLATION_QUERY COPY GRANTS
-  COMMENT='security contacts should have email, phone, alerting to "On"
-  @id 0MZTQ654TBM
-  @tags cis, azure, security-center'
-AS
-SELECT '0MZTQ654TBM' AS query_id
-     , 'Azure CIS 2.16: security contacts are configured right' AS title
-     , OBJECT_CONSTRUCT(
-         'cloud', 'azure',
-         'account', tenant_id
-       ) AS environment
-     , (
-         'Subscription `' || subscription_id || '`, ' ||
-         'in tenant `' || tenant_id || '`, ' ||
-         'named "' || name || '"'
-       ) AS object
-     , 'Subscription in violation of AZ CIS 2.16: ' || object AS description
-     , CURRENT_TIMESTAMP AS alert_time
-     , OBJECT_CONSTRUCT(*) AS event_data
-     , 'SnowAlert' AS detector
-     , 'High' AS severity
-     , 'devsecops' AS owner
-     , OBJECT_CONSTRUCT(
-         'cloud', 'azure',
-         'query_id', query_id,
-         'tenant_id', tenant_id,
-         'subscription_id', subscription_id
-       ) AS identity
-FROM (
-  SELECT DISTINCT
-    tenant_id,
-    subscription_id,
-    name,
-    type,
-    properties props
-  FROM data.azure_collect_security_contacts
-  WHERE recorded_at > CURRENT_DATE - 2
-    AND type IS NOT NULL
-)
-WHERE 1=1
-  AND (
-    LENGTH(props:email) < 1
-    OR LENGTH(props:phone) < 1
-    OR props:alertNotifications <> 'On'
-    OR props:alertsToAdmins <> 'On'
-  )
-;
 
-CREATE OR REPLACE VIEW rules.AZURE_CIS_2_17_VIOLATION_QUERY COPY GRANTS
+CREATE OR REPLACE VIEW rules.AZURE_CIS_2_16_VIOLATION_QUERY COPY GRANTS
   COMMENT='security contact should have email set
   @id JBD8BU7YWHJ
   @tags cis, azure, security-center'
