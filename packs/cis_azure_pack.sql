@@ -910,3 +910,179 @@ FROM (
 WHERE 1=1
   AND props:alertsToAdmins <> 'On'
 ;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_3_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='storage accounts should require https
+  @id TQLDIHBL0P
+  @tags cis, azure, storage-accounts, https'
+AS
+SELECT 'TQLDIHBL0P' AS query_id
+     , 'Azure CIS 3.1: storage accounts should require secure transfer' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Storage account "' || name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'Storage account in violation of AZ CIS 3.1: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'storage_account_name', name
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    name,
+    kind,
+    properties:supportsHttpsTrafficOnly secure_transfer_required,
+    tags
+  FROM data.azure_collect_storage_accounts
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND secure_transfer_required = false
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_3_6_VIOLATION_QUERY COPY GRANTS
+  COMMENT='storage accounts should have no public access
+  @id Y1GWLA9G4K
+  @tags cis, azure, storage-accounts, public-access'
+AS
+SELECT 'Y1GWLA9G4K' AS query_id
+     , 'Azure CIS 3.6: "Public access level" is set to Private for blob containers' AS title
+     , OBJECT_CONSTRUCT(
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Storage account "' || account_name || '", ' ||
+         'in container "' || container_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 3.6 violated by public access on ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'account_name', account_name,
+         'container_name', container_name
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    account_name,
+    name container_name,
+    properties
+  FROM data.azure_collect_storage_accounts_containers
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND properties:PublicAccess IS NOT NULL
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_3_7_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Storage Account default network access should not be "Allow"
+  @id 421R8Y8EVAB
+  @tags cis, azure, storage-accounts'
+AS
+SELECT '421R8Y8EVAB' AS query_id
+     , 'Azure CIS 3.7: Storage Account default network access rule should not be "Allow"' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Storage account "' || account_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 3.7 violated by network default access set to "Allow" on ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'Medium' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'storage_account_id', storage_account_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id storage_account_id,
+    kind,
+    name account_name,
+    properties:networkAcls.defaultAction::STRING network_default_action,
+    tags
+  FROM data.azure_collect_storage_accounts
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND network_default_action = 'Allow'
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_3_8_VIOLATION_QUERY COPY GRANTS
+  COMMENT='"Trusted Microsoft Services" is enabled for Storage Account access
+  @id D4K5N625QNJ
+  @tags cis, azure, storage-accounts'
+AS
+SELECT 'D4K5N625QNJ' AS query_id
+     , 'Azure CIS 3.8: "Trusted Microsoft Services" is enabled for Storage Account access' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Storage account "' || account_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 3.8 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'Medium' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'storage_account_id', storage_account_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id storage_account_id,
+    kind,
+    name account_name,
+    properties:networkAcls.bypass::STRING network_bypass,
+    tags
+  FROM data.azure_collect_storage_accounts
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND REGEXP_INSTR(network_bypass, '\\bAzureServices\\b') = 0
+;
