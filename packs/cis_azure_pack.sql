@@ -7,7 +7,7 @@ SELECT 'PLSEUOLMOH' AS query_id
      , 'Azure CIS 1.3: there are no guest users' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id
        ) AS environment
      , user_principal_name || ' in tenant ' || environment:account AS object
      , object || ' is a guest user in volation of AZ CIS 1.3' AS description
@@ -35,7 +35,8 @@ SELECT '7MDFB8Z0NKS' AS query_id
      , 'Azure CIS 1.23: No custom subscription owner roles are created' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , id || ' in tenant ' || environment:account AS object
      , 'Role Definition in violation of AZ CIS 1.3: ' || id AS description
@@ -46,13 +47,13 @@ SELECT '7MDFB8Z0NKS' AS query_id
      , 'devsecops' AS owner
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'tenant_id', tenant_id,
          'role_definition_id', id
        ) AS identity
 FROM (
   SELECT
     id,
     tenant_id,
+    subscription_id,
     BOOLOR_AGG(
       path RLIKE '^assignableScopes\\[[0-9]+\\]$'
       AND (value = '/' OR value RLIKE '^/subscriptions/[0-9a-f-]+$')
@@ -67,7 +68,7 @@ FROM (
   WHERE
     recorded_at > CURRENT_DATE - 3
   GROUP BY
-    id, properties, tenant_id
+    id, properties, tenant_id, subscription_id
 )
 WHERE 1=1
   AND is_assigned_to_root_or_subscription_scope
@@ -84,7 +85,8 @@ SELECT 'AY64LVA734B' AS query_id
      , 'Azure CIS 2.1: standard pricing tier is selected' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -126,7 +128,8 @@ SELECT 'I9QOIRZ53QG' AS query_id
      , 'Azure CIS 2.2: "Automatic provisioning of monitoring agent" is set to "On"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -168,7 +171,8 @@ SELECT '6QL7YIUFM6L' AS query_id
      , 'Azure CIS 2.3: ASC Default policy setting "Monitor System Updates" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -211,7 +215,8 @@ SELECT 'X52F9H0VP3C' AS query_id
      , 'Azure CIS 2.4: ASC Default policy setting "Monitor OS Vulnerabilities" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -254,7 +259,8 @@ SELECT 'E429KPTCRA' AS query_id
      , 'Azure CIS 2.5: ASC Default policy setting "Monitor Endpoint Protection" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -297,7 +303,8 @@ SELECT 'BVT8Z6CIGMR' AS query_id
      , 'Azure CIS 2.6: ASC Default policy setting "Monitor Disk Encryption" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -340,7 +347,8 @@ SELECT 'M70FBQDUO' AS query_id
      , 'Azure CIS 2.7: ASC Default policy setting "Monitor Network Security Groups" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -383,7 +391,8 @@ SELECT 'ZZ7T8U4VXV' AS query_id
      , 'Azure CIS 2.8: ASC Default policy setting "Monitor Web Application Firewall" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -426,7 +435,8 @@ SELECT 'NPL91M5IRD' AS query_id
      , 'Azure CIS 2.9: ASC Default policy setting "NGFW Monitoring" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -469,7 +479,8 @@ SELECT '6XQKJV63MGW' AS query_id
      , 'Azure CIS 2.10: ASC Default policy setting "Monitor Vulnerability Assessment" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -512,7 +523,8 @@ SELECT 'MIZAVMRZFV' AS query_id
      , 'Azure CIS 2.11: ASC Default policy setting "Monitor Storage Blob Encryption" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -555,7 +567,8 @@ SELECT '0606OV2Q7EP4' AS query_id
      , 'Azure CIS 2.12: ASC Default policy setting "Monitor JIT Network Access" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -598,7 +611,8 @@ SELECT 'GCIEER9BOH' AS query_id
      , 'Azure CIS 2.13: ASC Default policy setting "Monitor Adaptive Application Whitelisting" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -641,7 +655,8 @@ SELECT 'IDDTR9L5XRK' AS query_id
      , 'Azure CIS 2.14: ASC Default policy setting "Monitor SQL Auditing" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -684,7 +699,8 @@ SELECT 'GWYJUFKLHNQ' AS query_id
      , 'Azure CIS 2.15: ASC Default policy setting "Monitor SQL Encryption" not "Disabled"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -728,7 +744,8 @@ SELECT 'JBD8BU7YWHJ' AS query_id
      , 'Azure CIS 2.16: security contacts email is set' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -771,7 +788,8 @@ SELECT 'OL06B7S4S2K' AS query_id
      , 'Azure CIS 2.17: security contacts phone number is set' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -814,7 +832,8 @@ SELECT '1URJFBNUAWH' AS query_id
      , 'Azure CIS 2.18: "Send email notification for high severity alerts" is set to "On"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
@@ -857,7 +876,8 @@ SELECT 'OZMX8LMRY6E' AS query_id
      , 'Azure CIS 2.19: "Send email also to subscription owners" is set to "On"' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
-         'account', tenant_id
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
        ) AS environment
      , (
          'Subscription `' || subscription_id || '`, ' ||
