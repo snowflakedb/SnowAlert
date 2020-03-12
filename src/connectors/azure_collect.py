@@ -86,7 +86,7 @@ SUPPLEMENTARY_TABLES = {
         ('longitude', 'VARCHAR(100)'),
         ('name', 'VARCHAR(1000)'),
     ],
-    # https://docs.virtual_machinesmicrosoft.com/en-us/rest/api/compute/virtualmachines/listall#virtualmachine
+    # https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/listall#virtualmachine
     'virtual_machines': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
