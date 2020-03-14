@@ -32,6 +32,7 @@ setup(
         'pyTenable==0.3.22',
         'boto3==1.9.253',
         'twilio==6.29.4',
-        'simple_salesforce==0.74.3',
-    ],
+        'simple_salesforce==0.74.3'
+        ,'pdpyras==4.0'
+    ]
 )

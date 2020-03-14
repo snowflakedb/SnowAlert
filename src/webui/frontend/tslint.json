@@ -35,7 +35,6 @@
     "type-literal-delimiter": true,
     "typedef": [true,"parameter", "property-declaration"],
     "variable-name": [true, "ban-keywords", "check-format", "allow-pascal-case", "allow-leading-underscore"],
-    // tslint-react
     "jsx-boolean-value": [false, "never"],
     "jsx-no-multiline-js": false,
     "jsx-no-lambda": false
