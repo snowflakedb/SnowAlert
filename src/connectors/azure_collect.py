@@ -378,6 +378,7 @@ SUPPLEMENTARY_TABLES = {
         ('service_principal_names', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('verified_publisher', 'VARIANT'),
+        ('is_authorization_service_enabled', 'BOOLEAN'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0#properties
     'groups': [
@@ -647,6 +648,7 @@ API_SPECS = {
             'servicePrincipalNames': 'service_principal_names',
             'tags': 'tags',
             'verifiedPublisher': 'verified_publisher',
+            'isAuthorizationServiceEnabled': 'is_authorization_service_enabled',
         },
     },
     'groups': {
