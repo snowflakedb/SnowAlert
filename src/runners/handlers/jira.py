@@ -174,7 +174,7 @@ def bail_out(alert_id):
         log.error(e, f"Failed to update alert {alert_id} with handler status")
 
 
-def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=None):
+def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=None, issue_type=ISSUE_TYPE):
     if project == '':
         return "No Jira Project defined"
     if URL == '':
@@ -211,7 +211,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
                 try:
-                    ticket_id = create_jira_ticket(alert, project=project)
+                    ticket_id = create_jira_ticket(alert, project=project, issue_type=issue_type)
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     raise
@@ -219,7 +219,7 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert, assignee, custom_field, project=project)
+            ticket_id = create_jira_ticket(alert, assignee, custom_field, project=project, issue_type=issue_type)
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             raise
