@@ -16,3 +16,4 @@ venv
 *.db
 *.egg-info
 .vscode
+*.pydevproject
