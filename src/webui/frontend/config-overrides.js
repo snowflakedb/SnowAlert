@@ -15,5 +15,5 @@ module.exports = override(
       // Override Ant's LESS constants (https://ant.design/docs/react/use-with-create-react-app).
       '@primary-color': '#00a2ae',
     },
-  })
+  }),
 );
