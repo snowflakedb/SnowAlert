@@ -542,6 +542,21 @@ SUPPLEMENTARY_TABLES = {
         ('managed_device_name', 'STRING'),
         ('partner_reported_threat_state', 'VARCHAR(100)'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/monitor/diagnosticsettings/list#diagnosticsettingsresource
+    'diagnostic_settings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('resource_uri', 'STRING'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('type', 'STRING'),
+        ('name', 'STRING'),
+        ('location', 'STRING'),
+        ('kind', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('properties', 'VARIANT'),
+        ('identity', 'VARIANT'),
+    ],
 }
 
 
@@ -1279,6 +1294,53 @@ API_SPECS = {
             'properties': 'properties',
         },
     },
+    'diagnostic_settings': {
+        'request': {
+            'path': (
+                '/{resourceUri}'
+                '/providers/microsoft.insights'
+                '/diagnosticSettings'
+            ),
+            'api-version': '2017-05-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'resourceUri': 'resource_uri',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'kind': 'kind',
+            'name': 'name',
+            'type': 'type',
+            'tags': 'tags',
+            'identity': 'identity',
+            'properties': 'properties',
+        },
+    },
+    'workflows': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/resourcegroups/{rgName}'
+                '/providers/microsoft.logic'
+                '/workflows'
+            ),
+            'api-version': '2016-06-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'rgName': 'resource_group_name',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'type': 'type',
+            'properties': 'properties',
+        },
+    },
 }
 
 
@@ -1443,6 +1505,16 @@ def ingest(table_name, options, dryrun=False):
 
             load_table('virtual_machines', subscriptionId=sid)
 
+            for v in load_table('vaults', subscriptionId=sid):
+                if 'name' in v:
+                    load_table('vaults_keys', vaultName=v['name'])
+                    load_table('vaults_secrets', vaultName=v['name'])
+                if 'id' in v:
+                    load_table(
+                        'diagnostic_settings',
+                        resourceUri=v['id'],
+                    )
+
             load_table('role_definitions', subscriptionId=sid)
             load_table('network_watchers', subscriptionId=sid)
             load_table('network_security_groups', subscriptionId=sid)
@@ -1474,10 +1546,6 @@ def ingest(table_name, options, dryrun=False):
 
             load_table('subscriptions_locations', subscriptionId=sid)
             load_table('managed_clusters', subscriptionId=sid)
-            for v in load_table('vaults', subscriptionId=sid):
-                if 'name' in v:
-                    load_table('vaults_keys', vaultName=v['name'])
-                    load_table('vaults_secrets', vaultName=v['name'])
 
     return num_loaded
 
