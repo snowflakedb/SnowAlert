@@ -557,6 +557,21 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('identity', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/monitor/activitylogalerts/listbysubscriptionid#activitylogalertresource
+    'activity_log_alerts': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('subscription_id', 'STRING'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+        ('kind', 'string'),
+        ('identity', 'string'),
+    ],
 }
 
 
@@ -1341,6 +1356,30 @@ API_SPECS = {
             'properties': 'properties',
         },
     },
+    'activity_log_alerts': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/microsoft.insights'
+                '/activityLogAlerts'
+            ),
+            'api-version': '2017-04-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+            'kind': 'kind',
+            'identity': 'identity',
+        },
+    },
 }
 
 
@@ -1502,6 +1541,7 @@ def ingest(table_name, options, dryrun=False):
             load_table('auto_provisioning_settings', subscriptionId=sid)
             load_table('policy_assignments', subscriptionId=sid)
             load_table('security_contacts', subscriptionId=sid)
+            load_table('activity_log_alerts', subscriptionId=sid)
 
             load_table('virtual_machines', subscriptionId=sid)
 
