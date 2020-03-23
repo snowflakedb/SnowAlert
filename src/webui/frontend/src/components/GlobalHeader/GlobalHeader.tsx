@@ -3,13 +3,13 @@ import {
   Button,
   Checkbox,
   Dropdown,
-  Icon,
   Layout,
   Menu,
   // Spin,
   // Tag,
   // Tooltip
 } from 'antd';
+import {LogoutOutlined, UserOutlined} from '@ant-design/icons';
 import {Debounce} from 'lodash-decorators';
 // import * as moment from 'moment';
 import * as React from 'react';
@@ -138,7 +138,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item key="logout">
-                    <Icon type="logout" /> Sign out
+                    <LogoutOutlined /> Sign out
                   </Menu.Item>
                 </Menu>
               }
@@ -146,7 +146,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
             >
               <span className={'action account'} style={{width: 64, padding: '0 16px'}}>
                 <span className={'name'}>
-                  <Avatar size={32} icon="user" />
+                  <Avatar size={32} icon={<UserOutlined />} />
                 </span>
               </span>
             </Dropdown>

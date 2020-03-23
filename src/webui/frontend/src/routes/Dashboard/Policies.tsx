@@ -1,4 +1,6 @@
-import {Avatar, Badge, Button, Card, Divider, Icon, Input, List, Table, Row} from 'antd';
+import {Avatar, Badge, Button, Card, Divider, Input, List, Table, Row} from 'antd';
+import {CheckCircleTwoTone, DeleteOutlined, EditOutlined, ExclamationCircleTwoTone, AuditOutlined, LoadingOutlined} from '@ant-design/icons';
+
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -54,11 +56,11 @@ type PoliciesProps = OwnProps & StateProps & DispatchProps;
 
 function successDot(status?: boolean) {
   return status ? (
-    <Icon type="check-circle" theme="twoTone" twoToneColor="#52c41a" />
+    <CheckCircleTwoTone twoToneColor="#52c41a" />
   ) : status === undefined ? (
     <Avatar size={15} style={{backgroundColor: 'lightgray'}} />
   ) : (
-    <Icon type="exclamation-circle" theme="twoTone" twoToneColor="#ff3434" />
+    <ExclamationCircleTwoTone twoToneColor="#ff3434" />
   );
 }
 
@@ -78,7 +80,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
         <Card
           extra={
             <Button onClick={() => this.props.addPolicy()}>
-              <Icon type="audit" /> new policy
+              <AuditOutlined /> new policy
             </Button>
           }
         >
@@ -132,7 +134,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                 style={{marginRight: 10}}
                                 onClick={() => this.props.saveRule(Object.assign(policy, {raw: {body: policy.body}}))}
                               >
-                                {policy.isSaving ? <Icon type="loading" theme="outlined" /> : 'Save'}
+                                {policy.isSaving ? <LoadingOutlined /> : 'Save'}
                               </Button>
                               <Button type="default" disabled={false} onClick={() => this.props.revertRule(policy)}>
                                 Cancel
@@ -140,7 +142,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                             </span>
                           ) : (
                             <Button onClick={() => this.props.editRule(policy.viewName)} style={{float: 'right'}}>
-                              <Icon type="edit" /> edit
+                              <EditOutlined /> edit
                             </Button>
                           ))}
                       </span>
@@ -207,7 +209,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                     disabled={policy.subpolicies.length < 2}
                                     onClick={() => this.props.deleteSubpolicy(policy.viewName, i)}
                                   >
-                                    <Icon type="delete" />
+                                    <DeleteOutlined />
                                   </Button>
                                 </div>
                               ) : (

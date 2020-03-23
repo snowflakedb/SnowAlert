@@ -1,4 +1,6 @@
-import {Button, Card, Icon, Input, List, Modal, Select} from 'antd';
+import {Button, Card, Input, List, Modal, Select} from 'antd';
+import {CheckOutlined, LineChartOutlined} from '@ant-design/icons';
+
 import React from 'react';
 import {connect} from 'react-redux';
 import {Link} from '@reach/router';
@@ -132,7 +134,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
               dataSource={(baselineResults || []).concat()}
               renderItem={(r: string) => (
                 <List.Item style={{paddingLeft: 16}}>
-                  <Icon type="check" style={{color: '#52c41a', marginRight: 4}} /> {r}
+                  <CheckOutlined style={{color: '#52c41a', marginRight: 4}} /> {r}
                 </List.Item>
               )}
               bordered
@@ -154,7 +156,6 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
                 {opt.options ? (
                   <Select
                     defaultValue={opt.placeholder || opt.default || '- pick one -'}
-                    dropdownMatchSelectWidth={false}
                     onChange={(v: any) => {
                       this.changeOption(opt.name, v);
                     }}
@@ -213,7 +214,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
             style={{width: 350, margin: 10, float: 'left'}}
             actions={[
               <Link to={b.baseline}>
-                <Icon type="line-chart" /> Construct
+                <LineChartOutlined /> Construct
               </Link>,
             ]}
           >

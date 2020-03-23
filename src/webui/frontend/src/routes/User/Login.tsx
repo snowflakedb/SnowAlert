@@ -1,4 +1,5 @@
-import {Button, Form, Icon, Input} from 'antd';
+import {Button, Form, Input} from 'antd';
+import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -38,22 +39,13 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     };
   }
 
-  login = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    this.props.form.validateFields((err: string, values: FormProps) => {
-      if (!err) {
-        localStorage.setItem('account', values.account);
-        this.props.oauthRedirect(values.account, window.location.href);
-      } else {
-        this.setState({
-          errorMessage: err,
-        });
-      }
-    });
+  login = (values: any) => {
+    console.log(values)
+    localStorage.setItem('account', values.account);
+    this.props.oauthRedirect(values.account, window.location.href);
   };
 
   render() {
-    const {getFieldDecorator} = this.props.form;
     const m = window.location.search.match(/\?code=([0-9A-F]+)/);
     const code = m ? m[1] : null;
 
@@ -73,7 +65,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
           <div className={'main'}>
             <h2>Acquiring Access Token</h2>
             <h5>Buckle up your seatbelt, Dorothy</h5>
-            <Icon type="loading" style={{marginLeft: 190, marginTop: 50}} />
+            <LoadingOutlined style={{marginLeft: 190, marginTop: 50}} />
           </div>
         ) : (
           <div className={'main'}>
@@ -81,23 +73,13 @@ class LoginForm extends React.Component<LoginFormProps, State> {
             <h5>Enter your account's Snowflake URL</h5>
             <Location>
               {({navigate}) => (
-                <Form className={'login'} onSubmit={e => this.login(e)}>
-                  <Form.Item>
-                    {getFieldDecorator('account', {
-                      initialValue: account || '',
-                      rules: [
-                        {
-                          required: true,
-                          message: 'Enter your account name',
-                        },
-                      ],
-                    })(
-                      <Input
-                        prefix={<Icon className={'prefix-icon'} type={'api'} />}
-                        placeholder={'your-account-url'}
-                        addonAfter={'.snowflakecomputing.com'}
-                      />,
-                    )}
+                <Form className={'login'} onFinish={vs => this.login(vs)}>
+                  <Form.Item name="account" rules={[{ required: true }]}>
+                    <Input
+                      prefix={<ApiOutlined className={'prefix-icon'} />}
+                      placeholder={'your-account-url'}
+                      addonAfter={'.snowflakecomputing.com'}
+                    />
                   </Form.Item>
                   <Form.Item style={{marginBottom: '12px'}}>
                     <Button type={'primary'} size={'large'} htmlType={'submit'} className={'form-button'}>
@@ -128,4 +110,4 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
   );
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(Form.create()(LoginForm));
+export default connect(mapStateToProps, mapDispatchToProps)(LoginForm);

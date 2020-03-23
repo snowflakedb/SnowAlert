@@ -1,4 +1,6 @@
-import {Button, Icon, Tree, Input} from 'antd';
+import {Button, Tree, Input} from 'antd';
+import {CloudDownloadOutlined, CloudUploadOutlined} from '@ant-design/icons';
+
 import * as React from 'react';
 import * as _ from 'lodash';
 import {connect} from 'react-redux';
@@ -14,7 +16,6 @@ import {Query, Suppression} from '../../store/rules';
 
 import './RulesTree.css';
 
-const TreeNode = Tree.TreeNode;
 const Search = Input.Search;
 
 function download(filename: string, text: string) {
@@ -75,38 +76,26 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     }
 
     return [
-      <TreeNode key="queries" title={`${target} Queries`} selectable={false}>
-        {this.props.rules.isFetching ? (
-          <TreeNode title="Loading..." />
-        ) : (
-          queries
-            .filter(q => target === q.target)
-            .filter(ruleFilter)
-            .map(r => (
-              <TreeNode
-                selectable={true}
-                key={`${r.viewName}`}
-                title={(r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title}
-              />
-            ))
-        )}
-      </TreeNode>,
-      <TreeNode key="suppressions" title={`${target} Suppressions`} selectable={false}>
-        {this.props.rules.isFetching ? (
-          <TreeNode title="Loading..." />
-        ) : (
-          suppressions
-            .filter(s => target === s.target)
-            .filter(ruleFilter)
-            .map(s => (
-              <TreeNode
-                selectable={true}
-                key={s.viewName}
-                title={(s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title}
-              />
-            ))
-        )}
-      </TreeNode>,
+      {key: "queries", title: `${target} Queries`, selectable: false, children: (
+        queries
+          .filter(q => target === q.target)
+          .filter(ruleFilter)
+          .map(r => ({
+            selectable: true,
+            key: r.viewName,
+            title: (r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title,
+          }))
+        )},
+      {key: "suppressions", title: `${target} Suppressions`, selectable: false, children: (
+        suppressions
+          .filter(s => target === s.target)
+          .filter(ruleFilter)
+          .map(s => ({
+            selectable: true,
+            key: s.viewName,
+            title: (s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title,
+          }))
+      )}
     ];
   };
 
@@ -128,11 +117,10 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
         <Tree
           showLine
           defaultExpandAll
-          onSelect={x => navigate(x[0] || '.')}
+          onSelect={x => navigate(String(x[0]) || '.')}
           selectedKeys={currentRuleView ? [currentRuleView] : []}
-        >
-          {this.generateTree(queries, suppressions, target, filter)}
-        </Tree>
+          treeData={this.generateTree(queries, suppressions, target, filter)}
+        />
         <Button
           type="dashed"
           disabled={queries.length === 0}
@@ -143,10 +131,10 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
             );
           }}
         >
-          <Icon type="cloud-download" theme="outlined" /> Download SQL
+          <CloudDownloadOutlined /> Download SQL
         </Button>
         <Button type="dashed" disabled={true}>
-          <Icon type="cloud-upload" theme="outlined" /> Upload SQL
+          <CloudUploadOutlined /> Upload SQL
         </Button>
       </div>
     );

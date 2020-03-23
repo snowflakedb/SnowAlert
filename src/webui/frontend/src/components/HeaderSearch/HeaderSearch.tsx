@@ -1,4 +1,5 @@
-import {AutoComplete, Icon, Input} from 'antd';
+import {AutoComplete, Input} from 'antd';
+import {SearchOutlined} from '@ant-design/icons';
 import classNames from 'classnames';
 import * as React from 'react';
 import './HeaderSearch.css';
@@ -68,7 +69,7 @@ export default class HeaderSearch extends React.PureComponent<Props, State> {
     });
     return (
       <span className={classNames('header-search', className)} onClick={this.enterSearchMode}>
-        <Icon type="search" key="Icon" />
+        <SearchOutlined key="Icon" />
         <AutoComplete
           dataSource={[]}
           key="AutoComplete"

@@ -1,4 +1,4 @@
-import {Icon} from 'antd';
+import {CloseCircleOutlined, CheckCircleOutlined} from '@ant-design/icons';
 import classNames from 'classnames';
 import * as React from 'react';
 import './Result.css';
@@ -17,8 +17,8 @@ const Result = (props: Props) => {
   const {className, type, title, description, extra, actions} = props;
 
   const iconMap: any = {
-    error: <Icon className={'error'} type="close-circle" />,
-    success: <Icon className={'success'} type="check-circle" />,
+    error: <CloseCircleOutlined className={'error'} />,
+    success: <CheckCircleOutlined className={'success'} />,
   };
   const clsString = classNames('result', className);
   return (
