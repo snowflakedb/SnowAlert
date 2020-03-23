@@ -1,5 +1,5 @@
-import {Button, Form, Input} from 'antd';
-import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
+import {Button, Collapse, Form, Input} from 'antd';
+import {LoadingOutlined, ApiOutlined, TeamOutlined, SettingOutlined} from '@ant-design/icons';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -42,6 +42,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
   login = (values: any) => {
     console.log(values)
     localStorage.setItem('account', values.account);
+    localStorage.setItem('role', values.role);
     this.props.oauthRedirect(values.account, window.location.href);
   };
 
@@ -81,6 +82,17 @@ class LoginForm extends React.Component<LoginFormProps, State> {
                       addonAfter={'.snowflakecomputing.com'}
                     />
                   </Form.Item>
+                  <Collapse>
+                    <Collapse.Panel header="Advanced" key="1" extra={<SettingOutlined />}>
+                      <Form.Item name="role">
+                        <Input
+                          prefix={<TeamOutlined className={'prefix-icon'} />}
+                          placeholder={'snowalert_reader_rl'}
+                          addonBefore={'ROLE'}
+                        />
+                      </Form.Item>
+                    </Collapse.Panel>
+                  </Collapse>
                   <Form.Item style={{marginBottom: '12px'}}>
                     <Button type={'primary'} size={'large'} htmlType={'submit'} className={'form-button'}>
                       Continue &rarr;

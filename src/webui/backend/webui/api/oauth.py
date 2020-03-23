@@ -12,12 +12,6 @@ logger = logbook.Logger(__name__)
 oauth_api = Blueprint('oauth', __name__)
 
 OAUTH_CONNECTION_ROLE = environ.get('OAUTH_CONNECTION_ROLE', None)
-if OAUTH_CONNECTION_ROLE:
-    scope_role = f' session:role:{OAUTH_CONNECTION_ROLE.upper()}'
-else:
-    scope_role = ''
-
-
 PROTOCOL = environ.get('SNOWFLAKE_PROTOCOL', 'https')
 PORT = environ.get('SNOWFLAKE_PORT', '443')
 URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
@@ -34,6 +28,12 @@ def oauth_redirect():
     OAUTH_CLIENT_ID = environ.get(
         f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', ''
     )
+
+    role = json.get('role') or OAUTH_CONNECTION_ROLE
+    if role:
+        scope_role = f' session:role:{OAUTH_CONNECTION_ROLE.upper()}'
+    else:
+        scope_role = ''
 
     return jsonify(
         url=f"{URL_PREFIX}/oauth/authorize?".format(account=account)

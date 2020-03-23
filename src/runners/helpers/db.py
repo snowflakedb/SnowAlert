@@ -64,6 +64,7 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
 
 def connect(flush_cache=False, set_cache=False, oauth={}):
     account = oauth.get('account')
+    role = oauth.get('role')
     oauth_refresh_token = oauth.get('refresh_token')
     oauth_access_token = (
         oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
@@ -108,7 +109,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             warehouse=environ.get('OAUTH_CONNECTION_WAREHOUSE', None)
             if oauth_access_token
             else WAREHOUSE,
-            role=environ.get('OAUTH_CONNECTION_ROLE', None)
+            role=role or environ.get('OAUTH_CONNECTION_ROLE', None)
             if oauth_access_token
             else ROLE,
             token=oauth_access_token,
@@ -711,7 +712,9 @@ def create_pipe(name, sql, replace='', autoingest='', comment=''):
     execute(query, fix_errors=False)
 
 
-def create_task(name, schedule, warehouse, sql, replace='', comment='', auto_resume=True):
+def create_task(
+    name, schedule, warehouse, sql, replace='', comment='', auto_resume=True
+):
     replace = 'OR REPLACE ' if replace else ''
     if not schedule.startswith('AFTER'):
         schedule = f"SCHEDULE='{schedule}'\n"
