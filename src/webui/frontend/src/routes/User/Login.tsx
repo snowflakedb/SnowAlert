@@ -42,7 +42,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
   login = (values: any) => {
     console.log(values)
     localStorage.setItem('account', values.account);
-    localStorage.setItem('role', values.role);
+    localStorage.setItem('role', values.role || '');
     this.props.oauthRedirect(values.account, values.role, window.location.href);
   };
 
