@@ -23,15 +23,16 @@ URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
 def oauth_redirect():
     json = request.get_json()
     account = json.get('account')
+    role = json.get('role')
     returnHref = json.get('returnHref')
 
     OAUTH_CLIENT_ID = environ.get(
         f'OAUTH_CLIENT_{account.partition(".")[0].upper()}', ''
     )
 
-    role = json.get('role') or OAUTH_CONNECTION_ROLE
+    role = role or OAUTH_CONNECTION_ROLE
     if role:
-        scope_role = f' session:role:{OAUTH_CONNECTION_ROLE.upper()}'
+        scope_role = f' session:role:{role.upper()}'
     else:
         scope_role = ''
 
