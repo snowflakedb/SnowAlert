@@ -1,5 +1,7 @@
 import * as React from 'react';
-import {Tag, Input, Tooltip, Icon} from 'antd';
+import {Tag, Input, Tooltip} from 'antd';
+import {PlusOutlined} from '@ant-design/icons';
+
 
 interface Props {
   disabled: boolean;
@@ -93,7 +95,7 @@ export default class EditableTagGroup extends React.Component<Props, State> {
         )}
         {!inputVisible && (
           <Tag onClick={this.showInput} style={{background: '#fff', borderStyle: 'dashed'}}>
-            <Icon type="plus" /> New Tag
+            <PlusOutlined /> New Tag
           </Tag>
         )}
       </div>

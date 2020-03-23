@@ -1,4 +1,6 @@
-import {Button, Icon, Input} from 'antd';
+import {Button, Input} from 'antd';
+import {LoadingOutlined, UploadOutlined, RollbackOutlined, DeleteOutlined} from '@ant-design/icons';
+
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -47,17 +49,17 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
           onClick={() => rule && saveRule(rule)}
         >
-          {rule && rule.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
+          {rule && rule.isSaving ? <LoadingOutlined /> : <UploadOutlined />} Apply
         </Button>
         <Button
           type="default"
           disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
           onClick={() => rule && updateRuleBody(rule.viewName, rule.raw.savedBody)}
         >
-          <Icon type="rollback" theme="outlined" /> Revert
+          <RollbackOutlined /> Revert
         </Button>
         <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && deleteRule(rule.raw)}>
-          <Icon type="delete" theme="outlined" /> Delete
+          <DeleteOutlined /> Delete
         </Button>
       </div>
     );

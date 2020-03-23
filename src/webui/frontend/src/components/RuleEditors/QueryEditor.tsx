@@ -1,4 +1,6 @@
-import {Button, Col, Icon, Input, Switch, Tag} from 'antd';
+import {Button, Col, Row, Input, Switch, Tag} from 'antd';
+import {DeleteOutlined, LoadingOutlined, UploadOutlined, RollbackOutlined} from '@ant-design/icons';
+
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -126,17 +128,19 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
 
     if (!(currentRuleView && q && q.isParsed)) {
       return (
-        <Col span={16}>
-          <h3>
-            {rules.filter(r => r.isParsed).length} parsed / {rules.length} loaded from Snowflake
-          </h3>
-          {this.getTagArray(rules)}
-        </Col>
+        <Row>
+          <Col span={16}>
+            <h3>
+              {rules.filter(r => r.isParsed).length} parsed / {rules.length} loaded from Snowflake
+            </h3>
+            {this.getTagArray(rules)}
+          </Col>
+        </Row>
       );
     }
 
     return (
-      <div>
+      <Row>
         {cols.map((col, i) => (
           <Col key={`col-${i}`} span={col.span}>
             {col.fields.map((field, i) =>
@@ -180,20 +184,20 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
         ))}
         <Col span={24}>
           <Button type="primary" disabled={q.isSaving || (!q.isEdited && q.isSaved)} onClick={() => q && saveRule(q)}>
-            {q && q.isSaving ? <Icon type="loading" theme="outlined" /> : <Icon type="upload" />} Apply
+            {q && q.isSaving ? <LoadingOutlined /> : <UploadOutlined />} Apply
           </Button>
           <Button
             type="default"
             disabled={q.isSaving || (!q.isEdited && q.isSaved)}
             onClick={() => q && updateRuleBody(q.viewName, q.raw.savedBody)}
           >
-            <Icon type="rollback" theme="outlined" /> Revert
+            <RollbackOutlined /> Revert
           </Button>
           <Button type="default" disabled={q.isSaving || !q.isSaved} onClick={() => q && this.props.deleteRule(q.raw)}>
-            <Icon type="delete" theme="outlined" /> Delete
+            <DeleteOutlined /> Delete
           </Button>
         </Col>
-      </div>
+      </Row>
     );
   }
 }

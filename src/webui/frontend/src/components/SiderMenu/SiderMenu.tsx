@@ -1,4 +1,6 @@
-import {Icon, Layout, Menu} from 'antd';
+import {Layout, Menu} from 'antd';
+import {ApiOutlined, LineChartOutlined, AlertOutlined, EyeOutlined, FileDoneOutlined, ExceptionOutlined} from '@ant-design/icons';
+
 import * as React from 'react';
 import {connect} from 'react-redux';
 import * as routes from '../../constants/routes';
@@ -9,18 +11,24 @@ import {Location} from '@reach/router';
 
 const {Sider} = Layout;
 
-// Allow menu.ts config icon as string or ReactNode
-//   icon: 'setting',
-//   icon: 'http://demo.com/icon.png',
-//   icon: <Icon type="setting" />,
 const getIcon = (icon: string | React.ReactNode) => {
   if (typeof icon === 'string' && icon.indexOf('http') === 0) {
     return <img src={icon} alt="icon" className={'icon'} />;
   }
-  if (typeof icon === 'string') {
-    return <Icon type={icon} />;
+  switch (icon) {
+    case 'api':
+      return <ApiOutlined />
+    case 'line-chart':
+      return <LineChartOutlined />
+    case 'alert':
+      return <AlertOutlined />
+    case 'eye':
+      return <EyeOutlined />
+    case 'file-done':
+      return <FileDoneOutlined />
+    default:
+      return <ExceptionOutlined />
   }
-  return icon;
 };
 
 interface OwnProps {

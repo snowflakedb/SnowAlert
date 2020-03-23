@@ -1,4 +1,6 @@
-import {Avatar, Button, Card, Icon, Input, List, Modal, Select} from 'antd';
+import {Avatar, Button, Card, Input, List, Modal, Select} from 'antd';
+import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
+
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -128,7 +130,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   {opt.options ? (
                     <Select
                       defaultValue={opt.placeholder || opt.default || '- pick one -'}
-                      dropdownMatchSelectWidth={false}
+                      // dropdownMatchSelectWidth={false}
                       onChange={(v: any) => {
                         this.changeOption(opt.name, v);
                       }}
@@ -184,7 +186,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
           disabled={!optionValues.name || connectionStage !== 'finalized'}
           onClick={() => this.props.testConnection(selectedConnector.name, optionValues.name)}
         >
-          Test {connectionStage === 'testing' && <Icon type="loading" />}
+          Test {connectionStage === 'testing' && <LoadingOutlined />}
         </Button>
         {selectedConnector.finalize ? (
           <Button
@@ -192,7 +194,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
             disabled={!optionValues.name || connectionStage !== 'created'}
             onClick={() => this.props.finalizeConnection(selectedConnector.name, optionValues.name!)}
           >
-            Create {connectionStage === 'finalizing' && <Icon type="loading" />}
+            Create {connectionStage === 'finalizing' && <LoadingOutlined />}
           </Button>
         ) : null}
         <Button
@@ -203,7 +205,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
           }}
         >
           {selectedConnector.finalize ? 'Next' : 'Create'}
-          {connectionStage === 'creating' && <Icon type="loading" />}
+          {connectionStage === 'creating' && <LoadingOutlined />}
         </Button>
       </div>
     ) : (
@@ -215,7 +217,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
             actions={[
               // eslint-disable-next-line
               <a key={1} onClick={() => this.selectConnector(c.name)}>
-                <Icon type="api" /> Connect
+                <ApiOutlined /> Connect
               </a>,
             ]}
           >
