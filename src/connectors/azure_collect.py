@@ -572,6 +572,27 @@ SUPPLEMENTARY_TABLES = {
         ('kind', 'string'),
         ('identity', 'string'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/instanceview#virtualmachineinstanceview
+    'virtual_machines_instance_view': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('vm_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('boot_diagnostics', 'VARIANT'),
+        ('computer_name', 'STRING'),
+        ('disks', 'VARIANT'),
+        ('extensions', 'VARIANT'),
+        ('hyper_v_generation', 'VARCHAR(10)'),
+        ('maintenance_redeploy_status', 'VARIANT'),
+        ('os_name', 'STRING'),
+        ('os_version', 'STRING'),
+        ('platform_fault_domain', 'NUMBER'),
+        ('platform_update_domain', 'NUMBER'),
+        ('rdp_thumb_print', 'STRING'),
+        ('statuses', 'VARIANT'),
+        ('vm_agent', 'VARIANT'),
+    ],
 }
 
 
@@ -921,6 +942,29 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
             'zones': 'zones',
+        },
+    },
+    'virtual_machines_instance_view': {
+        'request': {'path': '{vmId}/instanceView', 'api-version': '2019-07-01'},
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vmId': 'vm_id',
+            'error': 'error',
+            'bootDiagnostics': 'boot_diagnostics',
+            'computerName': 'computer_name',
+            'disks': 'disks',
+            'extensions': 'extensions',
+            'hyperVGeneration': 'hyper_v_generation',
+            'maintenanceRedeployStatus': 'maintenance_redeploy_status',
+            'osName': 'os_name',
+            'osVersion': 'os_version',
+            'platformFaultDomain': 'platform_fault_domain',
+            'platformUpdateDomain': 'platform_update_domain',
+            'rdpThumbPrint': 'rdp_thumb_print',
+            'statuses': 'statuses',
+            'vmAgent': 'vm_agent',
         },
     },
     'managed_clusters': {
@@ -1543,7 +1587,9 @@ def ingest(table_name, options, dryrun=False):
             load_table('security_contacts', subscriptionId=sid)
             load_table('activity_log_alerts', subscriptionId=sid)
 
-            load_table('virtual_machines', subscriptionId=sid)
+            for vm in load_table('virtual_machines', subscriptionId=sid):
+                if 'id' in vm:
+                    load_table('virtual_machines_instance_view', vmId=vm['id'])
 
             for v in load_table('vaults', subscriptionId=sid):
                 if 'name' in v:
