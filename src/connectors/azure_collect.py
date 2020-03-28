@@ -593,6 +593,20 @@ SUPPLEMENTARY_TABLES = {
         ('statuses', 'VARIANT'),
         ('vm_agent', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/instanceview#virtualmachineinstanceview
+    'virtual_machines_extensions': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('vm_id', 'VARCHAR(1000)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(50)'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
 }
 
 
@@ -965,6 +979,22 @@ API_SPECS = {
             'rdpThumbPrint': 'rdp_thumb_print',
             'statuses': 'statuses',
             'vmAgent': 'vm_agent',
+        },
+    },
+    'virtual_machines_extensions': {
+        'request': {'path': '{vmId}/extensions', 'api-version': '2019-07-01'},
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'vmId': 'vm_id',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
         },
     },
     'managed_clusters': {
@@ -1590,6 +1620,7 @@ def ingest(table_name, options, dryrun=False):
             for vm in load_table('virtual_machines', subscriptionId=sid):
                 if 'id' in vm:
                     load_table('virtual_machines_instance_view', vmId=vm['id'])
+                    load_table('virtual_machines_extensions', vmId=vm['id'])
 
             for v in load_table('vaults', subscriptionId=sid):
                 if 'name' in v:
