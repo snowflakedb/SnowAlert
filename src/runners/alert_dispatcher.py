@@ -48,29 +48,39 @@ def main():
                 if type(handler) is str:
                     handler = {'type': handler}
 
-                handler_type = handler['type']
-
-                handler_kwargs = handler.copy()
-                handler_kwargs.update(
-                    {
-                        'alert': alert,
-                        'correlation_id': alert_row.get('CORRELATION_ID'),
-                        'alert_count': alert_row['COUNTER'],
-                    }
-                )
-
-                try:
-                    handler_module = importlib.import_module(
-                        f'runners.handlers.{handler_type}'
-                    )
+                if 'type' not in handler:
                     result = {
-                        'success': True,
-                        'details': apply_some(handler_module.handle, **handler_kwargs),
+                        'success': False,
+                        'error': 'missing type key',
+                        'details': handler,
                     }
 
-                except Exception as e:
-                    log.error(e, 'handler failed')
-                    result = {'success': False, 'details': e}
+                else:
+                    handler_type = handler['type']
+
+                    handler_kwargs = handler.copy()
+                    handler_kwargs.update(
+                        {
+                            'alert': alert,
+                            'correlation_id': alert_row.get('CORRELATION_ID'),
+                            'alert_count': alert_row['COUNTER'],
+                        }
+                    )
+
+                    try:
+                        handler_module = importlib.import_module(
+                            f'runners.handlers.{handler_type}'
+                        )
+                        result = {
+                            'success': True,
+                            'details': apply_some(
+                                handler_module.handle, **handler_kwargs
+                            ),
+                        }
+
+                    except Exception as e:
+                        log.error(e, 'handler failed')
+                        result = {'success': False, 'details': e}
 
                 results.append(result)
 
