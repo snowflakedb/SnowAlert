@@ -210,13 +210,19 @@ substr(metadata$filename, 71, 2))
 ''',
 }
 
-# This requires External Tables to support REGEXP_REPLACE, which they currently do not.
-# r'''TO_TIMESTAMP_LTZ(REGEXP_REPLACE(
-#  METADATA$FILENAME,
-#  '.*y=(\d*).m=(\d*).d=(\d*).h=(\d*).m=(\d*).*json$',
-#  '\1-\2-\3T\4:\5',
-#  1, 1, 'e'
-# ))'''
+# TODO(afedorov) use REGEXP_REPLACE after SNOW-97698 done
+r'''
+  tenant_id VARCHAR(50) AS REGEXP_REPLACE(
+    METADATA$FILENAME,
+    '^tenantId=([^/]*?)/y=([0-9]+)/m=([0-9]+)/d=([0-9]+)/h=([0-9]+)/m=([0-9]+)/[A-Z0-9]+\\.json$',
+    '\\1'
+  ),
+  timestamp_part TIMESTAMP_NTZ AS TO_TIMESTAMP_NTZ(REGEXP_REPLACE(
+    METADATA$FILENAME,
+    '^tenantId=([^/]*?)/y=([0-9]+)/m=([0-9]+)/d=([0-9]+)/h=([0-9]+)/m=([0-9]+)/[A-Z0-9]+\\.json$',
+    '\\2-\\3-\\4T\\5:\\6:00'
+  ))
+'''
 
 
 def connect(connection_name, options):
