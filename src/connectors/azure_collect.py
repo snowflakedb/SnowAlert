@@ -1512,9 +1512,11 @@ def GET(kind, params, cred):
 
         except json.JSONDecodeError:
             result = {
-                'error_type': 'JSONDecodeError',
-                'status_code': response.status_code,
-                'text': response.text,
+                'error': {
+                    'type': 'JSONDecodeError',
+                    'status_code': response.status_code,
+                    'response_text': response.text,
+                }
             }
 
         # empty lists of values are recorded as empty rows
