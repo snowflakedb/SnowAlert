@@ -63,7 +63,7 @@ MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
 ON (
   alerts.alert:OBJECT = new_alerts.alert:OBJECT
   AND alerts.alert:DESCRIPTION = new_alerts.alert:DESCRIPTION
-  AND alerts.alert:event_time > {{from_time_sql}}
+  AND alerts.alert:EVENT_TIME > {{from_time_sql}}
 )
 
 WHEN MATCHED
