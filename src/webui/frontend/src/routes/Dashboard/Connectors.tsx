@@ -120,7 +120,6 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
           <List
             itemLayout="vertical"
             size="small"
-            grid={{gutter: 0}}
             dataSource={options}
             renderItem={(opt: any) => (
               <List.Item key={opt.name}>
