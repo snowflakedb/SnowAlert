@@ -1087,6 +1087,640 @@ WHERE 1=1
   AND REGEXP_INSTR(network_bypass, '\\bAzureServices\\b') = 0
 ;
 
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Log Profiles exist for every subscription
+  @id 05R5437IZC2F
+  @tags cis, azure, log-profiles'
+AS
+SELECT '05R5437IZC2F' AS query_id
+     , 'Azure CIS 5.1.1: Every Subscription should have a Log Profile' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'CIS 5.1.1 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'log_profile_id', log_profile_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id log_profile_id,
+    identity,
+    kind,
+    location,
+    name,
+    properties,
+    tags,
+    type
+  FROM data.azure_collect_log_profiles
+  WHERE recorded_at > CURRENT_DATE - 1
+)
+WHERE 1=1
+  AND name IS NULL
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_2_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Set Log Profiles retention to 365 days or greater
+  @id 6E90XE64X3K
+  @tags cis, azure, log-profiles'
+AS
+SELECT '6E90XE64X3K' AS query_id
+     , 'Azure CIS 5.1.2: Log Profile retention length' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'CIS 5.1.2 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'log_profile_id', log_profile_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id log_profile_id,
+    identity,
+    kind,
+    location,
+    name,
+    properties,
+    IFNULL(properties:retentionPolicy.days, 0) retention_days,
+    IFNULL(properties:retentionPolicy.enabled, FALSE) retention_enabled,
+    tags,
+    type
+  FROM data.azure_collect_log_profiles
+  WHERE recorded_at > CURRENT_DATE - 1
+    AND retention_enabled = TRUE
+)
+WHERE 1=1
+  AND retention_days < 365
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_3_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Log Profiles should retain all categories
+  @id 2JJNE5ZV9WY
+  @tags cis, azure, log-profiles'
+AS
+SELECT '2JJNE5ZV9WY' AS query_id
+     , 'Azure CIS 5.1.3: Log Profile retention categories' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'CIS 5.1.3 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'log_profile_id', log_profile_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id log_profile_id,
+    identity,
+    kind,
+    location,
+    name,
+    properties,
+    IFNULL(properties:categories, ARRAY_CONSTRUCT()) log_profile_categories,
+    tags,
+    type
+  FROM data.azure_collect_log_profiles
+  WHERE recorded_at > CURRENT_DATE - 1
+    AND name IS NOT NULL  -- disclude the 5.1.1 violations (no log profile)
+)
+WHERE 1=1
+  AND (
+    NOT ARRAY_CONTAINS('Write'::VARIANT, log_profile_categories)
+    OR NOT ARRAY_CONTAINS('Delete'::VARIANT, log_profile_categories)
+    OR NOT ARRAY_CONTAINS('Action'::VARIANT, log_profile_categories)
+  )
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_4_VIOLATION_QUERY COPY GRANTS
+  COMMENT='log profile captures activity logs for all regions including global
+  @id M63QX83WJXL
+  @tags cis, azure, log-profiles'
+AS
+-- TODO: add global location coverage
+SELECT 'M63QX83WJXL' AS query_id
+     , 'Azure CIS 5.1.4: Log Profile retention regions' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'CIS 5.1.4 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'location_name', location_name
+       ) AS identity
+FROM (
+  SELECT
+    locs.tenant_id,
+    locs.subscription_id,
+    locs.location_name location_name,
+    profs.location_name log_profile_location
+  FROM (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      id location_id,
+      name location_name,
+      display_name location_display_name
+    FROM data.azure_collect_subscriptions_locations
+    WHERE recorded_at > CURRENT_DATE - 1
+  ) locs
+  LEFT OUTER JOIN (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      id log_profile_id,
+      identity,
+      kind,
+      value::STRING location_name,
+      name log_profile_name,
+      properties,
+      tags,
+      type
+    FROM data.azure_collect_log_profiles p,
+    LATERAL FLATTEN (input => properties:locations)
+    WHERE recorded_at > CURRENT_DATE - 1
+  ) profs
+  ON (
+    locs.tenant_id = profs.tenant_id
+    AND locs.subscription_id = profs.subscription_id
+    AND locs.location_name = profs.location_name
+  )
+)
+WHERE 1=1
+  AND log_profile_location IS NULL
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_5_VIOLATION_QUERY COPY GRANTS
+  COMMENT='storage container storing the activity logs should not be publicly accessible
+  @id WE59BTELH49
+  @tags cis, azure, log-profiles'
+AS
+SELECT 'WE59BTELH49' AS query_id
+     , 'Azure CIS 5.1.5: storage container storing the activity logs should not be publicly accessible' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'account', tenant_id
+       ) AS environment
+     , (
+         'Container  "' || sa_container_name || '"' ||
+         'in Storage Account `' || storage_account_name || '`, ' ||
+         'in Subscription `' || subscription_id || '`, ' ||
+         'in Tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'AZ Subscription violating CIS 5.1.5: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS identity
+FROM (
+  SELECT *
+  FROM (
+    SELECT
+      properties:storageAccountId::STRING storage_account_id,
+      SPLIT(storage_account_id, '/')[8]::STRING storage_account_name,
+      'insight-operational-logs' sa_container_name
+    FROM data.azure_collect_log_profiles
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND storage_account_id IS NOT NULL
+  ) log_profile
+  INNER JOIN (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      account_name storage_account_name,
+      name sa_container_name,
+      properties:PublicAccess public_access,
+      properties
+    FROM data.azure_collect_storage_accounts_containers
+    WHERE recorded_at > CURRENT_DATE - 7
+  ) storage_container
+  USING (
+    storage_account_name,
+    sa_container_name
+  )
+)
+WHERE 1=1
+  AND public_access IS NOT NULL
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_6_VIOLATION_QUERY COPY GRANTS
+  COMMENT='storage account containing the container with activity logs should be encrypted with BYOK
+  @id QC0ASF70MI8
+  @tags cis, azure, log-profiles'
+AS
+SELECT 'QC0ASF70MI8' AS query_id
+     , 'Azure CIS 5.1.6: storage container storing the activity logs should be encrypted with BYOK' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'account', tenant_id
+       ) AS environment
+     , (
+         'Storage Account `' || storage_account_name || '`, ' ||
+         'in Subscription `' || subscription_id || '`, ' ||
+         'in Tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'AZ Subscription violating CIS 5.1.6: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS identity
+FROM (
+  SELECT *
+  FROM (
+    SELECT
+      properties:storageAccountId::STRING storage_account_id,
+      SPLIT(storage_account_id, '/')[8]::STRING storage_account_name
+    FROM data.azure_collect_log_profiles
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND storage_account_id IS NOT NULL
+  ) log_profile
+  INNER JOIN (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      name storage_account_name,
+      properties:encryption.keySource::STRING key_source,
+      properties:encryption.keyVaultProperties::STRING key_vault_properties,
+      properties
+    FROM data.azure_collect_storage_accounts
+    WHERE recorded_at > CURRENT_DATE - 7
+  ) storage_account
+  USING (
+    storage_account_name
+  )
+)
+WHERE 1=1
+  AND NOT (
+    key_source = 'Microsoft.Keyvault'
+    AND key_vault_properties IS NOT NULL
+    -- todo: make example and test this
+  )
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_5_1_7_VIOLATION_QUERY COPY GRANTS
+  COMMENT='logging for Azure KeyVault is Enabled
+  @id 1OMJCL2ANXN
+  @tags cis, azure, log-profiles'
+AS
+SELECT '1OMJCL2ANXN' AS query_id
+     , 'Azure CIS 5.1.7: logging for Azure KeyVault is "Enabled"' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'account', tenant_id
+       ) AS environment
+     , (
+         'Vault `' || vault_id || '`, ' ||
+         'in Subscription `' || subscription_id || '`, ' ||
+         'in Tenant `' || tenant_id || '`.'
+       ) AS object
+     , 'AZ Subscription violating CIS 5.1.7: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS identity
+FROM (
+  SELECT
+    properties:logs logs,
+    logs[0]:category::STRING log_category,
+    logs[0]:enabled::BOOLEAN log_enabled,
+    logs[0]:retentionPolicy.days::NUMBER log_retention_days,
+    logs[0]:retentionPolicy.enabled::BOOLEAN log_retention_enabled,
+    *
+  FROM (
+    SELECT
+      tenant_id,
+      subscription_id,
+      id vault_id,
+      name
+    FROM data.azure_collect_vaults
+    WHERE recorded_at > CURRENT_DATE - 3
+      AND name IS NOT NULL
+  ) vaults
+  LEFT JOIN (
+    SELECT DISTINCT
+      resource_uri vault_id,
+      properties
+    FROM data.azure_collect_diagnostic_settings
+    WHERE recorded_at > CURRENT_DATE - 7
+  ) storage_account
+  USING (
+    vault_id
+  )
+)
+WHERE 1=1
+  AND (
+    logs IS NULL
+    OR log_category <> 'AuditEvent'
+    OR log_enabled != TRUE
+    OR (
+      -- TODO: check with support if logic is same as 5.1.2
+      log_retention_enabled = TRUE
+      AND log_retention_days = 0
+    )
+  )
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_6_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='RDP access is restricted from the internet
+  @id U2MV5Z68P3C
+  @tags cis, azure, networking'
+AS
+SELECT 'U2MV5Z68P3C' AS query_id
+     , 'Azure CIS 6.1: RDP access is restricted from the internet' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'NSG with the name "' || nsg_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 6.1 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'nsg_id', subscription_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    subscription_id,
+    id nsg_id,
+    etag nsg_etag,
+    name nsg_name,
+    location nsg_location,
+    properties nsg_properties,
+    value security_rule,
+    value:properties.access::STRING access,
+    value:properties.destinationPortRange::STRING destination_port_range,
+    value:properties.direction::STRING direction,
+    value:properties.protocol::STRING protocol,
+    value:properties.sourceAddressPrefix::STRING source_address_prefix
+  FROM data.azure_collect_network_security_groups
+  , LATERAL FLATTEN (input => properties:securityRules)
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND access = 'Allow'
+  AND direction = 'Inbound'
+  AND protocol = 'TCP'
+  AND (
+    destination_port_range = '3389'
+    OR (
+      IFF(
+        CONTAINS(destination_port_range, '-'),
+        TO_NUMBER(SPLIT(destination_port_range, '-')[0]) <= 3389
+        AND TO_NUMBER(SPLIT(destination_port_range, '-')[1]) >= 3389,
+        FALSE
+      )
+    )
+  )
+  -- TODO: handle multiple port ranges like '22,101,103,200-210'
+  AND source_address_prefix IN (
+    '*',
+    '0.0.0.0',
+    '<nw>/0',
+    '/0',
+    'internet',
+    'any'
+  )
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_6_2_VIOLATION_QUERY COPY GRANTS
+  COMMENT='SSH access is restricted from the internet
+  @id OJWU2K5B4WO
+  @tags cis, azure, networking'
+AS
+SELECT 'OJWU2K5B4WO' AS query_id
+     , 'Azure CIS 6.2: SSH access is restricted from the internet' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'NSG with the name "' || nsg_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 6.2 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'nsg_id', nsg_id
+       ) AS identity
+FROM (
+  SELECT
+    tenant_id,
+    subscription_id,
+    id nsg_id,
+    etag nsg_etag,
+    name nsg_name,
+    location nsg_location,
+    properties nsg_properties,
+    value security_rule,
+    value:properties.access::STRING access,
+    value:properties.destinationPortRange::STRING destination_port_range,
+    value:properties.direction::STRING direction,
+    value:properties.protocol::STRING protocol,
+    value:properties.sourceAddressPrefix::STRING source_address_prefix
+  FROM data.azure_collect_network_security_groups
+  , LATERAL FLATTEN (input => properties:securityRules)
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND access = 'Allow'
+  AND direction = 'Inbound'
+  AND protocol = 'TCP'
+  AND (
+    destination_port_range = '22'
+    OR (
+      IFF(
+        CONTAINS(destination_port_range, '-'),
+        TO_NUMBER(SPLIT(destination_port_range, '-')[0]) <= 22
+        AND TO_NUMBER(SPLIT(destination_port_range, '-')[1]) >= 22,
+        FALSE
+      )
+    )
+  )
+  -- TODO: handle multiple port ranges like '22,101,103,200-210'
+  AND source_address_prefix IN (
+    '*',
+    '0.0.0.0',
+    '<nw>/0',
+    '/0',
+    'internet',
+    'any'
+  )
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_6_5_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Network Watcher enabled for each Subscription Location
+  @id P5N44TUVJ9N
+  @tags cis, azure, networking'
+AS
+SELECT 'P5N44TUVJ9N' AS query_id
+     , 'Azure CIS 6.5: Network Watcher enabled for each Subscription Location' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'Location "' || location_name || '", ' ||
+         'in subscription `' || subscription_id || '`, ' ||
+         'in tenant `' || tenant_id || '`'
+       ) AS object
+     , 'AZ CIS 6.5 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'location_name', location_name
+       ) AS identity
+FROM (
+  SELECT
+    tenant_id,
+    subscription_id,
+    location_name,
+    location_id,
+    location_display_name
+  FROM (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      id location_id,
+      name location_name,
+      display_name location_display_name
+    FROM data.azure_collect_subscriptions_locations
+    WHERE recorded_at > CURRENT_DATE - 1
+  ) subs
+  LEFT OUTER JOIN (
+    SELECT DISTINCT
+      tenant_id,
+      subscription_id,
+      id nw_id,
+      etag nw_etag,
+      name nw_name,
+      location location_name,
+      properties nw_properties
+    FROM data.azure_collect_network_watchers
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND properties:provisioningState = 'Succeeded'
+  ) nws
+  USING (
+    tenant_id,
+    subscription_id,
+    location_name
+  )
+  WHERE nw_id IS NULL
+)
+WHERE 1=1
+;
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_7_1_VIOLATION_QUERY COPY GRANTS
   COMMENT='OS Disk must be encrypted
   @id F7HQ2BVPBQG
