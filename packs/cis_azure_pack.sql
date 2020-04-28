@@ -1086,3 +1086,127 @@ FROM (
 WHERE 1=1
   AND REGEXP_INSTR(network_bypass, '\\bAzureServices\\b') = 0
 ;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_7_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='OS Disk must be encrypted
+  @id F7HQ2BVPBQG
+  @tags cis, azure, virtual-machines'
+AS
+SELECT 'F7HQ2BVPBQG' AS query_id
+     , 'Azure CIS 7.1: OS Disk must be encrypted' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'VM ' || vm_id
+       ) AS object
+     , 'AZ CIS 7.1 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'vm_id', vm_id
+       ) AS identity
+FROM (
+  SELECT
+    subscription_id,
+    tenant_id,
+    vm_id,
+    os_disk_id,
+    encryption
+  FROM (
+    SELECT DISTINCT
+      subscription_id,
+      tenant_id,
+      id vm_id,
+      properties vm_properties,
+      properties:storageProfile.osDisk.managedDisk.id::STRING os_disk_id
+    FROM data.azure_collect_virtual_machines
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND id IS NOT NULL
+  ) vm
+  LEFT OUTER JOIN (
+    SELECT DISTINCT
+      id disk_id,
+      properties:encryption encryption
+    FROM data.azure_collect_disks
+    WHERE recorded_at > CURRENT_DATE - 1
+  ) disk
+  ON (os_disk_id = disk_id)
+  -- TODO(afedorov): data is missing some disks, and
+  -- so the following removes those visibility errors
+  -- from triggering this violation. once we find out
+  -- why, we can remove this WHERE condition.
+  WHERE disk_id IS NOT NULL
+)
+WHERE 1=1
+  AND encryption:type != 'EncryptionAtRestWithPlatformKey'
+;
+
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_7_2_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Data Disks must be encrypted
+  @id JF1IPB3TZ
+  @tags cis, azure, virtual-machines'
+AS
+SELECT 'JF1IPB3TZ' AS query_id
+     , 'Azure CIS 7.2: Data Disks must be encrypted' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'VM ' || vm_id
+       ) AS object
+     , 'AZ CIS 7.2 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'vm_id', vm_id
+       ) AS identity
+FROM (
+  SELECT
+    subscription_id,
+    tenant_id,
+    vm_id,
+    data_disk_id,
+    encryption
+  FROM (
+    SELECT DISTINCT
+      subscription_id,
+      tenant_id,
+      id vm_id,
+      properties vm_properties,
+      value:managedDisk.id::STRING data_disk_id
+    FROM data.azure_collect_virtual_machines,
+         LATERAL FLATTEN(input => properties:storageProfile.dataDisks)
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND id IS NOT NULL
+  ) vm
+  LEFT OUTER JOIN (
+    SELECT DISTINCT
+      id disk_id,
+      properties:encryption encryption
+    FROM data.azure_collect_disks
+    WHERE recorded_at > CURRENT_DATE - 1
+  ) disk
+  ON (data_disk_id = disk_id)
+  -- TODO(afedorov): data is missing some disks, and
+  -- so the following removes those visibility errors
+  -- from triggering this violation. once we find out
+  -- why, we can remove this WHERE condition.
+  WHERE disk_id IS NOT NULL
+)
+WHERE 1=1
+  AND encryption:type != 'EncryptionAtRestWithPlatformKey'
+;
