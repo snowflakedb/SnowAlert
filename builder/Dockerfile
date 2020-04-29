@@ -1,4 +1,4 @@
-FROM python:3.7-slim-buster
+FROM python:3.7-slim-stretch
 
 # https://github.com/geerlingguy/ansible-role-java/issues/64#issuecomment-393299088
 RUN mkdir -p /usr/share/man/man1 \
