@@ -35,8 +35,8 @@ jobs:
           name: run static analysis
           command: |
             cd src
-            ./scripts/run-whitesource
             source .venv/bin/activate
+            ./scripts/run-whitesource
             pyflakes ./scripts ./runners ./webui/backend/webui
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
