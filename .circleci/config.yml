@@ -23,7 +23,7 @@ jobs:
             python -m venv .venv
             source .venv/bin/activate
             pip install --upgrade pip
-            pip uninstall typing
+            pip uninstall -y typing
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
 
       - save_cache:
