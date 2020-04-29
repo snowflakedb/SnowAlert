@@ -35,12 +35,12 @@ jobs:
           name: run static analysis
           command: |
             cd src
+            ./scripts/run-whitesource
             source .venv/bin/activate
             pyflakes ./scripts ./runners ./webui/backend/webui
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
             pytest -vv
-            ./scripts/run-whitesource
 
       # - run:
       #     name: do the build
