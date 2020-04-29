@@ -21,9 +21,9 @@ jobs:
           command: |
             cd src
             python -m venv .venv
-            pip uninstall typing
             source .venv/bin/activate
             pip install --upgrade pip
+            pip uninstall typing
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
 
       - save_cache:
