@@ -23,7 +23,9 @@ jobs:
             python -m venv .venv
             source .venv/bin/activate
             pip install --upgrade pip
+            pip uninstall -y typing
             pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
+            pip uninstall -y typing
 
       - save_cache:
           paths:
@@ -35,11 +37,10 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            pyflakes ./scripts ./runners ./webui/backend/webui
+            ./scripts/run-whitesource
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
             pytest -vv
-            ./scripts/run-whitesource
 
       # - run:
       #     name: do the build
