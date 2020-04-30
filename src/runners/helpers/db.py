@@ -194,9 +194,9 @@ def connect_and_execute(queries=None):
     return connection
 
 
-def connect_and_fetchall(query):
+def connect_and_fetchall(query, params=None):
     ctx = connect()
-    return ctx, execute(query).fetchall()
+    return ctx, execute(query, params=params).fetchall()
 
 
 def fetch_latest(table, col='event_time', where=''):
