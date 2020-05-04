@@ -483,7 +483,7 @@ SUPPLEMENTARY_TABLES = {
         ('numeric_severity', 'DOUBLE'),
         ('confidence', 'INTEGER'),
         ('indicator_of_compromise', 'BOOLEAN'),
-        ('attributes', 'VARAINT'),
+        ('attributes', 'VARIANT'),
         ('user_attributes', 'VARIANT'),
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
