@@ -2,7 +2,6 @@
 
 import datetime
 import os
-import pytz
 from multiprocessing import Pool
 from typing import Any, Dict
 
