@@ -28,7 +28,7 @@ from runners.helpers import db, log
 # - SA_ALERT_CUTOFF_MINUTES=x: use the last x minutes.
 # - SA_ALERT_FROM_TIME=x: use the window from x to now.
 # - SA_ALERT_TO_TIME=x: use the 90 minutes before / up to x.
-# - SA_ALERT_TO_TIME=x, SA_ALERT_CUTOFF_MINUTES=y: use the y minutes before / up to x.
+# - SA_ALERT_CUTOFF_MINUTES=x, SA_ALERT_TO_TIME=y: use the x minutes before / up to y.
 # - SA_ALERT_FROM_TIME=x, SA_ALERT_TO_TIME=y: use the window x to y.
 
 # We'll also do some simple checks to prevent against SQL injections, since these values will be inserted as-is into
