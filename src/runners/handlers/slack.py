@@ -38,7 +38,7 @@ def message_template(vars):
             payload = json.loads(''.join(row[0]))
         else:
             log.error(f"Error loading javascript template {vars['template']}")
-            raise Exception("Error loading javascript template " + {vars['template']})
+            raise Exception(f"Error loading javascript template {vars['template']}")
     except Exception as e:
         log.error(f"Error loading javascript template", e)
         raise
