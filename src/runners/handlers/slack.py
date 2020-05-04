@@ -105,10 +105,7 @@ def handle(
         properties = {'channel': channel, 'message': message}
 
         # create Slack message structure in Snowflake javascript UDF
-        try:
-            payload = message_template(locals())
-        except Exception:
-            return None
+        payload = message_template(locals())
 
         if payload is not None:
             if 'blocks' in payload:
