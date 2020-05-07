@@ -408,7 +408,7 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
     ]
 
     if dryrun:
-        print('db.insert', table, columns, values)
+        print('db.insert', table, columns, utils.json_dumps(values))
         return {'number of rows inserted': len(values)}
 
     return next(fetch(sql, params=params_with_json, fix_errors=False))

@@ -18,6 +18,7 @@ import io
 from typing import Tuple, AsyncGenerator, Dict
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.utils import format_exception_only, format_exception
 
 from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
 from runners.helpers import db, log
@@ -78,6 +79,7 @@ PARSERS = {
 
 LANDING_TABLE_COLUMNS = [
     ('recorded_at', 'TIMESTAMP_LTZ'),
+    ('error', 'VARIANT'),
     ('id', 'STRING'),
     ('arn', 'STRING'),
     ('email', 'STRING'),
@@ -91,6 +93,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/generate-credential-report.html#output
     'iam_generate_credential_report': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('state', 'STRING'),
         ('description', 'STRING'),
@@ -98,12 +101,14 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-account-aliases.html#output
     'iam_list_account_aliases': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('account_alias', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-summary.html#output
     'iam_get_account_summary': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('users_quota', 'NUMBER'),
         ('groups_per_user_quota', 'NUMBER'),
@@ -142,6 +147,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-password-policy.html#output
     'iam_get_account_password_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('minimum_password_length', 'NUMBER'),
         ('require_symbols', 'BOOLEAN'),
@@ -157,6 +163,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-instances.html#output
     'ec2_describe_instances': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('groups', 'VARIANT'),
@@ -168,6 +175,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html#output
     'ec2_describe_security_groups': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('description', 'STRING'),
@@ -182,6 +190,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
     'config_describe_configuration_recorders': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('name', 'STRING'),
@@ -191,6 +200,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-credential-report.html#output
     'iam_get_credential_report': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('generated_time', 'TIMESTAMP_LTZ'),
         ('report_format', 'STRING'),
@@ -200,6 +210,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/kms/list-keys.html#output
     'kms_list_keys': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('key_id', 'STRING'),
@@ -208,6 +219,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/kms/get-key-rotation-status.html#output
     'kms_get_key_rotation_status': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('key_arn', 'STRING'),
@@ -216,6 +228,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-users.html#output
     'iam_list_users': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('path', 'STRING'),
         ('user_name', 'STRING'),
@@ -229,6 +242,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-login-profile.html#output
     'iam_get_login_profile': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('create_date', 'TIMESTAMP_LTZ'),
@@ -237,6 +251,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-mfa-devices.html#output
     'iam_list_mfa_devices': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('serial_number', 'STRING'),
@@ -245,6 +260,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-access-keys.html#output
     'iam_list_access_keys': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('access_key_id', 'STRING'),
@@ -254,6 +270,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-groups-for-user.html#output
     'iam_list_groups_for_user': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('path', 'STRING'),
@@ -265,6 +282,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-user-policies.html#output
     'iam_list_user_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('policy_name', 'STRING'),
@@ -272,6 +290,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
     'iam_list_attached_user_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('user_name', 'STRING'),
         ('policy_name', 'STRING'),
@@ -280,6 +299,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
     'iam_list_roles': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('path', 'STRING'),
         ('role_name', 'STRING'),
@@ -297,6 +317,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-role-policies.html#output
     'iam_list_role_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('role_name', 'STRING'),
         ('policy_name', 'STRING'),
@@ -304,6 +325,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-role-policy.html#output
     'iam_get_role_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('role_name', 'STRING'),
         ('policy_name', 'STRING'),
@@ -312,6 +334,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
     'iam_list_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('policy_name', 'STRING'),
         ('policy_id', 'STRING'),
@@ -328,6 +351,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-policy-version.html#output
     'iam_get_policy_version': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('policy_arn', 'STRING'),
         ('document', 'STRING'),
@@ -338,6 +362,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-entities-for-policy.html#output
     'iam_list_entities_for_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('policy_arn', 'STRING'),
         ('group_id', 'STRING'),
@@ -350,6 +375,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-virtual-mfa-devices.html#output
     'iam_list_virtual_mfa_devices': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('serial_number', 'STRING'),
         ('base32_string_seed', 'STRING'),
@@ -360,6 +386,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/list-buckets.html#output
     's3_list_buckets': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('bucket_name', 'STRING'),
@@ -370,6 +397,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-acl.html#output
     's3_get_bucket_acl': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('bucket', 'STRING'),
@@ -381,6 +409,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-policy.html#output
     's3_get_bucket_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('bucket', 'STRING'),
@@ -390,6 +419,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-logging.html#output
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('bucket', 'STRING'),
@@ -400,6 +430,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('name', 'STRING'),
@@ -422,6 +453,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-trail-status.html#output
     'cloudtrail_get_trail_status': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('trail_arn', 'STRING'),
@@ -446,6 +478,7 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/get-event-selectors.html#output
     'cloudtrail_get_event_selectors': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('trail_arn', 'STRING'),
@@ -457,16 +490,17 @@ SUPPLEMENTARY_TABLES = {
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/list-findings.html
     'inspector_list_findings': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('finding_arns', 'VARIANT'),
     ],
-
     # https://docs.aws.amazon.com/cli/latest/reference/inspector/describe-findings.html
     'inspector_describe_findings': [
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
         ('finding_arns', 'STRING'),
         ('failed_items', 'VARIANT'),
         ('arn', 'STRING'),
@@ -938,7 +972,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
             {
                 'method': 'inspector.describe_findings',
                 'args': {'findingArns': 'finding_arns'},
-                'required_args': ['finding_arns']
+                'required_args': ['finding_arns'],
             }
         ],
     },
@@ -1069,14 +1103,20 @@ def process_aws_response(task, page):
 
     base_entity.update({v: task.args[k] for k, v in params.items()})
 
-    if isinstance(page, (Exception, type(None))):
+    if isinstance(page, Exception):
         base_entity['recorded_at'] = datetime.now()
-        yield DBEntry(base_entity)
-        return
+        base_entity['error'] = {
+            'message': format_exception_only(page),
+            'exceptionName': page.__class__.__name__,
+            'exceptionArgs': page.args,
+            'exceptionTraceback': format_exception(page),
+        }
 
-    metadata = page['ResponseMetadata']
-    base_entity['recorded_at'] = parse_date(metadata['HTTPHeaders']['date'])
-    if metadata['HTTPStatusCode'] != 200:
+        metadata = getattr(page, 'response', {}).get('ResponseMetadata')
+        if metadata:
+            base_entity['recorded_at'] = parse_date(metadata['HTTPHeaders']['date'])
+            base_entity['error']['responseMetadata'] = metadata
+
         yield DBEntry(base_entity)
         return
 
@@ -1117,7 +1157,7 @@ async def load_task_response(client, task):
 
     except (ClientError, DataNotFoundError) as e:
         log.error(e, 'failed loading task response')
-        for x in process_aws_response(task, e.response):
+        for x in process_aws_response(task, e):
             yield x
 
 
