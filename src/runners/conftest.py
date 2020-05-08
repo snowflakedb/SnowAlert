@@ -22,6 +22,24 @@ def db_schemas(request):
     yield
 
 
+@pytest.fixture(scope="session")
+def db_schemas_no_samples(request):
+    @request.addfinalizer
+    def fin():
+        install.main(uninstall=True)
+
+    install.main(samples=False, pk_passphrase='', jira=False, set_env_vars=True)
+
+    # reload to pick up env vars set by installer
+    import importlib
+
+    importlib.reload(dbconfig)
+    importlib.reload(db)
+    importlib.reload(install)
+
+    yield
+
+
 @pytest.fixture
 def delete_results():
     yield
