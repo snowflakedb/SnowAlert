@@ -20,7 +20,7 @@ GET_CORRELATED_ALERT = f"""
 SELECT *
 FROM results.alerts
 WHERE alert:ACTOR = %s
-  AND (alert:OBJECT::string = %s OR alert:ACTION = %s)
+  AND (alert:OBJECT::STRING = %s OR alert:ACTION::STRING = %s)
   AND correlation_id IS NOT NULL
   AND NOT IS_NULL_VALUE(alert:ACTOR)
   AND suppressed = FALSE
@@ -49,6 +49,10 @@ def get_correlation_id(ctx, alert):
         if type(object) is list:
             o = '","'.join(object)
             object = f'["{o}"]'
+
+        if type(action) is list:
+            o = '","'.join(action)
+            action = f'["{o}"]'
 
     except Exception as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
