@@ -20,7 +20,19 @@ TEST_DATA_REQUEST_RESPONSE = [
         CollectTask('1', 'iam.list_account_aliases', {}),
         BotoCoreError(),
         [
-            DBEntry({'recorded_at': AnyDate(), 'account_id': '1'})
+            DBEntry(
+                {
+                    'recorded_at': AnyDate(),
+                    'account_id': '1',
+                    'error': {
+                        'message': 'botocore.exceptions.BotoCoreError: An unspecified error occurred',
+                        'exceptionName': 'BotoCoreError',
+                        'exceptionArgs': ('An unspecified error occurred',),
+                        'exceptionTraceback': 'botocore.exceptions.BotoCoreError: An unspecified error occurred\n',
+                        'responseMetadata': {},
+                    },
+                }
+            )
         ],  # BotoErrors should record time
         [],
     ),
@@ -176,7 +188,16 @@ TEST_DATA_REQUEST_RESPONSE = [
                 'HTTPHeaders': {'date': '2020-01-01T00:00:00'},
             },
         },
-        [DBEntry({'recorded_at': AnyDate(), 'account_id': '1', 'key_arn': 'arn1', 'key_rotation_enabled': True})],
+        [
+            DBEntry(
+                {
+                    'recorded_at': AnyDate(),
+                    'account_id': '1',
+                    'key_arn': 'arn1',
+                    'key_rotation_enabled': True,
+                }
+            )
+        ],
         [],
     ),
 ]

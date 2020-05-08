@@ -1103,8 +1103,14 @@ def process_aws_response(task, page):
 
     base_entity.update({v: task.args[k] for k, v in params.items()})
 
+    metadata = getattr(page, 'response', {}).get('ResponseMetadata', {})
+    base_entity['recorded_at'] = (
+        parse_date(metadata['HTTPHeaders']['date'])
+        if 'HTTPHeaders' in metadata
+        else datetime.now()
+    )
+
     if isinstance(page, Exception):
-        base_entity['recorded_at'] = datetime.now()
         base_entity['error'] = {
             'message': format_exception_only(page),
             'exceptionName': page.__class__.__name__,
@@ -1112,10 +1118,7 @@ def process_aws_response(task, page):
             'exceptionTraceback': format_exception(page),
         }
 
-        metadata = getattr(page, 'response', {}).get('ResponseMetadata')
-        if metadata:
-            base_entity['recorded_at'] = parse_date(metadata['HTTPHeaders']['date'])
-            base_entity['error']['responseMetadata'] = metadata
+        base_entity['error']['responseMetadata'] = metadata
 
         yield DBEntry(base_entity)
         return
@@ -1206,6 +1209,12 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 recorded_at=parse_date(
                     e.response['ResponseMetadata']['HTTPHeaders']['date']
                 ),
+                error={
+                    'message': format_exception_only(e),
+                    'exceptionName': e.__class__.__name__,
+                    'exceptionArgs': e.args,
+                    'exceptionTraceback': format_exception(e),
+                },
             ),
         )
 
