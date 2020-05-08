@@ -55,7 +55,7 @@ WHERE 1=1
 
 
 @pytest.fixture
-def sample_alert_rules(db_schemas_no_samples):
+def sample_alert_rules(db_schemas):
     db.execute(FIRST_ALERT_QUERY)
     db.execute(SECOND_ALERT_QUERY)
     yield
