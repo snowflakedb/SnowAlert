@@ -1,5 +1,5 @@
 CREATE OR REPLACE VIEW rules.VQ_QBYAC8Z2RBF_VIOLATION_QUERY COPY GRANTS
-  COMMENT='AWS CIS 1.3: Ensure credentials unused for 90 days or greater are disabled
+  COMMENT='AWS CIS 1.1: Avoid the use of the "root" account
   queries 30d of CloudTrail records for non-support root account use
   @id QBYAC8Z2RBF
   @tags cis, aws, activity, user'
@@ -535,7 +535,7 @@ WHERE 1=1
 
 
 CREATE OR REPLACE VIEW rules.VQ_NLDRNE9GIQB_VIOLATION_QUERY COPY GRANTS
-  COMMENT='AWS CIS 1.13: Ensure  MFA is enabled for the "root" account
+  COMMENT='AWS CIS 1.13: Ensure MFA is enabled for the "root" account
   @id NLDRNE9GIQB
   @tags cis, aws, configuration, account'
 AS
