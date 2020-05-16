@@ -43,12 +43,20 @@ def run_suppression_query(squelch_name):
     try:
         query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
         return next(db.fetch(query, fix_errors=False))['number of rows updated']
-    except Exception:
-        log.info(
-            f"{squelch_name} warning: query broken, might need 'id' column, trying 'alert:ALERT_ID'."
-        )
+
+    except Exception as e:
+        log.info(e, f"{squelch_name} query broken, attempting fallback")
         query = OLD_SUPPRESSION_QUERY.format(suppression_name=squelch_name)
-        return next(db.fetch(query))['number of rows updated']
+        try:
+            result = next(db.fetch(query))
+        except StopIteration:
+            result = []
+
+        if not result:
+            # if neither query worked, re-raise original error
+            raise
+
+        return result[0]['number of rows updated']
 
 
 def run_suppressions(squelch_name):
