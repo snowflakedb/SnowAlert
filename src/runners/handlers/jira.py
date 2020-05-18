@@ -1,9 +1,10 @@
+from json import dumps
 from os import environ
 from urllib.parse import quote
 import yaml
 import os
 
-from jira import JIRA
+from jira import JIRA, User
 
 from runners.helpers import log, vault, db
 
@@ -99,7 +100,9 @@ def link_search_todos(description=None, project=PROJECT):
     return f'{URL}/issues/?jql={quote(q)}'
 
 
-def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT, issue_type=ISSUE_TYPE):
+def create_jira_ticket(
+    alert, assignee=None, custom_field=None, project=PROJECT, issue_type=ISSUE_TYPE
+):
     if not user:
         return
 
@@ -135,7 +138,20 @@ def create_jira_ticket(alert, assignee=None, custom_field=None, project=PROJECT,
     new_issue = jira.create_issue(**issue_params)
 
     if assignee:
-        jira.assign_issue(new_issue, assignee)
+        # no longer works because of gdpr mode:
+        # jira.assign_issue(new_issue, assignee)
+
+        # temp work-around until Jira Python library supports gdpr mode better
+        u = next(
+            jira._fetch_pages(User, None, 'user/search', 0, 1, {'query': assignee})
+        )
+        jira._session.put(
+            jira._options['server']
+            + '/rest/api/latest/issue/'
+            + str(new_issue)
+            + '/assignee',
+            data=dumps({'accountId': u.accountId}),
+        )
 
     return new_issue
 
@@ -174,7 +190,14 @@ def bail_out(alert_id):
         log.error(e, f"Failed to update alert {alert_id} with handler status")
 
 
-def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=None, issue_type=ISSUE_TYPE):
+def handle(
+    alert,
+    correlation_id,
+    project=PROJECT,
+    assignee=None,
+    custom_field=None,
+    issue_type=ISSUE_TYPE,
+):
     if project == '':
         return "No Jira Project defined"
     if URL == '':
@@ -211,7 +234,9 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
                 try:
-                    ticket_id = create_jira_ticket(alert, project=project, issue_type=issue_type)
+                    ticket_id = create_jira_ticket(
+                        alert, project=project, issue_type=issue_type
+                    )
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     raise
@@ -219,7 +244,9 @@ def handle(alert, correlation_id, project=PROJECT, assignee=None, custom_field=N
         # There is no correlation with a ticket that exists
         # Create a new ticket in JIRA for the alert
         try:
-            ticket_id = create_jira_ticket(alert, assignee, custom_field, project=project, issue_type=issue_type)
+            ticket_id = create_jira_ticket(
+                alert, assignee, custom_field, project=project, issue_type=issue_type
+            )
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
             raise
