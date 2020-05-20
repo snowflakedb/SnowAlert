@@ -16,53 +16,21 @@ from runners.config import (
 from runners.helpers import db, log
 
 
-# There are three time window properties that will be combined in different ways depending on which are present.
-# - SA_ALERT_FROM_TIME: a timestamp specifying the start of the window. If omitted, use SA_ALERT_CUTOFF_MINUTES relative
-# to SA_ALERT_TO_TIME.
-# - SA_ALERT_TO_TIME: a timestamp specifying the end of the window. If omitted, use the current timestamp.
-# - SA_ALERT_CUTOFF_MINUTES: the length of the window relative to SA_ALERT_TO_TIME; only used if SA_ALERT_FROM_TIME is
-# not present. Defaults to 90.
-#
-# So, the possible combinations to specify a window are:
-# - All options omitted: use the last 90 minutes.
-# - SA_ALERT_CUTOFF_MINUTES=x: use the last x minutes.
-# - SA_ALERT_FROM_TIME=x: use the window from x to now.
-# - SA_ALERT_TO_TIME=x: use the 90 minutes before / up to x.
-# - SA_ALERT_CUTOFF_MINUTES=x, SA_ALERT_TO_TIME=y: use the x minutes before / up to y.
-# - SA_ALERT_FROM_TIME=x, SA_ALERT_TO_TIME=y: use the window x to y.
+# Three envars, two ways to set window properties:
+# 1. by start & end: (SA_ALERT_FROM_TIME, SA_ALERT_TO_TIME)
+# 2. by end & duration: (SA_ALERT_TO_TIME, SA_ALERT_CUTOFF_MINUTES)
 
-# We'll also do some simple checks to prevent against SQL injections, since these values will be inserted as-is into
-# the query.
-
-# TODO this should probably be moved to a method, but there may be other logic that depends on these global variables
-# or the fact that this would only be executed once on import in its current location (as opposed to calling an
-# initialization method from the main method which could end up getting repeated, for example).
+# SA_ALERT_TO_TIME default is current time
+# SA_ALERT_CUTOFF_MINUTES default is 90
 
 ALERT_CUTOFF_MINUTES = int(os.environ.get('SA_ALERT_CUTOFF_MINUTES', -90))
 if ALERT_CUTOFF_MINUTES > 0:
     ALERT_CUTOFF_MINUTES = -ALERT_CUTOFF_MINUTES
 
-timestamp_format = '%Y-%m-%d %H:%M:%S.%f'
-
-# Get a single, consistent timestamp to use for the "to" time that will be the same for every alert query.
-# This will return a timestamp_tz that will be compatible with any timestamp_ntz queries that also run,
-# as it will be in the DB's default TZ.
-current_timestamp_from_db = db.execute('select current_timestamp::string').fetchall()[0][0]
-
-ALERTS_TO_TIME = os.environ.get('SA_ALERT_TO_TIME')
-if ALERTS_TO_TIME:
-    datetime.datetime.strptime(ALERTS_TO_TIME, timestamp_format)  # this just ensures the date string is valid
-    ALERTS_TO_TIME = f"'{ALERTS_TO_TIME}'"
-else:
-    ALERTS_TO_TIME = f"'{current_timestamp_from_db}'"
-
-ALERTS_FROM_TIME = os.environ.get('SA_ALERT_FROM_TIME')
-if ALERTS_FROM_TIME:
-    datetime.datetime.strptime(ALERTS_FROM_TIME, timestamp_format)
-    ALERTS_FROM_TIME = f"'{ALERTS_FROM_TIME}'"
-else:
-    ALERTS_FROM_TIME = f"DATEADD(minute, {ALERT_CUTOFF_MINUTES}, {ALERTS_TO_TIME})"
-
+ALERTS_TO_TIME = os.environ.get('SA_ALERT_TO_TIME', 'CURRENT_TIMESTAMP')
+ALERTS_FROM_TIME = os.environ.get(
+    'SA_ALERT_FROM_TIME', f'DATEADD(minute, {ALERT_CUTOFF_MINUTES}, {ALERTS_TO_TIME})'
+)
 
 RUN_ALERT_QUERY = f"""
 CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
