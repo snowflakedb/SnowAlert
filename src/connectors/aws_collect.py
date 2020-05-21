@@ -10,7 +10,7 @@ from botocore.exceptions import (
 )
 from collections import defaultdict, namedtuple
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import json
 import fire
@@ -1171,9 +1171,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     client_name, method_name = task.method.split('.', 1)
 
     try:
+        now = datetime.utcnow()
+        expires = _SESSION_CACHE.get('account_arn', {}).get('Credentials', {}).get('Expiration')
         session = _SESSION_CACHE[account_arn] = (
             _SESSION_CACHE[account_arn]
-            if account_arn in _SESSION_CACHE
+            if expires and expires > now + timedelta(minutes=5)
             else await aio_sts_assume_role(
                 src_role_arn=AUDIT_ASSUMER_ARN,
                 dest_role_arn=account_arn,
