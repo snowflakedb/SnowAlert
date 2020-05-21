@@ -84,6 +84,7 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , OBJECT_CONSTRUCT('data', 'test 3 data') AS event_data
     , CURRENT_TIMESTAMP() AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
+    , ARRAY_CONSTRUCT() AS handlers
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
@@ -134,6 +135,7 @@ EXPECTED_TEST_1_OUTPUT = {
     "SOURCES": ["source"],
     "TITLE": "test1_alert_query_title",
     "TICKET": None,
+    "HANDLERS": None,
 }
 
 SLACK_MOCK_RETURN_VALUE = {'ok': True}
@@ -168,23 +170,6 @@ def sample_alert_rules(db_schemas):
     db.execute(f"DROP VIEW rules.__suppress_sample_alerts_alert_suppression")
 
 
-@pytest.fixture
-def update_jira_issue_status_done(request):
-    issues_to_update = []
-
-    @request.addfinalizer
-    def fin():
-        from runners.handlers import jira
-
-        for jira_id in issues_to_update:
-            jira.set_issue_done(jira_id)
-
-    def mark_done(jira_id):
-        issues_to_update.append(jira_id)
-
-    yield mark_done
-
-
 def assert_dict_is_subset(a, b):
     for x in a:
         assert x in b
@@ -198,7 +183,7 @@ def assert_dict_has_subset(a, b):
 
 
 def test_alert_runners_processor_and_dispatcher(
-    sample_alert_rules, update_jira_issue_status_done, delete_results
+    sample_alert_rules, delete_results
 ):
 
     #
@@ -347,21 +332,8 @@ def test_alert_runners_processor_and_dispatcher(
 
     slack.handle = MagicMock(return_value={'ok': True})
     from runners import alert_dispatcher
-    from runners.handlers import jira
 
     alert_dispatcher.main()
-
-    # jira
-    ticket_id = next(db.get_alerts(query_id='test_1_query_id'))['TICKET']
-    assert ticket_id is not None
-    update_jira_issue_status_done(ticket_id)
-    ticket_body = jira.get_ticket_description(ticket_id)
-    lines = ticket_body.split('\n')
-    assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    assert {lines[2], lines[23]} == {
-        'Query ID: test_1_query_id',
-        'Query ID: test_3_query',
-    }
 
     # slack
     alert = next(db.get_alerts(query_id='test_4_query_id'))
