@@ -10,7 +10,7 @@ set +e
 SCAN_DIRECTORIES=`pwd`
 
 # PRODUCT_NAME is your team's name or overarching project name
-PRODUCT_NAME="SECENGBLU"
+PRODUCT_NAME="SNOWALERT"
 
 # PROJECT_NAME is your project's name or repo name if your project spans multiple repositories
 PROJECT_NAME="SNOWALERT"
