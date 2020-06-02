@@ -451,6 +451,8 @@ SUPPLEMENTARY_TABLES = {
         ('deleted', 'TIMESTAMP_LTZ'),
         ('created', 'TIMESTAMP_LTZ'),
         ('classification', 'VARCHAR(1000)'),
+        ('creation_options', 'VARIANT'),
+        ('description', 'VARCHAR(5000)'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
     'users': [
@@ -813,22 +815,7 @@ API_SPECS = {
             'error': 'error',
             'id': 'id',
             '@odata.type': 'odata_type',
-            'businessPhones': 'business_phones',
-            'displayName': 'display_name',
-            'givenName': 'given_name',
-            'jobTitle': 'job_title',
-            'mail': 'mail',
-            'mobilePhone': 'mobile_phone',
-            'officeLocation': 'office_location',
-            'preferredLanguage': 'preferred_language',
-            'surname': 'surname',
-            'userPrincipalName': 'user_principal_name',
-            'groupId': 'group_id',
-            'headerDate': 'header_date',
-            'tenantId': 'tenant_id',
-            'deletedDateTime': 'deleted',
-            'createdDateTime': 'created',
-            'classification': 'classification',
+            '*': 'raw',
         },
     },
     'users': {
@@ -1633,7 +1620,15 @@ def GET(kind, params, cred):
 
         break
 
-    return [{spec['response'][k]: v for k, v in x.items()} for x in values]
+    response_spec = spec['response']
+    return [
+        {
+            response_spec[k]: (x if k == '*' else x.get(k))
+            for k in x.keys() | response_spec.keys()
+            if k in response_spec
+        }
+        for x in values
+    ]
 
 
 def ingest(table_name, options, dryrun=False):
@@ -1701,10 +1696,7 @@ def ingest(table_name, options, dryrun=False):
                     load_table('vaults_keys', vaultName=v['name'])
                     load_table('vaults_secrets', vaultName=v['name'])
                 if 'id' in v:
-                    load_table(
-                        'diagnostic_settings',
-                        resourceUri=v['id'],
-                    )
+                    load_table('diagnostic_settings', resourceUri=v['id'])
 
             load_table('role_definitions', subscriptionId=sid)
             load_table('network_watchers', subscriptionId=sid)
