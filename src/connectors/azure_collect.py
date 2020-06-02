@@ -428,6 +428,28 @@ SUPPLEMENTARY_TABLES = {
         ('preferred_language', 'STRING'),
         ('theme', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/graph/api/group-list-members?view=graph-rest-1.0&tabs=http#response
+    'groups_members': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('group_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(50)'),
+        ('odata_type', 'VARIANT'),
+        ('business_phones', 'VARIANT'),
+        ('display_name', 'VARCHAR(1000)'),
+        ('given_name', 'VARCHAR(1000)'),
+        ('job_title', 'VARCHAR(1000)'),
+        ('mail', 'VARCHAR(1000)'),
+        ('mobile_phone', 'VARCHAR(1000)'),
+        ('office_location', 'VARCHAR(1000)'),
+        ('preferred_language', 'VARCHAR(1000)'),
+        ('surname', 'VARCHAR(1000)'),
+        ('user_principal_name', 'VARCHAR(1000)'),
+        ('group_id', 'VARCHAR(1000)'),
+        ('header_date', 'TIMESTAMP_LTZ'),
+        ('deleted', 'TIMESTAMP_LTZ'),
+    ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
     'users': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -775,6 +797,33 @@ API_SPECS = {
             'theme': 'theme',
             'unseenCount': 'unseen_count',
             'visibility': 'visibility',
+        },
+    },
+    'groups_members': {
+        'request': {
+            'path': '/v1.0/groups/{groupId}/members',
+            'host': {'usgov': 'graph.microsoft.us', 'azure': 'graph.microsoft.com'},
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'groupId': 'group_id',
+            'error': 'error',
+            'id': 'id',
+            '@odata.type': 'odata_type',
+            'businessPhones': 'business_phones',
+            'displayName': 'display_name',
+            'givenName': 'given_name',
+            'jobTitle': 'job_title',
+            'mail': 'mail',
+            'mobilePhone': 'mobile_phone',
+            'officeLocation': 'office_location',
+            'preferredLanguage': 'preferred_language',
+            'surname': 'surname',
+            'userPrincipalName': 'user_principal_name',
+            'groupId': 'group_id',
+            'headerDate': 'header_date',
+            'tenantId': 'tenant_id',
         },
     },
     'users': {
@@ -1618,7 +1667,9 @@ def ingest(table_name, options, dryrun=False):
             return values
 
         load_table('users')
-        load_table('groups')
+        for g in load_table('groups'):
+            load_table('groups_members', groupId=g['id'])
+
         load_table('service_principals')
         load_table('reports_credential_user_registration_details')
         load_table('managed_devices')
