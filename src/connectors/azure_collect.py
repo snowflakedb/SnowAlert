@@ -449,6 +449,8 @@ SUPPLEMENTARY_TABLES = {
         ('group_id', 'VARCHAR(1000)'),
         ('header_date', 'TIMESTAMP_LTZ'),
         ('deleted', 'TIMESTAMP_LTZ'),
+        ('created', 'TIMESTAMP_LTZ'),
+        ('classification', 'VARCHAR(1000)'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
     'users': [
@@ -824,6 +826,9 @@ API_SPECS = {
             'groupId': 'group_id',
             'headerDate': 'header_date',
             'tenantId': 'tenant_id',
+            'deletedDateTime': 'deleted',
+            'createdDateTime': 'created',
+            'classification': 'classification',
         },
     },
     'users': {
