@@ -14,7 +14,7 @@ setup(
         'xmltodict==0.12.0',
         'snowflake-connector-python==1.9.1',
         'snowflake-sqlalchemy==1.1.2',
-        'pandas==0.24.1',
+        'pandas==1.0.4',
         'pybrake==0.4.0',
         'rpy2==3.2.0',
         'pytz==2018.9',
