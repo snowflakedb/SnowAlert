@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 import xmltodict
 
 from azure.common.credentials import ServicePrincipalCredentials
+from msrestazure.azure_cloud import AZURE_US_GOV_CLOUD, AZURE_PUBLIC_CLOUD
 
 from connectors.utils import updated, yaml_dump
 from runners.utils import json_dumps
@@ -19,7 +20,7 @@ from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
-def access_token_cache(client_id, tenant, secret, resource, _creds={}):
+def access_token_cache(cloud, client_id, tenant, secret, resource, _creds={}):
     key = (client_id, tenant, secret, resource)
     cred = _creds.get(key)
     if cred is None or cred.token['expires_on'] - time() < 60:
@@ -28,6 +29,9 @@ def access_token_cache(client_id, tenant, secret, resource, _creds={}):
             tenant=tenant,
             secret=secret,
             resource=f'https://{resource}',
+            cloud_environment=AZURE_US_GOV_CLOUD
+            if cloud == 'usgov'
+            else AZURE_PUBLIC_CLOUD,
         )
     return cred.token['access_token']
 
@@ -49,6 +53,7 @@ CONNECTION_OPTIONS = [
 LANDING_TABLE_COLUMNS = [
     ('recorded_at', 'TIMESTAMP_LTZ'),
     ('tenant_id', 'VARCHAR(50)'),
+    ('error', 'VARIANT'),
     ('subscription_id', 'VARCHAR(50)'),
     ('id', 'VARCHAR(100)'),
     ('display_name', 'VARCHAR(500)'),
@@ -261,6 +266,7 @@ SUPPLEMENTARY_TABLES = {
         ('name', 'STRING'),
         ('properties', 'VARIANT'),
         ('type', 'STRING'),
+        ('display_name', 'STRING'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networksecuritygroups/listall#networksecuritygroup
     'network_security_groups': [
@@ -1442,18 +1448,13 @@ API_SPECS = {
     },
     'diagnostic_settings': {
         'request': {
-            'path': (
-                '/{resourceUri}'
-                '/providers/microsoft.insights'
-                '/diagnosticSettings'
-            ),
+            'path': ('/{resourceUri}/providers/microsoft.insights/diagnosticSettings'),
             'api-version': '2017-05-01-preview',
         },
         'response': {
             'headerDate': 'recorded_at',
             'resourceUri': 'resource_uri',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'error': 'error',
             'id': 'id',
             'location': 'location',
@@ -1540,7 +1541,7 @@ def GET(kind, params, cred):
         )
     )
     bearer_token = access_token_cache(
-        cred['client'], cred['tenant'], cred['secret'], auth_aud
+        cloud, cred['client'], cred['tenant'], cred['secret'], auth_aud
     )
     url = f'https://{host}{path}' + (f'?{query_params}' if query_params else '')
     log.debug(f'GET {url}')
@@ -1625,7 +1626,8 @@ def GET(kind, params, cred):
         {
             response_spec[k]: (x if k == '*' else x.get(k))
             for k in x.keys() | response_spec.keys()
-            if k in response_spec
+            if k in response_spec or '*' not in response_spec
+            # raise KeyError iff '*' not in response_spec
         }
         for x in values
     ]
@@ -1668,7 +1670,9 @@ def ingest(table_name, options, dryrun=False):
 
         load_table('users')
         for g in load_table('groups'):
-            load_table('groups_members', groupId=g['id'])
+            gid = g.get('id')
+            if gid:
+                load_table('groups_members', groupId=gid)
 
         load_table('service_principals')
         load_table('reports_credential_user_registration_details')
@@ -1687,16 +1691,19 @@ def ingest(table_name, options, dryrun=False):
             load_table('activity_log_alerts', subscriptionId=sid)
 
             for vm in load_table('virtual_machines', subscriptionId=sid):
-                if 'id' in vm:
-                    load_table('virtual_machines_instance_view', vmId=vm['id'])
-                    load_table('virtual_machines_extensions', vmId=vm['id'])
+                vm_id = vm.get('id')
+                if vm_id:
+                    load_table('virtual_machines_instance_view', vmId=vm_id)
+                    load_table('virtual_machines_extensions', vmId=vm_id)
 
             for v in load_table('vaults', subscriptionId=sid):
-                if 'name' in v:
-                    load_table('vaults_keys', vaultName=v['name'])
-                    load_table('vaults_secrets', vaultName=v['name'])
-                if 'id' in v:
-                    load_table('diagnostic_settings', resourceUri=v['id'])
+                v_name = v.get('name')
+                v_id = v.get('id')
+                if v_name:
+                    load_table('vaults_keys', vaultName=v_name)
+                    load_table('vaults_secrets', vaultName=v_name)
+                if v_id:
+                    load_table('diagnostic_settings', resourceUri=v_id)
 
             load_table('role_definitions', subscriptionId=sid)
             load_table('network_watchers', subscriptionId=sid)
@@ -1706,8 +1713,9 @@ def ingest(table_name, options, dryrun=False):
             load_table('log_profiles', subscriptionId=sid)
 
             for henv in load_table('hosting_environments', subscriptionId=sid):
-                if 'properties' in henv:
-                    rg_name = henv['properties']['resourceGroup']
+                henv_props = henv.get('properties')
+                if henv_props:
+                    rg_name = henv_props['resourceGroup']
                     load_table(
                         'webapps',
                         subscriptionId=sid,
@@ -1716,11 +1724,12 @@ def ingest(table_name, options, dryrun=False):
                     )
 
             for sa in load_table('storage_accounts', subscriptionId=sid):
-                if 'name' in sa:
+                sa_name = sa.get('name')
+                if sa_name:
                     load_table(
                         'storage_accounts_containers',
                         subscriptionId=sid,
-                        accountName=sa['name'],
+                        accountName=sa_name,
                     )
 
             for rg in load_table('resource_groups', subscriptionId=sid):
