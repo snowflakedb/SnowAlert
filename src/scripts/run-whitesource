@@ -10,10 +10,10 @@ set +e
 SCAN_DIRECTORIES=`pwd`
 
 # PRODUCT_NAME is your team's name or overarching project name
-PRODUCT_NAME="SNOWALERT"
+PRODUCT_NAME="SnowAlert"
 
 # PROJECT_NAME is your project's name or repo name if your project spans multiple repositories
-PROJECT_NAME="SNOWALERT"
+PROJECT_NAME="SnowAlert"
 
 DATE=$(date +'%m-%d-%Y')
 
