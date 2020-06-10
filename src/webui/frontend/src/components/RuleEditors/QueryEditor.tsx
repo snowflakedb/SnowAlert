@@ -163,9 +163,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                     disabled={q.isSaving}
                     checked={field.getValue(q)}
                     onChange={e => updateRule(currentRuleView, field.setValue(q, e))}
-                  >
-                    {field.title}
-                  </Switch>
+                  />
                 </div>
               ) : field.type === 'tagGroup' ? (
                 <div key={`col-${i}`}>
