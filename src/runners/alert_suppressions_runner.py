@@ -33,7 +33,8 @@ SET target.SUPPRESSED = 'true'
 SET_SUPPRESSED_FALSE = f"""
 UPDATE results.alerts
 SET suppressed=FALSE
-WHERE suppressed IS NULL;
+WHERE suppressed IS NULL
+;
 """
 
 METADATA_HISTORY: List = []

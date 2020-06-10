@@ -13,7 +13,8 @@ CORRELATION_PERIOD = -60
 UPDATE_ALERT_CORRELATION_ID = f"""
 UPDATE results.alerts
 SET correlation_id='{{correlation_id}}'
-WHERE alert:ALERT_ID='{{alert_id}}'
+WHERE alert:EVENT_TIME > DATEADD(minutes, {CORRELATION_PERIOD}, '{{event_time}}')
+  AND alert:ALERT_ID='{{alert_id}}'
 """
 
 GET_CORRELATED_ALERT = f"""
@@ -54,7 +55,7 @@ def get_correlation_id(ctx, alert):
             o = '","'.join(action)
             action = f'["{o}"]'
 
-    except Exception as e:
+    except KeyError as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
         return uuid.uuid4().hex
 
@@ -95,6 +96,7 @@ def assess_correlation(ctx):
 
         alert_id = alert_body['ALERT_ID']
         correlation_id = get_correlation_id(ctx, alert_body)
+        event_time = str(alert_body['EVENT_TIME'])
         log.info(f"the correlation id for alert {alert_id} is {correlation_id}")
 
         try:
