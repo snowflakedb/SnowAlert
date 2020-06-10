@@ -205,7 +205,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                               policy.isEditing ? (
                                 <div>
                                   <Button
-                                    type="danger"
+                                    danger
                                     disabled={policy.subpolicies.length < 2}
                                     onClick={() => this.props.deleteSubpolicy(policy.viewName, i)}
                                   >
