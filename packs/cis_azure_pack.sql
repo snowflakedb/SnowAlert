@@ -1,3 +1,143 @@
+CREATE VIEW snowalert.rules.azure_cis_1_1_violation_query
+  COMMENT='MFA must be enabled for all privileged users
+  @id R6Q4AB22WH9
+  @tags cis, azure, iam'
+AS
+SELECT 'R6Q4AB22WH9' AS query_id
+     , 'Azure CIS 1.1: Enable MFA for privileged users' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS environment
+     , (
+         'User `' || user_principal_name || '`' ||
+         '(' || user_display_name || ')'
+       ) AS object
+     , 'Violating AzCIS 1.1: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'user_principal_name', user_principal_name,
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    usr.tenant_id,
+    usr.id user_id,
+    user_principal_name,
+    user_display_name,
+    is_mfa_registered,
+    ras.id role_assignment_id,
+    ras.properties:roleDefinitionId::STRING role_definition_id,
+    rds.name role_name,
+    rds.properties role_props
+  FROM (
+    SELECT *
+    FROM data.azure_collect_reports_credential_user_registration_details
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) rcs
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_users
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) usr
+  USING (user_principal_name)
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_role_assignments
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) ras
+  ON ras.properties:principalId = usr.id
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_role_definitions
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) rds
+  ON rds.id = ras.properties:roleDefinitionId
+)
+WHERE 1=1
+  AND is_mfa_registered = FALSE
+  AND (
+    role_props:roleName LIKE '%Contributor'
+    OR role_props:roleName ILIKE 'owner'
+    OR role_props:roleName ILIKE 'admin'
+  )
+;
+
+CREATE VIEW snowalert.rules.azure_cis_1_2_violation_query
+  COMMENT='MFA must be enabled for all non-privileged users
+  @id YRHDIMOSP6K
+  @tags cis, azure, iam'
+AS
+SELECT 'YRHDIMOSP6K' AS query_id
+     , 'Azure CIS 1.2: Enable MFA for non-privileged users' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS environment
+     , (
+         'User `' || user_principal_name || '`' ||
+         '(' || user_display_name || ')'
+       ) AS object
+     , 'Violating AzCIS 1.2: ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'user_principal_name', user_principal_name,
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    usr.tenant_id,
+    usr.id user_id,
+    user_principal_name,
+    user_display_name,
+    is_mfa_registered,
+    ras.id role_assignment_id,
+    ras.properties:roleDefinitionId::STRING role_definition_id,
+    rds.name role_name,
+    rds.properties role_props
+  FROM (
+    SELECT *
+    FROM data.azure_collect_reports_credential_user_registration_details
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) rcs
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_users
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) usr
+  USING (user_principal_name)
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_role_assignments
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) ras
+  ON ras.properties:principalId = usr.id
+  LEFT OUTER JOIN (
+    SELECT *
+    FROM data.azure_collect_role_definitions
+    WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+  ) rds
+  ON rds.id = ras.properties:roleDefinitionId
+)
+WHERE 1=1
+  AND is_mfa_registered = FALSE
+  AND NOT (
+    role_props:roleName LIKE '%Contributor'
+    OR role_props:roleName ILIKE 'owner'
+    OR role_props:roleName ILIKE 'admin'
+  )
+;
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_1_3_VIOLATION_QUERY COPY GRANTS
   COMMENT='queries users collection where type is "Guest"
   @id PLSEUOLMOH
