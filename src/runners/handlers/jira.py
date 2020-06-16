@@ -101,10 +101,13 @@ def link_search_todos(description=None, project=PROJECT):
 
 
 def create_jira_ticket(
-    alert, assignee=None, custom_field=None, project=PROJECT, issue_type=ISSUE_TYPE
+    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE
 ):
     if not user:
         return
+
+    if not custom_fields:
+        custom_fields = ''
 
     try:
         alert['EVENT_DATA'] = yaml.dump(
@@ -124,16 +127,20 @@ def create_jira_ticket(
         'description': body,
     }
 
-    env_fields = os.environ.get('SA_JIRA_CUSTOM_FIELDS')
-    if env_fields or custom_field:
-        custom_fields = [f.split('=') for f in env_fields.split(';')]
+    # combine fields from envar and from alert query definition
+    # e.g.
+    # envar_fields = '10008=key:SAD-11493;10009=Low'
+    # custom_fields = '10009=Critical'
+    # fields = ['10008=key:SAD-11493', '10009=Critical']
+    envar_fields = os.environ.get('SA_JIRA_CUSTOM_FIELDS', '')
+    fields = ';'.join(envar_fields.split(';') + custom_fields.split(';')).split(';')
+    if fields:
+        custom_fields = [f.split('=') for f in fields if f]
         for field_id, field_value in custom_fields:
-            issue_params[f'customfield_{field_id}'] = {'value': field_value}
-
-        if custom_field:
-            issue_params[f'customfield_{custom_field["id"]}'] = {
-                'value': custom_field['value']
-            }
+            if field_value.startswith('key:'):
+                issue_params[f'customfield_{field_id}'] = field_value[4:]
+            else:
+                issue_params[f'customfield_{field_id}'] = {'value': field_value}
 
     new_issue = jira.create_issue(**issue_params)
 
@@ -195,7 +202,7 @@ def handle(
     correlation_id,
     project=PROJECT,
     assignee=None,
-    custom_field=None,
+    custom_fields=None,
     issue_type=ISSUE_TYPE,
 ):
     if project == '':
@@ -235,7 +242,11 @@ def handle(
                 )
                 try:
                     ticket_id = create_jira_ticket(
-                        alert, project=project, issue_type=issue_type
+                        alert,
+                        assignee,
+                        custom_fields=custom_fields,
+                        project=project,
+                        issue_type=issue_type,
                     )
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
@@ -245,7 +256,11 @@ def handle(
         # Create a new ticket in JIRA for the alert
         try:
             ticket_id = create_jira_ticket(
-                alert, assignee, custom_field, project=project, issue_type=issue_type
+                alert,
+                assignee,
+                custom_fields=custom_fields,
+                project=project,
+                issue_type=issue_type,
             )
         except Exception as e:
             log.error(e, f"Failed to create ticket for alert {alert_id}")
