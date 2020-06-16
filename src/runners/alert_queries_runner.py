@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import fire
 import os
 from multiprocessing import Pool
 from typing import Any, Dict
@@ -171,4 +172,4 @@ def main(rule_name=None):
 
 
 if __name__ == '__main__':
-    main()
+    fire.Fire(main)

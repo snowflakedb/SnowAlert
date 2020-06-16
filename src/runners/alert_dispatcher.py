@@ -2,9 +2,9 @@
 
 import importlib
 
-from .config import CLOUDWATCH_METRICS
-from .helpers import db, log
-from .utils import apply_some, json_dumps
+from runners.config import CLOUDWATCH_METRICS
+from runners.helpers import db, log
+from runners.utils import apply_some, json_dumps
 
 GET_ALERTS_QUERY = f"""
 SELECT *
