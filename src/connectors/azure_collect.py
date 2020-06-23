@@ -1667,9 +1667,15 @@ def ingest(table_name, options, dryrun=False):
     connection_name = options['name']
     schedule = options.get('schedule', '*')
 
-    if schedule not in ['*', '0 *']:
+    if schedule not in ['*', '0 *', '0 */12']:
         log.info('not time yet')
         return 0
+
+    if schedule == '0 */12':  # every 12 hours
+        now = datetime.now()
+        if now.minute > 15 or now.hour % 12 != 0:
+            log.info('not time yet')
+            return 0
 
     if schedule == '0 *':  # hourly
         # todo(anf): robust cron using run metadata
