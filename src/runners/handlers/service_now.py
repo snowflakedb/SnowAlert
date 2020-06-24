@@ -18,6 +18,9 @@ def handle(alert, assignee=''):
     if not password:
         log.info('skipping service-now handler, missing password')
 
+    if not (host and username and password):
+        return
+
     endpoint = f'https://{host}.service-now.com/api/now/table/incident'
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
 
@@ -41,6 +44,6 @@ def handle(alert, assignee=''):
             f'Headers: {response.headers}',
             f'Error Response: {response.json()}',
         )
-        return
+        raise RuntimeError(response)
 
     return response
