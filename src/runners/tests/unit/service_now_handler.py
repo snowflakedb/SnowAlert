@@ -9,6 +9,6 @@ def test_handler():
     requests.post = post_mock
 
     requests.post(asdf=21)
-    service_now.handle()
+    service_now.handle({})
 
     post_mock.assert_called_once()
