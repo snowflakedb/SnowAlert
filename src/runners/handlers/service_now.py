@@ -6,27 +6,50 @@ from runners.helpers import log
 from runners.helpers import vault
 
 
+class Bearer(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+    def __call__(self, r):
+        r.headers["authorization"] = "Bearer " + self.token
+        return r
+
+
 def handle(alert, assignee=''):
     host = env.get('SA_SN_API_HOST')
-    username = vault.decrypt_if_encrypted(envar='SA_SN_API_USER')
-    password = vault.decrypt_if_encrypted(envar='SA_SN_API_PASS')
+    client_id = env.get('SA_SN_OAUTH_CLIENT_ID')
+    client_secret = vault.decrypt_if_encrypted(envar='SA_SN_OAUTH_CLIENT_SECRET')
+    refresh_token = vault.decrypt_if_encrypted(envar='SA_SN_OAUTH_REFRESH_TOKEN')
+    
+    oauth_return_params = {
+        'grant_type': 'refresh_token',
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'refresh_token': refresh_token,
+    }
+
+    
+    oauthresp = requests.post(
+        'https://snowflakedev.service-now.com/oauth_token.do',
+        data=oauth_return_params,
+    )
+
+    result = oauthresp.json()
+    access_token = result.get('access_token')
 
     if not host:
         log.info('skipping service-now handler, missing host')
-    if not username:
-        log.info('skipping service-now handler, missing username')
-    if not password:
-        log.info('skipping service-now handler, missing password')
-
+    if not access_token:
+        log.info('skipping service-now handler, missing access token')
+        raise RuntimeError(result)
     if not (host and username and password):
         return
 
-    endpoint = f'https://{host}.service-now.com/api/now/table/incident'
+    endpoint = f'https://{host}/api/now/table/incident'
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
 
     response = requests.post(
         endpoint,
-        auth=(username, password),
+        auth=access_token,
         data={
             'contact_type': 'Integration',
             'impact': '2',
