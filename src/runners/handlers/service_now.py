@@ -36,7 +36,7 @@ def handle(alert, assignee=''):
         }
 
         oauthresp = requests.post(
-            'https://snowflakedev.service-now.com/oauth_token.do',
+            f'https://{host}/oauth_token.do',
             data=oauth_return_params,
         )
 
@@ -50,6 +50,7 @@ def handle(alert, assignee=''):
         access_token = None
 
     if not (username and password) and not access_token:
+        log.info('skipping service-now handler, no authorization')
         return
 
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
