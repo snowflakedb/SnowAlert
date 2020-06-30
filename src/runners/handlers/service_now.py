@@ -72,7 +72,7 @@ def handle(alert, assignee=''):
         log.info(
             f'Status: {response.status_code}',
             f'Headers: {response.headers}',
-            f'Error Response: {response.json()}',
+            f'Error Response: {response.text}',
         )
         raise RuntimeError(response)
 
