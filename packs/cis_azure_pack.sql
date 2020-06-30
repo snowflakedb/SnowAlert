@@ -1984,3 +1984,84 @@ FROM (
 WHERE 1=1
   AND encryption:type != 'EncryptionAtRestWithPlatformKey'
 ;
+
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_8_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Expiration date is set on all keys
+  @id J9SXTR77OP
+  @tags cis, azure, security-considerations'
+AS
+SELECT 'J9SXTR77OP' AS query_id
+     , 'Azure CIS 8.1: Expiration date is set on all keys' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS environment
+     , (
+         'key ' || key_id
+       ) AS object
+     , 'AzCIS 8.1 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'key_id', key_id
+       ) AS identity
+FROM (
+  SELECT
+    tenant_id,
+    kid key_id,
+    attributes,
+    attributes:enabled enabled,
+    attributes:exp::TIMESTAMP expires
+  FROM azure_collect_vaults_keys
+  WHERE error IS NULL
+    AND recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+)
+WHERE 1=1
+  AND enabled
+  AND expires IS NULL
+;
+
+CREATE OR REPLACE VIEW rules.AZURE_CIS_8_2_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Expiration date is set on all secrets
+  @id HSUI200N9J
+  @tags cis, azure, security-considerations'
+AS
+SELECT 'HSUI200N9J' AS query_id
+     , 'Azure CIS 8.2: Expiration date is set on all keys' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS environment
+     , (
+         'secret ' || secret_id
+       ) AS object
+     , 'AzCIS 8.2 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'secret_id', secret_id
+       ) AS identity
+FROM (
+  SELECT
+    tenant_id,
+    id secret_id,
+    attributes,
+    attributes:enabled enabled,
+    attributes:exp::TIMESTAMP expires
+  FROM azure_collect_vaults_secrets
+  WHERE error IS NULL
+    AND recorded_at > CURRENT_TIMESTAMP - INTERVAL '1 days'
+)
+WHERE 1=1
+  AND enabled
+  AND expires IS NULL
+;
