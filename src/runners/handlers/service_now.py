@@ -20,10 +20,10 @@ def handle(alert, assignee=''):
     if not host:
         log.info('skipping service-now handler, missing host')
 
-    client_id = env.get('SA_SN_OAUTH_CLIENT_ID')
     username = vault.decrypt_if_encrypted(envar='SA_SN_API_USER')
     password = vault.decrypt_if_encrypted(envar='SA_SN_API_PASS')
 
+    client_id = env.get('SA_SN_OAUTH_CLIENT_ID')
     client_secret = vault.decrypt_if_encrypted(envar='SA_SN_OAUTH_CLIENT_SECRET')
     refresh_token = vault.decrypt_if_encrypted(envar='SA_SN_OAUTH_REFRESH_TOKEN')
 
