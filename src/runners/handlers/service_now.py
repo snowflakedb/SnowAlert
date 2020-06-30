@@ -52,11 +52,10 @@ def handle(alert, assignee=''):
     if not (username and password) and not access_token:
         return
 
-    endpoint = f'https://{host}/api/now/table/incident'
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
 
     response = requests.post(
-        endpoint,
+        f'https://{host}/api/now/table/incident',
         auth=Bearer(access_token) if access_token else (username, password),
         data={
             'contact_type': 'Integration',
