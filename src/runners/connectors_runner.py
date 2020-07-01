@@ -27,14 +27,44 @@ def do_ingest(connector, table_name, options):
     )
 
 
-def connection_run(connection_table):
+def time_to_run(schedule, now) -> bool:
+    """assuming 15-min runner task, checks whether scheduled DC should run
+
+    todo(anf): robust cron using prior run metadata
+    """
+    if schedule not in ['*', '0 *', '0 */12']:
+        log.info('not time yet')
+        return False
+
+    if schedule == '0 */12':  # every 12 hours
+        if now.minute > 15 or now.hour % 12 != 0:
+            log.info('not time yet')
+            return False
+
+    if schedule == '0 *':  # hourly
+        if now.minute > 15:
+            log.info('not time yet')
+            return False
+
+    return True
+
+
+def connection_run(connection_table, run_now=False):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
 
     log.info(f"-- START DC {table_name} --")
     try:
         metadata = {'START_TIME': datetime.utcnow()}
-        options = yaml.load(table_comment) or {}
+        options = yaml.safe_load(table_comment) or {}
+
+        if 'schedule' in options:
+            schedule = options['schedule']
+            now = datetime.now()
+            if not run_now and not time_to_run(schedule, now):
+                log.info(f'not scheduled: {schedule} at {now}')
+                log.info(f"-- END DC --")
+                return
 
         if 'module' in options:
             module = options['module']
@@ -74,10 +104,10 @@ def connection_run(connection_table):
     log.info(f"-- END DC --")
 
 
-def main(connection_table="%_CONNECTION"):
+def main(connection_table="%_CONNECTION", run_now=False):
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
     if len(tables) == 1:
-        connection_run(tables[0])
+        connection_run(tables[0], run_now=run_now)
     else:
         Pool(DC_POOLSIZE).map(connection_run, tables)
 
