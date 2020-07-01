@@ -480,30 +480,44 @@ SELECT 'YO2KZE2JCG9' AS query_id
          'account_id', account_id
        ) AS environment
      , OBJECT_CONSTRUCT(
-         'query_id', query_id,
          'cloud', 'aws',
+         'query_id', query_id,
          'account_id', account_id
        ) AS identity
-     , IFNULL(account_alias, account_id) AS object
-     , 'The root user at the ' || object || ' account has an access key.' AS description
+     , 'root user at account ' || account_id AS object
+     , (
+         'The ' || object || ' ' ||
+         '(' || COALESCE(account_name, account_alias) || ') ' ||
+         'has an access key.'
+       ) AS description
      , CURRENT_TIMESTAMP AS alert_time
-     , object AS event_data
+     , OBJECT_CONSTRUCT(
+         'account_name', account_name,
+         'account_alias', account_alias,
+         'account_id', account_id,
+         'user_arn', arn,
+         'key_active', key_active
+       ) AS event_data
      , 'SnowAlert' AS detector
      , 'Medium' AS severity
      , 'devsecops' AS owner
 FROM (
-  WITH latest_accounts AS (
-    SELECT t1.account_id AS id
-         , recorded_at AS latest_time
-    FROM data.aws_collect_iam_get_credential_report t1
-    INNER JOIN (
-      SELECT account_id, max(recorded_at) AS latest
-      FROM data.aws_collect_iam_get_credential_report
-      GROUP BY account_id
-    ) t2
-    ON t2.account_id = t1.account_id AND t1.recorded_at = t2.latest
+  WITH latest_report_at AS (
+    SELECT account_id, MAX(recorded_at) recorded_at
+    FROM data.aws_collect_iam_get_credential_report
+    GROUP BY account_id
+  ),
+  latest_alias AS (
+    SELECT account_id, account_alias
+    FROM data.aws_collect_iam_list_account_aliases
+    QUALIFY 1=ROW_NUMBER() OVER (PARTITION BY account_id ORDER BY recorded_at DESC)
+  ),
+  latest_name AS (
+    SELECT id account_id, name account_name
+    FROM data.aws_collect_organizations_list_accounts_connection
+    QUALIFY 1=ROW_NUMBER() OVER (PARTITION BY id ORDER BY recorded_at DESC)
   )
-  SELECT a.account_id, account_alias
+  SELECT account_id, account_alias, account_name, user, arn, key_active
   FROM (
     SELECT recorded_at
          , account_id
@@ -514,23 +528,15 @@ FROM (
              OR value:access_key_2_active::BOOLEAN
            ) key_active
     FROM data.aws_collect_iam_get_credential_report r
-    JOIN latest_accounts
-    ON (
-      account_id = latest_accounts.id
-      AND recorded_at = latest_accounts.latest_time
-    )
+    JOIN latest_report_at USING (account_id, recorded_at)
     , LATERAL FLATTEN(input => r.content_csv_parsed)
-  WHERE user='<root_account>'
-    AND key_active
-  ) results
-  LEFT OUTER JOIN (
-    SELECT DISTINCT account_id, account_alias
-    FROM data.aws_collect_iam_list_account_aliases
-  ) a
-  ON a.account_id = results.account_id
+  )
+  LEFT OUTER JOIN latest_alias USING (account_id)
+  LEFT OUTER JOIN latest_name USING (account_id)
 )
 WHERE 1=1
-  AND 2=2
+  AND user='<root_account>'
+  AND key_active
 ;
 
 
