@@ -1203,7 +1203,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     except ClientError as e:
         # record missing auditor role as empty account summary
-        log.error(e, 'failed processing task')
+        log.info(format_exception_only(e))
         yield (
             task.method,
             updated(
