@@ -287,6 +287,26 @@ SUPPLEMENTARY_TABLES = {
         ('user_name', 'STRING'),
         ('policy_name', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-groups.html#output
+    'iam_list_groups': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
+        ('account_id', 'STRING'),
+        ('path', 'STRING'),
+        ('group_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('arn', 'STRING'),
+        ('create_date', 'TIMESTAMP_LTZ'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-group-policies.html#output
+    'iam_list_attached_group_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
+        ('account_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_arn', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
     'iam_list_attached_user_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -656,6 +676,25 @@ API_METHOD_SPECS: Dict[str, dict] = {
             'GeneratedTime': 'generated_time',
         }
     },
+    'iam.list_groups': {
+        'response': {
+            'Groups': [
+                {
+                    'Arn': 'arn',
+                    'Path': 'path',
+                    'CreateDate': 'create_date',
+                    'GroupId': 'group_id',
+                    'GroupName': 'group_name',
+                }
+            ]
+        },
+        'children': [
+            {
+                'method': 'iam.list_attached_group_policies',
+                'args': {'GroupName': 'group_name'},
+            }
+        ],
+    },
     'iam.list_users': {
         'response': {
             'Users': [
@@ -740,6 +779,14 @@ API_METHOD_SPECS: Dict[str, dict] = {
     },
     'iam.list_attached_user_policies': {
         'params': {'UserName': 'user_name'},
+        'response': {
+            'AttachedPolicies': [
+                {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
+            ]
+        },
+    },
+    'iam.list_attached_group_policies': {
+        'params': {'GroupName': 'group_name'},
         'response': {
             'AttachedPolicies': [
                 {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
@@ -1314,6 +1361,7 @@ async def aioingest(table_name, options, dryrun=False):
                     'iam.get_credential_report',
                     'iam.list_roles',
                     'inspector.list_findings',
+                    'iam.list_groups',
                 ]
                 for a in accounts
             ]
