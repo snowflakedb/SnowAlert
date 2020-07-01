@@ -1,13 +1,16 @@
 """Azure Inventory and Configuration
 Load Inventory and Configuration of accounts using Service Principals
 """
+from collections import namedtuple
 from datetime import datetime
 from dateutil.parser import parse as parse_date
+from itertools import chain, takewhile
 import fire
 import json
 import re
 import requests
 from time import time
+from typing import Dict, List
 from urllib.parse import urlencode
 import xmltodict
 
@@ -699,6 +702,47 @@ API_SPECS = {
             'authorizationSource': 'authorization_source',
             'managedByTenants': 'managed_by_tenants',
         },
+        'children': [
+            {'kind': 'virtual_machines', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'disks', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'role_definitions', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'role_assignments', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'pricings', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'auto_provisioning_settings',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'policy_assignments',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'security_contacts',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'activity_log_alerts',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'network_security_groups',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {'kind': 'log_profiles', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'hosting_environments',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {'kind': 'storage_accounts', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'resource_groups', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'subscriptions_locations',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {'kind': 'managed_clusters', 'args': {'subscriptionId': 'subscription_id'}},
+        ],
     },
     'reports_credential_user_registration_details': {
         'request': {
@@ -819,6 +863,7 @@ API_SPECS = {
             'unseenCount': 'unseen_count',
             'visibility': 'visibility',
         },
+        'children': [{'kind': 'groups_members', 'args': {'groupId': 'id'}}],
     },
     'groups_members': {
         'request': {
@@ -1031,6 +1076,10 @@ API_SPECS = {
             'type': 'type',
             'zones': 'zones',
         },
+        'children': [
+            {'kind': 'virtual_machines_instance_view', 'args': {'vmId': 'id'}},
+            {'kind': 'virtual_machines_extensions', 'args': {'vmId': 'id'}},
+        ],
     },
     'virtual_machines_instance_view': {
         'request': {'path': '{vmId}/instanceView', 'api-version': '2019-07-01'},
@@ -1107,6 +1156,11 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
         },
+        'children': [
+            {'kind': 'vaults_keys', 'args': {'vaultName': 'name'}},
+            {'kind': 'vaults_secrets', 'args': {'vaultName': 'name'}},
+            {'kind': 'diagnostic_settings', 'args': {'resourceUri': 'id'}},
+        ],
     },
     'vaults_keys': {
         'request': {
@@ -1196,6 +1250,18 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
         },
+        'children': [
+            {
+                'kind': 'webapps',
+                'args': {
+                    'subscriptionId': 'subscription_id',
+                    'resourceGroupName': lambda x: (x.get('properties') or {}).get(
+                        'resourceGroup'
+                    ),
+                    'name': 'name',
+                },
+            }
+        ],
     },
     'webapps': {
         'request': {
@@ -1244,6 +1310,12 @@ API_SPECS = {
             'tags': 'tags',
             'type': 'type',
         },
+        'children': [
+            {
+                'kind': 'storage_accounts_containers',
+                'args': {'subscriptionId': 'subscription_id', 'accountName': 'name'},
+            }
+        ],
     },
     'storage_accounts_containers': {
         'request': {
@@ -1478,7 +1550,7 @@ API_SPECS = {
     },
     'diagnostic_settings': {
         'request': {
-            'path': ('/{resourceUri}/providers/microsoft.insights/diagnosticSettings'),
+            'path': '{resourceUri}/providers/microsoft.insights/diagnosticSettings',
             'api-version': '2017-05-01-preview',
         },
         'response': {
@@ -1545,7 +1617,7 @@ API_SPECS = {
 }
 
 
-def GET(kind, params, cred):
+def GET(kind, params, cred) -> List[Dict]:
     spec = API_SPECS[kind]
     request_spec = spec['request']
     path = request_spec['path'].format(**params)
@@ -1665,117 +1737,88 @@ def GET(kind, params, cred):
 
 def ingest(table_name, options, dryrun=False):
     connection_name = options['name']
-    schedule = options.get('schedule', '*')
-
-    if schedule not in ['*', '0 *', '0 */12']:
-        log.info('not time yet')
-        return 0
-
-    if schedule == '0 */12':  # every 12 hours
-        now = datetime.now()
-        if now.minute > 15 or now.hour % 12 != 0:
-            log.info('not time yet')
-            return 0
-
-    if schedule == '0 *':  # hourly
-        # todo(anf): robust cron using run metadata
-        now = datetime.now()
-        if now.minute > 15:
-            log.info('not time yet')
-            return 0
-
+    all_creds = options['credentials']
     num_loaded = 0
-    for cred in options['credentials']:
-        table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
-        table_prefix = f'data.azure_collect{table_name_part}'
 
-        def load_table(kind, **params):
-            nonlocal num_loaded
-            values = db.retry(
-                f=lambda: GET(kind, params, cred=cred),
-                E=(requests.exceptions.SSLError, requests.exceptions.ConnectionError),
-                n=10,
-                sleep_seconds_btw_retry=30,
+    table_name_part = '' if connection_name == 'default' else f'_{connection_name}'
+    table_prefix = f'data.azure_collect{table_name_part}'
+
+    api_calls_remaining = [
+        {'cred': cred, 'kind': kind, 'params': {}}
+        for kind in [
+            'reports_credential_user_registration_details',
+            'users',
+            'groups',
+            'service_principals',
+            'managed_devices',
+            'subscriptions',
+        ]
+        for cred in all_creds
+    ]
+
+    def insert_results(kind, results):
+        nonlocal num_loaded
+        postfix = 'connection' if kind == 'subscriptions' else kind
+        table_name = f'{table_prefix}_{postfix}'
+        result = db.insert(table_name, results, dryrun=dryrun)
+        rows_inserted = result['number of rows inserted']
+        num_loaded += rows_inserted
+        log.info(f'-> {table_name} ({rows_inserted} rows)')
+
+    while api_calls_remaining:
+        next_call_kind = api_calls_remaining[0]['kind']
+        next_call_group = list(
+            takewhile(lambda c: next_call_kind == c['kind'], api_calls_remaining)
+        )
+        num_calls = len(next_call_group)
+        api_calls_remaining = api_calls_remaining[num_calls:]
+        log.info(
+            f'GET {next_call_kind}: '
+            f'{num_calls} calls, '
+            f'{len(api_calls_remaining)} remain'
+        )
+
+        api_response = namedtuple('api_response', ['results', 'cred'])
+
+        responses = [
+            api_response(
+                db.retry(
+                    f=lambda: GET(**call),
+                    E=(
+                        requests.exceptions.SSLError,
+                        requests.exceptions.ConnectionError,
+                    ),
+                    n=10,
+                    sleep_seconds_btw_retry=30,
+                ),
+                call['cred'],
             )
-            kind = 'connection' if kind == 'subscriptions' else kind
-            table_name = f'{table_prefix}_{kind}'
-            result = db.insert(table_name, values, dryrun=dryrun)
-            num_loaded += len(values)
-            log.info(f'-> {table_name} {result}')
-            return values
+            for call in next_call_group
+        ]
 
-        load_table('users')
-        for g in load_table('groups'):
-            gid = g.get('id')
-            if gid:
-                load_table('groups_members', groupId=gid)
+        insert_results(
+            next_call_kind, chain.from_iterable(r.results for r in responses)
+        )
 
-        load_table('service_principals')
-        load_table('reports_credential_user_registration_details')
-        load_table('managed_devices')
+        for child_spec in API_SPECS[next_call_kind].get('children', []):
+            for response in responses:
+                for result in response.results:
+                    argspec = child_spec.get('args', {})
+                    params = {
+                        k: v(result) if callable(v) else result.get(v)
+                        for k, v in argspec.items()
+                        if callable(v) and v(result) or result.get(v)
+                    }
 
-        for s in load_table('subscriptions'):
-            sid = s.get('subscription_id')
-            if sid is None:
-                log.debug(f'subscription without id: {s}')
-                continue
-
-            load_table('role_definitions', subscriptionId=sid)
-            load_table('role_assignments', subscriptionId=sid)
-
-            load_table('pricings', subscriptionId=sid)
-            load_table('auto_provisioning_settings', subscriptionId=sid)
-            load_table('policy_assignments', subscriptionId=sid)
-            load_table('security_contacts', subscriptionId=sid)
-            load_table('activity_log_alerts', subscriptionId=sid)
-
-            for vm in load_table('virtual_machines', subscriptionId=sid):
-                vm_id = vm.get('id')
-                if vm_id:
-                    load_table('virtual_machines_instance_view', vmId=vm_id)
-                    load_table('virtual_machines_extensions', vmId=vm_id)
-
-            for v in load_table('vaults', subscriptionId=sid):
-                v_name = v.get('name')
-                v_id = v.get('id')
-                if v_name:
-                    load_table('vaults_keys', vaultName=v_name)
-                    load_table('vaults_secrets', vaultName=v_name)
-                if v_id:
-                    load_table('diagnostic_settings', resourceUri=v_id)
-
-            load_table('network_watchers', subscriptionId=sid)
-            load_table('network_security_groups', subscriptionId=sid)
-
-            load_table('disks', subscriptionId=sid)
-            load_table('log_profiles', subscriptionId=sid)
-
-            for henv in load_table('hosting_environments', subscriptionId=sid):
-                henv_props = henv.get('properties')
-                if henv_props:
-                    rg_name = henv_props['resourceGroup']
-                    load_table(
-                        'webapps',
-                        subscriptionId=sid,
-                        resourceGroupName=rg_name,
-                        name=henv['name'],
-                    )
-
-            for sa in load_table('storage_accounts', subscriptionId=sid):
-                sa_name = sa.get('name')
-                if sa_name:
-                    load_table(
-                        'storage_accounts_containers',
-                        subscriptionId=sid,
-                        accountName=sa_name,
-                    )
-
-            for rg in load_table('resource_groups', subscriptionId=sid):
-                if 'name' in rg:
-                    pass
-
-            load_table('subscriptions_locations', subscriptionId=sid)
-            load_table('managed_clusters', subscriptionId=sid)
+                    # all args are required
+                    if len(params) == len(argspec):
+                        api_calls_remaining.append(
+                            {
+                                'cred': response.cred,
+                                'kind': child_spec['kind'],
+                                'params': params,
+                            }
+                        )
 
     return num_loaded
 
