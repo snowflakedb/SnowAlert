@@ -10,7 +10,7 @@ import json
 import re
 import requests
 from time import time
-from typing import Dict, List
+from typing import Any, Dict, List
 from urllib.parse import urlencode
 import xmltodict
 
@@ -687,7 +687,7 @@ def connect(connection_name, options):
     }
 
 
-API_SPECS = {
+API_SPECS: Dict[str, Dict[str, Any]] = {
     'subscriptions': {
         'request': {'path': '/subscriptions', 'api-version': '2019-06-01'},
         'response': {
@@ -1649,7 +1649,7 @@ def GET(kind, params, cred) -> List[Dict]:
     log.debug(f'GET {url}')
 
     nextUrl = url
-    values = []
+    values: List[Dict] = []
     while nextUrl:
         response = requests.get(
             nextUrl,
