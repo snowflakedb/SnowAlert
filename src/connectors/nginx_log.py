@@ -202,7 +202,7 @@ def connect(connection_name, options):
 def finalize(connection_name):
     base_name = f'nginx_log_{connection_name}'
     table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
-    options = yaml.load(table['comment'])
+    options = yaml.safe_load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
     pipe = f'data.{base_name}_pipe'
     error_pipe = f'data.{base_name}_error_pipe'
