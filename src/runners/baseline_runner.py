@@ -57,7 +57,7 @@ def query_log_source(source, time_filter, time_column):
 def run_baseline(name, comment):
     from rpy2 import robjects as ro
     try:
-        metadata = yaml.load(comment)
+        metadata = yaml.safe_load(comment)
         assert type(metadata) is dict
 
         source = metadata['log source']

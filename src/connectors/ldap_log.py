@@ -164,7 +164,7 @@ def finalize(connection_name):
     base_name = f'ldap_{connection_name}'
     pipe = f'data.{base_name}_pipe'
     table = next(db.fetch(f"SHOW TABLES LIKE '{base_name}_connection' IN data"))
-    options = yaml.load(table['comment'])
+    options = yaml.safe_load(table['comment'])
     stage = options.get('existing_stage', f'data.{base_name}_stage')
 
     # IAM change takes 5-15 seconds to take effect
