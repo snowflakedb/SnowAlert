@@ -1346,13 +1346,9 @@ async def aioingest(table_name, options, dryrun=False):
 
 
 def ingest(table_name, options, dryrun=False):
-    now = datetime.now()
-    if options.get('run_now') or (now.hour % 3 == 0 and now.minute < 15):
-        return asyncio.get_event_loop().run_until_complete(
-            aioingest(table_name, options, dryrun=dryrun)
-        )
-    else:
-        log.info('not time yett')
+    return asyncio.get_event_loop().run_until_complete(
+        aioingest(table_name, options, dryrun=dryrun)
+    )
 
 
 def main(
@@ -1363,7 +1359,6 @@ def main(
     collect_apis,
     master_reader_arn='',
     org_account_ids='',
-    run_now=False,
     dryrun=False,
 ):
     ingest(
@@ -1374,7 +1369,6 @@ def main(
             'org_account_ids': org_account_ids,
             'reader_eid': reader_eid,
             'audit_reader_role': audit_reader_role,
-            'run_now': run_now,
             'collect_apis': collect_apis,
         },
         dryrun=dryrun,
