@@ -32,31 +32,26 @@ def time_to_run(schedule, now) -> bool:
 
     todo(anf): robust cron using prior run metadata
     """
-    if schedule not in ['*', '0 *', '0 */12']:
-        log.info('not time yet')
-        return False
-
     if schedule == '0 */12':  # every 12 hours
-        if now.minute > 15 or now.hour % 12 != 0:
-            log.info('not time yet')
-            return False
+        if now.minute < 15 and now.hour % 12 == 0:
+            return True
 
     if schedule == '0 1-13/12':  # every 12 hours offset by 1
-        if now.minute > 15 or now.hour % 12 != 1:
+        if now.minute < 15 and now.hour % 12 == 1:
             log.info('not time yet')
-            return False
+            return True
 
     if schedule == '0 */3':  # every 3 hours
-        if now.minute > 15 or now.hour % 3 != 0:
+        if now.minute < 15 and now.hour % 3 == 0:
             log.info('not time yet')
-            return False
+            return True
 
     if schedule == '0 *':  # hourly
-        if now.minute > 15:
+        if now.minute < 15:
             log.info('not time yet')
-            return False
+            return True
 
-    return True
+    return False
 
 
 def connection_run(connection_table, run_now=False):
