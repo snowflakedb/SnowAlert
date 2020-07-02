@@ -66,7 +66,7 @@ def main(target="all", rule_name=None):
             ingest_runner.main()
             connectors_runner.main()
 
-        if target in ['connectors', 'all']:
+        if target in ['connector', 'connectors', 'all']:
             connectors_runner.main(rule_name)
 
         if target in ['baseline', 'baselines', 'all']:
