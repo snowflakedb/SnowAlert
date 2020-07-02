@@ -4,7 +4,7 @@ Load Inventory and Configuration of accounts using Service Principals
 from collections import namedtuple
 from datetime import datetime
 from dateutil.parser import parse as parse_date
-from itertools import chain, takewhile
+from itertools import chain, islice, takewhile
 import fire
 import json
 import re
@@ -735,13 +735,13 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'kind': 'hosting_environments',
                 'args': {'subscriptionId': 'subscription_id'},
             },
-            {'kind': 'storage_accounts', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'resource_groups', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'subscriptions_locations',
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'managed_clusters', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'storage_accounts', 'args': {'subscriptionId': 'subscription_id'}},
         ],
     },
     'reports_credential_user_registration_details': {
@@ -1768,7 +1768,9 @@ def ingest(table_name, options, dryrun=False):
     while api_calls_remaining:
         next_call_kind = api_calls_remaining[0]['kind']
         next_call_group = list(
-            takewhile(lambda c: next_call_kind == c['kind'], api_calls_remaining)
+            takewhile(
+                lambda c: c['kind'] == next_call_kind, islice(api_calls_remaining, 1000)
+            )
         )
         num_calls = len(next_call_group)
         api_calls_remaining = api_calls_remaining[num_calls:]
