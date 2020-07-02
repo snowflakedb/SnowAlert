@@ -109,7 +109,13 @@ def connection_run(connection_table, run_now=False):
     log.info(f"-- END DC --")
 
 
-def main(connection_table="%_CONNECTION", run_now=False):
+def main(connection_table=None, run_now=False):
+    if connection_table is not None:
+        # for a single table, we ignore schedule and run now
+        run_now = True
+    else:
+        connection_table = "%_CONNECTION"
+
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
     if len(tables) == 1:
         connection_run(tables[0], run_now=run_now)
