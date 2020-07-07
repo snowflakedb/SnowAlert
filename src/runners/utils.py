@@ -38,6 +38,11 @@ def json_dumps(obj, **kwargs):
         if hasattr(x, 'raw'):
             return default_json_dumps(x.raw)
 
+        # e.g. requests.Response
+        if callable(getattr(x, 'json', None)):
+            return x.json()
+
+        # e.g. pandas.DataFrame
         if callable(getattr(x, 'to_json', None)):
             return json.parse(x.to_json())
 
