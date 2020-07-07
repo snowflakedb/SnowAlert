@@ -35,9 +35,6 @@ def json_dumps(obj, **kwargs):
         if isinstance(x, (date, datetime)):
             return x.isoformat()
 
-        if hasattr(x, 'raw'):
-            return default_json_dumps(x.raw)
-
         # e.g. requests.Response
         if callable(getattr(x, 'json', None)):
             return x.json()
@@ -45,6 +42,9 @@ def json_dumps(obj, **kwargs):
         # e.g. pandas.DataFrame
         if callable(getattr(x, 'to_json', None)):
             return json.parse(x.to_json())
+
+        if hasattr(x, 'raw'):
+            return default_json_dumps(x.raw)
 
         if type(x) is GeneratorType:
             return list(x)

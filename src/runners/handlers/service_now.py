@@ -54,17 +54,20 @@ def handle(alert, assignee=''):
         return
 
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
+    description = alert.get('DESCRIPTION', '')
 
     response = requests.post(
         f'https://{host}/api/now/table/incident',
         auth=Bearer(access_token) if access_token else (username, password),
-        data={
+        json={
             'contact_type': 'Integration',
             'impact': '2',
             'urgency': '2',
             'category': 'IT Security',
             'subcategory': 'Remediation',
+            'assignment_group': 'Security Compliance',
             'short_description': title,
+            'description': description,
             'assigned_to': assignee,
         },
     )
