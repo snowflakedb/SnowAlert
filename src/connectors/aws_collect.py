@@ -172,6 +172,18 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
+    'ec2_describe_route_tables': [ 
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('error', 'VARIANT'),
+        ('associations', 'VARIANT'),
+        ('propagating_vgws', 'VARIANT'),
+        ('route_table_id', 'STRING'),
+        ('routes', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+        ('owner_id', 'STRING')
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html#output
     'ec2_describe_security_groups': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -625,6 +637,21 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'OwnerId': 'owner_id',
                     'RequesterId': 'requester_id',
                     'ReservationId': 'reservation_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_route_tables': {
+        'response': {
+            'RouteTables': [
+                {
+                    'Associations': 'associations',
+                    'PropagatingVgws': 'propagating_vgws',
+                    'RouteTableId': 'route_table_id',
+                    'Routes': 'routes',
+                    'Tags': 'tags',
+                    'VpcId': 'vpc_id',
+                    'OwnerId': 'owner_id'   
                 }
             ]
         }
