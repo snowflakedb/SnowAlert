@@ -184,7 +184,7 @@ SUPPLEMENTARY_TABLES = {
         ('routes', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('vpc_id', 'STRING'),
-        ('owner_id', 'STRING')
+        ('owner_id', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-security-groups.html#output
     'ec2_describe_security_groups': [
