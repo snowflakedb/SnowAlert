@@ -173,7 +173,7 @@ SUPPLEMENTARY_TABLES = {
         ('reservation_id', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
-    'ec2_describe_route_tables': [ 
+    'ec2_describe_route_tables': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('error', 'VARIANT'),
         ('account_id', 'STRING'),
