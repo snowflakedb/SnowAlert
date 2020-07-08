@@ -19,6 +19,7 @@ def handle(alert, assignee=''):
     host = env.get('SA_SN_API_HOST')
     if not host:
         log.info('skipping service-now handler, missing host')
+        return
 
     username = vault.decrypt_if_encrypted(envar='SA_SN_API_USER')
     password = vault.decrypt_if_encrypted(envar='SA_SN_API_PASS')
