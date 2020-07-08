@@ -1379,6 +1379,7 @@ async def aioingest(table_name, options, dryrun=False):
                     'iam.get_account_summary',
                     'iam.get_account_password_policy',
                     'ec2.describe_instances',
+                    'ec2.describe_route_tables',
                     'ec2.describe_security_groups',
                     'config.describe_configuration_recorders',
                     'kms.list_keys',
