@@ -651,7 +651,6 @@ SUPPLEMENTARY_TABLES = {
     'virtual_machines_extensions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
         ('vm_id', 'VARCHAR(1000)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(50)'),
@@ -1109,7 +1108,6 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'vmId': 'vm_id',
             'error': 'error',
             'id': 'id',
