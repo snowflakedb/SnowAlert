@@ -176,6 +176,8 @@ SUPPLEMENTARY_TABLES = {
     'ec2_describe_route_tables': [ 
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('error', 'VARIANT'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
         ('associations', 'VARIANT'),
         ('propagating_vgws', 'VARIANT'),
         ('route_table_id', 'STRING'),
