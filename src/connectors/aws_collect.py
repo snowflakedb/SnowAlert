@@ -653,7 +653,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'Routes': 'routes',
                     'Tags': 'tags',
                     'VpcId': 'vpc_id',
-                    'OwnerId': 'owner_id'   
+                    'OwnerId': 'owner_id',
                 }
             ]
         }
