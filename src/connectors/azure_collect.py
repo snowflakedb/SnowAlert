@@ -630,7 +630,6 @@ SUPPLEMENTARY_TABLES = {
     'virtual_machines_instance_view': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
         ('vm_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('boot_diagnostics', 'VARIANT'),
