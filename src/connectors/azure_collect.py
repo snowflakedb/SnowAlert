@@ -1084,7 +1084,6 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'vmId': 'vm_id',
             'error': 'error',
             'bootDiagnostics': 'boot_diagnostics',
