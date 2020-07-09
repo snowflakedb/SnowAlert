@@ -2004,7 +2004,7 @@ SELECT 'CN4YBO0X01B' AS query_id
          'subscription_id', subscription_id
        ) AS environment
      , (
-         'VM ' || vm_id
+         'Disk ' || disk_id
        ) AS object
      , 'AZ CIS 7.3 violated by ' || object AS description
      , CURRENT_TIMESTAMP AS alert_time
@@ -2014,18 +2014,19 @@ SELECT 'CN4YBO0X01B' AS query_id
      , 'devsecops' AS owner
      , OBJECT_CONSTRUCT(
          'query_id', query_id,
-         'vm_id', vm_id
+         'disk_id', disk_id
        ) AS identity
 FROM (
     SELECT DISTINCT
-      id,
-      managedby,
+      id disk_id,
+      tenant_id,
+      subscription_id,
+      managed_by,
       properties:encryption encryption
     FROM data.azure_collect_disks
     WHERE recorded_at > CURRENT_DATE - 1
-      AND id IS NOT NULL
-      AND managedby IS NULL
-    ;
+      AND disk_id IS NOT NULL
+      AND managed_by IS NULL
 )
 WHERE 1=1
   AND encryption:type NOT IN (
