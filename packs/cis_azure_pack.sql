@@ -2035,6 +2035,41 @@ WHERE 1=1
 ;
 
 
+CREATE OR REPLACE VIEW rules.AZURE_CIS_7_4_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Only approved VM extensions installed
+  @id 58CYJ8J9MC4
+  @tags cis, azure, virtual-machines'
+AS
+SELECT '58CYJ8J9MC4' AS query_id
+     , 'Azure CIS 7.4: Only approved VM extensions installed' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id
+       ) AS environment
+     , vm_id AS object
+     , 'AzCIS 7.4 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'vm_id', query_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT tenant_id, vm_id, name extension_name
+  FROM data.azure_collect_virtual_machines_extensions
+  WHERE recorded_at > CURRENT_DATE - 1
+    AND name IS NOT NULL
+)
+WHERE 1=1
+  AND extension_name NOT IN (
+    'LinuxDiagnostic',
+    'AzureNetworkWatcherExtension'
+  )
+;
+
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_8_1_VIOLATION_QUERY COPY GRANTS
   COMMENT='Expiration date is set on all keys
   @id J9SXTR77OP
