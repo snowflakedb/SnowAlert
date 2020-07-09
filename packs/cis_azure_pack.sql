@@ -1983,6 +1983,47 @@ FROM (
 )
 WHERE 1=1
   AND encryption:type != 'EncryptionAtRestWithPlatformKey'
+CREATE OR REPLACE VIEW rules.AZURE_CIS_7_3_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Unattached disks must be encrypted
+  @id CN4YBO0X01B
+  @tags cis, azure, virtual-machines'
+AS
+SELECT 'CN4YBO0X01B' AS query_id
+     , 'Azure CIS 7.2: Unattached disks must be encrypted' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , (
+         'VM ' || vm_id
+       ) AS object
+     , 'AZ CIS 7.3 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'High' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'vm_id', vm_id
+       ) AS identity
+FROM (
+    SELECT DISTINCT
+      id,
+      managedby,
+      properties:encryption encryption
+    FROM data.azure_collect_disks
+    WHERE recorded_at > CURRENT_DATE - 1
+      AND id IS NOT NULL
+      AND managedby IS NULL
+    ;
+)
+WHERE 1=1
+  AND encryption:type NOT IN (
+    'EncryptionAtRestWithCustomerKey',
+    'EncryptionAtRestWithPlatformAndCustomerKeys'
+  )
 ;
 
 
