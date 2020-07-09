@@ -1861,6 +1861,7 @@ FROM (
 WHERE 1=1
 ;
 
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_7_1_VIOLATION_QUERY COPY GRANTS
   COMMENT='OS Disk must be encrypted
   @id F7HQ2BVPBQG
@@ -1919,9 +1920,11 @@ FROM (
   WHERE disk_id IS NOT NULL
 )
 WHERE 1=1
-  AND encryption:type != 'EncryptionAtRestWithPlatformKey'
+  AND encryption:type NOT IN (
+    'EncryptionAtRestWithCustomerKey',
+    'EncryptionAtRestWithPlatformAndCustomerKeys'
+  )
 ;
-
 
 CREATE OR REPLACE VIEW rules.AZURE_CIS_7_2_VIOLATION_QUERY COPY GRANTS
   COMMENT='Data Disks must be encrypted
@@ -1982,7 +1985,12 @@ FROM (
   WHERE disk_id IS NOT NULL
 )
 WHERE 1=1
-  AND encryption:type != 'EncryptionAtRestWithPlatformKey'
+  AND encryption:type NOT IN (
+    'EncryptionAtRestWithCustomerKey',
+    'EncryptionAtRestWithPlatformAndCustomerKeys'
+  )
+;
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_7_3_VIOLATION_QUERY COPY GRANTS
   COMMENT='Unattached disks must be encrypted
   @id CN4YBO0X01B
