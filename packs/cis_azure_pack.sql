@@ -1997,7 +1997,7 @@ CREATE OR REPLACE VIEW rules.AZURE_CIS_7_3_VIOLATION_QUERY COPY GRANTS
   @tags cis, azure, virtual-machines'
 AS
 SELECT 'CN4YBO0X01B' AS query_id
-     , 'Azure CIS 7.2: Unattached disks must be encrypted' AS title
+     , 'Azure CIS 7.3: Unattached disks must be encrypted' AS title
      , OBJECT_CONSTRUCT(
          'cloud', 'azure',
          'tenant_id', tenant_id,
