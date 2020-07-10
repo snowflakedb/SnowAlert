@@ -17,9 +17,14 @@ from runners.config import RUN_ID
 from runners.helpers import log
 
 
-def main(target="all", rule_name=None):
-    if target == "connector" and rule_name:
-        connectors_runner.main(rule_name.upper())
+def main(target="all", *rule_names):
+    if target == "connector" and rule_names:
+        for rule_name in rule_names:
+            connectors_runner.main(rule_name.upper())
+
+    elif target == "ingest" and rule_names:
+        for rule_name in rule_names:
+            ingest_runner.main(rule_names)
 
     elif target == "processor":
         alert_processor.main()
@@ -27,27 +32,25 @@ def main(target="all", rule_name=None):
     elif target == "dispatcher":
         alert_dispatcher.main()
 
-    elif rule_name and target == "ingest":
-        ingest_runner.main(rule_name)
+    elif rule_names:
+        for rule_name in rule_names:
+            if rule_name.upper().endswith("_ALERT_QUERY"):
+                alert_queries_runner.main(rule_name.upper())
 
-    elif rule_name:
-        if rule_name.endswith("_ALERT_QUERY"):
-            alert_queries_runner.main(rule_name.upper())
+            if rule_name.upper().endswith("_ALERT_SUPPRESSION"):
+                alert_suppressions_runner.main(rule_name.upper())
 
-        if rule_name.endswith("_ALERT_SUPPRESSION"):
-            alert_suppressions_runner.main(rule_name.upper())
+            if rule_name.upper().endswith("_VIOLATION_QUERY"):
+                violation_queries_runner.main(rule_name.upper())
 
-        if rule_name.endswith("_VIOLATION_QUERY"):
-            violation_queries_runner.main(rule_name.upper())
+            if rule_name.upper().endswith("_VIOLATION_SUPPRESSION"):
+                violation_suppressions_runner.main(rule_name.upper())
 
-        if rule_name.endswith("_VIOLATION_SUPPRESSION"):
-            violation_suppressions_runner.main(rule_name.upper())
+            if rule_name.upper().endswith("_CONNECTION"):
+                connectors_runner.main(rule_name.upper())
 
-        if rule_name.endswith("_CONNECTION"):
-            connectors_runner.main(rule_name.upper())
-
-        if rule_name.upper().endswith("_BASELINE"):
-            baseline_runner.main(rule_name.upper())
+            if rule_name.upper().endswith("_BASELINE"):
+                baseline_runner.main(rule_name.upper())
 
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
