@@ -1785,6 +1785,7 @@ def ingest(table_name, options, dryrun=False):
                     E=(
                         requests.exceptions.SSLError,
                         requests.exceptions.ConnectionError,
+                        requests.exceptions.ChunkedEncodingError,
                     ),
                     n=10,
                     sleep_seconds_btw_retry=30,
