@@ -473,6 +473,7 @@ SUPPLEMENTARY_TABLES = {
         ('classification', 'VARCHAR(1000)'),
         ('creation_options', 'VARIANT'),
         ('description', 'VARCHAR(5000)'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
     'users': [
