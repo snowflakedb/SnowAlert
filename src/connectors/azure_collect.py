@@ -1787,6 +1787,7 @@ def ingest(table_name, options, dryrun=False):
                         requests.exceptions.SSLError,
                         requests.exceptions.ConnectionError,
                         requests.exceptions.ChunkedEncodingError,
+                        requests.exceptions.ReadTimeout,
                     ),
                     n=10,
                     sleep_seconds_btw_retry=30,
