@@ -99,7 +99,7 @@ CREATE_SCHEMAS_QUERIES = [
 CREATE_TABLES_QUERIES = [
     f"""
       CREATE TABLE IF NOT EXISTS results.alerts(
-        , id STRING
+        id STRING
         , alert VARIANT
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
