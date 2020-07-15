@@ -40,7 +40,15 @@ CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
 
 
-def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_retry=0):
+def retry(
+    f,
+    E=Exception,
+    n=3,
+    log_errors=True,
+    handlers=[],
+    loggers=[],
+    sleep_seconds_btw_retry=0,
+):
     while 1:
         try:
             return f()
@@ -51,8 +59,13 @@ def retry(f, E=Exception, n=3, log_errors=True, handlers=[], sleep_seconds_btw_r
             for exception, handler in handlers:
                 if isinstance(e, exception):
                     return handler(e)
-            if log_errors:
-                log.error(e)
+            for exception, logger in loggers:
+                if isinstance(e, exception):
+                    logger(e)
+                    break
+            else:
+                if log_errors:
+                    log.error(e)
             if n < 0:
                 raise
 
@@ -120,7 +133,15 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         )
 
     try:
-        connection = retry(connect)
+        connection = retry(
+            connect,
+            loggers=[
+                (
+                    snowflake.connector.errors.DatabaseError,
+                    lambda e: print('db.retry:', utils.format_exception_only(e)),
+                )
+            ],
+        )
 
         # see SP-1116 for why set_cache=False by default
         if set_cache and not cached_connection:
