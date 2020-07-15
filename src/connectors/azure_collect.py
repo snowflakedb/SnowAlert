@@ -18,7 +18,7 @@ from azure.common.credentials import ServicePrincipalCredentials
 from msrestazure.azure_cloud import AZURE_US_GOV_CLOUD, AZURE_PUBLIC_CLOUD
 
 from connectors.utils import updated, yaml_dump
-from runners.utils import json_dumps
+from runners.utils import json_dumps, format_exception_only
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -1777,20 +1777,29 @@ def ingest(table_name, options, dryrun=False):
             f'{len(api_calls_remaining)} remain'
         )
 
-        api_response = namedtuple('api_response', ['results', 'cred'])
+        api_response = namedtuple('apie_response', ['results', 'cred'])
+        transient_api_errors = (
+            requests.exceptions.SSLError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ChunkedEncodingError,
+            requests.exceptions.ReadTimeout,
+        )
 
         responses = [
             api_response(
                 db.retry(
                     f=lambda: GET(**call),
-                    E=(
-                        requests.exceptions.SSLError,
-                        requests.exceptions.ConnectionError,
-                        requests.exceptions.ChunkedEncodingError,
-                        requests.exceptions.ReadTimeout,
-                    ),
+                    E=transient_api_errors,
                     n=10,
                     sleep_seconds_btw_retry=30,
+                    loggers=[
+                        (
+                            transient_api_errors,
+                            lambda e: print(
+                                'azure_collect.ingest:', format_exception_only(e)
+                            ),
+                        )
+                    ],
                 ),
                 call['cred'],
             )
