@@ -38,6 +38,7 @@ CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
 SELECT OBJECT_CONSTRUCT(
          'ALERT_ID', UUID_STRING(),
          'QUERY_NAME', '{{query_name}}',
+         'ALERT_TIME', CURRENT_TIMESTAMP,
          'QUERY_ID', IFNULL(QUERY_ID::VARIANT, PARSE_JSON('null')),
          'ENVIRONMENT', IFNULL(ENVIRONMENT::VARIANT, PARSE_JSON('null')),
          'SOURCES', IFNULL(SOURCES::VARIANT, PARSE_JSON('null')),
@@ -46,7 +47,6 @@ SELECT OBJECT_CONSTRUCT(
          'ACTION', IFNULL(ACTION::VARIANT, PARSE_JSON('null')),
          'TITLE', IFNULL(TITLE::VARIANT, PARSE_JSON('null')),
          'EVENT_TIME', IFNULL(EVENT_TIME::VARIANT, PARSE_JSON('null')),
-         'ALERT_TIME', IFNULL(ALERT_TIME::VARIANT, PARSE_JSON('null')),
          'DESCRIPTION', IFNULL(DESCRIPTION::VARIANT, PARSE_JSON('null')),
          'DETECTOR', IFNULL(DETECTOR::VARIANT, PARSE_JSON('null')),
          'EVENT_DATA', IFNULL(EVENT_DATA::VARIANT, PARSE_JSON('null')),
@@ -64,6 +64,7 @@ WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
 MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
 
   SELECT ANY_VALUE(alert) AS alert
+       , alert:ALERT_ID AS alert_id,
        , SUM(counter) AS counter
        , MIN(alert_time) AS alert_time
        , MIN(event_time) AS event_time
@@ -83,8 +84,9 @@ WHEN MATCHED
 THEN UPDATE SET counter = alerts.counter + new_alerts.counter
 
 WHEN NOT MATCHED
-THEN INSERT (alert, counter, alert_time, event_time)
+THEN INSERT (id, alert, counter, alert_time, event_time)
   VALUES (
+    new_alerts.alert_id,
     new_alerts.alert,
     new_alerts.counter,
     new_alerts.alert_time,
@@ -114,6 +116,7 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
         'RUN_ID': RUN_ID,
         'ATTEMPTS': 1,
         'START_TIME': datetime.datetime.utcnow(),
+        'ALERT_TIME': None,
         'ROW_COUNT': {'INSERTED': 0, 'UPDATED': 0},
     }
 
