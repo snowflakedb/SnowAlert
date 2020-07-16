@@ -207,7 +207,7 @@ SELECT CURRENT_TIMESTAMP() insert_time
     --- In the rare event of an unparsable timestamp, the following COALESCE keeps the pipeline from failing.
     --- Compare event_time to TRY_TO_TIMESTAMP(raw:eventTime::STRING) to establish if the timestamp was parsed.
     , COALESCE(
-        TRY_TO_TIMESTAMP(value:eventTime::STRING)::TIMESTAMP_LTZ(9),
+        TRY_TO_TIMESTAMP_LTZ(value:eventTime::STRING),
         CURRENT_TIMESTAMP()
       ) event_time
     , value:awsRegion::STRING aws_region
