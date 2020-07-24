@@ -96,7 +96,9 @@ def main(squelch_name=None):
     for squelch_name in rules:
         run_suppressions(squelch_name)
 
-    num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE))['number of rows updated']
+    num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE, fix_errors=False))[
+        'number of rows updated'
+    ]
     log.info(
         f'All suppressions done, {num_rows_updated} remaining alerts marked suppressed=FALSE.'
     )
