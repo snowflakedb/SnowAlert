@@ -81,6 +81,7 @@ SUPPLEMENTARY_TABLES = {
         ('is_registered', 'BOOLEAN'),
         ('user_display_name', 'STRING'),
         ('user_principal_name', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/resources/subscriptions/listlocations#location
     'subscriptions_locations': [
@@ -402,6 +403,7 @@ SUPPLEMENTARY_TABLES = {
         ('verified_publisher', 'VARIANT'),
         ('is_authorization_service_enabled', 'BOOLEAN'),
         ('app_description', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/group?view=graph-rest-1.0#properties
     'groups': [
@@ -447,6 +449,7 @@ SUPPLEMENTARY_TABLES = {
         ('membership_rule_processing_state', 'STRING'),
         ('preferred_language', 'STRING'),
         ('theme', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/group-list-members?view=graph-rest-1.0&tabs=http#response
     'groups_members': [
@@ -596,6 +599,7 @@ SUPPLEMENTARY_TABLES = {
         ('free_storage_space_in_bytes', 'NUMBER'),
         ('managed_device_name', 'STRING'),
         ('partner_reported_threat_state', 'VARCHAR(100)'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/monitor/diagnosticsettings/list#diagnosticsettingsresource
     'diagnostic_settings': [
@@ -760,6 +764,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'isEnabled': 'is_enabled',
             'isCapable': 'is_capable',
             'isMfaRegistered': 'is_mfa_registered',
+            '*': 'raw',
         },
     },
     'service_principals': {
@@ -811,6 +816,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'tags': 'tags',
             'verifiedPublisher': 'verified_publisher',
             'isAuthorizationServiceEnabled': 'is_authorization_service_enabled',
+            '*': 'raw'
         },
     },
     'groups': {
@@ -861,6 +867,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'theme': 'theme',
             'unseenCount': 'unseen_count',
             'visibility': 'visibility',
+            '*': 'raw',
         },
         'children': [{'kind': 'groups_members', 'args': {'groupId': 'id'}}],
     },
@@ -1035,6 +1042,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'freeStorageSpaceInBytes': 'free_storage_space_in_bytes',
             'managedDeviceName': 'managed_device_name',
             'partnerReportedThreatState': 'partner_reported_threat_state',
+            '*': 'raw',
         },
     },
     'subscriptions_locations': {
