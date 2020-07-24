@@ -1,5 +1,5 @@
 import {Button, Collapse, Form, Input} from 'antd';
-import {LoadingOutlined, ApiOutlined, TeamOutlined, SettingOutlined} from '@ant-design/icons';
+import {ClusterOutlined, DatabaseOutlined, LoadingOutlined, ApiOutlined, TeamOutlined, SettingOutlined} from '@ant-design/icons';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -43,7 +43,9 @@ class LoginForm extends React.Component<LoginFormProps, State> {
     console.log(values)
     localStorage.setItem('account', values.account);
     localStorage.setItem('role', values.role || '');
-    this.props.oauthRedirect(values.account, values.role, window.location.href);
+    localStorage.setItem('database', values.database || '');
+    localStorage.setItem('warehouse', values.warehouse || '');
+    this.props.oauthRedirect(values.account, values.role, values.database, values.warehouse, window.location.href);
   };
 
   render() {
@@ -89,6 +91,20 @@ class LoginForm extends React.Component<LoginFormProps, State> {
                           prefix={<TeamOutlined className={'prefix-icon'} />}
                           placeholder={'snowalert_reader_rl'}
                           addonBefore={'ROLE'}
+                        />
+                      </Form.Item>
+                      <Form.Item name="database">
+                        <Input
+                          prefix={<DatabaseOutlined className={'prefix-icon'} />}
+                          placeholder={'snowalert_db'}
+                          addonBefore={'DATABASE'}
+                        />
+                      </Form.Item>
+                      <Form.Item name="warehouse">
+                        <Input
+                          prefix={<ClusterOutlined className={'prefix-icon'} />}
+                          placeholder={'snowalert_wh'}
+                          addonBefore={'WAREHOUSE'}
                         />
                       </Form.Item>
                     </Collapse.Panel>

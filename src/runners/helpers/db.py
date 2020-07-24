@@ -78,6 +78,8 @@ def retry(
 def connect(flush_cache=False, set_cache=False, oauth={}):
     account = oauth.get('account')
     role = oauth.get('role')
+    db = oauth.get('database')
+    wh = oauth.get('warehouse')
     oauth_refresh_token = oauth.get('refresh_token')
     oauth_access_token = (
         oauth_refresh(account, oauth_refresh_token) if oauth_refresh_token else None
@@ -106,8 +108,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         )
     )
 
-    db = environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE
-    wh = environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE
+    db = db or environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE
+    wh = wh or environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE
     rl = role or environ.get('OAUTH_CONNECTION_ROLE', None) if oauth_access_token else ROLE
     def connect():
         return connect_db(
