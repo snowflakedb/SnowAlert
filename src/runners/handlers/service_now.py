@@ -16,6 +16,7 @@ class Bearer(requests.auth.AuthBase):
 
 
 def handle(alert, assignee=''):
+    endpoint = env.get('SA_SN_API_ENDPOINT', '/now/table/incident')
     host = env.get('SA_SN_API_HOST')
     if not host:
         log.info('skipping service-now handler, missing host')
@@ -58,7 +59,7 @@ def handle(alert, assignee=''):
     description = alert.get('DESCRIPTION', '')
 
     response = requests.post(
-        f'https://{host}/api/now/table/incident',
+        f'https://{host}/api{endpoint}',
         auth=Bearer(access_token) if access_token else (username, password),
         json={
             'contact_type': 'Integration',
