@@ -106,6 +106,9 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         )
     )
 
+    db = environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE
+    wh = environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE
+    rl = role or environ.get('OAUTH_CONNECTION_ROLE', None) if oauth_access_token else ROLE
     def connect():
         return connect_db(
             # Role, Warehouse, and Database connection values are defined in the following order:
@@ -115,16 +118,10 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             account=oauth_account or ACCOUNT,
             port=PORT,
             protocol=PROTOCOL,
-            database=environ.get('OAUTH_CONNECTION_DATABASE', None)
-            if oauth_account
-            else DATABASE,
+            database=db,
             user=oauth_username or USER,
-            warehouse=environ.get('OAUTH_CONNECTION_WAREHOUSE', None)
-            if oauth_access_token
-            else WAREHOUSE,
-            role=role or environ.get('OAUTH_CONNECTION_ROLE', None)
-            if oauth_access_token
-            else ROLE,
+            warehouse=wh,
+            role=rl,
             token=oauth_access_token,
             private_key=pk,
             authenticator=authenticator,
