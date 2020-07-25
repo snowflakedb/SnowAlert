@@ -4,6 +4,16 @@ from itertools import zip_longest
 import json
 import traceback
 from types import GeneratorType
+import yaml
+
+
+yaml.add_representer(
+    str,
+    lambda dumper, data: dumper.represent_scalar(
+        'tag:yaml.org,2002:str', data, style='|' if '\n' in data else None
+    ),
+)
+
 
 NO_FILL = object()
 

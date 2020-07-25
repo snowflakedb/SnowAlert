@@ -1,12 +1,12 @@
 from json import dumps
 from os import environ
 from urllib.parse import quote
-import yaml
 import os
 
 from jira import JIRA, User
 
 from runners.helpers import log, vault, db
+from runners.utils import yaml
 
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
