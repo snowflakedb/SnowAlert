@@ -70,7 +70,8 @@ def main(target="all", *rule_names):
             connectors_runner.main()
 
         if target in ['connector', 'connectors', 'all']:
-            connectors_runner.main(rule_name)
+            for rule_name in rule_names:
+                connectors_runner.main(rule_name)
 
         if target in ['baseline', 'baselines', 'all']:
             baseline_runner.main()
