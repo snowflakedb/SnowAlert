@@ -22,8 +22,10 @@ const tokenConfig = (token: string | null) => ({
 const authHeader = () => {
   const account = localStorage.getItem('account') || '';
   const role = localStorage.getItem('role') || '';
+  const database = localStorage.getItem('database') || '';
+  const warehouse = localStorage.getItem('warehouse') || '';
   const auth = JSON.parse(localStorage.getItem('auth') || '{}')[account];
-  return {Authorization: JSON.stringify(Object.assign(auth || {}, {role: role}))};
+  return {Authorization: JSON.stringify(Object.assign(auth || {}, {role, database, warehouse}))};
 };
 
 const handleResponse = (response: AxiosResponse) => {
