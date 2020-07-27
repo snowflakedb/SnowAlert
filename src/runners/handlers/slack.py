@@ -8,37 +8,28 @@ from runners.helpers import db
 from runners.helpers import vault
 
 
-def message_template(vars):
+def message_template(alert, properties, user, template):
     payload = None
 
     # remove handlers data, it might contain JSON incompatible strucutres
-    vars['alert'].pop('HANDLERS')
+    alert.pop('HANDLERS')
 
     # if we have Slack user data, send it to template
-    if 'user' in vars:
-        params = {
-            'alert': vars['alert'],
-            'properties': vars['properties'],
-            'user': vars['user'],
-        }
-    else:
-        params = {'alert': vars['alert'], 'properties': vars['properties']}
+    params = {'alert': alert, 'properties': properties}
+    if user:
+        params['user'] = user
 
     log.debug(f"Javascript template parameters", params)
     try:
         # retrieve Slack message structure from javascript UDF
-        rows = db.connect_and_fetchall(
-            "select " + vars['template'] + "(parse_json(%s))",
-            params=[json.dumps(params)]
-        )
-        row = rows[1]
+        row = db.select(template + "(parse_json(%s))", params=[json.dumps(params)])
 
-        if len(row) > 0:
-            log.debug(f"Template {vars['template']}", ''.join(row[0]))
+        if row:
+            log.debug(f"Template {template}", ''.join(row[0]))
             payload = json.loads(''.join(row[0]))
         else:
-            log.error(f"Error loading javascript template {vars['template']}")
-            raise Exception(f"Error loading javascript template {vars['template']}")
+            log.error(f"Error loading javascript template {template}")
+            raise Exception(f"Error loading javascript template {template}")
     except Exception as e:
         log.error(f"Error loading javascript template", e)
         raise
@@ -72,16 +63,16 @@ def handle(
 
     title = alert['TITLE']
 
-    if recipient_email is not None:
+    if recipient_email is None:
+        user = None
+    else:
         result = sc.api_call("users.lookupByEmail", email=recipient_email)
-
-        # log.info(f'Slack user info for {email}', result)
 
         if result['ok'] is True and 'error' not in result:
             user = result['user']
             userid = user['id']
         else:
-            log.error(f'Cannot identify  Slack user for email {recipient_email}')
+            log.error(f'Cannot identify Slack user for email {recipient_email}')
             return None
 
     # check if channel exists, if yes notification will be delivered to the channel
@@ -102,10 +93,8 @@ def handle(
     text = title
 
     if template is not None:
-        properties = {'channel': channel, 'message': message}
-
         # create Slack message structure in Snowflake javascript UDF
-        payload = message_template(locals())
+        payload = message_template(alert, channel, user, message, template)
 
         if payload is not None:
             if 'blocks' in payload:

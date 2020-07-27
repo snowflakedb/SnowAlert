@@ -176,6 +176,10 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
         yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}
 
 
+def select(query, params=None):
+    return next(fetch(f'SELECT {query}', fix_errors=False, params=params), None)
+
+
 def execute(ctx, query=None, fix_errors=True, params=None):
     # TODO(andrey): don't ignore errors by default
     if query is None:  # TODO(andrey): swap args and refactor
