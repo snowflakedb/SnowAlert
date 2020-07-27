@@ -57,6 +57,8 @@ def handle(
     file_type=None,
     file_name=None,
     slack_api_token=None,
+    blocks=None,
+    attachments=None,
 ):
     if 'SLACK_API_TOKEN' not in os.environ and slack_api_token is None:
         log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
@@ -97,8 +99,6 @@ def handle(
             log.error(f'Cannot identify assignee email')
             return None
 
-    blocks = None
-    attachments = None
     text = title
 
     if template is not None:

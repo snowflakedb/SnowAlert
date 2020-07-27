@@ -108,9 +108,22 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         )
     )
 
-    db = db or environ.get('OAUTH_CONNECTION_DATABASE', None) if oauth_account else DATABASE
-    wh = wh or environ.get('OAUTH_CONNECTION_WAREHOUSE', None) if oauth_access_token else WAREHOUSE
-    rl = role or environ.get('OAUTH_CONNECTION_ROLE', None) if oauth_access_token else ROLE
+    db = (
+        db or environ.get('OAUTH_CONNECTION_DATABASE', None)
+        if oauth_account
+        else DATABASE
+    )
+    wh = (
+        wh or environ.get('OAUTH_CONNECTION_WAREHOUSE', None)
+        if oauth_access_token
+        else WAREHOUSE
+    )
+    rl = (
+        role or environ.get('OAUTH_CONNECTION_ROLE', None)
+        if oauth_access_token
+        else ROLE
+    )
+
     def connect():
         return connect_db(
             # Role, Warehouse, and Database connection values are defined in the following order:
