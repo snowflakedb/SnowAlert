@@ -33,6 +33,8 @@ def format_exception_only(e):
 
 
 def json_dumps(obj, **kwargs):
+    kwargs.setdefault('sort_keys', True)
+
     def default_json_dumps(x):
         if isinstance(x, Exception):
             return {
