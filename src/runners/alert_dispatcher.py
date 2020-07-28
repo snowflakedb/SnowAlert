@@ -22,10 +22,13 @@ def get_new_alerts(ctx):
 
 
 def record_status(results, alert_id):
-    query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
-    log.info('Updating alert table:', query)
     try:
-        db.execute(query, params=json_dumps(results))
+        db.execute(
+            f"UPDATE results.alerts "
+            f"SET handled=PARSE_JSON(%s) "
+            f"WHERE alert:ALERT_ID='{alert_id}'",
+            params=[json_dumps(results)]
+        )
     except Exception as e:
         log.error(e, f"Failed to update alert {alert_id} with status {results}")
 
@@ -79,7 +82,6 @@ def main():
                         }
 
                     except Exception as e:
-                        log.error(e, 'handler failed')
                         result = {'success': False, 'details': e}
 
                 results.append(result)
