@@ -664,6 +664,17 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/instanceview#virtualmachineinstanceview
+    'queue_services': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_path_id', 'VARCHAR(5000)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(50)'),
+        ('name', 'STRING'),
+        ('type', 'STRING'),
+        ('properties', 'VARIANT'),
+    ],
 }
 
 
@@ -1319,7 +1330,11 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             {
                 'kind': 'storage_accounts_containers',
                 'args': {'subscriptionId': 'subscription_id', 'accountName': 'name'},
-            }
+            },
+            {
+                'kind': 'queue_services',
+                'args': {'subscriptionPathId': 'id', 'tenantId': 'tenant_id'},
+            },
         ],
     },
     'storage_accounts_containers': {
@@ -1617,6 +1632,24 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'type': 'type',
             'kind': 'kind',
             'identity': 'identity',
+        },
+    },
+    'queue_services': {
+        'request': {
+            'path': ('{subscriptionPathId}/queueServices'),
+            'api-version': '2019-06-01',
+        },
+        'rate_limit': '0.1/s',
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'subscriptionPathId': 'subscription_path_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'type': 'type',
+            'properties': 'properties',
         },
     },
 }
