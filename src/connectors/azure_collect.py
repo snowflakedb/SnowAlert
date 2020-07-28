@@ -1,7 +1,7 @@
 """Azure Inventory and Configuration
 Load Inventory and Configuration of accounts using Service Principals
 """
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 from itertools import chain, islice, takewhile
@@ -816,7 +816,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'tags': 'tags',
             'verifiedPublisher': 'verified_publisher',
             'isAuthorizationServiceEnabled': 'is_authorization_service_enabled',
-            '*': 'raw'
+            '*': 'raw',
         },
     },
     'groups': {
@@ -1622,7 +1622,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def GET(kind, params, cred) -> List[Dict]:
+def GET(kind, params, cred, depth) -> List[Dict]:
     spec = API_SPECS[kind]
     request_spec = spec['request']
     path = request_spec['path'].format(**params)
@@ -1742,6 +1742,8 @@ def GET(kind, params, cred) -> List[Dict]:
 
 def ingest(table_name, options, dryrun=False):
     connection_name = options['name']
+    apis = options.get('apis', '*').split('.')
+    call_depth = 0
     all_creds = options['credentials']
     num_loaded = 0
 
@@ -1749,7 +1751,7 @@ def ingest(table_name, options, dryrun=False):
     table_prefix = f'data.azure_collect{table_name_part}'
 
     api_calls_remaining = [
-        {'cred': cred, 'kind': kind, 'params': {}}
+        {'cred': cred, 'kind': kind, 'params': {}, 'depth': 0}
         for kind in [
             'reports_credential_user_registration_details',
             'users',
@@ -1772,20 +1774,14 @@ def ingest(table_name, options, dryrun=False):
 
     while api_calls_remaining:
         next_call_kind = api_calls_remaining[0]['kind']
+        next_call_depth = api_calls_remaining[0]['depth']
         next_call_group = list(
-            takewhile(
-                lambda c: c['kind'] == next_call_kind, islice(api_calls_remaining, 1000)
-            )
+            takewhile(lambda c: c['kind'] == next_call_kind, api_calls_remaining)
         )
         num_calls = len(next_call_group)
         api_calls_remaining = api_calls_remaining[num_calls:]
-        log.info(
-            f'GET {next_call_kind}: '
-            f'{num_calls} calls, '
-            f'{len(api_calls_remaining)} remain'
-        )
 
-        api_response = namedtuple('apie_response', ['results', 'cred'])
+        api_response = namedtuple('api_response', ['cred', 'results'])
         transient_api_errors = (
             requests.exceptions.SSLError,
             requests.exceptions.ConnectionError,
@@ -1793,32 +1789,63 @@ def ingest(table_name, options, dryrun=False):
             requests.exceptions.ReadTimeout,
         )
 
-        responses = [
-            api_response(
-                db.retry(
-                    f=lambda: GET(**call),
-                    E=transient_api_errors,
-                    n=10,
-                    sleep_seconds_btw_retry=30,
-                    loggers=[
-                        (
-                            transient_api_errors,
-                            lambda e: print(
-                                'azure_collect.ingest:', format_exception_only(e)
-                            ),
-                        )
-                    ],
-                ),
-                call['cred'],
-            )
+        calls = [
+            call
             for call in next_call_group
+            if (call['depth'] + 1 >= len(apis) and apis[-1] == '*')
+            or apis[call['depth']] == next_call_kind
         ]
+
+        if not calls:
+            continue
+
+        log.info(
+            f'GET {next_call_kind}: '
+            f'{num_calls} calls, '
+            f'{len(api_calls_remaining)} remain'
+        )
+
+        spec = API_SPECS[next_call_kind]
+        rate_space = 1 / float(
+            re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s')).group(1)
+        )
+        responses = []
+        last_request = defaultdict(float)
+        while calls:
+            call = calls.pop(0)
+            now = time()
+            cred_json = json_dumps(call['cred'])
+            if now - last_request[cred_json] < rate_space:
+                calls.append(call)
+                continue
+            else:
+                last_request[cred_json] = now
+
+            responses.append(
+                api_response(
+                    call['cred'],
+                    db.retry(
+                        f=lambda: GET(**call),
+                        E=transient_api_errors,
+                        n=10,
+                        sleep_seconds_btw_retry=30,
+                        loggers=[
+                            (
+                                transient_api_errors,
+                                lambda e: print(
+                                    'azure_collect.ingest:', format_exception_only(e)
+                                ),
+                            )
+                        ],
+                    ),
+                )
+            )
 
         insert_results(
             next_call_kind, chain.from_iterable(r.results for r in responses)
         )
 
-        for child_spec in API_SPECS[next_call_kind].get('children', []):
+        for child_spec in spec.get('children', []):
             for response in responses:
                 for result in response.results:
                     argspec = child_spec.get('args', {})
@@ -1835,13 +1862,16 @@ def ingest(table_name, options, dryrun=False):
                                 'cred': response.cred,
                                 'kind': child_spec['kind'],
                                 'params': params,
+                                'depth': next_call_depth + 1,
                             }
                         )
 
     return num_loaded
 
 
-def main(table_name, tenant, client, secret, cloud, dryrun=True, run_now=False):
+def main(
+    table_name, tenant, client, secret, cloud, apis='*', dryrun=True, run_now=False
+):
     now = datetime.now()
     schedule = '*' if run_now or (now.hour % 3 == 1 and now.minute < 15) else False
 
@@ -1853,6 +1883,7 @@ def main(table_name, tenant, client, secret, cloud, dryrun=True, run_now=False):
                 {'tenant': tenant, 'client': client, 'secret': secret, 'cloud': cloud}
             ],
             'schedule': schedule,
+            'apis': apis,
         },
         dryrun=dryrun,
     )
