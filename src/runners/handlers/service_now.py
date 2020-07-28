@@ -1,3 +1,22 @@
+"""ServiceNow dispatcher
+
+envars:
+- config
+  - SA_SN_API_HOST
+  - SA_SN_API_ENDPOINT
+  - SA_SN_FIELD_PREFIX
+
+- auth1
+  - SA_SN_API_USER
+  - SA_SN_API_PASS
+
+- auth2
+  - SA_SN_OAUTH_CLIENT_ID
+  - SA_SN_OAUTH_CLIENT_SECRET
+  - SA_SN_OAUTH_REFRESH_TOKEN
+
+"""
+
 from os import environ as env
 
 import requests
@@ -16,7 +35,6 @@ class Bearer(requests.auth.AuthBase):
 
 
 def handle(alert, assignee=''):
-    endpoint = env.get('SA_SN_API_ENDPOINT', '/now/table/incident')
     host = env.get('SA_SN_API_HOST')
     if not host:
         log.info('skipping service-now handler, missing host')
@@ -58,27 +76,32 @@ def handle(alert, assignee=''):
     title = alert.get('TITLE', 'SnowAlert Generate Incident')
     description = alert.get('DESCRIPTION', '')
 
+    endpoint = env.get('SA_SN_API_ENDPOINT', '/now/table/incident')
+    api_url = f'https://{host}/api{endpoint}'
+
+    fp = env.get('SA_SN_FIELD_PREFIX', '')
     response = requests.post(
-        f'https://{host}/api{endpoint}',
+        api_url,
         auth=Bearer(access_token) if access_token else (username, password),
         json={
-            'contact_type': 'Integration',
-            'impact': '2',
-            'urgency': '2',
-            'category': 'IT Security',
-            'subcategory': 'Remediation',
-            'assignment_group': 'Security Compliance',
-            'short_description': title,
-            'description': description,
-            'assigned_to': assignee,
+            f'{fp}contact_type': 'Integration',
+            f'{fp}impact': '2',
+            f'{fp}urgency': '2',
+            f'{fp}category': 'IT Security',
+            f'{fp}subcategory': 'Remediation',
+            f'{fp}assignment_group': 'Security Compliance',
+            f'{fp}short_description': title,
+            f'{fp}description': description,
+            f'{fp}assigned_to': assignee,
         },
     )
 
     if response.status_code != 201:
         log.info(
-            f'Status: {response.status_code}',
-            f'Headers: {response.headers}',
-            f'Error Response: {response.text}',
+            f'URL: {api_url}',
+            f'Status Code: {response.status_code}',
+            f'Response Length: {len(response.text)}',
+            f'Response Headers: {response.headers}',
         )
         raise RuntimeError(response)
 

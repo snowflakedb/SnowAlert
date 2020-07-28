@@ -47,7 +47,10 @@ def json_dumps(obj, **kwargs):
 
         # e.g. requests.Response
         if callable(getattr(x, 'json', None)):
-            return x.json()
+            try:
+                return x.json()
+            except:
+                pass
 
         # e.g. pandas.DataFrame
         if callable(getattr(x, 'to_json', None)):
