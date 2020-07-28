@@ -2,9 +2,9 @@
 Collect Duo admins using a key 
 """
 
-# from runners.helpers import db, log
-# from runners.helpers.dbconfig import ROLE as SA_ROLE
-# from .utils import yaml_dump
+ from runners.helpers import db, log
+ from runners.helpers.dbconfig import ROLE as SA_ROLE
+ from .utils import yaml_dump
 
 from datetime import datetime
 import duo_client
