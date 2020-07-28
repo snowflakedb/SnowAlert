@@ -8,7 +8,6 @@ Collect Duo admins using a key
 
 from datetime import datetime
 import duo_client
-import os
 
 PAGE_SIZE = 500
 
