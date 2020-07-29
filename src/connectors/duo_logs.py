@@ -82,8 +82,8 @@ def ingest(table_name, options, dryrun=False):
 
         db.insert(
             landing_table,
-            values=[(admin, timestamp) for admin in admins],
-            select='PARSE_JSON(column1), column2',
+            {'raw': admin, 'recorded_at': timestamp},
+            dryrun=dryrun
         )
 
         log.info(f'Inserted {len_admins} rows.')
