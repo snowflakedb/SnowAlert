@@ -3,6 +3,7 @@ from . import aws_collect
 from . import aws_flow_log
 from . import azure_collect
 from . import azure_log
+from . import duo_collect
 from . import github_webhooks_s3
 from . import gsuite_logs
 from . import okta
@@ -23,6 +24,7 @@ __all__ = [
     'aws_flow_log',
     'azure_collect',
     'azure_log',
+    'duo_collect',
     'github_webhooks_s3',
     'gsuite_logs',
     'meraki_devices',
@@ -44,6 +46,7 @@ connectors = {
     'aws_flow_log': aws_flow_log,
     'azure_collect': azure_collect,
     'azure_log': azure_log,
+    'duo_collect': duo_collect,
     'github_webhooks_s3': github_webhooks_s3,
     'gsuite_logs': gsuite_logs,
     'meraki_devices': meraki_devices,

@@ -42,7 +42,10 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-LANDING_ADMIN_TABLE_COLUMNS = [('raw', 'VARIANT', 'RECORDED_AT', 'TIMESTAMP_LTZ')]
+LANDING_ADMIN_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('recorded_at', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
+]
 
 
 def connect(connection_name, options):
@@ -63,30 +66,16 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options, dryrun=False):
-    landing_table = f'data.{table_name}'
-    timestamp = datetime.utcnow()
-
     url = options['subdomain']
-    integration_key = options['duo_integration_key']
     token = options['duo_key']
+    integration_key = options['duo_integration_key']
+
     admin_api = duo_client.Admin(ikey=integration_key, skey=token, host=url)
-
-    offset = 0
-    while True:
-        admins = admin_api.get_admins(limit=PAGE_SIZE, offset=offset)
-        len_admins = len(admins)
-        if len_admins == 0:
-            break
-
-        db.insert(
-            landing_table,
-            [{'raw': admin, 'recorded_at': timestamp} for admin in admins],
-            dryrun=dryrun
-        )
-
-        log.info(f'Inserted {len_admins} rows.')
-        offset += len_admins
-        yield len_admins
+    admins = list(admin_api.get_admins())
+    db.insert(
+        f'data.{table_name}', [{'raw': a} for a in admins], dryrun=dryrun,
+    )
+    return len(admins)
 
 
 def main(table_name, subdomain, duo_integration_key, duo_key, dryrun=False):
