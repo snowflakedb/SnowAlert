@@ -49,12 +49,10 @@ def connect(connection_name, options):
     table_name = f'duo_{connection_name}'
     landing_admin_table = f'data.{table_name}_admins_connection'
 
-    comment = yaml_dump(module='duo', **options)
-
     db.create_table(
         name=landing_admin_table,
         cols=LANDING_ADMIN_TABLE_COLUMNS,
-        comment=comment,
+        comment=yaml_dump(module='duo', **options),
         rw_role=ROLE,
     )
 
