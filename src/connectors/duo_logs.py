@@ -27,7 +27,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'duo_key',
         'title': "Secret Key",
-        'prompt': "This available in your Duo Admin Settings ",
+        'prompt': "This secret is available in your Duo Admin Settings",
         'type': 'str',
         'secret': True,
         'required': True,
@@ -35,7 +35,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'duo_integration_key',
         'title': "Integration Key",
-        'prompt': "This available in your Duo Admin Settings ",
+        'prompt': "This secret is available in your Duo Admin Settings",
         'type': 'str',
         'secret': True,
         'required': True,
