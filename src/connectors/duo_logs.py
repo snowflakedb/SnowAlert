@@ -82,7 +82,7 @@ def ingest(table_name, options, dryrun=False):
 
         db.insert(
             landing_table,
-            {'raw': admin, 'recorded_at': timestamp},
+            [{'raw': admin, 'recorded_at': timestamp} for admin in admins],
             dryrun=dryrun
         )
 
