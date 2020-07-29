@@ -16,6 +16,5 @@ setup(
         'pendulum',
         'requests',
         'ujson',
-        'duo_client',
     ],
 )
