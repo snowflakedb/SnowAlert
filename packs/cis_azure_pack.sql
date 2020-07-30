@@ -1096,6 +1096,51 @@ WHERE 1=1
   AND secure_transfer_required = false
 ;
 
+CREATE OR REPLACE VIEW rules.AZURE_CIS_3_3_VIOLATION_QUERY COPY GRANTS
+  COMMENT='Enable Storage logging for Queue service read, write, and delete requests
+  @id 15V7N4XMSJE
+  @tags cis, azure, storage-accounts'
+AS
+SELECT '15V7N4XMSJE' AS query_id
+     , 'Azure CIS 3.3: Storage logging' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , 'Queue logging in storage account ' || account_name AS object
+     , 'AZ CIS 3.3 violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'Medium' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id,
+         'account_name', account_name
+       ) AS identity
+FROM (
+  SELECT
+    tenant_id,
+    subscription_id,
+    account_name,
+    logging
+  FROM data.azure_collect_queue_services_properties
+  QUALIFY 1=ROW_NUMBER() OVER (
+    PARTITION BY tenant_id, subscription_id, account_name
+    ORDER BY recorded_at DESC
+  )
+)
+WHERE 1=1
+  AND NOT (
+    logging:Delete = 'true'
+    AND logging:Read = 'true'
+    AND logging:Write = 'true'
+  )
+;
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_3_6_VIOLATION_QUERY COPY GRANTS
   COMMENT='storage accounts should have no public access
   @id Y1GWLA9G4K
