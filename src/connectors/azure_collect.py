@@ -1,7 +1,7 @@
 """Azure Inventory and Configuration
 Load Inventory and Configuration of accounts using Service Principals
 """
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, deque
 from datetime import datetime
 from dateutil.parser import parse as parse_date
 from itertools import chain, islice, takewhile
@@ -664,16 +664,32 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
-    # https://docs.microsoft.com/en-us/rest/api/compute/virtualmachines/instanceview#virtualmachineinstanceview
+    # https://docs.microsoft.com/en-us/rest/api/storagerp/queueservices/list
     'queue_services': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_path_id', 'VARCHAR(5000)'),
+        ('subscription_id', 'STRING'),
+        ('account_full_id', 'VARCHAR(5000)'),
+        ('account_name', 'VARCHAR(500)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(50)'),
         ('name', 'STRING'),
         ('type', 'STRING'),
         ('properties', 'VARIANT'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/storageservices/Get-Queue-Service-Properties
+    'queue_services_properties': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('account_name', 'VARCHAR(500)'),
+        ('error', 'VARIANT'),
+        ('cors', 'VARIANT'),
+        ('logging', 'VARIANT'),
+        ('metrics', 'VARIANT'),
+        ('minute_metrics', 'VARIANT'),
+        ('hour_metrics', 'VARIANT'),
+        ('raw', 'VARIANT'),
     ],
 }
 
@@ -1333,7 +1349,19 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             },
             {
                 'kind': 'queue_services',
-                'args': {'subscriptionPathId': 'id', 'tenantId': 'tenant_id'},
+                'args': {
+                    'subscriptionId': 'subscription_id',
+                    'accountFullId': 'id',
+                    'accountName': 'name',
+                },
+            },
+            {
+                'kind': 'queue_services_properties',
+                'args': {
+                    'subscriptionId': 'subscription_id',
+                    'accountFullId': 'id',
+                    'accountName': 'name',
+                },
             },
         ],
     },
@@ -1636,20 +1664,48 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
     },
     'queue_services': {
         'request': {
-            'path': ('{subscriptionPathId}/queueServices'),
+            'path': '{accountFullId}/queueServices',
             'api-version': '2019-06-01',
         },
         'rate_limit': '0.1/s',
+        'rate_by': 'subscriptionId',
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
             'subscriptionId': 'subscription_id',
-            'subscriptionPathId': 'subscription_path_id',
+            'accountFullId': 'account_full_id',
+            'accountName': 'account_name',
             'error': 'error',
             'id': 'id',
             'name': 'name',
             'type': 'type',
             'properties': 'properties',
+        },
+    },
+    'queue_services_properties': {
+        'request': {
+            'path': '/',
+            'params': {'restype': 'service', 'comp': 'properties'},
+            'host': {
+                'azure': '{accountName}.queue.core.windows.net',
+                'usgov': '{accountName}.queue.core.usgovcloudapi.net',
+            },
+            'auth_audience': 'storage.azure.com',
+            'api_version_header': '2019-12-12',
+        },
+        'response_value_key': 'StorageServiceProperties',
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'accountFullId': 'account_full_id',
+            'accountName': 'account_name',
+            'Error': 'error',
+            'Cors': 'cors',
+            'Logging': 'logging',
+            'MinuteMetrics': 'minute_metrics',
+            'HourMetrics': 'hour_metrics',
+            '*': 'raw',
         },
     },
 }
@@ -1680,6 +1736,7 @@ def GET(kind, params, cred, depth) -> List[Dict]:
             request_spec.get('params'),
         )
     )
+    api_version_header = api_version or request_spec.get('api_version_header')
     bearer_token = access_token_cache(
         cloud, cred['client'], cred['tenant'], cred['secret'], auth_aud
     )
@@ -1695,7 +1752,7 @@ def GET(kind, params, cred, depth) -> List[Dict]:
                 'Authorization': 'Bearer ' + bearer_token,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'x-ms-version': api_version,
+                'x-ms-version': api_version_header,
             },
         )
 
@@ -1822,12 +1879,13 @@ def ingest(table_name, options, dryrun=False):
             requests.exceptions.ReadTimeout,
         )
 
-        calls = [
+        # `apis` option limits what we call
+        calls = deque(
             call
             for call in next_call_group
             if (call['depth'] + 1 >= len(apis) and apis[-1] == '*')
-            or apis[call['depth']] == next_call_kind
-        ]
+            or (call['depth'] <= len(apis) and apis[call['depth']] == next_call_kind)
+        )
 
         if not calls:
             continue
@@ -1842,17 +1900,22 @@ def ingest(table_name, options, dryrun=False):
         rate_space = 1 / float(
             re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s')).group(1)
         )
+        rate_by = spec.get('rate_by')
         responses = []
         last_request = defaultdict(float)
         while calls:
-            call = calls.pop(0)
+            call = calls.popleft()
             now = time()
-            cred_json = json_dumps(call['cred'])
-            if now - last_request[cred_json] < rate_space:
+            rate_key = (
+                call['params'][rate_by]
+                if rate_by == 'subscriptionId'
+                else call['cred']['tenant']
+            )
+            if now - last_request[rate_key] < rate_space:
                 calls.append(call)
                 continue
             else:
-                last_request[cred_json] = now
+                last_request[rate_key] = now
 
             responses.append(
                 api_response(
