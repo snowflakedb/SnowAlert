@@ -1227,7 +1227,7 @@ async def load_task_response(client, task):
                 yield x
 
     except (ClientError, DataNotFoundError) as e:
-        log.error(e, 'failed loading task response')
+        log.info(format_exception_only(e))
         for x in process_aws_response(task, e):
             yield x
 
