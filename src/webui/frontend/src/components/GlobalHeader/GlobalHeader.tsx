@@ -61,7 +61,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
 
   handleNoticeVisibleChange = (visible: boolean) => {};
 
-  handleMenuClick = ({key}: {key: string}) => {
+  handleMenuClick = ({key}: {key: string | number}) => {
     if (key === 'logout') {
       this.props.logoutAndRedirect();
     }
