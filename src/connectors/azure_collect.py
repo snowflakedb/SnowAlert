@@ -682,6 +682,7 @@ SUPPLEMENTARY_TABLES = {
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
         ('subscription_id', 'VARCHAR(50)'),
+        ('account_full_id', 'VARCHAR(5000)'),
         ('account_name', 'VARCHAR(500)'),
         ('error', 'VARIANT'),
         ('cors', 'VARIANT'),
