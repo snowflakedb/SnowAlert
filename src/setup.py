@@ -33,5 +33,6 @@ setup(
         'twilio==6.29.4',
         'simple_salesforce==0.74.3',
         'pdpyras==4.0',
+        'duo_client==4.2.3',
     ],
 )
