@@ -692,6 +692,33 @@ SUPPLEMENTARY_TABLES = {
         ('hour_metrics', 'VARIANT'),
         ('raw', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/sql/servers/list
+    'sql_servers': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('identity', 'VARIANT'),
+        ('kind', 'STRING'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/sql/server%20auditing%20settings/get
+    'sql_servers_auditing_settings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('server_full_id', 'VARCHAR(5000)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('type', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+    ],
 }
 
 
@@ -736,6 +763,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         'children': [
             {'kind': 'virtual_machines', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'disks', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'sql_servers', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'role_definitions', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'role_assignments', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'pricings', 'args': {'subscriptionId': 'subscription_id'}},
@@ -1692,7 +1720,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'usgov': '{accountName}.queue.core.usgovcloudapi.net',
             },
             'auth_audience': 'storage.azure.com',
-            'api_version_header': '2019-12-12',
+            'api-version-header': '2019-12-12',
         },
         'response_value_key': 'StorageServiceProperties',
         'response': {
@@ -1707,6 +1735,46 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'MinuteMetrics': 'minute_metrics',
             'HourMetrics': 'hour_metrics',
             '*': 'raw',
+        },
+    },
+    'sql_servers': {
+        'request': {
+            'path': '/subscriptions/{subscriptionId}/providers/Microsoft.Sql/servers',
+            'api-version': '2019-06-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'identity': 'identity',
+            'kind': 'kind',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+        'children': [
+            {'kind': 'sql_servers_auditing_settings', 'args': {'serverFullId': 'id'}}
+        ],
+    },
+    'sql_servers_auditing_settings': {
+        'request': {
+            'path': '{serverFullId}/auditingSettings/default',
+            'api-version': '2017-03-01-preview',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'serverFullId': 'server_full_id',
+            'error': 'error',
+            'id': 'id',
+            'name': 'name',
+            'type': 'type',
+            'properties': 'properties',
         },
     },
 }
@@ -1737,7 +1805,7 @@ def GET(kind, params, cred, depth) -> List[Dict]:
             request_spec.get('params'),
         )
     )
-    api_version_header = api_version or request_spec.get('api_version_header')
+    api_version_header = api_version or request_spec.get('api-version-header')
     bearer_token = access_token_cache(
         cloud, cred['client'], cred['tenant'], cred['secret'], auth_aud
     )
@@ -1892,9 +1960,7 @@ def ingest(table_name, options, dryrun=False):
             continue
 
         log.info(
-            f'GET {next_call_kind}: '
-            f'{num_calls} calls, '
-            f'{len(api_calls_remaining)} remain'
+            f'GET {next_call_kind}: {num_calls} calls, {len(calls)} remain'
         )
 
         spec = API_SPECS[next_call_kind]
