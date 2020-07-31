@@ -79,9 +79,13 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
     const {selected} = this.props;
     const {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
 
-    const {optionValues} = this.state;
-
     const selectedConnector = this.findConnector(selected);
+    const optionValues = Object.assign(
+      selectedConnector ?
+        Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default]))
+        : {},
+      this.state.optionValues
+    )
 
     let options: any[] = [];
     if (selectedConnector) {
@@ -182,7 +186,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
 
         <Button
           style={{float: 'right', display: 'none'}}
-          disabled={!optionValues.name || connectionStage !== 'finalized'}
+          disabled={connectionStage !== 'finalized'}
           onClick={() => this.props.testConnection(selectedConnector.name, optionValues.name)}
         >
           Test {connectionStage === 'testing' && <LoadingOutlined />}
@@ -190,7 +194,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         {selectedConnector.finalize ? (
           <Button
             style={{float: 'right'}}
-            disabled={!optionValues.name || connectionStage !== 'created'}
+            disabled={connectionStage !== 'created'}
             onClick={() => this.props.finalizeConnection(selectedConnector.name, optionValues.name!)}
           >
             Create {connectionStage === 'finalizing' && <LoadingOutlined />}
@@ -198,7 +202,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         ) : null}
         <Button
           style={{float: 'right'}}
-          disabled={!optionValues.name || connectionStage !== 'start'}
+          disabled={connectionStage !== 'start'}
           onClick={() => {
             this.props.newConnection(selectedConnector.name, optionValues.name!, optionValues);
           }}
