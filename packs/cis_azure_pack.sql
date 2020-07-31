@@ -1229,6 +1229,42 @@ WHERE 1=1
   AND network_default_action = 'Allow'
 ;
 
+CREATE OR REPLACE VIEW rules.AZURE_CIS_4_1_VIOLATION_QUERY COPY GRANTS
+  COMMENT='SQL Server Auditing should be Enabled
+  @id E9WUH828JAQ
+  @tags cis, azure, storage-accounts'
+AS
+SELECT 'E9WUH828JAQ' AS query_id
+     , 'Azure CIS 4.1: SQL Server Auditing Enabled' AS title
+     , OBJECT_CONSTRUCT(
+         'cloud', 'azure',
+         'tenant_id', tenant_id,
+         'subscription_id', subscription_id
+       ) AS environment
+     , 'SQL Server `' || server_full_id || '`' AS object
+     , 'AZ CIS 4.1 (audit enabled) violated by ' || object AS description
+     , CURRENT_TIMESTAMP AS alert_time
+     , OBJECT_CONSTRUCT(*) AS event_data
+     , 'SnowAlert' AS detector
+     , 'Medium' AS severity
+     , 'devsecops' AS owner
+     , OBJECT_CONSTRUCT(
+         'query_id', query_id,
+         'server_full_id', server_full_id
+       ) AS identity
+FROM (
+  SELECT DISTINCT
+    tenant_id,
+    REGEXP_SUBSTR(server_full_id, '/subscriptions/([^/]+)', 1, 1, 'e', 1) subscription_id,
+    server_full_id,
+    properties:state::STRING auditing_state
+  FROM data.azure_collect_sql_servers_auditing_settings
+  WHERE recorded_at > CURRENT_DATE - 2
+)
+WHERE 1=1
+  AND auditing_state != 'Enabled'
+;
+
 CREATE OR REPLACE VIEW rules.AZURE_CIS_3_8_VIOLATION_QUERY COPY GRANTS
   COMMENT='"Trusted Microsoft Services" is enabled for Storage Account access
   @id D4K5N625QNJ
