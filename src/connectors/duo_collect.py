@@ -1,5 +1,5 @@
-"""Duo Admins
-Collect Duo admins using a key 
+"""Duo Admins Inventory
+Collect Duo Admin inventory using API keys
 """
 
 from datetime import datetime
@@ -15,9 +15,9 @@ PAGE_SIZE = 500
 
 CONNECTION_OPTIONS = [
     {
-        'name': 'subdomain',
+        'name': 'domain',
         'title': "DUO Account Name",
-        'prompt': "The Subdomain of your DUO",
+        'prompt': "The subdomain of your DUO account",
         'type': 'str',
         'postfix': ".duosecurity.com",
         'prefix': "api-",
@@ -25,7 +25,7 @@ CONNECTION_OPTIONS = [
         'required': True,
     },
     {
-        'name': 'duo_key',
+        'name': 'skey',
         'title': "Secret Key",
         'prompt': "This secret is available in your Duo Admin Settings",
         'type': 'str',
@@ -33,7 +33,7 @@ CONNECTION_OPTIONS = [
         'required': True,
     },
     {
-        'name': 'duo_integration_key',
+        'name': 'ikey',
         'title': "Integration Key",
         'prompt': "This secret is available in your Duo Admin Settings",
         'type': 'str',
@@ -66,11 +66,13 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options, dryrun=False):
-    url = options['subdomain']
-    token = options['duo_key']
-    integration_key = options['duo_integration_key']
+    domain = options['domain']
+    skey = options['skey']
+    ikey = options['ikey']
 
-    admin_api = duo_client.Admin(ikey=integration_key, skey=token, host=url)
+    admin_api = duo_client.Admin(
+        ikey=ikey, skey=skey, host=f'api-{domain}.duosecurity.com',
+    )
     admins = list(admin_api.get_admins())
     db.insert(
         f'data.{table_name}', [{'raw': a} for a in admins], dryrun=dryrun,
@@ -78,13 +80,13 @@ def ingest(table_name, options, dryrun=False):
     return len(admins)
 
 
-def main(table_name, subdomain, duo_integration_key, duo_key, dryrun=False):
+def main(table_name, domain, ikey, skey, dryrun=False):
     return ingest(
         table_name,
         {
-            'subdomain': subdomain,
-            'duo_integration_key': duo_integration_key,
-            'duo_key': duo_key,
+            'domain': domain,
+            'ikey': ikey,
+            'skey': skey,
         },
         dryrun=dryrun,
     )

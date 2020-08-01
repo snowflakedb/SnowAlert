@@ -1,5 +1,5 @@
 """AWS Inventory and Configuration
-Load Inventory and Configuration of all accounts in your Org using auditor Roles
+Load inventory from accounts in your Org via API using auditor Roles
 """
 
 import asyncio
