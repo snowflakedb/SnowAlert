@@ -15,13 +15,13 @@ PAGE_SIZE = 500
 
 CONNECTION_OPTIONS = [
     {
-        'name': 'domain',
-        'title': "DUO Account Name",
-        'prompt': "The subdomain of your DUO account",
+        'name': 'domainkey',
+        'title': "DUO Account Code",
+        'prompt': "In subdomain of your DUO account",
         'type': 'str',
         'postfix': ".duosecurity.com",
         'prefix': "api-",
-        'placeholder': "account-name",
+        'placeholder': "47a8d864",
         'required': True,
     },
     {
@@ -66,12 +66,12 @@ def connect(connection_name, options):
 
 
 def ingest(table_name, options, dryrun=False):
-    domain = options['domain']
+    domainkey = options['domainkey']
     skey = options['skey']
     ikey = options['ikey']
 
     admin_api = duo_client.Admin(
-        ikey=ikey, skey=skey, host=f'api-{domain}.duosecurity.com',
+        ikey=ikey, skey=skey, host=f'api-{domainkey}.duosecurity.com',
     )
     admins = list(admin_api.get_admins())
     db.insert(
@@ -80,11 +80,11 @@ def ingest(table_name, options, dryrun=False):
     return len(admins)
 
 
-def main(table_name, domain, ikey, skey, dryrun=False):
+def main(table_name, domainkey, ikey, skey, dryrun=False):
     return ingest(
         table_name,
         {
-            'domain': domain,
+            'domainkey': domainkey,
             'ikey': ikey,
             'skey': skey,
         },
