@@ -55,7 +55,7 @@ def connect(connection_name, options):
     db.create_table(
         name=landing_admin_table,
         cols=LANDING_ADMIN_TABLE_COLUMNS,
-        comment=yaml_dump(module='duo', **options),
+        comment=yaml_dump(module='duo_collect', **options),
         rw_role=ROLE,
     )
 
