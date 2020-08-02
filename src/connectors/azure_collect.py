@@ -353,10 +353,12 @@ SUPPLEMENTARY_TABLES = {
         ('tenant_id', 'VARCHAR(50)'),
         ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
+        ('raw', 'VARIANT'),
         ('id', 'STRING'),
         ('name', 'STRING'),
         ('type', 'STRING'),
         ('properties', 'VARIANT'),
+        ('etag', 'STRING'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
@@ -1623,6 +1625,8 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'type': 'type',
             'properties': 'properties',
+            'etag': 'etag',
+            '*': 'raw',
         },
     },
     'diagnostic_settings': {
