@@ -332,6 +332,7 @@ SUPPLEMENTARY_TABLES = {
         ('name', 'STRING'),
         ('properties', 'VARIANT'),
         ('type', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/resources/policyassignments/list#policyassignment
     'policy_assignments': [
@@ -353,12 +354,12 @@ SUPPLEMENTARY_TABLES = {
         ('tenant_id', 'VARCHAR(50)'),
         ('subscription_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
-        ('raw', 'VARIANT'),
         ('id', 'STRING'),
         ('name', 'STRING'),
         ('type', 'STRING'),
         ('properties', 'VARIANT'),
         ('etag', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/serviceprincipal?view=graph-rest-beta#properties
     'service_principals': [
@@ -617,6 +618,7 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('properties', 'VARIANT'),
         ('identity', 'VARIANT'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/monitor/activitylogalerts/listbysubscriptionid#activitylogalertresource
     'activity_log_alerts': [
@@ -708,6 +710,7 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/sql/server%20auditing%20settings/get
     'sql_servers_auditing_settings': [
@@ -720,6 +723,7 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'STRING'),
         ('name', 'STRING'),
         ('properties', 'VARIANT'),
+        ('raw', 'VARIANT'),
     ],
 }
 
@@ -1584,6 +1588,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'properties': 'properties',
             'type': 'type',
+            '*': 'raw',
         },
     },
     'policy_assignments': {
@@ -1647,6 +1652,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'tags': 'tags',
             'identity': 'identity',
             'properties': 'properties',
+            '*': 'raw',
         },
     },
     'workflows': {
@@ -1759,6 +1765,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'properties': 'properties',
             'tags': 'tags',
             'type': 'type',
+            '*': 'raw',
         },
         'children': [
             {'kind': 'sql_servers_auditing_settings', 'args': {'serverFullId': 'id'}}
@@ -1779,6 +1786,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'type': 'type',
             'properties': 'properties',
+            '*': 'raw',
         },
     },
 }
