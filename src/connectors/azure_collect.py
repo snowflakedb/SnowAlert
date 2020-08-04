@@ -716,7 +716,6 @@ SUPPLEMENTARY_TABLES = {
     'sql_servers_auditing_settings': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('tenant_id', 'VARCHAR(50)'),
-        ('subscription_id', 'VARCHAR(50)'),
         ('server_full_id', 'VARCHAR(5000)'),
         ('error', 'VARIANT'),
         ('id', 'STRING'),
@@ -1779,7 +1778,6 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         'response': {
             'headerDate': 'recorded_at',
             'tenantId': 'tenant_id',
-            'subscriptionId': 'subscription_id',
             'serverFullId': 'server_full_id',
             'error': 'error',
             'id': 'id',
