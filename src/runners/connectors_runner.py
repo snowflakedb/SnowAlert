@@ -9,6 +9,7 @@ from multiprocessing import Pool
 from datetime import datetime
 import importlib
 import json
+import re
 from types import GeneratorType
 import yaml
 
@@ -32,17 +33,15 @@ def time_to_run(schedule, now) -> bool:
 
     todo(anf): robust cron using prior run metadata
     """
-    if schedule == '0 */12':  # every 12 hours
-        if now.minute < 15 and now.hour % 12 == 0:
-            return True
-
     if schedule == '0 1-13/12':  # every 12 hours offset by 1
         if now.minute < 15 and now.hour % 12 == 1:
             log.info('not time yet')
             return True
 
-    if schedule == '0 */3':  # every 3 hours
-        if now.minute < 15 and now.hour % 3 == 0:
+    m = re.match(r'^0 \*/([0-9]+)$', schedule)
+    if m:  # every N hours
+        n = int(m.group(1))
+        if now.minute < 15 and now.hour % n == 0:
             log.info('not time yet')
             return True
 
