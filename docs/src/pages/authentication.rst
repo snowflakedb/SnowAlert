@@ -6,7 +6,7 @@ SnowAlert WebUI Authentication
 Environment Variables
 ---------------------
 
-The following environment variables are recommended for the SnowAlert WebUI server:
+If a single team is using the SnowAlert WebUI, the following environment variables are recommended for the server:
 
 - ``OAUTH_CONNECTION_ROLE`` to specify the role used to see Rules
 - ``OAUTH_CONNECTION_DATABASE`` to specify the db where Rules will be managed
