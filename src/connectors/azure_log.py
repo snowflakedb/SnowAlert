@@ -174,41 +174,13 @@ LANDING_TABLES_COLUMNS = {
     ],
 }
 
-GET_TIMESTAMP_FROM_FILENAME_SQL = {
-    'operation': r'''to_timestamp_ltz(
-substr(metadata$filename, 79, 4)
-|| '-' ||
-substr(metadata$filename, 86, 2)
-|| '-' ||
-substr(metadata$filename, 91, 2)
-|| 'T' ||
-substr(metadata$filename, 96, 2)
-|| ':' ||
-substr(metadata$filename, 101, 2))
-''',
-    'audit': r'''to_timestamp_ltz(
-substr(metadata$filename, 49, 4)
-|| '-' ||
-substr(metadata$filename, 56, 2)
-|| '-' ||
-substr(metadata$filename, 61, 2)
-|| 'T' ||
-substr(metadata$filename, 66, 2)
-|| ':' ||
-substr(metadata$filename, 71, 2))
-    ''',
-    'signin': r'''to_timestamp_ltz(
-substr(metadata$filename, 49, 4)
-|| '-' ||
-substr(metadata$filename, 56, 2)
-|| '-' ||
-substr(metadata$filename, 61, 2)
-|| 'T' ||
-substr(metadata$filename, 66, 2)
-|| ':' ||
-substr(metadata$filename, 71, 2))
-''',
-}
+GET_TIMESTAMP_FROM_FILENAME_SQL =  '''TO_TIMESTAMP_LTZ(
+  SPLIT_PART(SPLIT_PART(METADATA$FILENAME, '/', -6), '=', 2) || '-' ||
+  SPLIT_PART(SPLIT_PART(METADATA$FILENAME, '/', -5), '=', 2) || '-' ||
+  SPLIT_PART(SPLIT_PART(METADATA$FILENAME, '/', -4), '=', 2) || 'T' ||
+  SPLIT_PART(SPLIT_PART(METADATA$FILENAME, '/', -3), '=', 2) || ':' ||
+  SPLIT_PART(SPLIT_PART(METADATA$FILENAME, '/', -2), '=', 2)
+)'''
 
 # TODO(afedorov) use REGEXP_REPLACE after SNOW-97698 done
 r'''
@@ -260,7 +232,7 @@ def connect(connection_name, options):
         (
             'timestamp_part',
             'TIMESTAMP_LTZ',
-            GET_TIMESTAMP_FROM_FILENAME_SQL[connection_type],
+            GET_TIMESTAMP_FROM_FILENAME_SQL,
         )
     ]
 
