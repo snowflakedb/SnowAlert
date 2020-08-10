@@ -34,7 +34,7 @@ class Bearer(requests.auth.AuthBase):
         return r
 
 
-def handle(alert, assignee=''):
+def handle(alert, assignee='', payload={}):
     host = env.get('SA_SN_API_HOST')
     if not host:
         log.info('skipping service-now handler, missing host')
@@ -83,7 +83,7 @@ def handle(alert, assignee=''):
     response = requests.post(
         api_url,
         auth=Bearer(access_token) if access_token else (username, password),
-        json={
+        json=payload or {
             f'{fp}contact_type': 'Integration',
             f'{fp}impact': '2',
             f'{fp}urgency': '2',
