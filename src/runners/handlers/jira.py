@@ -107,7 +107,6 @@ def create_jira_ticket(
     custom_fields=None,
     project=PROJECT,
     issue_type=ISSUE_TYPE,
-    starting_status=TODO_STATUS,
 ):
     if not user:
         return
@@ -181,6 +180,10 @@ def get_ticket_description(id):
     return jira.issue(id).fields.description
 
 
+def set_issue_done(issueId):
+    return jira.transition_issue(issueId, 'done')
+
+
 def record_ticket_id(ticket_id, alert_id):
     query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
     print('Updating alert table:', query)
@@ -198,6 +201,7 @@ def handle(
     custom_fields=None,
     issue_type=ISSUE_TYPE,
     jira_url=URL,
+    starting_status=TODO_STATUS,
 ):
     if project == '':
         return "No Jira Project defined"
@@ -214,16 +218,15 @@ def handle(
     """
     alert_id = alert['ALERT_ID']
 
-    correlated_result = (
-        next(db.fetch(CORRELATION_QUERY), None) if correlation_id else None
-    )
+    correlated_result = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
+    ticket_id = correlated_result.get('TICKET')
 
-    if correlated_result:
-        ticket_id = correlated_result['TICKET']
+    if ticket_id:
         try:
             ticket_status = check_ticket_status(ticket_id)
         except Exception:
             ticket_id = None
+            ticket_status = None
             log.error(f"Failed to get ticket status for {ticket_id}")
 
         if ticket_status == starting_status:
