@@ -242,20 +242,6 @@ def handle(
                 log.error(
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
-                try:
-                    ticket_id = create_jira_ticket(
-                        alert,
-                        assignee,
-                        custom_fields=custom_fields,
-                        project=project,
-                        issue_type=issue_type,
-                    )
-                    record_ticket_id(ticket_id, alert_id)
-                    return ticket_id
-
-                except Exception as e:
-                    log.error(e, f"Failed to create ticket for alert {alert_id}")
-                    raise
 
     # No correlated tickets, or correlated ticket has non-start value
     # Create a new ticket in JIRA for the alert
