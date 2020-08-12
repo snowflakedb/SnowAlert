@@ -16,7 +16,7 @@ CONNECTION_OPTIONS = [
         'type': 'select',
         'options': [
             # https://developers.google.com/admin-sdk/reports/v1/appendix/activity/login
-            {'value': 'login', 'label': "Logins"}
+            {'value': 'LOGIN', 'label': "Logins"}
         ],
         'title': "Admin Logs Type",
         'prompt': "The type of G Suite logs you are looking to collect.",
