@@ -11,6 +11,7 @@ from runners.utils import yaml
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
 ISSUE_TYPE = environ.get('JIRA_ISSUE_TYPE', 'Story')
+TODO_STATUS = environ.get('JIRA_STARTING_STATUS', 'To Do')
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -101,7 +102,11 @@ def link_search_todos(description=None, project=PROJECT):
 
 
 def create_jira_ticket(
-    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE
+    alert,
+    assignee=None,
+    custom_fields=None,
+    project=PROJECT,
+    issue_type=ISSUE_TYPE,
 ):
     if not user:
         return
@@ -188,15 +193,6 @@ def record_ticket_id(ticket_id, alert_id):
         log.error(e, f"Failed to update alert {alert_id} with ticket id {ticket_id}")
 
 
-def bail_out(alert_id):
-    query = f"UPDATE results.alerts SET handled='no handler' WHERE alert:ALERT_ID='{alert_id}'"
-    print('Updating alert table:', query)
-    try:
-        db.execute(query)
-    except Exception as e:
-        log.error(e, f"Failed to update alert {alert_id} with handler status")
-
-
 def handle(
     alert,
     correlation_id,
@@ -204,10 +200,12 @@ def handle(
     assignee=None,
     custom_fields=None,
     issue_type=ISSUE_TYPE,
+    jira_url=URL,
+    starting_status=TODO_STATUS,
 ):
     if project == '':
         return "No Jira Project defined"
-    if URL == '':
+    if jira_url == '':
         return "No Jira URL defined."
 
     CORRELATION_QUERY = f"""
@@ -215,46 +213,33 @@ def handle(
     FROM results.alerts
     WHERE correlation_id = '{correlation_id}'
       AND ticket IS NOT NULL
-    ORDER BY EVENT_TIME DESC
+    ORDER BY event_time DESC
     LIMIT 1
     """
     alert_id = alert['ALERT_ID']
 
-    # We check against the correlation ID for alerts in that correlation with the same ticket
-    correlated_results = list(db.fetch(CORRELATION_QUERY)) if correlation_id else []
-    log.info(f"Discovered {len(correlated_results)} correlated results")
+    correlated_result = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
+    ticket_id = correlated_result.get('TICKET')
 
-    if len(correlated_results) > 0:
-        # There is a correlation with a ticket that exists, so we should append to that ticket
-        ticket_id = correlated_results[0]['TICKET']
+    if ticket_id:
         try:
             ticket_status = check_ticket_status(ticket_id)
         except Exception:
+            ticket_id = None
+            ticket_status = None
             log.error(f"Failed to get ticket status for {ticket_id}")
-            raise
 
-        if ticket_status == 'To Do':
+        if ticket_status == starting_status:
             try:
                 append_to_body(ticket_id, alert, project)
             except Exception as e:
+                ticket_id = None
                 log.error(
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
-                try:
-                    ticket_id = create_jira_ticket(
-                        alert,
-                        assignee,
-                        custom_fields=custom_fields,
-                        project=project,
-                        issue_type=issue_type,
-                    )
-                except Exception as e:
-                    log.error(e, f"Failed to create ticket for alert {alert_id}")
-                    raise
-    else:
-        # There is no correlation with a ticket that exists
-        # Create a new ticket in JIRA for the alert
-        try:
+
+    try:
+        if ticket_id is None:
             ticket_id = create_jira_ticket(
                 alert,
                 assignee,
@@ -262,9 +247,11 @@ def handle(
                 project=project,
                 issue_type=issue_type,
             )
-        except Exception as e:
-            log.error(e, f"Failed to create ticket for alert {alert_id}")
-            raise
+
+    except Exception as e:
+        log.error(e, f"Failed to create ticket for alert {alert_id}")
+        raise
 
     record_ticket_id(ticket_id, alert_id)
+
     return ticket_id
