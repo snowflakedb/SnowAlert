@@ -11,6 +11,7 @@ from runners.utils import yaml
 PROJECT = environ.get('JIRA_PROJECT', '')
 URL = environ.get('JIRA_URL', '')
 ISSUE_TYPE = environ.get('JIRA_ISSUE_TYPE', 'Story')
+TODO_STATUS = environ.get('JIRA_STARTING_STATUS', 'To Do')
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -101,7 +102,7 @@ def link_search_todos(description=None, project=PROJECT):
 
 
 def create_jira_ticket(
-    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE
+    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE, starting_status=TODO_STATUS
 ):
     if not user:
         return
@@ -215,7 +216,7 @@ def handle(
     FROM results.alerts
     WHERE correlation_id = '{correlation_id}'
       AND ticket IS NOT NULL
-    ORDER BY EVENT_TIME DESC
+    ORDER BY event_time DESC
     LIMIT 1
     """
     alert_id = alert['ALERT_ID']
@@ -229,11 +230,12 @@ def handle(
         ticket_id = correlated_results[0]['TICKET']
         try:
             ticket_status = check_ticket_status(ticket_id)
+
         except Exception:
             log.error(f"Failed to get ticket status for {ticket_id}")
             raise
 
-        if ticket_status == 'To Do':
+        if ticket_status == starting_status:
             try:
                 append_to_body(ticket_id, alert, project)
             except Exception as e:
@@ -248,23 +250,28 @@ def handle(
                         project=project,
                         issue_type=issue_type,
                     )
+                    record_ticket_id(ticket_id, alert_id)
+                    return ticket_id
+
                 except Exception as e:
                     log.error(e, f"Failed to create ticket for alert {alert_id}")
                     raise
-    else:
-        # There is no correlation with a ticket that exists
-        # Create a new ticket in JIRA for the alert
-        try:
-            ticket_id = create_jira_ticket(
-                alert,
-                assignee,
-                custom_fields=custom_fields,
-                project=project,
-                issue_type=issue_type,
-            )
-        except Exception as e:
-            log.error(e, f"Failed to create ticket for alert {alert_id}")
-            raise
+
+    # No correlated tickets, or correlated ticket has non-start value
+    # Create a new ticket in JIRA for the alert
+    try:
+        ticket_id = create_jira_ticket(
+            alert,
+            assignee,
+            custom_fields=custom_fields,
+            project=project,
+            issue_type=issue_type,
+        )
+
+    except Exception as e:
+        log.error(e, f"Failed to create ticket for alert {alert_id}")
+        raise
 
     record_ticket_id(ticket_id, alert_id)
+
     return ticket_id
