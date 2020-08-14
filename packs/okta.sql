@@ -71,21 +71,25 @@ AS
 SELECT
   event_time recorded_at,
   raw,
-  raw:actor::VARIANT actor,
-  raw:authenticationContext::VARIANT authentication_context,
-  raw:client::VARIANT client,
-  raw:debugContext::VARIANT debug_context,
-  raw:displayMessage::STRING display_message,
-  raw:eventType::STRING event_type,
-  raw:legacyEventType::STRING legacy_event_type,
-  raw:outcome::VARIANT outcome,
+  raw:uuid::STRING uuid,
   raw:published::TIMESTAMP_LTZ published,
-  raw:request::VARIANT request,
-  raw:securityContext::VARIANT security_context,
+  raw:eventType::STRING event_type,
+  raw:version::STRING version,
   raw:severity::STRING severity,
+  raw:legacyEventType::STRING legacy_event_type,
+  raw:displayMessage::STRING display_message,
+  raw:actor::VARIANT actor,
+  raw:client::VARIANT client,
+  raw:request::VARIANT request,
+  raw:outcome::VARIANT outcome,
   raw:target::VARIANT target,
   raw:transaction::VARIANT transaction,
-  raw:uuid::STRING uuid,
-  raw:version::STRING version
-FROM data.okta_connection
+  raw:debugContext::VARIANT debug_context,
+  raw:authenticationContext::VARIANT authentication_context,
+  raw:securityContext::VARIANT security_context
+FROM data.okta_system_log_connection
 ;
+
+SELECT * FROM data.okta_system_logs;
+SELECT * FROM data.okta_users;
+SELECT * FROM data.okta_groups;

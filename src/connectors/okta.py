@@ -16,7 +16,7 @@ CONNECTION_OPTIONS = [
         'prompt': "The domain of your Okta login page",
         'type': 'str',
         'prefix': "https://",
-        'placeholder': "account-name",
+        'placeholder': "your-org.okta.com",
         'required': True,
     },
     {
@@ -47,7 +47,7 @@ LANDING_GROUP_TABLE_COLUMNS = [
 
 def connect(connection_name, options):
     table_name = 'okta' + (
-        '' if connection_name == 'default' else f'_{connection_name}'
+        '' if connection_name in ('default', 'undefined') else f'_{connection_name}'
     )
     landing_log_table = f'data.{table_name}_system_log_connection'
     landing_user_table = f'data.{table_name}_users_connection'
@@ -196,7 +196,7 @@ def ingest(table_name, options):
                 select='PARSE_JSON(column1), column2',
             )
 
-            log.info(f'Inserted {len(result)} rows. {i}')
+            log.info(f'Inserted {len(result)} rows from page {i}.')
             i += 1
             yield len(result)
 
