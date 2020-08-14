@@ -13,11 +13,10 @@ CONNECTION_OPTIONS = [
     {
         'name': 'subdomain',
         'title': "Okta Account Name",
-        'prompt': "The subdomain of your Okta login page",
+        'prompt': "The domain of your Okta login page",
         'type': 'str',
-        'postfix': ".okta.com",
         'prefix': "https://",
-        'placeholder': "account-name",
+        'placeholder': "your-org.okta.com",
         'required': True,
     },
     {
@@ -30,35 +29,52 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-LANDING_LOG_TABLE_COLUMNS = [('raw', 'VARIANT'), ('event_time', 'TIMESTAMP_LTZ')]
+LANDING_LOG_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('event_time', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
+]
 
-LANDING_USER_TABLE_COLUMNS = [('raw', 'VARIANT'), ('event_time', 'TIMESTAMP_LTZ')]
+LANDING_USER_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('event_time', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
+]
 
-LANDING_GROUP_TABLE_COLUMNS = [('raw', 'VARIANT'), ('event_time', 'TIMESTAMP_LTZ')]
+LANDING_GROUP_TABLE_COLUMNS = [
+    ('raw', 'VARIANT'),
+    ('event_time', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
+]
 
 
 def connect(connection_name, options):
-    table_name = f'okta_{connection_name}'
-    landing_log_table = f'data.{table_name}_connection'
+    table_name = 'okta' + (
+        '' if connection_name in ('default', 'undefined') else f'_{connection_name}'
+    )
+    landing_log_table = f'data.{table_name}_system_log_connection'
     landing_user_table = f'data.{table_name}_users_connection'
     landing_group_table = f'data.{table_name}_groups_connection'
 
     comment = yaml_dump(module='okta', **options)
 
     db.create_table(
-        name=landing_log_table, cols=LANDING_LOG_TABLE_COLUMNS, comment=comment
+        name=landing_log_table,
+        cols=LANDING_LOG_TABLE_COLUMNS,
+        comment=comment,
+        rw_role=SA_ROLE,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_log_table} TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=landing_user_table, cols=LANDING_USER_TABLE_COLUMNS, comment=comment
+        name=landing_user_table,
+        cols=LANDING_USER_TABLE_COLUMNS,
+        comment=comment,
+        rw_role=SA_ROLE,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_user_table} TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=landing_group_table, cols=LANDING_GROUP_TABLE_COLUMNS, comment=comment
+        name=landing_group_table,
+        cols=LANDING_GROUP_TABLE_COLUMNS,
+        comment=comment,
+        rw_role=SA_ROLE,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_group_table} TO ROLE {SA_ROLE}')
 
     return {
         'newStage': 'finalized',
@@ -78,9 +94,7 @@ def ingest_users(url, headers, landing_table, timestamp):
             break
 
         db.insert(
-            landing_table,
-            values=[(row, timestamp) for row in result],
-            select='PARSE_JSON(column1), column2',
+            landing_table, [{'raw': row} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
@@ -109,11 +123,13 @@ def ingest(table_name, options):
     api_key = options['api_key']
     subdomain = options['subdomain']
 
+    domain = subdomain if '.' in subdomain else f'{subdomain}.okta.com'
+
     ingest_urls = {
-        'users': f'https://{subdomain}.okta.com/api/v1/users',
-        'deprovisioned_users': f'https://{subdomain}.okta.com/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
-        'groups': f'https://{subdomain}.okta.com/api/v1/groups',
-        'logs': f'https://{subdomain}.okta.com/api/v1/logs',
+        'users': f'https://{domain}/api/v1/users',
+        'deprovisioned_users': f'https://{domain}/api/v1/users?filter=status+eq+\"DEPROVISIONED\"',
+        'groups': f'https://{domain}/api/v1/groups',
+        'logs': f'https://{domain}/api/v1/logs',
     }
 
     headers = {
@@ -139,9 +155,7 @@ def ingest(table_name, options):
                 raise
 
         db.insert(
-            landing_table,
-            values=[(row, timestamp) for row in result],
-            select='PARSE_JSON(column1), column2',
+            landing_table, [{'raw': row} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
@@ -167,9 +181,7 @@ def ingest(table_name, options):
         i = 0
         url = ingest_urls[ingest_type]
         while 1:
-            response = requests.get(
-                url=url, headers=headers, params=params
-            )
+            response = requests.get(url=url, headers=headers, params=params)
             if response.status_code != 200:
                 log.error('OKTA REQUEST FAILED: ', response.text)
                 return
@@ -184,7 +196,7 @@ def ingest(table_name, options):
                 select='PARSE_JSON(column1), column2',
             )
 
-            log.info(f'Inserted {len(result)} rows. {i}')
+            log.info(f'Inserted {len(result)} rows from page {i}.')
             i += 1
             yield len(result)
 
