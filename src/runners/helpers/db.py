@@ -503,8 +503,8 @@ def insert_violations_query_run(query_name, ctx=None) -> Tuple[int, int]:
         result = next(
             fetch(INSERT_VIOLATIONS_WITH_ID_QUERY.format(**locals()), fix_errors=False)
         )
-    except Exception:
-        log.info('warning: missing STRING ID column in RESULTS.VIOLATIONS')
+    except Exception as e:
+        log.info(f'violation error {e}')
         result = next(
             fetch(INSERT_VIOLATIONS_QUERY.format(**locals()), fix_errors=False)
         )
