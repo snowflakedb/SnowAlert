@@ -1,5 +1,5 @@
-"""Okta System Log
-Collect Okta activity logs using an API Token
+"""Okta System Log and Inventory
+Collect Okta activity logs, users, and groups using an API Token
 """
 
 from runners.helpers import db, log
@@ -82,7 +82,7 @@ def connect(connection_name, options):
     }
 
 
-def ingest_users(url, headers, landing_table, timestamp):
+def ingest_users(url, headers, landing_table, now):
     while 1:
         response = requests.get(url=url, headers=headers)
         if response.status_code != 200:
@@ -94,7 +94,7 @@ def ingest_users(url, headers, landing_table, timestamp):
             break
 
         db.insert(
-            landing_table, [{'raw': row} for row in result],
+            landing_table, [{'raw': row, 'event_time': now} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
@@ -138,7 +138,7 @@ def ingest(table_name, options):
         'Authorization': f'SSWS {api_key}',
     }
 
-    timestamp = datetime.datetime.utcnow()
+    now = datetime.datetime.utcnow()
 
     if ingest_type == 'groups':
         response = requests.get(url=ingest_urls[ingest_type], headers=headers)
@@ -155,16 +155,16 @@ def ingest(table_name, options):
                 raise
 
         db.insert(
-            landing_table, [{'raw': row} for row in result],
+            landing_table, [{'raw': row, 'event_time': now} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
 
     elif ingest_type == 'users':
-        yield from ingest_users(ingest_urls['users'], headers, landing_table, timestamp)
+        yield from ingest_users(ingest_urls['users'], headers, landing_table, now)
         yield from ingest_users(
-            ingest_urls['deprovisioned_users'], headers, landing_table, timestamp
+            ingest_urls['deprovisioned_users'], headers, landing_table, now
         )
 
     else:
