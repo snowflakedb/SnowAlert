@@ -3,6 +3,7 @@
 build/
 node_modules/
 .idea/
+.terraform/
 
 docs/doctrees
 src/webui/frontend/src/**/*.css
