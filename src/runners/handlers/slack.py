@@ -7,6 +7,8 @@ from runners.helpers import log
 from runners.helpers import db
 from runners.helpers import vault
 
+API_TOKEN = os.environ.get('SA_SLACK_API_TOKEN', os.environ.get('SLACK_API_TOKEN'))
+
 
 def message_template(vars):
     payload = None
@@ -29,7 +31,7 @@ def message_template(vars):
         # retrieve Slack message structure from javascript UDF
         rows = db.connect_and_fetchall(
             "select " + vars['template'] + "(parse_json(%s))",
-            params=[json.dumps(params)]
+            params=[json.dumps(params)],
         )
         row = rows[1]
 
@@ -56,15 +58,12 @@ def handle(
     file_content=None,
     file_type=None,
     file_name=None,
-    slack_api_token=None,
     blocks=None,
     attachments=None,
+    api_token=API_TOKEN,
+    slack_api_token=None,
 ):
-    if 'SLACK_API_TOKEN' not in os.environ and slack_api_token is None:
-        log.info(f"No SLACK_API_TOKEN in env, skipping handler.")
-        return None
-
-    slack_token_ct = slack_api_token or os.environ['SLACK_API_TOKEN']
+    slack_token_ct = slack_api_token or api_token
     slack_token = vault.decrypt_if_encrypted(slack_token_ct)
 
     sc = SlackClient(slack_token)
