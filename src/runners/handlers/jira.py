@@ -8,10 +8,12 @@ from jira import JIRA, User
 from runners.helpers import log, vault, db
 from runners.utils import yaml
 
-PROJECT = environ.get('JIRA_PROJECT', '')
-URL = environ.get('JIRA_URL', '')
-ISSUE_TYPE = environ.get('JIRA_ISSUE_TYPE', 'Story')
-TODO_STATUS = environ.get('JIRA_STARTING_STATUS', 'To Do')
+PROJECT = environ.get('SA_JIRA_PROJECT', environ.get('JIRA_PROJECT', ''))
+URL = environ.get('SA_JIRA_URL', environ.get('JIRA_URL', ''))
+ISSUE_TYPE = environ.get('SA_JIRA_ISSUE_TYPE', environ.get('JIRA_ISSUE_TYPE', 'Story'))
+TODO_STATUS = environ.get(
+    'SA_JIRA_STARTING_STATUS', environ.get('JIRA_STARTING_STATUS', 'To Do')
+)
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -42,8 +44,11 @@ Event Data: {{code}}{EVENT_DATA}{{code}}
 Severity: {SEVERITY}
 """
 
-password = vault.decrypt_if_encrypted(environ.get('JIRA_PASSWORD'))
-user = environ.get('JIRA_USER')
+password = vault.decrypt_if_encrypted(
+    environ.get('SA_JIRA_API_TOKEN', environ.get('JIRA_API_TOKEN'))
+    or environ.get('SA_JIRA_PASSWORD', environ.get('JIRA_PASSWORD'))
+)
+user = environ.get('SA_JIRA_USER', environ.get('JIRA_USER'))
 
 if user and password:
     jira = JIRA(URL, basic_auth=(user, password))
@@ -102,11 +107,7 @@ def link_search_todos(description=None, project=PROJECT):
 
 
 def create_jira_ticket(
-    alert,
-    assignee=None,
-    custom_fields=None,
-    project=PROJECT,
-    issue_type=ISSUE_TYPE,
+    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE,
 ):
     if not user:
         return
