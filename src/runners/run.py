@@ -78,9 +78,5 @@ def main(target="all", *rule_names):
             connectors_runner.main()
 
 
-        if target in ['baseline', 'baselines', 'all']:
-            baseline_runner.main()
-
-
 if __name__ == '__main__':
     fire.Fire(main)
