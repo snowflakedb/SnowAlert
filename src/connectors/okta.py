@@ -176,7 +176,11 @@ def ingest(table_name, options):
             )
             ts = datetime.datetime.now() - datetime.timedelta(hours=1)
 
-        params = {'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z"), 'limit': 500}
+        params = {
+            'since': ts.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            'limit': 500,
+            'sortOrder': 'ASCENDING',
+        }
 
         i = 0
         url = ingest_urls[ingest_type]
