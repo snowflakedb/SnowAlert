@@ -20,37 +20,36 @@ CONNECTION_OPTIONS = [
 
 LANDING_EVENTS_TABLE_COLUMNS = [('raw', 'VARIANT', 'RECORDED_AT', 'TIMESTAMP_LTZ')]
 
-# def connect(connection_name, options):
-#     table_name = f'greathorn_{connection_name}'
-#     landing_events_table = f'data.{table_name}_events_connection'
+def connect(connection_name, options):
+    table_name = f'greathorn_{connection_name}'
+    landing_events_table = f'data.{table_name}_events_connection'
 
-#     db.create_table(
-#         name=landing_events_table,
-#         cols=LANDING_EVENTS_TABLE_COLUMNS,
-#         comment=yaml_dump(module='duo', **options),
-#         rw_role=ROLE,
-#     )
+    db.create_table(
+        name=landing_events_table,
+        cols=LANDING_EVENTS_TABLE_COLUMNS,
+        comment=yaml_dump(module='duo', **options),
+        rw_role=ROLE,
+    )
 
-#     return {
-#         'newStage': 'finalized',
-#         'newMessage': "Events table for Greathorn created!",
-#     }
+    return {
+        'newStage': 'finalized',
+        'newMessage': "Events table for Greathorn created!",
+    }
 
 
 def ingest(table_name, options, dryrun=False):
     landing_table = f'data.{table_name}'
     url = "https://api.greathorn.com/v2/search/events"
-    # token = options['api_key']
-    token = os.environ["GH_TOKEN"]
+    token = options['api_key']
 
-    # starttime = db.fetch_latest(landing_table, 'event_time')
-    # if ts is None:
-    #     log.error(
-    #         "Unable to find a timestamp of most recent Okta log, "
-    #         "defaulting to one hour ago"
-    #     )
-    #
-    starttime = datetime.utcnow() - timedelta(hours=1)
+     starttime = db.fetch_latest(landing_table, 'event_time')
+     if starttime is None:
+         log.error(
+             "Unable to find a timestamp of most recent Okta log, "
+             "defaulting to one hour ago"
+         )
+         starttime = datetime.utcnow() - timedelta(hours=1)
+    
     endtime = datetime.utcnow()
     f_filters = [
         {
