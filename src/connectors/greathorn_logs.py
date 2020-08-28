@@ -57,7 +57,6 @@ def ingest(table_name, options, dryrun=False):
             "endDate": endtime.strftime("%Y-%m-%d, %H:%M:%S"),
         }
     ]
-    print(f"Today is {starttime}")
     offset = 0
 
     headers = {
@@ -67,19 +66,19 @@ def ingest(table_name, options, dryrun=False):
     }
 
     while True:
-        print(f'Starttime: {starttime}, endtime:{endtime}, offset:{offset}')
+
         first_data = json.dumps(
             {"limit": PAGE_SIZE, "offset": offset, "filters": f_filters}
         )
         response = requests.post(url, headers=headers, data=first_data)
         if response.status_code != 200:
-            print(f"Not 200, {response.status_code}")
-            print(f"{response.text}")
+            log.error(
+             "Response not 200"
+         )
             yield 0
 
         results = response.json()
         if results['total'] > 9500:
-            print("We've covered too much time, lets cut in half")
 
             # Cut the time in half - start at the same place, but end halfway there.
             timediff = endtime - starttime
@@ -115,7 +114,6 @@ def ingest(table_name, options, dryrun=False):
                 break
 
         offset += len_events
-        print(f"Total {results['total']} and offset: {offset}")
         yield len_events
 
 
