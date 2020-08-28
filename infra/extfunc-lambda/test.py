@@ -102,6 +102,8 @@ def test_email():
             'body': '{"data": [[0, "andrey.fedorov@snowflake.com", "test subject!", "testing 1 2 3"]]}',
         })
 
+        assert loads(result['body'])['data'][0][1] == {}
+
 
 if __name__ == '__main__':
     test_email()
