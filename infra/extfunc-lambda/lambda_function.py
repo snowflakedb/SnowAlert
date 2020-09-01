@@ -73,16 +73,16 @@ def lambda_handler(event, context=None):
                     next_url, method=req_method, headers=req_headers, data=req_data
                 )
                 try:
-                    response = loads(urlopen(req).read())
-                    result = pick(req_results_path, response)
+                    response = urlopen(req).read()
+                    result = pick(req_results_path, loads(response))
                 except HTTPError as e:
                     result = {'error': f'{e.status} {e.reason}'}
                 except JSONDecodeError as e:
-                    result = {'error': 'JSONDecodeError', 'text': response}
+                    result = {'error': 'JSONDecodeError', 'text': response.decode()}
 
                 if req_nextpage_path and isinstance(result, list):
                     data += result
-                    nextpage = pick(req_nextpage_path, response)
+                    nextpage = pick(req_nextpage_path, result)
                     next_url = f'https://{req_host}{nextpage}' if nextpage else None
                 else:
                     data = result
