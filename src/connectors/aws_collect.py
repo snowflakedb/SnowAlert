@@ -29,8 +29,10 @@ AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
 _SESSION_CACHE: dict = {}
-_REQUEST_PACE_PER_SECOND = 100
-_MAX_BATCH_SIZE = 500
+
+# see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
+_REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
+_REQUEST_BATCH_SIZE = 600      # 100 in Throttling bucket + 500 replenished over 25s
 
 CONNECTION_OPTIONS = [
     {
@@ -441,8 +443,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('policy', 'STRING'),
         ('policy_json_parsed', 'VARIANT'),
     ],
@@ -1256,7 +1258,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     try:
         now = datetime.utcnow()
-        expires = _SESSION_CACHE.get('account_arn', {}).get('Credentials', {}).get('Expiration')
+        expires = (
+            _SESSION_CACHE.get('account_arn', {})
+            .get('Credentials', {})
+            .get('Expiration')
+        )
         session = _SESSION_CACHE[account_arn] = (
             _SESSION_CACHE[account_arn]
             if expires and expires > now + timedelta(minutes=5)
@@ -1410,17 +1416,18 @@ async def aioingest(table_name, options, dryrun=False):
             while collection_tasks:
                 coroutines = [
                     aws_collect_task(
-                        t, wait=(float(i) / _REQUEST_PACE_PER_SECOND), add_task=add_task
+                        t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
                     )
-                    for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
+                    for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
                 ]
-                del collection_tasks[:_MAX_BATCH_SIZE]
+                del collection_tasks[:_REQUEST_BATCH_SIZE]
                 log.info(
                     f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
                 )
 
                 all_results = defaultdict(list)
-                for result_lists in await asyncio.gather(*coroutines):
+                for coro in asyncio.as_completed(coroutines):
+                    result_lists = await coro
                     for k, vs in result_lists.items():
                         all_results[k] += vs
                 for name, vs in all_results.items():
