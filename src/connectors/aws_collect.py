@@ -667,6 +667,22 @@ API_METHOD_SPECS: Dict[str, dict] = {
         }
     },
     'config.describe_configuration_recorders': {
+        # for unknown reasons, client.describe_regions does not seem to work w/
+        # Config client. seems like a boto3 bug. the below is a work-around.
+        'regions': [
+            'us-east-1',
+            'us-east-2',
+            'us-west-1',
+            'us-west-2',
+            'ap-south-1',
+            'ap-northeast-2',
+            'ap-southeast-2',
+            'ap-northeast-1',
+            'eu-central-1',
+            'eu-west-1',
+            'eu-west-2',
+            'eu-north-1',
+        ],
         'response': {
             'ConfigurationRecorders': [
                 {
