@@ -30,7 +30,7 @@ def main(target="all", *rule_names):
 
     elif target in ['alert', 'alerts']:
         for rule_name in rule_names or [None]:
-            alert_queries_runner.main(rule_name.upper())
+            alert_queries_runner.main(rule_name)
 
         alert_suppressions_runner.main()
         alert_processor.main()
