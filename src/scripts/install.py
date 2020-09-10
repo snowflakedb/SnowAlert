@@ -31,9 +31,16 @@ from runners.config import ALERT_QUERY_POSTFIX, ALERT_SQUELCH_POSTFIX
 from runners.config import VIOLATION_QUERY_POSTFIX
 from runners.config import DATABASE, DATA_SCHEMA, RULES_SCHEMA, RESULTS_SCHEMA
 
-from runners.helpers import log
+from runners.helpers import log, sasql
 from runners.helpers.dbconfig import USER, ROLE, WAREHOUSE, PORT, PROTOCOL
 from runners.helpers.dbconnect import snowflake_connect
+
+
+def read_sasql(file):
+    pwd = path.dirname(path.realpath(__file__))
+    tmpl = sasql.load(f'{pwd}/installer-queries/{file}.sasql')
+    sep = '\n;\n'
+    return [t + sep for t in tmpl.split(sep) if t.strip()]
 
 
 def read_queries(file, tmpl_vars=None):
@@ -72,6 +79,7 @@ GRANT_OBJECT_PRIVILEGES_QUERIES = [
     f'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA {RULES_SCHEMA} TO ROLE {ROLE}',
     # results
     f'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
+    f'GRANT ALL PRIVILEGES ON ALL PROCEDURES IN SCHEMA {RESULTS_SCHEMA} TO ROLE {ROLE}',
 ]
 
 WAREHOUSE_QUERIES = [
@@ -285,6 +293,7 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
     do_attempt("Creating standard data views", read_queries('data-views'))
+    do_attempt("Creating runner PROC's", read_sasql('alert_runners'))
 
 
 def setup_user_and_role(do_attempt):

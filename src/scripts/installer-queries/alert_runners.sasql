@@ -1,0 +1,35 @@
+CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, from_time_sql STRING, to_time_sql STRING)
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'alert_queries_runner.js'
+;
+
+CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, from_time_sql STRING)
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'alert_queries_runner.js'
+;
+
+CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING)
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'alert_queries_runner.js'
+;
+
+
+CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner(run_id STRING, alert_squelch_postfix STRING)
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'alert_suppressions_runner.js'
+;
+
+CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner()
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'alert_suppressions_runner.js'
+;
