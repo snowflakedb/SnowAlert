@@ -39,7 +39,7 @@ function fillArray(value, len) {
 const RUN_ID = Math.random().toString(36).substring(2).toUpperCase();
 const NEW_ALERTS_TBL = `results.RUN_${RUN_ID}_${QUERY_NAME}`;
 
-const CREATE_ALERTS_SQL = `CREATE TRANSIENT TABLE ${NEW_ALERTS_TBL} AS
+const CREATE_ALERTS_SQL = `CREATE TEMP TABLE ${NEW_ALERTS_TBL} AS
 SELECT OBJECT_CONSTRUCT(
          'ALERT_ID', UUID_STRING(),
          'QUERY_NAME', '${QUERY_NAME}',

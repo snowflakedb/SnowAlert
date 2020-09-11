@@ -46,7 +46,7 @@ const select_all_suppressions_sql = suppressions.map(s => `
 const NEW_SUPPRESSIONS_TBL = `results.ALERT_SUPPRESSIONS_${RUN_ID}`;
 
 const CREATE_SUPPRESSIONS_SQL = `
-CREATE TRANSIENT TABLE ${NEW_SUPPRESSIONS_TBL} AS
+CREATE TEMP TABLE ${NEW_SUPPRESSIONS_TBL} AS
 SELECT id, rule, suppressed, CURRENT_TIMESTAMP ts
 FROM (
 ${select_all_suppressions_sql}
