@@ -43,7 +43,8 @@ CREATE OR REPLACE VIEW zengrc_controls COPY GRANTS AS (
     event_time
   FROM data.zengrc
   where raw:"type" = 'Control'
-);
+)
+;
 
 CREATE OR REPLACE VIEW zengrc_issues COPY GRANTS AS (
   SELECT
@@ -51,19 +52,22 @@ CREATE OR REPLACE VIEW zengrc_issues COPY GRANTS AS (
     event_time
   FROM data.zengrc
   WHERE raw:"type" = 'Issue'
-);
+)
+;
 
 CREATE OR REPLACE VIEW zengrc_requests COPY GRANTS AS (
   SELECT raw, event_time
   FROM data.zengrc
   WHERE raw:"type" = 'Request'
-);
+)
+;
 
 CREATE OR REPLACE VIEW zengrc_risks COPY GRANTS AS (
   SELECT raw, event_time
   FROM data.zengrc
   WHERE raw:"type" = 'Risk'
-);
+)
+;
 
 CREATE OR REPLACE SECURE EXTERNAL FUNCTION zengrc_load(type STRING)
   RETURNS VARIANT
@@ -108,7 +112,7 @@ AS $$
     UNION ALL
     SELECT zengrc_load('risks') result
   ), LATERAL FLATTEN( input => result )
-  $$
+$$
 ;
 
 CREATE OR REPLACE TASK zengrc_load_all
