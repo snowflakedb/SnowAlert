@@ -17,4 +17,9 @@ setup(
         'requests',
         'ujson',
     ],
+    extras_require=[
+        'pytest',
+        'black',
+        'mypy',
+    ],
 )
