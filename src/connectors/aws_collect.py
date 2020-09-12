@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
 from datetime import datetime, timedelta
@@ -1244,7 +1245,7 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    except (ClientError, DataNotFoundError) as e:
+    except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
         log.info(format_exception_only(e))
         for x in process_aws_response(task, e):
             yield x
