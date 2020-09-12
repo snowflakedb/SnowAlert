@@ -2,7 +2,7 @@
 
 import fire
 
-from runners import ingest_runner, connectors_runner
+from runners import connectors_runner
 
 from runners import alert_queries_runner
 from runners import alert_suppressions_runner
@@ -20,10 +20,6 @@ def main(target="all", *rule_names):
     if target == "connector" and rule_names:
         for rule_name in rule_names:
             connectors_runner.main(rule_name.upper())
-
-    elif target == "ingest" and rule_names:
-        for rule_name in rule_names:
-            ingest_runner.main(rule_names)
 
     elif target == "processor":
         alert_processor.main()
@@ -72,10 +68,6 @@ def main(target="all", *rule_names):
             alert_suppressions_runner.main()
             alert_processor.main()
             alert_dispatcher.main()
-
-        if target in ['ingest']:
-            ingest_runner.main()
-            connectors_runner.main()
 
 
 if __name__ == '__main__':
