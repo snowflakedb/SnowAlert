@@ -10,6 +10,7 @@ from runners.utils import yaml
 
 PROJECT = environ.get('SA_JIRA_PROJECT', environ.get('JIRA_PROJECT', ''))
 URL = environ.get('SA_JIRA_URL', environ.get('JIRA_URL', ''))
+TRIAGE_LINK = environ.get('SA_JIRA_TRIAGE_URL', environ.get('JIRA_TRIAGE_URL', '{}'))
 ISSUE_TYPE = environ.get('SA_JIRA_ISSUE_TYPE', environ.get('JIRA_ISSUE_TYPE', 'Story'))
 TODO_STATUS = environ.get(
     'SA_JIRA_STARTING_STATUS', environ.get('JIRA_STARTING_STATUS', 'To Do')
@@ -55,7 +56,10 @@ if user and password:
 
 
 def jira_ticket_body(alert, project):
-    alert['SOURCES'] = ', '.join(alert['SOURCES'])
+    query_name = alert['QUERY_NAME']
+    sources = alert['SOURCES']
+    alert['QUERY_NAME'] = f'[{query_name}|{SA_JIRA_TRIAGE_URL.format(query_name)}]'
+    alert['SOURCES'] = ', '.join(sources) if isinstance(sources, list) else sources
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
     sources = escaped_locals_strings['SOURCES']
     escaped_locals_strings[
@@ -107,7 +111,11 @@ def link_search_todos(description=None, project=PROJECT):
 
 
 def create_jira_ticket(
-    alert, assignee=None, custom_fields=None, project=PROJECT, issue_type=ISSUE_TYPE,
+    alert,
+    assignee=None,
+    custom_fields=None,
+    project=PROJECT,
+    issue_type=ISSUE_TYPE,
 ):
     if not user:
         return
