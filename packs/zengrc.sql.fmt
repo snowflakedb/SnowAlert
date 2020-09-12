@@ -1,0 +1,121 @@
+-- --
+-- - name: ZenGCR asset ingestion
+-- - params:
+--   - name: user
+--   - name: pass
+--     secret: true
+--   - name: subdomain
+--   - name: api_integration_arn
+--   - name: api_subdomain
+--   - name: api_region
+--     default: us-west-2
+--   - name: warehouse
+--     default: snowalert
+--
+
+CREATE OR REPLACE TABLE data.zengrc (
+  raw VARIANT,
+  event_time TIMESTAMP_LTZ
+)
+;
+
+CREATE OR REPLACE VIEW zengrc_assessments COPY GRANTS AS (
+  SELECT
+    raw,
+    event_time
+  FROM data.zengrc
+  WHERE raw:"type" = 'Assessment'
+)
+;
+
+CREATE OR REPLACE VIEW zengrc_audits COPY GRANTS AS (
+  SELECT
+    raw,
+    event_time
+  FROM data.zengrc
+  WHERE raw:"type" = 'Audit'
+)
+;
+
+CREATE OR REPLACE VIEW zengrc_controls COPY GRANTS AS (
+  SELECT
+    raw,
+    event_time
+  FROM data.zengrc
+  where raw:"type" = 'Control'
+);
+
+CREATE OR REPLACE VIEW zengrc_issues COPY GRANTS AS (
+  SELECT
+    raw,
+    event_time
+  FROM data.zengrc
+  WHERE raw:"type" = 'Issue'
+);
+
+CREATE OR REPLACE VIEW zengrc_requests COPY GRANTS AS (
+  SELECT raw, event_time
+  FROM data.zengrc
+  WHERE raw:"type" = 'Request'
+);
+
+CREATE OR REPLACE VIEW zengrc_risks COPY GRANTS AS (
+  SELECT raw, event_time
+  FROM data.zengrc
+  WHERE raw:"type" = 'Risk'
+);
+
+CREATE OR REPLACE SECURE EXTERNAL FUNCTION zengrc_load(type STRING)
+  RETURNS VARIANT
+  RETURNS NULL ON NULL INPUT
+  VOLATILE
+  COMMENT='https://docs.api.zengrc.com/'
+  API_INTEGRATION={api_integration_arn}
+  HEADERS=(
+    'basicauth'='{user}:{pass}'
+    'host'='{subdomain}.api.zengrc.com'
+    'path'='/api/v2/{0}'
+    'nextpage-path'='links.next.href'
+    'results-path'='data'
+  )
+  AS 'https://{api_subdomain}.execute-api.{api_region}.amazonaws.com/prod/https'
+;
+
+CREATE OR REPLACE FUNCTION zengrc_load_all()
+RETURNS TABLE (raw VARIANT, event_time TIMESTAMP_LTZ(9))
+AS $$
+  SELECT
+    value raw,
+    CURRENT_TIMESTAMP event_time
+  FROM (
+    SELECT zengrc_load('assessments') result
+    UNION ALL
+    SELECT zengrc_load('audits') result
+    UNION ALL
+    SELECT zengrc_load('issues') result
+    UNION ALL
+    SELECT zengrc_load('requests') result
+    UNION ALL
+    SELECT zengrc_load('controls') result
+    UNION ALL
+    SELECT zengrc_load('people') result
+    UNION ALL
+    SELECT zengrc_load('objectives') result
+    UNION ALL
+    SELECT zengrc_load('programs') result
+    UNION ALL
+    SELECT zengrc_load('systems') result
+    UNION ALL
+    SELECT zengrc_load('risks') result
+  ), LATERAL FLATTEN( input => result )
+  $$
+;
+
+CREATE OR REPLACE TASK zengrc_load_all
+  WAREHOUSE={warehouse}
+  SCHEDULE='USING CRON 0 0 * * * UTC'
+AS
+INSERT INTO data.zengrc (raw, event_time)
+SELECT * FROM TABLE(zengrc_load())
+;
+ALTER TASK zengrc_load_all RESUME;
