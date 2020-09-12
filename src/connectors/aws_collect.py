@@ -33,7 +33,7 @@ _SESSION_CACHE: dict = {}
 
 # see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
 _REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
-_REQUEST_BATCH_SIZE = 600      # 100 in Throttling bucket + 500 replenished over 25s
+_REQUEST_BATCH_SIZE = 600  # 100 in Throttling bucket + 500 replenished over 25s
 
 CONNECTION_OPTIONS = [
     {
@@ -694,7 +694,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'recordingGroup': 'recording_group',
                 }
             ]
-        }
+        },
     },
     'kms.list_keys': {
         'response': {'Keys': [{'KeyId': 'key_id', 'KeyArn': 'key_arn'}]},
@@ -1338,6 +1338,31 @@ async def aioingest(table_name, options, dryrun=False):
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
     READER_EID = options.get('reader_eid', '')
 
+    collect_apis = (
+        [
+            'iam.generate_credential_report',
+            'iam.list_account_aliases',
+            'iam.get_account_summary',
+            'iam.get_account_password_policy',
+            'ec2.describe_instances',
+            'ec2.describe_route_tables',
+            'ec2.describe_security_groups',
+            'config.describe_configuration_recorders',
+            'kms.list_keys',
+            'iam.list_users',
+            'iam.list_policies',
+            'iam.list_virtual_mfa_devices',
+            's3.list_buckets',
+            'cloudtrail.describe_trails',
+            'iam.get_credential_report',
+            'iam.list_roles',
+            'inspector.list_findings',
+            'iam.list_groups',
+        ]
+        if options.get('collect_apis', 'all') == 'all'
+        else options.get('collect_apis').split(',')
+    )
+
     oids = options.get('org_account_ids', '')
     oids = (
         [oid.strip() for oid in oids.split(',')]
@@ -1385,56 +1410,36 @@ async def aioingest(table_name, options, dryrun=False):
         )
         num_entries += len(accounts)
 
-        if options.get('collect_apis') == 'all':
-            collection_tasks = [
-                CollectTask(a['id'], method, {})
-                for method in [
-                    'iam.generate_credential_report',
-                    'iam.list_account_aliases',
-                    'iam.get_account_summary',
-                    'iam.get_account_password_policy',
-                    'ec2.describe_instances',
-                    'ec2.describe_route_tables',
-                    'ec2.describe_security_groups',
-                    'config.describe_configuration_recorders',
-                    'kms.list_keys',
-                    'iam.list_users',
-                    'iam.list_policies',
-                    'iam.list_virtual_mfa_devices',
-                    's3.list_buckets',
-                    'cloudtrail.describe_trails',
-                    'iam.get_credential_report',
-                    'iam.list_roles',
-                    'inspector.list_findings',
-                    'iam.list_groups',
-                ]
-                for a in accounts
-            ]
+        collection_tasks = [
+            CollectTask(a['id'], method, {})
+            for method in collect_apis
+            for a in accounts
+        ]
 
-            def add_task(t):
-                collection_tasks.append(t)
+        def add_task(t):
+            collection_tasks.append(t)
 
-            while collection_tasks:
-                coroutines = [
-                    aws_collect_task(
-                        t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
-                    )
-                    for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
-                ]
-                del collection_tasks[:_REQUEST_BATCH_SIZE]
-                log.info(
-                    f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+        while collection_tasks:
+            coroutines = [
+                aws_collect_task(
+                    t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
                 )
+                for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
+            ]
+            del collection_tasks[:_REQUEST_BATCH_SIZE]
+            log.info(
+                f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+            )
 
-                all_results = defaultdict(list)
-                for coro in asyncio.as_completed(coroutines):
-                    result_lists = await coro
-                    for k, vs in result_lists.items():
-                        all_results[k] += vs
-                for name, vs in all_results.items():
-                    response = insert_list(name, vs, dryrun=dryrun)
-                    num_entries += len(vs)
-                    log.info(f'finished {name} {response}')
+            all_results = defaultdict(list)
+            for coro in asyncio.as_completed(coroutines):
+                result_lists = await coro
+                for k, vs in result_lists.items():
+                    all_results[k] += vs
+            for name, vs in all_results.items():
+                response = insert_list(name, vs, dryrun=dryrun)
+                num_entries += len(vs)
+                log.info(f'finished {name} {response}')
 
     return num_entries
 
