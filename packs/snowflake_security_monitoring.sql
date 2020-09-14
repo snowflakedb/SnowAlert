@@ -97,7 +97,7 @@ WITH average_queries AS (
 )
 SELECT
   w.user_name,
-  SUM(w.query_id) AS ld_queries,
+  COUNT(w.query_id) AS ld_queries,
   a.avg_queries
 FROM snowflake.account_usage.query_history w
 JOIN average_queries a
