@@ -6,15 +6,7 @@ from urllib.parse import parse_qsl
 from urllib.error import HTTPError
 
 from vault import decrypt_if_encrypted
-
-
-def pick(path: str, d: dict):
-    # path e.g. "a.b.c"
-    retval = d
-    for p in path.split('.'):
-        if p and retval:
-            retval = retval.get(p)
-    return retval
+from utils import parse_header_links, pick
 
 
 def parse_header_dict(value):
@@ -72,18 +64,24 @@ def lambda_handler(event, context=None):
                 req = Request(
                     next_url, method=req_method, headers=req_headers, data=req_data
                 )
+                links_headers = None
                 try:
-                    response = urlopen(req).read()
-                    result = pick(req_results_path, loads(response))
+                    response = urlopen(req)
+                    links_headers = parse_header_links(','.join(response.headers.get_all('link', [])))
+                    response_body = response.read()
+                    result = pick(req_results_path, loads(response_body))
                 except HTTPError as e:
                     result = {'error': f'{e.status} {e.reason}'}
                 except JSONDecodeError as e:
-                    result = {'error': 'JSONDecodeError', 'text': response.decode()}
+                    result = {'error': 'JSONDecodeError', 'text': response_body.decode()}
 
                 if req_nextpage_path and isinstance(result, list):
                     data += result
                     nextpage = pick(req_nextpage_path, result)
                     next_url = f'https://{req_host}{nextpage}' if nextpage else None
+                elif links_headers and isinstance(result, list):
+                    data += result
+                    next_url = next((l for l in links_headers if l['rel'] == 'next'), {}).get('url')
                 else:
                     data = result
                     next_url = None

@@ -105,5 +105,25 @@ def test_email():
         assert loads(result['body'])['data'][0][1] == {}
 
 
+def test_okta():
+    h = environ.get('OKTA_HOST')
+    k = environ.get('OKTA_APIKEY')
+
+    if k and k:
+        result = lambda_handler({
+            'path': '/https',
+            'headers': {
+                'sf-custom-host': h,
+                'sf-custom-path': '{0}',
+                'sf-custom-querystring': '{1}',
+                'sf-custom-kwargs': urlencode({'apikey': k}),
+                'sf-custom-headers': urlencode({'Authorization': 'SSWS {apikey}'}),
+            },
+            'body': '{"data": [[0, "/api/v1/users", ""]]}',
+        })
+        print(result['body'])
+        assert len(loads(result['body'])['data'][0][1]) > 200
+
+
 if __name__ == '__main__':
     test_email()
