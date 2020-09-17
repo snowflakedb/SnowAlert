@@ -190,7 +190,16 @@ def smtp(
     if user and password:
         smtpserver.login(user, password)
 
-    result = smtpserver.sendmail(sender_email, recipients, message.as_string())
-    smtpserver.close()
+    try:
+        result = smtpserver.sendmail(sender_email, recipients, message.as_string())
+    except smtplib.SMTPDataError as e:
+        result = {
+            'error': 'SMTPDataError',
+            'smtp_code': e.smtp_code,
+            'smtp_error': e.smtp_error.decode(),
+        }
+
+    finally:
+        smtpserver.close()
 
     return result
