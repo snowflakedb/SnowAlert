@@ -54,7 +54,9 @@ def lambda_handler(event, context=None):
         if event['path'] == '/https':
             req_method = headers.get('sf-custom-method', 'get').format(*args).upper()
             if 'sf-custom-json' in headers:
-                req_data = dumps(parse_header_dict(headers['sf-custom-json'].format(*args))).encode()
+                req_data = dumps(
+                    parse_header_dict(headers['sf-custom-json'].format(*args))
+                ).encode()
             else:
                 req_data = headers.get('sf-custom-data', '').format(*args).encode()
             next_url = req_url.format(*args)
@@ -67,13 +69,18 @@ def lambda_handler(event, context=None):
                 links_headers = None
                 try:
                     response = urlopen(req)
-                    links_headers = parse_header_links(','.join(response.headers.get_all('link', [])))
+                    links_headers = parse_header_links(
+                        ','.join(response.headers.get_all('link', []))
+                    )
                     response_body = response.read()
                     result = pick(req_results_path, loads(response_body))
                 except HTTPError as e:
                     result = {'error': f'{e.status} {e.reason}'}
                 except JSONDecodeError as e:
-                    result = {'error': 'JSONDecodeError', 'text': response_body.decode()}
+                    result = {
+                        'error': 'JSONDecodeError',
+                        'text': response_body.decode(),
+                    }
 
                 if req_nextpage_path and isinstance(result, list):
                     data += result
@@ -81,14 +88,16 @@ def lambda_handler(event, context=None):
                     next_url = f'https://{req_host}{nextpage}' if nextpage else None
                 elif links_headers and isinstance(result, list):
                     data += result
-                    next_url = next((l for l in links_headers if l['rel'] == 'next'), {}).get('url')
+                    next_url = next(
+                        (l for l in links_headers if l['rel'] == 'next'), {}
+                    ).get('url')
                 else:
                     data = result
                     next_url = None
 
         elif event['path'] == '/smtp':
             header_params = {
-                k.replace('sf-custom-', ''): v.format(*args)
+                k.replace('sf-custom-', '').replace('-', '_'): v.format(*args)
                 for k, v in headers.items()
                 if k.startswith('sf-custom-')
             }
