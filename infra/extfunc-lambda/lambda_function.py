@@ -118,9 +118,9 @@ from email.mime.multipart import MIMEMultipart
 def smtp(
     user,
     password,
-    to,
+    recipient_email,
+    text,
     sender_email=None,
-    text=None,
     html=None,
     subject=None,
     reply_to=None,
@@ -135,14 +135,6 @@ def smtp(
     user = decrypt_if_encrypted(user)
     password = decrypt_if_encrypted(password)
     sender_email = sender_email or user
-
-    if to is None:
-        log.error(f"param 'to' required")
-        return None
-
-    if text is None:
-        log.error(f"param 'text' required")
-        return None
 
     # Create the base MIME message.
     if html is None:
@@ -163,9 +155,9 @@ def smtp(
 
     message['Subject'] = subject
     message['From'] = sender_email
-    message['To'] = to
+    message['To'] = recipient_email
 
-    recipients = to.split(',')
+    recipients = recipient_email.split(',')
 
     if cc is not None:
         message['Cc'] = cc
