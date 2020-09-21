@@ -58,7 +58,7 @@ if user and password:
 def jira_ticket_body(alert, project):
     query_name = alert['QUERY_NAME']
     sources = alert['SOURCES']
-    alert['QUERY_NAME'] = f'[{query_name}|{SA_JIRA_TRIAGE_URL.format(query_name)}]'
+    alert['QUERY_NAME'] = f'[{query_name}|{TRIAGE_LINK.format(query_name)}]'
     alert['SOURCES'] = ', '.join(sources) if isinstance(sources, list) else sources
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
     sources = escaped_locals_strings['SOURCES']
