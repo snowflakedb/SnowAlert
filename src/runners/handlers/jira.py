@@ -10,6 +10,7 @@ from runners.utils import yaml
 
 PROJECT = environ.get('SA_JIRA_PROJECT', environ.get('JIRA_PROJECT', ''))
 URL = environ.get('SA_JIRA_URL', environ.get('JIRA_URL', ''))
+WEBUI_LINK = environ.get('SA_JIRA_WEBUI_URL', environ.get('JIRA_WEBUI_URL', '{}'))
 TRIAGE_LINK = environ.get('SA_JIRA_TRIAGE_URL', environ.get('JIRA_TRIAGE_URL', '{}'))
 ISSUE_TYPE = environ.get('SA_JIRA_ISSUE_TYPE', environ.get('JIRA_ISSUE_TYPE', 'Story'))
 TODO_STATUS = environ.get(
@@ -56,17 +57,24 @@ if user and password:
 
 
 def jira_ticket_body(alert, project):
-    query_name = alert['QUERY_NAME']
     sources = alert['SOURCES']
-    alert['QUERY_NAME'] = f'[{query_name}|{TRIAGE_LINK.format(query_name)}]'
     alert['SOURCES'] = ', '.join(sources) if isinstance(sources, list) else sources
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
+
+    query_id = alert['QUERY_ID']
+    escaped_locals_strings['QUERY_ID'] = f'[{query_id}|{WEBUI_LINK.format(query_id)}]'
+
+    query_name = alert['QUERY_NAME']
+    escaped_locals_strings['QUERY_NAME'] = f'[{query_name}|{TRIAGE_LINK.format(query_name)}]'
+
     sources = escaped_locals_strings['SOURCES']
     escaped_locals_strings[
         'SOURCES'
     ] = f'[{sources}|{link_search_todos(f"Sources: {sources}", project)}]'
+
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     ticket_body = JIRA_TICKET_BODY_FMT.format(**jira_body)
+
     return ticket_body[:99000]
 
 
