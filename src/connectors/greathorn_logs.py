@@ -27,7 +27,7 @@ def connect(connection_name, options):
     db.create_table(
         name=landing_events_table,
         cols=LANDING_EVENTS_TABLE_COLUMNS,
-        comment=yaml_dump(module='duo', **options),
+        comment=yaml_dump(module='greathorn_logs', **options),
         rw_role=ROLE,
     )
 
