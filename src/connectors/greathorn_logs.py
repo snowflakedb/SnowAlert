@@ -45,7 +45,7 @@ def ingest(table_name, options, dryrun=False):
      starttime = db.fetch_latest(landing_table, 'event_time')
      if starttime is None:
          log.error(
-             "Unable to find a timestamp of most recent Okta log, "
+             "Unable to find a timestamp of most recent Greathorn log, "
              "defaulting to one hour ago"
          )
          starttime = datetime.utcnow() - timedelta(hours=1)
@@ -94,6 +94,9 @@ def ingest(table_name, options, dryrun=False):
             yield 0
 
         events = results['results']
+        db.insert(
+        f'data.{table_name}', [{'raw': a} for a in results], dryrun=dryrun,
+    )
 
         len_events = len(events)
         if len_events == 0:
