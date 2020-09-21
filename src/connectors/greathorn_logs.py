@@ -20,6 +20,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_EVENTS_TABLE_COLUMNS = [('raw', 'VARIANT', 'RECORDED_AT', 'TIMESTAMP_LTZ')]
 
+
 def connect(connection_name, options):
     table_name = f'greathorn_{connection_name}'
     landing_events_table = f'data.{table_name}_events_connection'
@@ -42,14 +43,14 @@ def ingest(table_name, options, dryrun=False):
     url = "https://api.greathorn.com/v2/search/events"
     token = options['api_key']
 
-     starttime = db.fetch_latest(landing_table, 'event_time')
-     if starttime is None:
-         log.error(
-             "Unable to find a timestamp of most recent Greathorn log, "
-             "defaulting to one hour ago"
-         )
-         starttime = datetime.utcnow() - timedelta(hours=1)
-    
+    starttime = db.fetch_latest(landing_table, 'event_time')
+    if starttime is None:
+        log.error(
+            "Unable to find a timestamp of most recent Greathorn log, "
+            "defaulting to one hour ago"
+        )
+        starttime = datetime.utcnow() - timedelta(hours=1)
+
     endtime = datetime.utcnow()
     f_filters = [
         {
@@ -72,9 +73,7 @@ def ingest(table_name, options, dryrun=False):
         )
         response = requests.post(url, headers=headers, data=first_data)
         if response.status_code != 200:
-            log.error(
-             "Response not 200"
-         )
+            log.error("Response not 200")
             yield 0
 
         results = response.json()
@@ -95,8 +94,10 @@ def ingest(table_name, options, dryrun=False):
 
         events = results['results']
         db.insert(
-        f'data.{table_name}', [{'raw': a} for a in results], dryrun=dryrun,
-    )
+            f'data.{table_name}',
+            [{'raw': a} for a in results],
+            dryrun=dryrun,
+        )
 
         len_events = len(events)
         if len_events == 0:
