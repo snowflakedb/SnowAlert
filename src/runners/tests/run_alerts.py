@@ -84,7 +84,6 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , OBJECT_CONSTRUCT('data', 'test 3 data') AS event_data
     , CURRENT_TIMESTAMP() AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
-    , ARRAY_CONSTRUCT() AS handlers
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
