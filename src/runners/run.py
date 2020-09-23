@@ -55,7 +55,7 @@ def main(target="all", *rule_names):
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
         log.info(f"got command {target}")
-        if target in ['connector', 'connectors', 'all']:
+        if target in ['connection', 'connections', 'connector', 'connectors', 'all']:
             for rule_name in rule_names or [None]:
                 connectors_runner.main(rule_name)
 

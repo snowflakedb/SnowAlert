@@ -5,6 +5,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {Link} from '@reach/router';
 import {bindActionCreators, Dispatch} from 'redux';
+import BasicLayout from '../../layouts/BasicLayout';
 import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
 import {navigate} from '../../store/history';
@@ -62,7 +63,6 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
       data: {baselines},
     } = this.props;
     const toFind = title || selected;
-    console.log(selected);
     return baselines.find(b => b.baseline === toFind);
   }
 
@@ -95,7 +95,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
     }
 
     return selectedBaseline ? (
-      <div>
+      <BasicLayout>
         <Modal
           title={`Error Creating Baseline`}
           visible={!!errorMessage}
@@ -128,25 +128,22 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
             </Button>,
           ]}
         >
-          <div>
-            <List
-              size="large"
-              dataSource={(baselineResults || []).concat()}
-              renderItem={(r: string) => (
-                <List.Item style={{paddingLeft: 16}}>
-                  <CheckOutlined style={{color: '#52c41a', marginRight: 4}} /> {r}
-                </List.Item>
-              )}
-              bordered
-            />
-          </div>
+          <List
+            size="large"
+            dataSource={(baselineResults || []).concat()}
+            renderItem={(r: string) => (
+              <List.Item style={{paddingLeft: 16}}>
+                <CheckOutlined style={{color: '#52c41a', marginRight: 4}} /> {r}
+              </List.Item>
+            )}
+            bordered
+          />
         </Modal>
 
         <h1>Creating {selectedBaseline.title}</h1>
         <List
           itemLayout="vertical"
           size="small"
-          grid={{gutter: 0}}
           dataSource={options}
           renderItem={(opt: any) => (
             <List.Item key={opt.name}>
@@ -189,13 +186,6 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
             </List.Item>
           )}
         />
-        <Button
-          onClick={() => {
-            this.props.selectBaseline(null);
-          }}
-        >
-          &larr; Go Back
-        </Button>
 
         <Button
           style={{float: 'right'}}
@@ -205,9 +195,9 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
         >
           {'Create'}
         </Button>
-      </div>
+      </BasicLayout>
     ) : (
-      <div>
+      <BasicLayout>
         {baselines.map(b => (
           <Card
             key={b.baseline}
@@ -229,7 +219,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
             />
           </Card>
         ))}
-      </div>
+      </BasicLayout>
     );
   }
 }

@@ -2045,9 +2045,6 @@ def ingest(table_name, options, dryrun=False):
 def main(
     table_name, tenant, client, secret, cloud, apis='*', dryrun=True, run_now=False
 ):
-    now = datetime.now()
-    schedule = '*' if run_now or (now.hour % 3 == 1 and now.minute < 15) else False
-
     ingest(
         table_name,
         {
@@ -2055,7 +2052,6 @@ def main(
             'credentials': [
                 {'tenant': tenant, 'client': client, 'secret': secret, 'cloud': cloud}
             ],
-            'schedule': schedule,
             'apis': apis,
         },
         dryrun=dryrun,

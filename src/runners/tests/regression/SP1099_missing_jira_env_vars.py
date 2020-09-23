@@ -45,7 +45,16 @@ def sample_alert_rule(db_schemas):
 @pytest.fixture
 def without_jira_vars():
     backup = environ.copy()
-    for v in ('JIRA_PROJECT', 'JIRA_USER', 'JIRA_PASSWORD', 'JIRA_URL'):
+    for v in (
+        'JIRA_PROJECT',
+        'JIRA_USER',
+        'JIRA_PASSWORD',
+        'SA_JIRA_URL',
+        'SA_JIRA_PROJECT',
+        'SA_JIRA_USER',
+        'SA_JIRA_PASSWORD',
+        'SA_JIRA_URL',
+    ):
         if v in environ:
             del environ[v]
     reload(jira)
