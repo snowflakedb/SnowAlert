@@ -38,4 +38,11 @@ setup(
         'cryptography==3.0.0',
         'requests==2.23.0',
     ],
+    extras_require={
+        'dev': [
+            'pytest',
+            'black',
+            'mypy',
+        ]
+    },
 )

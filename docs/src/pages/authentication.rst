@@ -6,9 +6,11 @@ SnowAlert WebUI Authentication
 Environment Variables
 ---------------------
 
-The following environment variables are recommended for the SnowAlert WebUI server:
+If a single team is using the SnowAlert WebUI, the following environment variables are recommended for the server:
 
-- ``SA_ROLE`` (default "snowalert") specifies the role of your runners
+- ``OAUTH_CONNECTION_ROLE`` to specify the role used to see Rules
+- ``OAUTH_CONNECTION_DATABASE`` to specify the db where Rules will be managed
+- ``OAUTH_CONNECTION_WAREHOUSE`` to specify the warehouse the WebUI will use to load data
 - ``SA_REGION`` (default "us-west-2") specifies the default region used by connectors
 - ``SA_KMS_KEY`` (optional) ARN of a key which allows your WebUI to encrypt secrets, e.g. connection passwords
 - ``OAUTH_{{type}}_{{account}}`` (see below) allows server to authenticate
