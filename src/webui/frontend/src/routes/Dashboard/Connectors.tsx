@@ -40,7 +40,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
     super(props);
 
     this.state = {
-      optionValues: {},
+      optionValues: {'name': 'default'},
     };
 
     if (this.findConnector()) {
