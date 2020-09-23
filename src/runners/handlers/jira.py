@@ -8,10 +8,14 @@ from jira import JIRA, User
 from runners.helpers import log, vault, db
 from runners.utils import yaml
 
-PROJECT = environ.get('JIRA_PROJECT', '')
-URL = environ.get('JIRA_URL', '')
-ISSUE_TYPE = environ.get('JIRA_ISSUE_TYPE', 'Story')
-TODO_STATUS = environ.get('JIRA_STARTING_STATUS', 'To Do')
+PROJECT = environ.get('SA_JIRA_PROJECT', environ.get('JIRA_PROJECT', ''))
+URL = environ.get('SA_JIRA_URL', environ.get('JIRA_URL', ''))
+WEBUI_LINK = environ.get('SA_JIRA_WEBUI_URL', environ.get('JIRA_WEBUI_URL', ''))
+TRIAGE_LINK = environ.get('SA_JIRA_TRIAGE_URL', environ.get('JIRA_TRIAGE_URL', ''))
+ISSUE_TYPE = environ.get('SA_JIRA_ISSUE_TYPE', environ.get('JIRA_ISSUE_TYPE', 'Story'))
+TODO_STATUS = environ.get(
+    'SA_JIRA_STARTING_STATUS', environ.get('JIRA_STARTING_STATUS', 'To Do')
+)
 
 JIRA_TICKET_BODY_DEFAULTS = {
     "DETECTOR": "No detector identified",
@@ -42,22 +46,39 @@ Event Data: {{code}}{EVENT_DATA}{{code}}
 Severity: {SEVERITY}
 """
 
-password = vault.decrypt_if_encrypted(environ.get('JIRA_PASSWORD'))
-user = environ.get('JIRA_USER')
+password = vault.decrypt_if_encrypted(
+    environ.get('SA_JIRA_API_TOKEN', environ.get('JIRA_API_TOKEN'))
+    or environ.get('SA_JIRA_PASSWORD', environ.get('JIRA_PASSWORD'))
+)
+user = environ.get('SA_JIRA_USER', environ.get('JIRA_USER'))
+
+jira_server = URL if URL.startswith('https://') else f'https://{URL}'
 
 if user and password:
-    jira = JIRA(URL, basic_auth=(user, password))
+    jira = JIRA(jira_server, basic_auth=(user, password))
 
 
 def jira_ticket_body(alert, project):
-    alert['SOURCES'] = ', '.join(alert['SOURCES'])
+    sources = alert['SOURCES']
+    alert['SOURCES'] = ', '.join(sources) if isinstance(sources, list) else sources
     escaped_locals_strings = {k: escape_jira_strings(v) for k, v in alert.items()}
+
+    if WEBUI_LINK:
+        query_id = alert['QUERY_ID']
+        escaped_locals_strings['QUERY_ID'] = f'[{query_id}|{WEBUI_LINK.format(query_id)}]'
+
+    if TRIAGE_LINK:
+        query_name = alert['QUERY_NAME']
+        escaped_locals_strings['QUERY_NAME'] = f'[{query_name}|{TRIAGE_LINK.format(query_name)}]'
+
     sources = escaped_locals_strings['SOURCES']
     escaped_locals_strings[
         'SOURCES'
     ] = f'[{sources}|{link_search_todos(f"Sources: {sources}", project)}]'
+
     jira_body = {**JIRA_TICKET_BODY_DEFAULTS, **escaped_locals_strings}
     ticket_body = JIRA_TICKET_BODY_FMT.format(**jira_body)
+
     return ticket_body[:99000]
 
 
@@ -98,7 +119,7 @@ def link_search_todos(description=None, project=PROJECT):
     if description:
         q = f'description ~ "{description}" AND {q}'
 
-    return f'{URL}/issues/?jql={quote(q)}'
+    return f'{jira_server}/issues/?jql={quote(q)}'
 
 
 def create_jira_ticket(
@@ -170,7 +191,7 @@ def create_jira_ticket(
 
 def check_ticket_status(id):
     status = str(jira.issue(id).fields.status)
-    log.info(f"Ticket {id} status is {status}")
+    log.info(f"Ticket {id} status is '{status}'")
     return str(status)
 
 
@@ -237,6 +258,9 @@ def handle(
                 log.error(
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
+
+        else:
+            ticket_id = None
 
     try:
         if ticket_id is None:

@@ -143,6 +143,11 @@ def ingest(table_name, options):
                 # This will create a single line JSON file containing an array of objects
                 json.dump(list(reader), f)
 
+            if shutil.disk_usage("/").free < 2**30:
+                # running out of disk space, next run will catch up
+                break
+
+
         # Copy all the staged .json files into the landing table
         log.info(f'Uploading all files to Snowflake stage: {table_name}.')
         db.copy_file_to_table_stage(table_name, os.path.join(temp_dir, '*.json'))

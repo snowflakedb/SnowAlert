@@ -43,7 +43,12 @@ def main():
         results = []
 
         handlers = alert.get('HANDLERS')
-        for handler in ['jira'] if handlers is None else handlers:
+        if handlers is None:
+            handlers = 'jira'
+        if isinstance(handlers, (str, dict)):
+            handlers = [handlers]
+
+        for handler in handlers:
             if handler is None:
                 results.append(None)
 

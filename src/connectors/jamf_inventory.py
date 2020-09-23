@@ -7,6 +7,7 @@ from dateutil.parser import parse as parse_date
 
 from connectors.utils import updated
 from runners.helpers import db, log
+from runners.utils import groups_of
 
 
 CONNECTION_OPTIONS = [
@@ -22,12 +23,12 @@ CONNECTION_OPTIONS = [
 ]
 
 HEADERS: dict = {}
-REQUEST_SPREAD_IN_SECONDS = 180
+REQUEST_SPEED_PER_SECOND = 10
 
 
-async def fetch(session, url, fetch_over=0) -> dict:
-    if fetch_over:
-        await asyncio.sleep(fetch_over * random())
+async def fetch(session, url, wait=0) -> dict:
+    if wait:
+        await asyncio.sleep(wait)
     async with session.get(
         f'https://snowflake.jamfcloud.com/JSSResource{url}', headers=HEADERS
     ) as response:
@@ -45,8 +46,8 @@ async def fetch(session, url, fetch_over=0) -> dict:
             return result
 
 
-def fetch_computer(s, cid):
-    return fetch(s, f'/computers/id/{cid}', fetch_over=REQUEST_SPREAD_IN_SECONDS)
+def fetch_computer(s, cid, i=0):
+    return fetch(s, f'/computers/id/{cid}', wait=i / REQUEST_SPEED_PER_SECOND)
 
 
 async def main(table_name):
@@ -57,7 +58,7 @@ async def main(table_name):
 
         log.info(f'loading {len(cids)} computer details')
         computers = await asyncio.gather(
-            *[fetch_computer(session, cid) for cid in cids]
+            *[fetch_computer(session, cid, i) for i, cid in enumerate(cids)]
         )
 
         log.info(f'inserting {len(computers)} computers into {table_name}')
@@ -67,7 +68,8 @@ async def main(table_name):
             )
             for cid, c in zip(cids, computers)
         ]
-        db.insert(table_name, rows)
+        for g in groups_of(100, rows):
+            db.insert(table_name, g)
         return len(rows)
 
 

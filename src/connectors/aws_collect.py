@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
 from datetime import datetime, timedelta
@@ -29,8 +30,10 @@ AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
 _SESSION_CACHE: dict = {}
-_REQUEST_PACE_PER_SECOND = 100
-_MAX_BATCH_SIZE = 500
+
+# see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
+_REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
+_REQUEST_BATCH_SIZE = 600  # 100 in Throttling bucket + 500 replenished over 25s
 
 CONNECTION_OPTIONS = [
     {
@@ -441,8 +444,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_policy': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('policy', 'STRING'),
         ('policy_json_parsed', 'VARIANT'),
     ],
@@ -667,6 +670,22 @@ API_METHOD_SPECS: Dict[str, dict] = {
         }
     },
     'config.describe_configuration_recorders': {
+        # for unknown reasons, client.describe_regions does not seem to work w/
+        # Config client. seems like a boto3 bug. the below is a work-around.
+        'regions': [
+            'us-east-1',
+            'us-east-2',
+            'us-west-1',
+            'us-west-2',
+            'ap-south-1',
+            'ap-northeast-2',
+            'ap-southeast-2',
+            'ap-northeast-1',
+            'eu-central-1',
+            'eu-west-1',
+            'eu-west-2',
+            'eu-north-1',
+        ],
         'response': {
             'ConfigurationRecorders': [
                 {
@@ -675,7 +694,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'recordingGroup': 'recording_group',
                 }
             ]
-        }
+        },
     },
     'kms.list_keys': {
         'response': {'Keys': [{'KeyId': 'key_id', 'KeyArn': 'key_arn'}]},
@@ -1226,7 +1245,7 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    except (ClientError, DataNotFoundError) as e:
+    except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
         log.info(format_exception_only(e))
         for x in process_aws_response(task, e):
             yield x
@@ -1240,7 +1259,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     try:
         now = datetime.utcnow()
-        expires = _SESSION_CACHE.get('account_arn', {}).get('Credentials', {}).get('Expiration')
+        expires = (
+            _SESSION_CACHE.get('account_arn', {})
+            .get('Credentials', {})
+            .get('Expiration')
+        )
         session = _SESSION_CACHE[account_arn] = (
             _SESSION_CACHE[account_arn]
             if expires and expires > now + timedelta(minutes=5)
@@ -1315,6 +1338,31 @@ async def aioingest(table_name, options, dryrun=False):
     AUDIT_READER_ROLE = options.get('audit_reader_role', '')
     READER_EID = options.get('reader_eid', '')
 
+    collect_apis = (
+        [
+            'iam.generate_credential_report',
+            'iam.list_account_aliases',
+            'iam.get_account_summary',
+            'iam.get_account_password_policy',
+            'ec2.describe_instances',
+            'ec2.describe_route_tables',
+            'ec2.describe_security_groups',
+            'config.describe_configuration_recorders',
+            'kms.list_keys',
+            'iam.list_users',
+            'iam.list_policies',
+            'iam.list_virtual_mfa_devices',
+            's3.list_buckets',
+            'cloudtrail.describe_trails',
+            'iam.get_credential_report',
+            'iam.list_roles',
+            'inspector.list_findings',
+            'iam.list_groups',
+        ]
+        if options.get('collect_apis', 'all') == 'all'
+        else options.get('collect_apis').split(',')
+    )
+
     oids = options.get('org_account_ids', '')
     oids = (
         [oid.strip() for oid in oids.split(',')]
@@ -1362,55 +1410,36 @@ async def aioingest(table_name, options, dryrun=False):
         )
         num_entries += len(accounts)
 
-        if options.get('collect_apis') == 'all':
-            collection_tasks = [
-                CollectTask(a['id'], method, {})
-                for method in [
-                    'iam.generate_credential_report',
-                    'iam.list_account_aliases',
-                    'iam.get_account_summary',
-                    'iam.get_account_password_policy',
-                    'ec2.describe_instances',
-                    'ec2.describe_route_tables',
-                    'ec2.describe_security_groups',
-                    'config.describe_configuration_recorders',
-                    'kms.list_keys',
-                    'iam.list_users',
-                    'iam.list_policies',
-                    'iam.list_virtual_mfa_devices',
-                    's3.list_buckets',
-                    'cloudtrail.describe_trails',
-                    'iam.get_credential_report',
-                    'iam.list_roles',
-                    'inspector.list_findings',
-                    'iam.list_groups',
-                ]
-                for a in accounts
-            ]
+        collection_tasks = [
+            CollectTask(a['id'], method, {})
+            for method in collect_apis
+            for a in accounts
+        ]
 
-            def add_task(t):
-                collection_tasks.append(t)
+        def add_task(t):
+            collection_tasks.append(t)
 
-            while collection_tasks:
-                coroutines = [
-                    aws_collect_task(
-                        t, wait=(float(i) / _REQUEST_PACE_PER_SECOND), add_task=add_task
-                    )
-                    for i, t in enumerate(collection_tasks[:_MAX_BATCH_SIZE])
-                ]
-                del collection_tasks[:_MAX_BATCH_SIZE]
-                log.info(
-                    f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+        while collection_tasks:
+            coroutines = [
+                aws_collect_task(
+                    t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
                 )
+                for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
+            ]
+            del collection_tasks[:_REQUEST_BATCH_SIZE]
+            log.info(
+                f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
+            )
 
-                all_results = defaultdict(list)
-                for result_lists in await asyncio.gather(*coroutines):
-                    for k, vs in result_lists.items():
-                        all_results[k] += vs
-                for name, vs in all_results.items():
-                    response = insert_list(name, vs, dryrun=dryrun)
-                    num_entries += len(vs)
-                    log.info(f'finished {name} {response}')
+            all_results = defaultdict(list)
+            for coro in asyncio.as_completed(coroutines):
+                result_lists = await coro
+                for k, vs in result_lists.items():
+                    all_results[k] += vs
+            for name, vs in all_results.items():
+                response = insert_list(name, vs, dryrun=dryrun)
+                num_entries += len(vs)
+                log.info(f'finished {name} {response}')
 
     return num_entries
 

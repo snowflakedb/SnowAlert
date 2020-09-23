@@ -1,4 +1,4 @@
-import os
+from os import environ as env
 import smtplib
 import ssl
 
@@ -8,6 +8,13 @@ from email.mime.multipart import MIMEMultipart
 from runners.helpers import log
 from runners.helpers import vault
 
+
+HOST = env.get('SA_SMTP_HOST', env.get('SMTP_SERVER', ''))
+PORT = int(env.get('SA_SMTP_PORT', env.get('port', 587)))
+USER = env.get('SA_SMTP_USER', env.get('SMTP_USER', ''))
+PASSWORD = env.get('SA_SMTP_PASSWORD', env.get('SMTP_PASSWORD', ''))
+USE_SSL = env.get('SA_SMTP_USE_SSL', env.get('SMTP_USE_SSL', True))
+USE_TLS = env.get('SA_SMTP_USE_TLS', env.get('SMTP_USE_TLS', True))
 
 def handle(
     alert,
@@ -20,38 +27,24 @@ def handle(
     reply_to=None,
     cc=None,
     bcc=None,
+    host=HOST,
+    port=PORT,
+    user=USER,
+    password=PASSWORD,
+    use_ssl=USE_SSL,
+    use_tls=USE_TLS,
 ):
 
-    if not os.environ.get('SMTP_SERVER'):
-        log.info("No SMTP_SERVER in env, skipping handler.")
-        return None
-
-    smtp_server = os.environ['SMTP_SERVER']
-
-    if 'SMTP_PORT' in os.environ:
-        smtp_port = os.environ['SMTP_PORT']
-    else:
-        smtp_port = 587
-
-    if 'SMTP_USE_SSL' in os.environ:
-        smtp_use_ssl = os.environ['SMTP_USE_SSL']
-    else:
-        smtp_use_ssl = True
-
-    if 'SMTP_USE_TLS' in os.environ:
-        smtp_use_tls = os.environ['SMTP_USE_TLS']
-    else:
-        smtp_use_tls = True
-
-    smtp_user = vault.decrypt_if_encrypted(envar='SMTP_USER')
-    smtp_password = vault.decrypt_if_encrypted(envar='SMTP_PASSWORD')
+    user = vault.decrypt_if_encrypted(user)
+    password = vault.decrypt_if_encrypted(password)
+    sender_email = sender_email or user
 
     if recipient_email is None:
-        log.error(f"Cannot identify recipient email")
+        log.error(f"param 'recipient_email' required")
         return None
 
     if text is None:
-        log.error(f"SES Message is empty")
+        log.error(f"param 'text' required")
         return None
 
     # Create the base MIME message.
@@ -87,18 +80,20 @@ def handle(
     if reply_to is not None:
         message.add_header('reply-to', reply_to)
 
-    if smtp_use_ssl is True:
+    if use_ssl is True:
         context = ssl.create_default_context()
-        if smtp_use_tls is True:
-            smtpserver = smtplib.SMTP(smtp_server, smtp_port)
+        if use_tls is True:
+            smtpserver = smtplib.SMTP(host, port)
             smtpserver.starttls(context=context)
         else:
-            smtpserver = smtplib.SMTP_SSL(smtp_server, smtp_port, context=context)
+            smtpserver = smtplib.SMTP_SSL(host, port, context=context)
     else:
-        smtpserver = smtplib.SMTP(smtp_server, smtp_port)
+        smtpserver = smtplib.SMTP(host, port)
 
-    if smtp_user and smtp_password:
-        smtpserver.login(smtp_user, smtp_password)
+    if user and password:
+        smtpserver.login(user, password)
 
-    smtpserver.sendmail(sender_email, recipients, message.as_string())
+    result = smtpserver.sendmail(sender_email, recipients, message.as_string())
     smtpserver.close()
+
+    return result

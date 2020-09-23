@@ -94,7 +94,7 @@ def violation_queries(db_schemas):
 
     yield
 
-    db.execute(f"DROP VIEW rules.__suppress_sample_alerts_alert_suppression")
+    db.execute(f"DROP VIEW rules.__suppress_samples_violation_suppression")
     for q in TEARDOWN_QUERIES:
         db.execute(q)
 

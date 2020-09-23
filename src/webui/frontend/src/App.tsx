@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {Router, Redirect} from '@reach/router';
 
-import BasicLayout from './layouts/BasicLayout';
 import MainLayout from './layouts/MainLayout';
 
 import LoginForm from './routes/User/Login';
@@ -9,7 +8,7 @@ import AlertsDashboard from './routes/Dashboard/Alerts';
 import ConnectorsDashboard from './routes/Dashboard/Connectors';
 import PoliciesDashboard from './routes/Dashboard/Policies';
 import ViolationsDashboard from './routes/Dashboard/Violations';
-import Baselines from './routes/Dashboard/Baselines';
+import BaselinesDashboard from './routes/Dashboard/Baselines';
 
 const SnowAlertWebUI = () => (
   <>
@@ -17,15 +16,14 @@ const SnowAlertWebUI = () => (
       <Redirect noThrow from="/" to="dashboard/connectors" />
       <MainLayout path="login" component={LoginForm} />
 
-      <BasicLayout path="dashboard/connectors">
-        <ConnectorsDashboard path="/" />
-        <ConnectorsDashboard path="/:selected" />
-      </BasicLayout>
+      <ConnectorsDashboard path="dashboard/connectors" />
+      <ConnectorsDashboard path="dashboard/connectors/:selected" />
 
-      <BasicLayout path="dashboard/baselines">
-        <Baselines path="/" />
-        <Baselines path="/:selected" />
-      </BasicLayout>
+      <BaselinesDashboard path="dashboard/baselines" />
+      <BaselinesDashboard path="dashboard/baselines/:selected" />
+
+      <AlertsDashboard path="dashboard/alerts" />
+      <AlertsDashboard path="dashboard/alerts/:selected" />
 
       <AlertsDashboard path="dashboard/alerts" />
       <AlertsDashboard path="dashboard/alerts/:selected" />
