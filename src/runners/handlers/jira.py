@@ -258,6 +258,7 @@ def handle(
                 log.error(
                     f"Failed to append alert {alert_id} to ticket {ticket_id}.", e
                 )
+
         else:
             ticket_id = None
 
