@@ -4,6 +4,7 @@ import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
 import React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
+import BasicLayout from '../../layouts/BasicLayout';
 import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
 import {loadSAData, newConnection, finalizeConnection, testConnection, dismissErrorMessage} from '../../actions/data';
@@ -103,7 +104,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
     }
 
     return selectedConnector ? (
-      <div>
+      <BasicLayout>
         <Modal
           title={`Error Creating ${connectionStage} Connection`}
           visible={!!errorMessage}
@@ -210,9 +211,9 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
           {selectedConnector.finalize ? 'Next' : 'Create'}
           {connectionStage === 'creating' && <LoadingOutlined />}
         </Button>
-      </div>
+      </BasicLayout>
     ) : (
-      <div>
+      <BasicLayout>
         {connectors.map(c => (
           <Card
             key={c.name}
@@ -232,7 +233,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
             />
           </Card>
         ))}
-      </div>
+      </BasicLayout>
     );
   }
 }
