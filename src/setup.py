@@ -32,6 +32,7 @@ setup(
         'botocore==1.15.32',
         'twilio==6.29.4',
         'simple_salesforce==0.74.3',
+        'sentry-sdk==0.17.7',
         'pdpyras==4.0',
         'duo_client==4.2.3',
         'cryptography==3.0.0',
