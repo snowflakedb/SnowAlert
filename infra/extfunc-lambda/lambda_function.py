@@ -36,7 +36,8 @@ def lambda_handler(event, context=None):
         for k, v in parse_header_dict(headers.get('sf-custom-headers', '')).items()
     }
     if 'sf-custom-basicauth' in headers:
-        usr, pwd = headers['sf-custom-basicauth'].split(':')
+        basicauth = decrypt_if_encrypted(headers['sf-custom-basicauth'])
+        usr, pwd = basicauth.split(':', 1)
         auth = decrypt_if_encrypted(usr) + ':' + decrypt_if_encrypted(pwd)
         req_headers['Authorization'] = b'Basic ' + b64encode(auth.encode())
 
