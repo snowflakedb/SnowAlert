@@ -3,7 +3,7 @@ from json import dumps, loads, JSONDecodeError
 from re import match
 from urllib.request import urlopen, Request, HTTPBasicAuthHandler
 from urllib.parse import parse_qsl
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 from vault import decrypt_if_encrypted
 from utils import parse_header_links, pick
@@ -77,6 +77,12 @@ def lambda_handler(event, context=None):
                     result = pick(req_results_path, loads(response_body))
                 except HTTPError as e:
                     result = {'error': f'{e.status} {e.reason}'}
+                except URLError as e:
+                    result = {
+                        'error': f'URLError',
+                        'reason': str(e.reason),
+                        'url': next_url,
+                    }
                 except JSONDecodeError as e:
                     result = {
                         'error': 'JSONDecodeError',
