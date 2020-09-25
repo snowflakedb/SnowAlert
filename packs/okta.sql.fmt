@@ -1,9 +1,13 @@
+-- --
 -- name: Okta API extfunc deployment
 -- params:
 -- - name: deployment
 -- - name: api_key
+--   secret: true
 -- - name: okta_url
--- - name: api_gateway_url
+-- - name: sfk_api_integration
+-- - name: aws_apigateway_prefix
+-- - name: aws_apigateway_region
 
 CREATE OR REPLACE SECURE EXTERNAL FUNCTION okta{deployment}(path STRING, queryargs STRING)
 RETURNS VARIANT
@@ -11,7 +15,7 @@ RETURNS NULL ON NULL INPUT
 VOLATILE
 MAX_BATCH_ROWS=1
 COMMENT='okta{deployment}: (path STRING) -> response'
-API_INTEGRATION={api_gateway}
+API_INTEGRATION={sfk_api_integration}
 HEADERS=(
   'host'='{okta_url}'
   'path'='{0}'
@@ -19,7 +23,7 @@ HEADERS=(
   'kwargs'='apikey={api_key}'
   'headers'='Authorization=SSWS+%7Bapikey%7D'
 )
-AS 'https://{api_gateway_url}/v0'
+AS 'https://{aws_apigateway_prefix}.execute-api.{aws_apigateway_region}.amazonaws.com/prod/https'
 ;
 
 CREATE OR REPLACE SECURE FUNCTION okta{deployment}_users() RETURNS VARIANT
