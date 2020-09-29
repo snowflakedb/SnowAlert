@@ -81,7 +81,7 @@ def lambda_handler(event, context=None):
                     result = {
                         'error': f'URLError',
                         'reason': str(e.reason),
-                        'url': next_url,
+                        'host': req_host,
                     }
                 except JSONDecodeError as e:
                     result = {
@@ -95,9 +95,10 @@ def lambda_handler(event, context=None):
                     next_url = f'https://{req_host}{nextpage}' if nextpage else None
                 elif links_headers and isinstance(result, list):
                     data += result
-                    next_url = next(
-                        (l for l in links_headers if l['rel'] == 'next'), {}
-                    ).get('url')
+                    nu = next((l for l in links_headers if l['rel'] == 'next'), {}).get(
+                        'url'
+                    )
+                    next_url = nu if nu != next_url else None
                 else:
                     data = result
                     next_url = None
