@@ -58,7 +58,7 @@ def connection_run(connection_table, run_now=False, extra_args={}):
     try:
         metadata = {'START_TIME': datetime.utcnow()}
         options = yaml.safe_load(table_comment) or {}
-        options.update(extra_args)
+        options.update(option_overrides)
 
         if 'schedule' in options:
             schedule = options['schedule']
@@ -110,7 +110,7 @@ def connection_run(connection_table, run_now=False, extra_args={}):
     log.info(f"-- END DC --")
 
 
-def main(connection_table=None, run_now=False, **kwargs):
+def main(connection_table=None, run_now=False, **option_overrides):
     if connection_table is not None:
         # for a single table, we ignore schedule and run now
         run_now = True
@@ -119,7 +119,7 @@ def main(connection_table=None, run_now=False, **kwargs):
 
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
     if len(tables) == 1:
-        connection_run(tables[0], run_now=run_now, extra_args=kwargs)
+        connection_run(tables[0], run_now=run_now, option_overrides=option_overrides)
     else:
         Pool(DC_POOLSIZE).map(connection_run, tables)
 
