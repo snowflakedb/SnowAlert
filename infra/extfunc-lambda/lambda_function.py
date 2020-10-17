@@ -13,6 +13,10 @@ def parse_header_dict(value):
     return {k: decrypt_if_encrypted(v) for k, v in parse_qsl(value)}
 
 
+def make_basic_header(auth):
+    return b'Basic ' + b64encode(auth.encode())
+
+
 def lambda_handler(event, context=None):
     headers = event['headers']
 
@@ -25,9 +29,8 @@ def lambda_handler(event, context=None):
         else:
             raise RuntimeError('url must start with https://')
     else:
-        req_host = headers['sf-custom-host']
+        req_host = headers.get('sf-custom-host')
         req_path = headers.get('sf-custom-path', '/')
-        req_url = f'https://{req_host}{req_path}'
 
     req_kwargs = parse_header_dict(headers.get('sf-custom-kwargs'))
 
@@ -35,11 +38,21 @@ def lambda_handler(event, context=None):
         k: v.format(**req_kwargs)
         for k, v in parse_header_dict(headers.get('sf-custom-headers', '')).items()
     }
-    if 'sf-custom-basicauth' in headers:
+    if 'sf-custom-auth' in headers:
+        auth = decrypt_if_encrypted(headers['sf-custom-auth'])
+        auth = parse_header_dict(auth) if auth else {}
+
+        if 'host' in auth and not req_host:
+            req_host = auth['host']
+
+        if auth.get('host') != req_host:
+            pass  # if host in ct, only send creds to that host
+        elif 'basic' in auth:
+            req_headers['Authorization'] = make_basic_header(auth['basic'])
+
+    elif 'sf-custom-basicauth' in headers:
         basicauth = decrypt_if_encrypted(headers['sf-custom-basicauth'])
-        usr, pwd = basicauth.split(':', 1)
-        auth = decrypt_if_encrypted(usr) + ':' + decrypt_if_encrypted(pwd)
-        req_headers['Authorization'] = b'Basic ' + b64encode(auth.encode())
+        req_headers['Authorization'] = make_basic_header(basicauth)
 
     # query, nextpage_path, results_path
     req_qs = headers.get('sf-custom-querystring', '')
@@ -60,6 +73,8 @@ def lambda_handler(event, context=None):
                 ).encode()
             else:
                 req_data = headers.get('sf-custom-data', '').format(*args).encode()
+
+            req_url = f'https://{req_host}{req_path}'
             next_url = req_url.format(*args)
             next_url += ('?' + req_qs.format(*args)) if req_qs else ''
 
@@ -69,12 +84,13 @@ def lambda_handler(event, context=None):
                 )
                 links_headers = None
                 try:
-                    response = urlopen(req)
+                    res = urlopen(req)
                     links_headers = parse_header_links(
-                        ','.join(response.headers.get_all('link', []))
+                        ','.join(res.headers.get_all('link', []))
                     )
-                    response_body = response.read()
-                    result = pick(req_results_path, loads(response_body))
+                    response_body = res.read()
+                    response = loads(response_body)
+                    result = pick(req_results_path, response)
                 except HTTPError as e:
                     result = {'error': f'{e.status} {e.reason}'}
                 except URLError as e:
@@ -91,7 +107,7 @@ def lambda_handler(event, context=None):
 
                 if req_nextpage_path and isinstance(result, list):
                     data += result
-                    nextpage = pick(req_nextpage_path, result)
+                    nextpage = pick(req_nextpage_path, response)
                     next_url = f'https://{req_host}{nextpage}' if nextpage else None
                 elif links_headers and isinstance(result, list):
                     data += result

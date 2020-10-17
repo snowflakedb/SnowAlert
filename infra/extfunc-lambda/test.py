@@ -23,16 +23,13 @@ def test_abuseipdb():
 
 
 def test_zengrc():
-    zid = environ.get('ZENGRC_ID')
-    zsc = environ.get('ZENGRC_SECRET')
-    zho = environ.get('ZENGRC_HOST')
+    zauth = environ.get('ZENGRC_AUTH')
 
-    if zid and zsc and zho:
+    if zauth:
         result = lambda_handler({
             'path': '/https',
             'headers': {
-                'sf-custom-basicauth': f'{zid}:{zsc}',
-                'sf-custom-host': zho,
+                'sf-custom-auth': f'{zauth}',
                 'sf-custom-path': '/api/v2/{0}',
                 'sf-custom-nextpage-path': 'links.next.href',
                 'sf-custom-results-path': 'data'
@@ -95,7 +92,7 @@ def test_email():
                 'sf-custom-host': 'smtp.gmail.com',
                 'sf-custom-user': tc,
                 'sf-custom-password': ts,
-                'sf-custom-to': '{0}',
+                'sf-custom-recipient_email': '{0}',
                 'sf-custom-subject': '{1}',
                 'sf-custom-text': '{2}'
             },
