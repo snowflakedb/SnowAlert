@@ -790,11 +790,11 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'kind': 'network_interfaces',
                 'args': {'subscriptionId': 'subscription_id'},
             },
+            {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_security_groups',
                 'args': {'subscriptionId': 'subscription_id'},
             },
-            {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'log_profiles', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'hosting_environments',
