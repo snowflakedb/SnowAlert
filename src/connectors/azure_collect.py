@@ -260,6 +260,20 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'STRING'),
         ('zones', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networkinterfaces/listall
+    'network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('etag', 'STRING'),
+        ('name', 'STRING'),
+        ('location', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
     'role_definitions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -790,6 +804,10 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'network_interfaces',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
             {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_security_groups',
@@ -1506,6 +1524,28 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'id': 'id',
             'name': 'name',
             'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'network_interfaces': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/networkInterfaces'
+            ),
+            'api-version': '2020-05-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
             'type': 'type',
         },
     },
