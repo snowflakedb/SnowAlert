@@ -25,7 +25,7 @@ def lambda_handler(event, context=None):
         req_url = headers['sf-custom-url']
         m = match(r'^https://([^/]+)(.*)$', req_url)
         if m:
-            req_host, request_path = m.groups()
+            req_host, req_path = m.groups()
         else:
             raise RuntimeError('url must start with https://')
     else:
