@@ -50,7 +50,7 @@ def time_to_run(schedule, now) -> bool:
     return False
 
 
-def connection_run(connection_table, run_now=False, extra_args={}):
+def connection_run(connection_table, run_now=False, option_overrides={}):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
 
