@@ -95,7 +95,7 @@ def connection_run(connection_table, run_now=False, extra_args={}):
 
         if callable(getattr(connector, 'ingest', None)):
             db.record_metadata(metadata, table=DC_METADATA_TABLE)
-            result = do_ingest(connector, table_name, options, )
+            result = do_ingest(connector, table_name, options)
             if result is not None:
                 metadata['INGEST_COUNT'] = result
             else:
