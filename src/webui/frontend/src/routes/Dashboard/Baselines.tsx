@@ -84,10 +84,10 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
     if (selectedBaseline) {
       options = [
         {
-          name: 'base_table',
-          title: 'Base Table',
-          prompt: 'Table with the data we will be baselining',
-          default: 'data.',
+          name: 'base_table_and_timecol',
+          title: 'Base Table, Time Column',
+          prompt: 'Table to baseline, time column',
+          default: 'data.table_name:event_time',
           required: true,
         },
         ...selectedBaseline.options,
