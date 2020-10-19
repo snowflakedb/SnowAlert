@@ -121,7 +121,7 @@ def post_connector_test(connector, name):
 def create_baseline(baseline):
     options_from_request = request.get_json()
 
-    if 'base_table' not in options_from_request:
+    if 'base_table_and_timecol' not in options_from_request:
         raise RuntimeError('please specify a target table')
 
     baseline = importlib.import_module(f"baselines.{baseline}")
