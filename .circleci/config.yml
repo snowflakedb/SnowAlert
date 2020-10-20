@@ -35,10 +35,10 @@ jobs:
           command: |
             cd src
             source .venv/bin/activate
-            ./scripts/run-whitesource
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
             pytest -vv
+            ./scripts/run-whitesource
 
       # - run:
       #     name: do the build
