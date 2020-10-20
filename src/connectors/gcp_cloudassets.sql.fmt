@@ -1,0 +1,102 @@
+-- ---
+-- module_name: gcp_cloudassets
+-- params:
+--   - name: connection_name
+--   - name: gcs_bucket
+--   - name: storage_integration
+--   - name: landing_table
+--     default: gcp_cloudassets
+--   - name: warehouse
+--     default: snowalert
+-- varmap:
+--   base_name: 'gcp_cloudassets_{connection_name}'
+--   stage: 'data.{base_name}'
+--   external_table: 'data.{base_name}'
+--   refresh_task: 'data.{base_name}_refresh'
+--   load_task: 'data.{base_name}_load'
+--   stream: 'data.{base_name}_stream'
+
+CREATE TABLE IF NOT EXISTS data.{landing_table} (
+  recorded_at STRING,
+  id STRING,
+  filename STRING,
+  log_source STRING,
+  log_time STRING,
+  log_type STRING,
+  value VARIANT
+);
+
+CREATE OR REPLACE STAGE {stage}
+  URL=('gcs://{gcs_bucket}/cloudassets')
+  STORAGE_INTEGRATION={storage_integration}
+  FILE_FORMAT=(TYPE=JSON)
+;
+
+CREATE OR REPLACE EXTERNAL TABLE {external_table} (
+  id VARCHAR(32) AS MD5(TO_JSON(VALUE) || METADATA$FILENAME),
+  filename STRING AS METADATA$FILENAME,
+  log_source STRING AS '{connection_name}',
+  log_type STRING AS (
+    REGEXP_REPLACE( -- strip date from end
+      REGEXP_REPLACE( -- strip date from beginning
+        METADATA$FILENAME,
+        '^cloudassets/[\\d:/_]+',
+        'cloudassets/'
+      ),
+      '([\\d:/_]+(S\\d+|A\\d+:\\d+).json|/[\\d]+)$'
+    )
+  ),
+  log_time STRING AS TO_VARCHAR(TRY_TO_TIMESTAMP_NTZ(REGEXP_REPLACE(
+    METADATA$FILENAME,
+    '^.*/(\\d{4})/(\\d{2})/(\\d{2})/(\\d{2}):(\\d{2}):(\\d{2})[\\w\\d:/.]*$',
+    '\\1-\\2-\\3T\\4:\\5:\\6Z'
+  )))
+)
+PARTITION BY (
+  log_type,
+  log_time
+)
+LOCATION=@{stage}
+AUTO_REFRESH=false
+FILE_FORMAT=(TYPE=JSON)
+;
+
+CREATE OR REPLACE TASK {refresh_task}
+  WAREHOUSE={warehouse}
+  SCHEDULE='1 MINUTE'
+AS
+CALL refresh_external_table('{base_name}')
+;
+ALTER TASK {refresh_task} RESUME;
+
+CREATE OR REPLACE STREAM {stream}
+ON EXTERNAL TABLE {base_name}
+INSERT_ONLY=TRUE
+;
+
+CREATE OR REPLACE TASK {load_task}
+  WAREHOUSE={warehouse}
+  SCHEDULE='1 MINUTE'
+  WHEN SYSTEM$STREAM_HAS_DATA('{stream}')
+AS
+INSERT INTO gcp_cloudassets (
+  recorded_at,
+  id,
+  filename,
+  log_source,
+  log_time,
+  log_type,
+  value
+)
+SELECT
+  CURRENT_TIMESTAMP,
+  id,
+  filename,
+  log_source,
+  log_time,
+  log_type,
+  value
+FROM {stream}
+WHERE METADATA$ACTION = 'INSERT'
+;
+ALTER TASK {load_task} RESUME;
