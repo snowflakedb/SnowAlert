@@ -5,6 +5,8 @@ WORKDIR /var/task
 RUN apt-get update
 
 RUN pip install --upgrade pip virtualenv pyflakes
+RUN apt-get install -y r-base
+RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom','testthat'), repos = 'https://cloud.r-project.org')"
 
 RUN mkdir -p ./snowalert
 RUN virtualenv ./snowalert/venv
