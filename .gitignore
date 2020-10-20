@@ -18,6 +18,3 @@ venv
 *.egg-info
 .vscode
 *.pydevproject
-dist/
-*.egg
-__pycache__/
