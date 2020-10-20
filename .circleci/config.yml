@@ -23,9 +23,7 @@ jobs:
             python -m venv .venv
             source .venv/bin/activate
             pip install --upgrade pip
-            pip uninstall -y typing
             pip install .
-            pip uninstall -y typing
 
       - save_cache:
           paths:
