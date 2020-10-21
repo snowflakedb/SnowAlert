@@ -272,7 +272,7 @@ def generate_baseline_sql(
 def create(options):
     base_table_entry = options['base_table_and_timecol']
     if ':' not in base_table_entry:
-        raise ValueError("Please enter a time column name in the format data.table_name.time_column")
+        raise ValueError("Please enter a time column name in the format data.table_name.time_column_name")
     else:
         base_table, time_column = options['base_table_and_timecol'].split(':', 1)
 
