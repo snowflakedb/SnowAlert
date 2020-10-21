@@ -13,34 +13,30 @@ jobs:
 
       - restore_cache:
           keys:
-          - app-venv-{{ checksum "src/setup.py" }}
-          - app-venv-  # fallback to using the latest cache if no exact match is found
+          - app-venv-{{ checksum "src/setup.py" }}-0
 
       - run:
           name: install_dependencies
           command: |
             cd src
             python -m venv .venv
-            source .venv/bin/activate
-            pip install --upgrade pip
-            pip uninstall -y typing
-            pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
-            pip uninstall -y typing
+            .venv/bin/pip install --upgrade pip
+            .venv/bin/pip install '.' '.[dev]'
 
       - save_cache:
           paths:
             - ./src/.venv
-          key: app-venv-{{ checksum "src/setup.py" }}
+          key: app-venv-{{ checksum "src/setup.py" }}-0
 
       - run:
           name: run static analysis
           command: |
             cd src
             source .venv/bin/activate
-            ./scripts/run-whitesource
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
-            pytest -vv
+            .venv/bin/pytest -vv
+            ./scripts/run-whitesource
 
       # - run:
       #     name: do the build
