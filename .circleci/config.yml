@@ -21,7 +21,7 @@ jobs:
             cd src
             python -m venv .venv
             .venv/bin/pip install --upgrade pip
-            .venv/bin/pip install . pytest
+            .venv/bin/pip install '.' '.[dev]'
 
       - save_cache:
           paths:
