@@ -21,9 +21,8 @@ jobs:
           command: |
             cd src
             python -m venv .venv
-            source .venv/bin/activate
-            pip install --upgrade pip
-            pip install .
+            .venv/bin/pip install --upgrade pip
+            .venv/bin/pip install .
 
       - save_cache:
           paths:
@@ -37,7 +36,7 @@ jobs:
             source .venv/bin/activate
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
-            pytest -vv
+            .venv/bin/pip -vv
             ./scripts/run-whitesource
 
       # - run:
