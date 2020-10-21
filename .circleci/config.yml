@@ -36,7 +36,7 @@ jobs:
             source .venv/bin/activate
             MYPYPATH="`pwd`/webui/backend/" \
               mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
-            .venv/bin/pip -vv
+            .venv/bin/pytest -vv
             ./scripts/run-whitesource
 
       # - run:
