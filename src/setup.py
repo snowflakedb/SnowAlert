@@ -8,7 +8,7 @@ setup(
     install_requires=[
         'aiohttp[speedups]',
         'aioboto3==8.0.5',
-        'fire==0.1.3',
+        'fire==0.3.1',
         'jira==2.0.0',
         'PyYAML==5.3.1',
         'xmltodict==0.12.0',
@@ -43,6 +43,11 @@ setup(
             'pytest',
             'black',
             'mypy',
+            'pyflakes',
+            'pytest',
+            'pytest-ordering',
+            'mypy',
+            'mypy-extensions',
         ]
     },
 )
