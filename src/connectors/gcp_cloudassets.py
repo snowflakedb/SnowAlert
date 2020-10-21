@@ -44,14 +44,14 @@ LANDING_TABLES_COLUMNS = {
 }
 
 
-def exec(client, org_id, prefix):
+def exec_export_assets_job(client, org_id, gcs_uri_prefix):
     try:
         result = (
             client.v1()
             .exportAssets(
                 parent=f'organizations/{org_id}',
                 body={
-                    'outputConfig': {'gcsDestination': {'uriPrefix': prefix}},
+                    'outputConfig': {'gcsDestination': {'uriPrefix': gcs_uri_prefix}},
                     'assetTypes': ['.*'],
                     'contentType': 'RESOURCE',
                 },
