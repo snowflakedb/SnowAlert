@@ -43,6 +43,11 @@ setup(
             'pytest',
             'black',
             'mypy',
+            'pyflakes',
+            'pytest',
+            'pytest-ordering',
+            'mypy',
+            'mypy-extensions',
         ]
     },
 )

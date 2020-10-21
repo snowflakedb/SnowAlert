@@ -5,4 +5,4 @@ RUN mkdir -p /usr/share/man/man1 \
  && apt-get update -y \
  && apt-get install -y curl git build-essential default-jre
 
-RUN pip install --upgrade pip virtualenv pyflakes pytest pytest-ordering mypy mypy-extensions
+RUN pip install --upgrade pip virtualenv
