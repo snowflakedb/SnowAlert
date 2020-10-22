@@ -93,7 +93,6 @@ export interface ConnectionPayload {
     rows: number;
   }
 
-
 export interface FlowPayload {
   name: string;
   connector: string;
