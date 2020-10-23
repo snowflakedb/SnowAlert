@@ -3,6 +3,8 @@ FROM python:3.7-slim-stretch
 WORKDIR /var/task
 
 RUN apt-get update
+RUN apt-get install -y r-base
+RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom','testthat'), repos = 'https://cloud.r-project.org')"
 
 RUN pip install --upgrade pip virtualenv pyflakes
 
