@@ -79,7 +79,6 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
   render() {
     const {selected} = this.props;
     const {connectors, connections, connectionStage, connectionMessage, errorMessage} = this.props.data;
-    console.log(connections);
 
     const selectedConnector = this.findConnector(selected);
     const optionValues = Object.assign(
@@ -250,7 +249,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   title: 'Created On',
                   dataIndex: 'created_on',
                   key: 'created_on',
-                  render: (c) => new Date(c).toLocaleDateString(),
+                  render: (c) => c.toLocaleDateString(),
                 },
                 {
                   title: 'Byte Count',

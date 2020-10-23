@@ -45,14 +45,14 @@ export class Baseline {
 export class Connection {
   raw: ConnectionPayload;
   table_name: string;
-  created_on: string;
+  created_on: Date;
   byte_count: number;
   row_count: number;
 
   constructor(cti: ConnectionPayload) {
     this.raw = cti;
     this.table_name = cti.name;
-    this.created_on = cti.created_on;
+    this.created_on = new Date(cti.created_on);
     this.byte_count = cti.bytes;
     this.row_count = cti.rows;
   }
