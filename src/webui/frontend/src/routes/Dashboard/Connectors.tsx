@@ -1,14 +1,14 @@
-import { Avatar, Button, Card, Input, List, Modal, Select, Table, Tabs } from 'antd';
-import { LoadingOutlined, ApiOutlined } from '@ant-design/icons';
+import {Avatar, Button, Card, Input, List, Modal, Select, Table, Tabs} from 'antd';
+import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
 
 import React from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
+import {connect} from 'react-redux';
+import {bindActionCreators, Dispatch} from 'redux';
 import BasicLayout from '../../layouts/BasicLayout';
-import { getData } from '../../reducers/data';
+import {getData} from '../../reducers/data';
 import * as stateTypes from '../../reducers/types';
-import { loadSAData, newConnection, finalizeConnection, testConnection, dismissErrorMessage } from '../../actions/data';
-import { navigate } from '../../store/history';
+import {loadSAData, newConnection, finalizeConnection, testConnection, dismissErrorMessage} from '../../actions/data';
+import {navigate} from '../../store/history';
 
 import './Connectors.css';
 
@@ -35,12 +35,12 @@ interface DispatchProps {
 
 type ConnectorsProps = OwnProps & StateProps & DispatchProps;
 
-class Connectors extends React.Component<ConnectorsProps & { path: string }, OwnState> {
+class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnState> {
   constructor(props: any) {
     super(props);
 
     this.state = {
-      optionValues: { 'name': 'default' },
+      optionValues: {name: 'default'},
     };
 
     if (this.findConnector()) {
@@ -64,30 +64,28 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
   }
 
   findConnector(name: string | null = null) {
-    const { connectors } = this.props.data;
+    const {connectors} = this.props.data;
     const toFind = name;
     return connectors.find(c => c.name === toFind);
   }
 
   changeOption(name: string, value: string) {
-    const { optionValues } = this.state;
+    const {optionValues} = this.state;
     this.setState({
-      optionValues: Object.assign({}, optionValues, { [name]: value }),
+      optionValues: Object.assign({}, optionValues, {[name]: value}),
     });
   }
 
   render() {
-    const { selected } = this.props;
-    const { connectors, connections, connectionStage, connectionMessage, errorMessage } = this.props.data;
+    const {selected} = this.props;
+    const {connectors, connections, connectionStage, connectionMessage, errorMessage} = this.props.data;
     console.log(connections);
 
     const selectedConnector = this.findConnector(selected);
     const optionValues = Object.assign(
-      selectedConnector ?
-        Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default]))
-        : {},
-      this.state.optionValues
-    )
+      selectedConnector ? Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default])) : {},
+      this.state.optionValues,
+    );
 
     let options: any[] = [];
     if (selectedConnector) {
@@ -146,36 +144,36 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
                       ))}
                     </Select>
                   ) : (
-                      React.createElement(opt.secret || opt.mask_on_screen ? Input.Password : Input, {
-                        name: opt.name,
-                        defaultValue: opt.default,
-                        value: optionValues[opt.name],
-                        addonBefore: opt.prefix,
-                        addonAfter: opt.postfix,
-                        placeholder: opt.placeholder,
-                        autoComplete: 'off',
-                        onBlur: (e: any) => {
-                          if (opt.required && opt.default && e.target.value === '') {
-                            this.changeOption(opt.name, opt.default);
-                          }
-                        },
-                        onChange: (e: any) => {
-                          // todo why doesn't ref to e work here w/ prevState?
-                          this.changeOption(opt.name, e.target.value);
-                        },
-                      })
-                    )}
+                    React.createElement(opt.secret || opt.mask_on_screen ? Input.Password : Input, {
+                      name: opt.name,
+                      defaultValue: opt.default,
+                      value: optionValues[opt.name],
+                      addonBefore: opt.prefix,
+                      addonAfter: opt.postfix,
+                      placeholder: opt.placeholder,
+                      autoComplete: 'off',
+                      onBlur: (e: any) => {
+                        if (opt.required && opt.default && e.target.value === '') {
+                          this.changeOption(opt.name, opt.default);
+                        }
+                      },
+                      onChange: (e: any) => {
+                        // todo why doesn't ref to e work here w/ prevState?
+                        this.changeOption(opt.name, e.target.value);
+                      },
+                    })
+                  )}
                 </label>
               </List.Item>
             )}
           />
         ) : (
-            <pre>
-              {typeof connectionMessage === 'string'
-                ? connectionMessage
-                : JSON.stringify(connectionMessage, undefined, 2)}
-            </pre>
-          )}
+          <pre>
+            {typeof connectionMessage === 'string'
+              ? connectionMessage
+              : JSON.stringify(connectionMessage, undefined, 2)}
+          </pre>
+        )}
 
         <Button
           onClick={() => {
@@ -186,7 +184,7 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
         </Button>
 
         <Button
-          style={{ float: 'right', display: 'none' }}
+          style={{float: 'right', display: 'none'}}
           disabled={connectionStage !== 'finalized'}
           onClick={() => this.props.testConnection(selectedConnector.name, optionValues.name)}
         >
@@ -194,7 +192,7 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
         </Button>
         {selectedConnector.finalize ? (
           <Button
-            style={{ float: 'right' }}
+            style={{float: 'right'}}
             disabled={connectionStage !== 'created'}
             onClick={() => this.props.finalizeConnection(selectedConnector.name, optionValues.name!)}
           >
@@ -202,7 +200,7 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
           </Button>
         ) : null}
         <Button
-          style={{ float: 'right' }}
+          style={{float: 'right'}}
           disabled={connectionStage !== 'start'}
           onClick={() => {
             this.props.newConnection(selectedConnector.name, optionValues.name!, optionValues);
@@ -213,61 +211,62 @@ class Connectors extends React.Component<ConnectorsProps & { path: string }, Own
         </Button>
       </BasicLayout>
     ) : (
-        <BasicLayout>
-          <Tabs>
-            <Tabs.TabPane tab='Connectors' key='1'>
-              {connectors.map(c => (
-                <Card
-                  key={c.name}
-                  style={{ width: 350, margin: 10, float: 'left' }}
-                  actions={[
-                    // eslint-disable-next-line
-                    <a key={1} onClick={() => this.selectConnector(c.name)}>
-                      <ApiOutlined /> Connect
-                </a>,
-                  ]}
-                >
-                  <Card.Meta
-                    avatar={<Avatar src={`/icons/connectors/${c.name}.png`} />}
-                    title={c.title}
-                    description={c.description}
-                    style={{ height: 75 }}
-                  />
-                </Card>
-              ))}
-            </Tabs.TabPane>
+      <BasicLayout>
+        <Tabs>
+          <Tabs.TabPane tab='Connectors' key='1'>
+            {connectors.map((c) => (
+              <Card
+                key={c.name}
+                style={{width: 350, margin: 10, float: 'left'}}
+                actions={[
+                  // eslint-disable-next-line
+                  <a key={1} onClick={() => this.selectConnector(c.name)}>
+                    <ApiOutlined /> Connect
+                  </a>,
+                ]}
+              >
+                <Card.Meta
+                  avatar={<Avatar src={`/icons/connectors/${c.name}.png`} />}
+                  title={c.title}
+                  description={c.description}
+                  style={{height: 75}}
+                />
+              </Card>
+            ))}
+          </Tabs.TabPane>
 
-            <Tabs.TabPane tab='Active Connections' key='2'>
-              <Table
-                rowKey='table_name'
-                dataSource={connections.slice()}
-                pagination={false}
-                columns={[{
+          <Tabs.TabPane tab='Active Connections' key='2'>
+            <Table
+              rowKey='table_name'
+              dataSource={connections.slice()}
+              pagination={false}
+              columns={[
+                {
                   title: 'Name',
                   dataIndex: 'table_name',
-                  key: 'name'
+                  key: 'name',
                 },
                 {
                   title: 'Created On',
                   dataIndex: 'created_on',
-                  key: 'created_on'
+                  key: 'created_on',
                 },
                 {
                   title: 'Byte Count',
                   dataIndex: 'byte_count',
-                  key: 'byte_count'
+                  key: 'byte_count',
                 },
                 {
                   title: 'Row Count',
                   dataIndex: 'row_count',
-                  key: 'row_count'
+                  key: 'row_count',
                 },
               ]}
-              />
-            </Tabs.TabPane>
-          </Tabs>
-        </BasicLayout>
-      );
+            />
+          </Tabs.TabPane>
+        </Tabs>
+      </BasicLayout>
+    );
   }
 }
 
