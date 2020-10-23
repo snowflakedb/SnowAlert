@@ -66,7 +66,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
   findConnector(name: string | null = null) {
     const {connectors} = this.props.data;
     const toFind = name;
-    return connectors.find(c => c.name === toFind);
+    return connectors.find((c) => c.name === toFind);
   }
 
   changeOption(name: string, value: string) {
@@ -213,7 +213,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
     ) : (
       <BasicLayout>
         <Tabs>
-          <Tabs.TabPane tab='Connectors' key='1'>
+          <Tabs.TabPane tab="Connectors" key="1">
             {connectors.map((c) => (
               <Card
                 key={c.name}
@@ -235,9 +235,9 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
             ))}
           </Tabs.TabPane>
 
-          <Tabs.TabPane tab='Active Connections' key='2'>
+          <Tabs.TabPane tab="Active Connections" key="2">
             <Table
-              rowKey='table_name'
+              rowKey="table_name"
               dataSource={connections.slice()}
               pagination={false}
               columns={[
@@ -250,11 +250,20 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   title: 'Created On',
                   dataIndex: 'created_on',
                   key: 'created_on',
+                  render: (c) => new Date(c).toLocaleDateString(),
                 },
                 {
                   title: 'Byte Count',
                   dataIndex: 'byte_count',
                   key: 'byte_count',
+                  render: (bytes) => {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const dm = 2;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+                  }
                 },
                 {
                   title: 'Row Count',
