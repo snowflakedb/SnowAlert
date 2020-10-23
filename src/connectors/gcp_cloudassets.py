@@ -44,7 +44,7 @@ LANDING_TABLES_COLUMNS = {
 }
 
 
-def exec_export_assets_job(client, org_id, gcs_uri_prefix):
+def start_export_assets_job(client, org_id, gcs_uri_prefix):
     try:
         result = (
             client.v1()
@@ -81,4 +81,4 @@ def ingest(table_name, options):
         org_id, location = org_location.split(':')
         dt = datetime.utcnow().strftime('%Y/%m/%d/%H:%M:%S')
         prefix = 'gs://' + location + '/cloudassets/' + dt
-        db.insert(landing_table, exec(client, org_id, prefix))
+        db.insert(landing_table, start_export_assets_job(client, org_id, prefix))
