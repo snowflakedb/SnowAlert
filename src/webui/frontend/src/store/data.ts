@@ -52,7 +52,7 @@ export class Connection {
   constructor(cti: ConnectionPayload) {
     this.raw = cti;
     this.table_name = cti.name;
-    this.created_on = new Date(Date.parse(cti.created_on)).toLocaleString();
+    this.created_on = new Date(Date.parse(cti.created_on)).toLocaleDateString();
     this.byte_count = cti.bytes;
     this.row_count = cti.rows;
   }
