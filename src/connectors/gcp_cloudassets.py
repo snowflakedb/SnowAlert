@@ -61,7 +61,7 @@ def start_export_assets_job(client, org_id, gcs_uri_prefix):
     except HttpError as e:
         result = {
             'org_id': org_id,
-            'prefix': prefix,
+            'gcs_uri_prefix': gcs_uri_prefix,
             'error': str(e),
             'error_details': e.error_details,
         }
