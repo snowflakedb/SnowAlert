@@ -463,11 +463,11 @@ SUPPLEMENTARY_TABLES = {
     's3_get_public_access_block': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
         ('ignore_public_acls', 'BOOLEAN'),
         ('block_public_policy', 'BOOLEAN'),
-        ('block_public_acls', 'BOOLEAN'),
         ('restrict_public_buckets', 'BOOLEAN'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
@@ -987,9 +987,9 @@ API_METHOD_SPECS: Dict[str, dict] = {
         'params': {'Bucket': 'bucket'},
         'response': {
             'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
                 'IgnorePublicAcls': 'ignore_public_acls',
                 'BlockPublicPolicy': 'block_public_policy',
-                'BlockPublicAcls': 'block_public_acls',
                 'RestrictPublicBuckets': 'restrict_public_buckets',
             }
         }
