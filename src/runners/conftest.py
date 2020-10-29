@@ -1,6 +1,6 @@
 import pytest
 
-from runners.helpers import db, dbconfig
+from .helpers import db, dbconfig
 from scripts import install
 
 
