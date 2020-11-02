@@ -470,6 +470,16 @@ SUPPLEMENTARY_TABLES = {
         ('block_public_policy', 'BOOLEAN'),
         ('restrict_public_buckets', 'BOOLEAN'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3control/get-public-access-block.html
+    's3control_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -561,6 +571,14 @@ SUPPLEMENTARY_TABLES = {
         ('user_attributes', 'VARIANT'),
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/sts/get-caller-identity.html
+    'sts_get_caller_identity': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('account', 'STRING'),
+        ('user_id', 'STRING'),
+        ('arn', 'STRING'),
     ],
 }
 
@@ -941,6 +959,19 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         }
     },
+    'sts.get_caller_identity': {
+        'response': {
+            'UserId': "user_id",
+            "Account": "account",
+            "Arn": "arn",
+        },
+        'children': [
+            {
+                'method': 's3control.get_public_access_block',
+                'args': {'AccountId': 'account'},
+            }
+        ],
+    },
     's3.list_buckets': {
         'response': {
             'Buckets': [
@@ -985,6 +1016,17 @@ API_METHOD_SPECS: Dict[str, dict] = {
     },
     's3.get_public_access_block': {
         'params': {'Bucket': 'bucket'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
+            }
+        }
+    },
+    's3control.get_public_access_block': {
+        'args': {'AccountId': 'account_id'},
         'response': {
             'PublicAccessBlockConfiguration': {
                 'BlockPublicAcls': 'block_public_acls',
@@ -1380,7 +1422,8 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.get_credential_report',
             'iam.list_roles',
             'inspector.list_findings',
-            'iam.list_groups',
+            'iam.list_groups'
+            'sts.get_caller_identity',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
