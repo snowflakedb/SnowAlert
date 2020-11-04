@@ -572,14 +572,6 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
-    # https://docs.aws.amazon.com/cli/latest/reference/sts/get-caller-identity.html
-    'sts_get_caller_identity': [
-        ('recorded_at', 'TIMESTAMP_LTZ'),
-        ('account_id', 'STRING'),
-        ('account', 'STRING'),
-        ('user_id', 'STRING'),
-        ('arn', 'STRING'),
-    ],
 }
 
 API_METHOD_SPECS: Dict[str, dict] = {
@@ -959,19 +951,6 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         }
     },
-    'sts.get_caller_identity': {
-        'response': {
-            'UserId': "user_id",
-            "Account": "account",
-            "Arn": "arn",
-        },
-        'children': [
-            {
-                'method': 's3control.get_public_access_block',
-                'args': {'AccountId': 'account'},
-            }
-        ],
-    },
     's3.list_buckets': {
         'response': {
             'Buckets': [
@@ -1296,6 +1275,11 @@ def process_aws_response(task, page):
 
 async def load_task_response(client, task):
     args = task.args or {}
+    argspec = API_METHOD_SPECS[task.method].get('args', {})
+
+†    # e.g. for s3control.get_public_access_block
+    if argspec.get('AccountId') == 'account_id':
+        args['AccountId'] = task.account_id
 
     client_name, method_name = task.method.split('.', 1)
 
@@ -1423,7 +1407,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups'
-            'sts.get_caller_identity',
+            's3control.get_public_access_block',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
