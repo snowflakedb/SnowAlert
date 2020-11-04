@@ -1002,7 +1002,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'BlockPublicPolicy': 'block_public_policy',
                 'RestrictPublicBuckets': 'restrict_public_buckets',
             }
-        }
+        },
     },
     's3control.get_public_access_block': {
         'args': {'AccountId': 'account_id'},
@@ -1013,7 +1013,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'BlockPublicPolicy': 'block_public_policy',
                 'RestrictPublicBuckets': 'restrict_public_buckets',
             }
-        }
+        },
     },
     'cloudtrail.describe_trails': {
         'response': {
@@ -1277,7 +1277,7 @@ async def load_task_response(client, task):
     args = task.args or {}
     argspec = API_METHOD_SPECS[task.method].get('args', {})
 
-†    # e.g. for s3control.get_public_access_block
+    # e.g. for s3control.get_public_access_block
     if argspec.get('AccountId') == 'account_id':
         args['AccountId'] = task.account_id
 
@@ -1406,7 +1406,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.get_credential_report',
             'iam.list_roles',
             'inspector.list_findings',
-            'iam.list_groups'
+            'iam.list_groups',
             's3control.get_public_access_block',
         ]
         if options.get('collect_apis', 'all') == 'all'
