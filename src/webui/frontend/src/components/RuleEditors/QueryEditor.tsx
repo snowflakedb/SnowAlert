@@ -102,7 +102,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
   getTagArray(qs: ReadonlyArray<Query | Suppression>) {
     const tagCounts: {
       [tagName: string]: number;
-    } = _.flatMap(Array.from(qs), q => q.tags || []).reduce(
+    } = _.flatMap(Array.from(qs), (q) => q.tags || []).reduce(
       (ts: any, t) => Object.assign(ts, {[t]: ts[t] ? ts[t] + 1 : 1}),
       {},
     );
@@ -123,15 +123,15 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
   render() {
     const {currentRuleView, updateRule, updateRuleBody, cols, saveRule} = this.props;
     const {queries, suppressions} = this.props.rules;
-    const rules = [...queries, ...suppressions].filter(q => q.target === this.props.target);
-    const q = rules.find(q => q.viewName === currentRuleView);
+    const rules = [...queries, ...suppressions].filter((q) => q.target === this.props.target);
+    const q = rules.find((q) => q.viewName === currentRuleView);
 
     if (!(currentRuleView && q && q.isParsed)) {
       return (
         <Row>
           <Col span={16}>
             <h3>
-              {rules.filter(r => r.isParsed).length} parsed / {rules.length} loaded from Snowflake
+              {rules.filter((r) => r.isParsed).length} parsed / {rules.length} loaded from Snowflake
             </h3>
             {this.getTagArray(rules)}
           </Col>
@@ -153,7 +153,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                     autoSize={{minRows: 3}}
                     style={{whiteSpace: 'nowrap'}}
                     value={field.getValue(q)}
-                    onChange={e => updateRule(currentRuleView, field.setValue(q, e.target.value))}
+                    onChange={(e) => updateRule(currentRuleView, field.setValue(q, e.target.value))}
                   />
                 </div>
               ) : field.type === 'boolean' ? (
@@ -162,7 +162,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                   <Switch
                     disabled={q.isSaving}
                     checked={field.getValue(q)}
-                    onChange={e => updateRule(currentRuleView, field.setValue(q, e))}
+                    onChange={(e) => updateRule(currentRuleView, field.setValue(q, e))}
                   />
                 </div>
               ) : field.type === 'tagGroup' ? (
@@ -171,7 +171,7 @@ class QueryEditor extends React.PureComponent<QueryEditorProps> {
                   <EditableTagGroup
                     disabled={q.isSaving}
                     tags={field.getValue(q)}
-                    onChange={e => updateRule(currentRuleView, field.setValue(q, e))}
+                    onChange={(e) => updateRule(currentRuleView, field.setValue(q, e))}
                   >
                     {field.title}
                   </EditableTagGroup>
