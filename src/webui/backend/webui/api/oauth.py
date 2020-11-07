@@ -7,6 +7,10 @@ import requests
 from flask import Blueprint, request, jsonify
 import logbook
 
+from snowflake.connector.util_text import (
+    construct_hostname as construct_snowflake_hostname,
+)
+
 logger = logbook.Logger(__name__)
 
 oauth_api = Blueprint('oauth', __name__)
@@ -14,9 +18,8 @@ oauth_api = Blueprint('oauth', __name__)
 OAUTH_CONNECTION_ROLE = environ.get('OAUTH_CONNECTION_ROLE', None)
 PROTOCOL = environ.get('SNOWFLAKE_PROTOCOL', 'https')
 PORT = environ.get('SNOWFLAKE_PORT', '443')
-URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
-    '' if PORT == '443' else f':{PORT}'
-)
+REGION = environ.get('REGION', '')
+URL_PREFIX = f'{PROTOCOL}://{{hostname}}' + ('' if PORT == '443' else f':{PORT}')
 
 
 @oauth_api.route('/redirect', methods=['POST'])
@@ -35,8 +38,10 @@ def oauth_redirect():
     else:
         scope_role = ''
 
+    hostname = construct_snowflake_hostname(REGION, account)
+
     return jsonify(
-        url=f"{URL_PREFIX}/oauth/authorize?".format(account=account)
+        url=f"{URL_PREFIX}/oauth/authorize?".format(hostname=hostname)
         + urlencode(
             {
                 'client_id': OAUTH_CLIENT_ID,
@@ -62,8 +67,10 @@ def oauth_return():
         f'OAUTH_SECRET_{account.partition(".")[0].upper()}', ''
     )
 
+    hostname = construct_snowflake_hostname(REGION, account)
+
     response = requests.post(
-        f"{URL_PREFIX}/oauth/token-request".format(account=account),
+        f"{URL_PREFIX}/oauth/token-request".format(hostname=hostname),
         auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
         headers={'Content-Type': 'application/x-www-form-urlencoded'},
         data={

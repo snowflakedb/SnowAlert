@@ -123,6 +123,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         if oauth_access_token
         else ROLE
     )
+    region = environ.get('REGION', 'us-west-2')
 
     def connect():
         return connect_db(
@@ -142,6 +143,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
             authenticator=authenticator,
             ocsp_response_cache_filename='/tmp/.cache/snowflake/ocsp_response_cache',
             network_timeout=TIMEOUT,
+            region=region,
         )
 
     try:

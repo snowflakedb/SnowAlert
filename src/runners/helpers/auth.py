@@ -10,13 +10,15 @@ from requests import post
 from requests.auth import HTTPBasicAuth
 
 from .vault import decrypt_if_encrypted
+from snowflake.connector.util_text import (
+    construct_hostname as construct_snowflake_hostname,
+)
 
 
 PROTOCOL = environ.get('SNOWFLAKE_PROTOCOL', 'https')
 PORT = environ.get('SNOWFLAKE_PORT', '443')
-URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
-    '' if PORT == '443' else f':{PORT}'
-)
+REGION = environ.get('REGION', '')
+URL_PREFIX = f'{PROTOCOL}://{{hostname}}' + ('' if PORT == '443' else f':{PORT}')
 
 
 def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> _RSAPrivateKey:
@@ -42,9 +44,11 @@ def oauth_refresh(account: str, refresh_token: str) -> str:
     )
     OAUTH_SECRET_ID = decrypt_if_encrypted(OAUTH_SECRET_ID) or ''
 
+    hostname = construct_snowflake_hostname(REGION, account)
+
     return (
         post(
-            f"{URL_PREFIX}/oauth/token-request".format(account=account),
+            f"{URL_PREFIX}/oauth/token-request".format(hostname=hostname),
             auth=HTTPBasicAuth(OAUTH_CLIENT_ID, OAUTH_SECRET_ID),
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data={'grant_type': 'refresh_token', 'refresh_token': refresh_token},
