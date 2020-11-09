@@ -63,7 +63,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
       data: {baselines},
     } = this.props;
     const toFind = title || selected;
-    return baselines.find(b => b.baseline === toFind);
+    return baselines.find((b) => b.baseline === toFind);
   }
 
   changeOption(name: string, value: string) {
@@ -198,7 +198,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
       </BasicLayout>
     ) : (
       <BasicLayout>
-        {baselines.map(b => (
+        {baselines.map((b) => (
           <Card
             key={b.baseline}
             style={{width: 350, margin: 10, float: 'left'}}

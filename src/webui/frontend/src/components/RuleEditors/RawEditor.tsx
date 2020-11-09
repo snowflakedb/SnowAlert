@@ -33,7 +33,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
     const {currentRuleView, deleteRule, saveRule, updateRuleBody} = this.props;
     const {queries, suppressions} = this.props.rules;
     const rules = [...queries, ...suppressions];
-    const rule = rules.find(r => r.viewName === currentRuleView);
+    const rule = rules.find((r) => r.viewName === currentRuleView);
 
     return (
       <div>
@@ -42,7 +42,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           value={rule ? rule.raw.body : ''}
           spellCheck={false}
           autoSize={{minRows: 30}}
-          onChange={e => rule && updateRuleBody(rule.viewName, e.target.value)}
+          onChange={(e) => rule && updateRuleBody(rule.viewName, e.target.value)}
         />
         <Button
           type="primary"
