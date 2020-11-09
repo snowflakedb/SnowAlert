@@ -50,9 +50,9 @@ export const data: Reducer<SADataState> = (state = initialState, action: DataAct
       return {
         ...state,
         isFetching: false,
-        connectors: connectors.map(c => new Connector(c)),
-        connections: connections.map(c => new Connection(c)),
-        baselines: baselines.map(c => new Baseline(c)),
+        connectors: connectors.map((c) => new Connector(c)),
+        connections: connections.map((c) => new Connection(c)),
+        baselines: baselines.map((c) => new Baseline(c)),
       };
     }
     case CHANGE_BASELINE_SELECTION: {

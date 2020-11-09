@@ -87,11 +87,11 @@ export interface ConnectorPayload {
 }
 
 export interface ConnectionPayload {
-    name: string;
-    created_on: string;
-    bytes: number;
-    rows: number;
-  }
+  name: string;
+  created_on: string;
+  bytes: number;
+  rows: number;
+}
 
 export interface FlowPayload {
   name: string;
