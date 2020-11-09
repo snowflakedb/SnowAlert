@@ -34,4 +34,4 @@ RUN apt-get update \
 RUN ln -s $PWD/snowalert/src/webui/frontend ./snowalert/venv/lib/python3.8/
 
 WORKDIR /var/task/snowalert/src/webui/backend/
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "--access-logfile=-", "webui.app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--access-logfile=-", "--timeout=60", "webui.app:app"]
