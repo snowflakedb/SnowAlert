@@ -4,7 +4,12 @@
 [comment]: # ('Change Library Version' for library/package dependency version changes.)
 
 ## Description
-[comment]: # (Please include a summary and purpose of the change. You can additionally also include relevant motivation and context.)
+[comment]: # (Please include a list of changes like in the example below. You can additionally also include relevant motivation and context but is optional.)
+
+- Add a new OSQuery Connector
+- Add unit test for OSQuery Connector
+
+The changes above help periodically extract and load OSQuery events into the SnowAlert database, so that alerts can be written on the OSQuery events table.
 
 ## Type of change
 [comment]: # (Mark the appropriate type of change.)
