@@ -2,7 +2,8 @@
 [comment]: # ('Add' for enhancements.)
 [comment]: # ('Fix' for bug fixes.)
 [comment]: # ('Change Library Version' for library/package dependency version changes.)
-# Description
+
+## Description
 
 Please include a summary and purpose of the change. You can additionally also include relevant motivation and context.
 
@@ -14,7 +15,7 @@ Mark the appropriate type of change:
 - [ ] Dependency upgrade
 - [ ] Docs or Style
 
-# How Has This Been Tested?
+## How Has This Been Tested?
 Please list the tests you ran to verify your changes, add or delete the examples belows as needed:
 
 - Ran unit tests
