@@ -70,7 +70,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
         </Button>
         <Button
           type="default"
-          disabled={!rule}
+          disabled={!rule || rule.isSaving}
           onClick={() => rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body))}
         >
           <CheckCircleOutlined /> Format
