@@ -1,6 +1,6 @@
 import {Dispatch} from 'redux';
 import * as api from '../api';
-import {BaselinePayload, ConnectionStage, ConnectorPayload, State} from '../reducers/types';
+import {BaselinePayload, ConnectionStage, ConnectorPayload, ConnectionPayload, State} from '../reducers/types';
 import {createAction, Action, ActionWithPayload, GetState} from './action-helpers';
 import {ActionsUnion} from './types';
 
@@ -16,7 +16,7 @@ export const LOAD_SA_DATA_FAILURE = 'LOAD_SA_DATA_FAILURE';
 export type LoadDataPayload = {
   baselines: ReadonlyArray<BaselinePayload>;
   connectors: ReadonlyArray<ConnectorPayload>;
-  flows: ReadonlyArray<ConnectorPayload>;
+  connections: ReadonlyArray<ConnectionPayload>;
 };
 
 export const LoadDataActions = {
