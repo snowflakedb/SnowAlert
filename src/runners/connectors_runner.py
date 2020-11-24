@@ -82,6 +82,8 @@ def connection_run(connection_table, run_now=False):
 
         for module_option in connector.CONNECTION_OPTIONS:
             name = module_option['name']
+            options.setdefault(name, module_option.get('default'))
+
             if module_option.get('secret') and name in options:
                 options[name] = vault.decrypt_if_encrypted(options[name])
             if module_option.get('type') == 'json':

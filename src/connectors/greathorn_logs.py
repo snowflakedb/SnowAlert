@@ -1,3 +1,7 @@
+'''Greathorn Event Log
+Use API key to regularly catch up on Greathorn Events
+'''
+
 import requests
 import os
 import json
@@ -5,7 +9,11 @@ from datetime import datetime
 from datetime import timedelta
 import time
 
-PAGE_SIZE = 200
+import fire
+from dateutil.parser import parse as parse_date
+
+from connectors.utils import Bearer
+from runners.helpers import db, log
 
 CONNECTION_OPTIONS = [
     {
@@ -16,14 +24,34 @@ CONNECTION_OPTIONS = [
         'secret': True,
         'required': True,
     },
+    {
+        'name': 'lookback',
+        'title': "Look back period",
+        'prompt': "How far to back to load on first run",
+        'type': 'str',
+        'default': '-1h',
+        'required': False,
+    },
 ]
 
-LANDING_EVENTS_TABLE_COLUMNS = [('raw', 'VARIANT', 'RECORDED_AT', 'TIMESTAMP_LTZ')]
+
+LANDING_EVENTS_TABLE_COLUMNS = [
+    ('recorded_at', 'TIMESTAMP_LTZ'),
+    ('raw', 'VARIANT'),
+    ('timestamp', 'TIMESTAMP_LTZ'),
+    ('event_id', 'STRING'),
+    ('source', 'STRING'),
+    ('origin', 'STRING'),
+    ('ip', 'STRING'),
+    ('dmarc', 'STRING'),
+    ('dkim', 'STRING'),
+    ('spf', 'STRING'),
+]
 
 
 def connect(connection_name, options):
-    table_name = f'greathorn_{connection_name}'
-    landing_events_table = f'data.{table_name}_events_connection'
+    table_name = f'greathorn_logs_{connection_name}'
+    landing_events_table = f'data.{table_name}_connection'
 
     db.create_table(
         name=landing_events_table,
@@ -38,91 +66,69 @@ def connect(connection_name, options):
     }
 
 
-def ingest(table_name, options, dryrun=False):
+def ingest(table_name, options, dryrun=True):
     landing_table = f'data.{table_name}'
-    url = "https://api.greathorn.com/v2/search/events"
-    token = options['api_key']
 
-    starttime = db.fetch_latest(landing_table, 'event_time')
-    if starttime is None:
-        log.error(
-            "Unable to find a timestamp of most recent Greathorn log, "
-            "defaulting to one hour ago"
-        )
-        starttime = datetime.utcnow() - timedelta(hours=1)
+    # https://greathorn.zendesk.com/hc/en-us/articles/115000893911-Threat-Platform-API-Reference
+    url = 'https://api.greathorn.com/v2/search/events'
+    api_key = options['api_key']
+    lookback = options['lookback']
 
+    starttime = db.fetch_latest(landing_table, 'recorded_at', default='-1h')
     endtime = datetime.utcnow()
-    f_filters = [
-        {
-            "startDate": starttime.strftime("%Y-%m-%d, %H:%M:%S"),
-            "endDate": endtime.strftime("%Y-%m-%d, %H:%M:%S"),
-        }
-    ]
     offset = 0
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "accept": "application/json",
-        "content-type": "application/json",
-    }
-
     while True:
-
-        first_data = json.dumps(
-            {"limit": PAGE_SIZE, "offset": offset, "filters": f_filters}
+        res = requests.post(
+            url,
+            auth=Bearer(api_key),
+            json={
+                'limit': 200,
+                'offset': offset,
+                'filters': [
+                    {
+                        'startDate': starttime.isoformat(),
+                        'endDate': endtime.isoformat(),
+                    }
+                ],
+            },
         )
-        response = requests.post(url, headers=headers, data=first_data)
-        if response.status_code != 200:
-            log.error("Response not 200")
-            yield 0
+        if res.status_code != 200:
+            log.error('res.status_code != 200', res.text)
+            return
 
-        results = response.json()
-        if results['total'] > 9500:
+        response = res.json()
+        results = response['results']
 
-            # Cut the time in half - start at the same place, but end halfway there.
-            timediff = endtime - starttime
-            halfthetime = timediff / 2
-            endtime -= halfthetime
-            f_filters = [
-                {
-                    "startDate": starttime.strftime("%Y-%m-%d, %H:%M:%S"),
-                    "endDate": endtime.strftime("%Y-%m-%d, %H:%M:%S"),
-                }
-            ]
-            offset = 0
-            yield 0
-
-        events = results['results']
         db.insert(
-            f'data.{table_name}',
-            [{'raw': a} for a in results],
+            landing_table,
+            [
+                {
+                    'raw': a,
+                    'recorded_at': parse_date(res.headers['Date']),
+                    'timestamp': parse_date(a['timestamp']),
+                    'event_id': a['eventId'],
+                    'source': a['source'],
+                    'origin': a['origin'],
+                    'ip': a['ip'],
+                    'spf': a['spf'],
+                    'dkim': a['dkim'],
+                    'dmarc': a['dmarc'],
+                }
+                for a in results
+            ],
             dryrun=dryrun,
         )
 
-        len_events = len(events)
-        if len_events == 0:
-            if (datetime.utcnow() - timedelta(minutes=5)) >= endtime:
-                # We have ended but we're still not up to current.
-                timediff = endtime - starttime
-                starttime = endtime
-                endtime += timediff
-                f_filters = [
-                    {
-                        "startDate": starttime.strftime("%Y-%m-%d, %H:%M:%S"),
-                        "endDate": endtime.strftime("%Y-%m-%d, %H:%M:%S"),
-                    }
-                ]
-                offset = 0
-                yield 0
-            else:
-                break
+        offset += len(results)
+        yield len(results)
 
-        offset += len_events
-        yield len_events
+
+def main(
+    table_name='greathorn_logs_connection', api_key=os.environ['GH_TOKEN'], dryrun=True
+):
+    return ingest(table_name, {'api_key': api_key}, dryrun=dryrun)
 
 
 if __name__ == '__main__':
-    token = os.environ["GH_TOKEN"]
-    options = {'api_key': token}
-    for l in ingest('haha', options):
-        print(l)
+    fire.Fire(main)
