@@ -17,14 +17,14 @@ export const getMenuData = () =>
         }
       : null,
     {
-      name: 'Alerts',
-      icon: 'alert',
-      path: '/dashboard/alerts/',
-    },
-    {
       name: 'Violations',
       icon: 'eye',
       path: '/dashboard/violations/',
+    },
+    {
+      name: 'Alerts',
+      icon: 'alert',
+      path: '/dashboard/alerts/',
     },
     localStorage.getItem('enable_policies')
       ? {
