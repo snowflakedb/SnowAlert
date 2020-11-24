@@ -66,7 +66,7 @@ def connect(connection_name, options):
     }
 
 
-def ingest(table_name, options, dryrun=True):
+def ingest(table_name, options, dryrun=False):
     landing_table = f'data.{table_name}'
 
     # https://greathorn.zendesk.com/hc/en-us/articles/115000893911-Threat-Platform-API-Reference
@@ -74,8 +74,10 @@ def ingest(table_name, options, dryrun=True):
     api_key = options['api_key']
     lookback = options['lookback']
 
-    starttime = db.fetch_latest(landing_table, 'recorded_at', default='-1h')
-    endtime = datetime.utcnow()
+    starttime = db.fetch_latest(landing_table, 'timestamp', default='-1h').replace(
+        microsecond=0
+    ) + timedelta(milliseconds=1)
+    endtime = datetime.utcnow().replace(microsecond=0)
     offset = 0
 
     while True:
@@ -98,7 +100,23 @@ def ingest(table_name, options, dryrun=True):
             return
 
         response = res.json()
+        total = response['total']
         results = response['results']
+        yield len(results)
+
+        if offset == 0:
+            log.info(
+                f"[{starttime.isoformat()}, {endtime.isoformat()}] has {total} events"
+            )
+
+        if total > 9000:  # 10k is max & messages have ~30s delay
+            endtime -= (endtime - starttime) / 2
+            log.info(f"new endtime {endtime}")
+            continue
+
+        if not results:
+            log.info(f"That's all Folks!")
+            break
 
         db.insert(
             landing_table,
@@ -121,13 +139,14 @@ def ingest(table_name, options, dryrun=True):
         )
 
         offset += len(results)
-        yield len(results)
+
+        log.info(f"offset {offset} desc from {parse_date(results[-1]['timestamp'])}")
 
 
 def main(
     table_name='greathorn_logs_connection', api_key=os.environ['GH_TOKEN'], dryrun=True
 ):
-    return ingest(table_name, {'api_key': api_key}, dryrun=dryrun)
+    return ingest(table_name, {'api_key': api_key, 'lookback': '-1h'}, dryrun=dryrun)
 
 
 if __name__ == '__main__':
