@@ -396,6 +396,9 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
 
 
 def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
+    if isinstance(values, dict):
+        values = [values]
+
     num_rows_inserted = 0
     # snowflake limits the number of rows inserted in a single statement:
     #   snowflake.connector.errors.ProgrammingError: 001795 (42601):

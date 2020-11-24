@@ -8,7 +8,7 @@ setup(
     install_requires=[
         'aiohttp[speedups]',
         'aioboto3==8.0.5',
-        'fire==0.1.3',
+        'fire==0.3.1',
         'jira==2.0.0',
         'PyYAML==5.3.1',
         'xmltodict==0.12.0',
@@ -16,7 +16,6 @@ setup(
         'snowflake-sqlalchemy==1.2.3',
         'pandas==1.0.4',
         'pybrake==0.4.0',
-        'rpy2==3.2.0',
         'pytz==2018.9',
         'slackclient==1.3.1',
         'tzlocal==1.5.1',
@@ -33,6 +32,7 @@ setup(
         'botocore==1.15.32',
         'twilio==6.29.4',
         'simple_salesforce==0.74.3',
+        'sentry-sdk==0.17.7',
         'pdpyras==4.0',
         'duo_client==4.2.3',
         'cryptography==3.0.0',
@@ -43,6 +43,11 @@ setup(
             'pytest',
             'black',
             'mypy',
+            'pyflakes',
+            'pytest',
+            'pytest-ordering',
+            'mypy',
+            'mypy-extensions',
         ]
     },
 )

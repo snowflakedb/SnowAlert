@@ -66,46 +66,25 @@ export const register = (name: string, email: string, organizationId: number, pa
     .catch(handleError);
 
 export const loadNotifications = (token: string | null) =>
-  axios
-    .get(`${BACKEND_URL}/notification`, tokenConfig(token))
-    .then(handleResponse)
-    .catch(handleError);
+  axios.get(`${BACKEND_URL}/notification`, tokenConfig(token)).then(handleResponse).catch(handleError);
 
 export const clearNotifications = (token: string | null) =>
-  axios
-    .delete(`${BACKEND_URL}/notification`, tokenConfig(token))
-    .then(handleResponse)
-    .catch(handleError);
+  axios.delete(`${BACKEND_URL}/notification`, tokenConfig(token)).then(handleResponse).catch(handleError);
 
 export const saveRule = (rule: SnowAlertRule) =>
-  axios
-    .post('/api/sa/rules', rule, {headers: authHeader()})
-    .then(handleResponse)
-    .catch(handleError);
+  axios.post('/api/sa/rules', rule, {headers: authHeader()}).then(handleResponse).catch(handleError);
 
 export const deleteRule = (rule: SnowAlertRule) =>
-  axios
-    .post('/api/sa/rules/delete', rule, {headers: authHeader()})
-    .then(handleResponse)
-    .catch(handleError);
+  axios.post('/api/sa/rules/delete', rule, {headers: authHeader()}).then(handleResponse).catch(handleError);
 
 export const renameRule = (rule: SnowAlertRule) =>
-  axios
-    .post('/api/sa/rules/rename', rule, {headers: authHeader()})
-    .then(handleResponse)
-    .catch(handleError);
+  axios.post('/api/sa/rules/rename', rule, {headers: authHeader()}).then(handleResponse).catch(handleError);
 
 export const loadSnowAlertRules = () =>
-  axios
-    .get('/api/sa/rules', {headers: authHeader()})
-    .then(handleResponse)
-    .catch(handleError);
+  axios.get('/api/sa/rules', {headers: authHeader()}).then(handleResponse).catch(handleError);
 
 export const loadSnowAlertData = () =>
-  axios
-    .get('/api/sa/data/', {headers: authHeader()})
-    .then(handleResponse)
-    .catch(handleError);
+  axios.get('/api/sa/data/', {headers: authHeader()}).then(handleResponse).catch(handleError);
 
 export const createConnector = (connector: string, name: string, options: any) =>
   axios
@@ -126,16 +105,10 @@ export const testConnector = (connector: string, name: string) =>
     .catch(handleError);
 
 export const oauthLogin = (returnArgs: any) =>
-  axios
-    .post('/api/sa/oauth/return', returnArgs)
-    .then(handleResponse)
-    .catch(handleError);
+  axios.post('/api/sa/oauth/return', returnArgs).then(handleResponse).catch(handleError);
 
 export const oauthRedirect = (redirectArgs: any) =>
-  axios
-    .post('/api/sa/oauth/redirect', redirectArgs)
-    .then(handleResponse)
-    .catch(handleError);
+  axios.post('/api/sa/oauth/redirect', redirectArgs).then(handleResponse).catch(handleError);
 
 export const createBaseline = (baseline: string, options: any) =>
   axios

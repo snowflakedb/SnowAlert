@@ -67,7 +67,7 @@ USING (
   ) t
   JOIN (
     -- calculate sums in those slices
-    SELECT event_time
+    SELECT {time_column} event_time
          , {groups} AS groups
     FROM {base_table}
   ) c
@@ -243,6 +243,7 @@ ORDER BY n DESC
 
 def generate_baseline_sql(
     base_table: str,
+    time_column: str,
     groups: Optional[List[str]],
     days: int = 30,
     sparcity_reduction: Optional[str] = None,
@@ -251,6 +252,7 @@ def generate_baseline_sql(
         COUNT_HOURLY_TABLE_SQL.format(base_table=base_table),
         COUNT_HOURLY_TASK_SQL.format(
             base_table=base_table,
+            time_column=time_column,
             groups=db.dict_to_sql({g: g for g in groups or []}, indent=11),
             days=days,
         ),
@@ -268,12 +270,17 @@ def generate_baseline_sql(
 
 
 def create(options):
-    base_table = options['base_table']
+    base_table_entry = options['base_table_and_timecol']
+    if ':' not in base_table_entry:
+        raise ValueError("Enter time column in format <table>:<time_column>")
+    else:
+        base_table, time_column = options['base_table_and_timecol'].split(':', 1)
+
     groups = list(
         filter(None, [g.strip() for g in options.get('groups', '').split(',')])
     )
     days = int(options.get('history_size_days', '30'))
     return [
         next(db.fetch(sql, fix_errors=False), {}).get('status')
-        for sql in generate_baseline_sql(base_table, groups, days)
+        for sql in generate_baseline_sql(base_table, time_column, groups, days)
     ]

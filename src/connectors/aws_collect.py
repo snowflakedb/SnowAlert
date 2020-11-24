@@ -459,6 +459,27 @@ SUPPLEMENTARY_TABLES = {
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
+    's3_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3control/get-public-access-block.html
+    's3control_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -943,6 +964,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     's3.get_bucket_acl',
                     's3.get_bucket_policy',
                     's3.get_bucket_logging',
+                    's3.get_public_access_block',
                 ],
                 'args': {'Bucket': 'bucket_name'},
             }
@@ -968,6 +990,28 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'TargetBucket': 'target_bucket',
                 'TargetGrants': 'target_grants',
                 'TargetPrefix': 'target_prefix',
+            }
+        },
+    },
+    's3.get_public_access_block': {
+        'params': {'Bucket': 'bucket'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
+            }
+        },
+    },
+    's3control.get_public_access_block': {
+        'args': {'AccountId': 'account_id'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
             }
         },
     },
@@ -1231,6 +1275,11 @@ def process_aws_response(task, page):
 
 async def load_task_response(client, task):
     args = task.args or {}
+    argspec = API_METHOD_SPECS[task.method].get('args', {})
+
+    # e.g. for s3control.get_public_access_block
+    if argspec.get('AccountId') == 'account_id':
+        args['AccountId'] = task.account_id
 
     client_name, method_name = task.method.split('.', 1)
 
@@ -1358,6 +1407,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            's3control.get_public_access_block',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
