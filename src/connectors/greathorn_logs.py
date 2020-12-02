@@ -144,10 +144,8 @@ def ingest(table_name, options, dryrun=False):
 
 
 def main(
-    table_name='greathorn_logs_connection', api_key=None, dryrun=True
+    table_name='greathorn_logs_connection', api_key=os.environ.get('GH_TOKEN'), dryrun=True
 ):
-    if api_key is None:
-        api_key = os.environ['GH_TOKEN']
     return ingest(table_name, {'api_key': api_key, 'lookback': '-1h'}, dryrun=dryrun)
 
 
