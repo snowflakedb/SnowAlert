@@ -1,8 +1,8 @@
 -- --
 -- - name: ZenGCR asset ingestion
 -- - params:
---   - name: user
---   - name: pass
+--   - name: auth
+--     type: json
 --     secret: true
 --   - name: subdomain
 --   - name: api_integration_arn
@@ -76,7 +76,7 @@ CREATE OR REPLACE SECURE EXTERNAL FUNCTION zengrc_load(type STRING)
   COMMENT='https://docs.api.zengrc.com/'
   API_INTEGRATION={api_integration_arn}
   HEADERS=(
-    'basicauth'='{user}:{pass}'
+    'auth'='{auth}'
     'host'='{subdomain}.api.zengrc.com'
     'path'='/api/v2/{0}'
     'nextpage-path'='links.next.href'
