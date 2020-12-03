@@ -40,7 +40,13 @@ def lambda_handler(event, context=None):
     }
     if 'sf-custom-auth' in headers:
         auth = decrypt_if_encrypted(headers['sf-custom-auth'])
-        auth = parse_header_dict(auth) if auth else {}
+        auth = (
+            loads(auth)
+            if auth.startswith('{')
+            else parse_header_dict(auth)
+            if auth
+            else {}
+        )
 
         if 'host' in auth and not req_host:
             req_host = auth['host']
@@ -92,7 +98,10 @@ def lambda_handler(event, context=None):
                     response = loads(response_body)
                     result = pick(req_results_path, response)
                 except HTTPError as e:
-                    result = {'error': f'{e.status} {e.reason}'}
+                    result = {
+                        'error': f'{e.status} {e.reason}',
+                        'url': next_url,
+                    }
                 except URLError as e:
                     result = {
                         'error': f'URLError',
