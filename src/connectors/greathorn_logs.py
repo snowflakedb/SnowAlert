@@ -5,8 +5,7 @@ Use API key to regularly catch up on Greathorn Events
 import requests
 import os
 import json
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 import time
 
 import fire
