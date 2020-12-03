@@ -293,7 +293,8 @@ def setup_schemas_and_tables(do_attempt, database):
     do_attempt("Creating alerts & violations tables", CREATE_TABLES_QUERIES)
     do_attempt("Creating standard UDTFs", read_queries('create-udtfs'))
     do_attempt("Creating standard data views", read_queries('data-views'))
-    do_attempt("Creating runner PROC's", read_sasql('alert_runners'))
+    do_attempt("Creating AQR PROC's", read_sasql('run-alerts'))
+    do_attempt("Creating VQR PROC's", read_sasql('run-violations'))
 
 
 def setup_user_and_role(do_attempt):

@@ -2,21 +2,21 @@ CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, from
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'alert_queries_runner.js'
+USING TEMPLATE 'run-alert-queries.js'
 ;
 
 CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, from_time_sql STRING)
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'alert_queries_runner.js'
+USING TEMPLATE 'run-alert-queries.js'
 ;
 
 CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING)
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'alert_queries_runner.js'
+USING TEMPLATE 'run-alert-queries.js'
 ;
 
 
@@ -24,12 +24,12 @@ CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner(run_id STRING, ale
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'alert_suppressions_runner.js'
+USING TEMPLATE 'run-alert-suppressions.js'
 ;
 
 CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner()
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'alert_suppressions_runner.js'
+USING TEMPLATE 'run-alert-suppressions.js'
 ;
