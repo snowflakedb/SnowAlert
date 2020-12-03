@@ -74,10 +74,13 @@ def ingest(table_name, options, dryrun=False):
     api_key = options['api_key']
     lookback = options['lookback']
 
+    # the API does not seem to maintain milisecond accuracy
     starttime = db.fetch_latest(landing_table, 'timestamp', default='-1h').replace(
         microsecond=0
     ) + timedelta(milliseconds=1)
-    endtime = datetime.now(tz=starttime.tzinfo).replace(microsecond=0)
+    
+    # the emails seem to take about a minute to "settle"
+    endtime = datetime.now(tz=starttime.tzinfo).replace(microsecond=0) - timedelta(minutes=1)
     offset = 0
 
     while True:
