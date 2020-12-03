@@ -77,7 +77,7 @@ def ingest(table_name, options, dryrun=False):
     starttime = db.fetch_latest(landing_table, 'timestamp', default='-1h').replace(
         microsecond=0
     ) + timedelta(milliseconds=1)
-    endtime = datetime.utcnow().replace(microsecond=0)
+    endtime = datetime.now(tz=starttime.tzinfo).replace(microsecond=0)
     offset = 0
 
     while True:
