@@ -37,6 +37,7 @@ setup(
         'duo_client==4.2.3',
         'cryptography==3.0.0',
         'requests==2.23.0',
+        'pymsteams==0.1.14',
     ],
     extras_require={
         'dev': [
