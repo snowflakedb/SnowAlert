@@ -992,6 +992,14 @@
     "@babel/helper-create-regexp-features-plugin" "^7.10.4"
     "@babel/helper-plugin-utils" "^7.10.4"
 
+"@babel/polyfill@^7.7.0":
+  version "7.12.1"
+  resolved "https://registry.yarnpkg.com/@babel/polyfill/-/polyfill-7.12.1.tgz#1f2d6371d1261bbd961f3c5d5909150e12d0bd96"
+  integrity sha512-X0pi0V6gxLi6lFZpGmeNa4zxtwEmCs42isWLNjZZDE0Y8yVfgu0T2OAHlzBbdYlqbW/YXVvoBHpATEM+goCj8g==
+  dependencies:
+    core-js "^2.6.5"
+    regenerator-runtime "^0.13.4"
+
 "@babel/preset-env@7.9.0":
   version "7.9.0"
   resolved "https://registry.yarnpkg.com/@babel/preset-env/-/preset-env-7.9.0.tgz#a5fc42480e950ae8f5d9f8f2bbc03f52722df3a8"
@@ -1754,11 +1762,6 @@
   dependencies:
     "@types/prop-types" "*"
     csstype "^3.0.2"
-
-"@types/sql-formatter@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@types/sql-formatter/-/sql-formatter-2.3.0.tgz#d2584c54f865fd57a7fe7e88ee8ed3623b23da33"
-  integrity sha512-Xh9kEOaKWhm3vYD5lUjYFFiSfpN4y3/iQCJUAVwFaQ1rVvHs4WXTa5C8E7gyF3kxwsMS8KgttW7WBAPtFlsvAg==
 
 "@types/stack-utils@^1.0.1":
   version "1.0.1"
@@ -3553,6 +3556,11 @@ core-js@^2.4.0:
   version "2.6.11"
   resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.6.11.tgz#38831469f9922bded8ee21c9dc46985e0399308c"
   integrity sha512-5wjnpaT/3dV+XB4borEsnAYQchn00XSgTAWKDkEqv+K8KevjbzmofK6hfJ9TZIlpj2N0xQpazy7PiRQiWHqzWg==
+
+core-js@^2.6.5:
+  version "2.6.12"
+  resolved "https://registry.yarnpkg.com/core-js/-/core-js-2.6.12.tgz#d9333dfa7b065e347cc5682219d6f690859cc2ec"
+  integrity sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==
 
 core-js@^3.5.0:
   version "3.6.5"
@@ -7509,7 +7517,7 @@ lodash.uniq@^4.5.0:
   resolved "https://registry.yarnpkg.com/lodash.uniq/-/lodash.uniq-4.5.0.tgz#d0225373aeb652adc1bc82e4945339a842754773"
   integrity sha1-0CJTc662Uq3BvILklFM5qEJ1R3M=
 
-"lodash@>=3.5 <5", lodash@^4.16.0, lodash@^4.17.11, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.20, lodash@^4.17.5:
+"lodash@>=3.5 <5", lodash@^4.17.11, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.20, lodash@^4.17.5:
   version "4.17.20"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz#b44a9b6297bcb698f1c51a3545a2b3b368d59c52"
   integrity sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRK5hagpagky5o4HfCzzd1TRkXPMFq6cKk9rGmA==
@@ -11060,6 +11068,14 @@ snapdragon@^0.8.1:
     source-map-resolve "^0.5.0"
     use "^3.1.0"
 
+snowsql-formatter@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/snowsql-formatter/-/snowsql-formatter-1.1.0.tgz#330c40a7d08fd86234a1ef300437995ad6ccce86"
+  integrity sha512-BX9bhlPPQx/55Pp4bOlwZp3nTmhX19vzVolMRblVpCgpgHODngHCZDkVPe7SfDo3YFk14OfRNNUhRKLtNX9FkA==
+  dependencies:
+    "@babel/polyfill" "^7.7.0"
+    lodash "^4.17.15"
+
 sockjs-client@1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/sockjs-client/-/sockjs-client-1.4.0.tgz#c9f2568e19c8fd8173b4997ea3420e0bb306c7d5"
@@ -11210,13 +11226,6 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
-
-sql-formatter@^2.3.3:
-  version "2.3.3"
-  resolved "https://registry.yarnpkg.com/sql-formatter/-/sql-formatter-2.3.3.tgz#910ef484fbb988a5e510bea4161157e3b80b2f62"
-  integrity sha512-m6pqVXwsm9GkCHC/+gdPvNowI7PNoVTT6OZMWKwXJoP2MvfntfhcfyliIf4/QX6t+DirSJ6XDSiSS70YvZ87Lw==
-  dependencies:
-    lodash "^4.16.0"
 
 sshpk@^1.7.0:
   version "1.16.1"

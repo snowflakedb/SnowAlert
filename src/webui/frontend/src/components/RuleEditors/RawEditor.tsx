@@ -15,7 +15,7 @@ import {getRules} from '../../reducers/rules';
 import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
-import sqlFormatter from 'sql-formatter';
+import sqlFormatter from 'snowsql-formatter';
 
 import './RawEditor.css';
 
