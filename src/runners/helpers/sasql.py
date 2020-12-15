@@ -12,7 +12,7 @@ def load(file_path):
     tmpl = open(file_path).read()
 
     tmpl = re.sub(
-        r"USING TEMPLATE '([a-z_\.]+)'",
+        r"USING TEMPLATE '([a-z-_\.]+)'",
         lambda m: f"AS $$\n{read_template(path.join(file_dir, m.group(1)))}$$",
         tmpl,
         flags=re.M,

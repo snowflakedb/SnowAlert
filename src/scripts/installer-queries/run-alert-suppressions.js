@@ -42,20 +42,26 @@ const select_all_suppressions_sql = suppressions.map(s => `
   SELECT UUID_STRING() id, '${s.name}' rule, FALSE suppressed -- for count=0 records
 `).join('  UNION ALL')
 
+const all_ununsuppressed_rules = `
+  SELECT alert:ALERT_ID id, NULL rule, FALSE suppressed
+  FROM results.alerts
+  WHERE suppressed IS NULL
+`
+
+const suppressions_updates = select_all_suppressions_sql.length == 0 ? (
+  all_ununsuppressed_rules
+) : (`
+  ${select_all_suppressions_sql}
+  UNION ALL (${all_ununsuppressed_rules})
+`)
+;
 
 const NEW_SUPPRESSIONS_TBL = `results.ALERT_SUPPRESSIONS_${RUN_ID}`;
 
 const CREATE_SUPPRESSIONS_SQL = `
 CREATE TEMP TABLE ${NEW_SUPPRESSIONS_TBL} AS
 SELECT id, rule, suppressed, CURRENT_TIMESTAMP ts
-FROM (
-${select_all_suppressions_sql}
-  UNION ALL (
-    SELECT alert:ALERT_ID id, NULL rule, FALSE suppressed
-    FROM results.alerts
-    WHERE suppressed IS NULL
-  )
-)
+FROM (${suppressions_updates})
 QUALIFY 1=ROW_NUMBER() OVER (
   PARTITION BY id -- one row per id
   ORDER BY suppressed DESC -- because TRUE > FALSE
@@ -65,6 +71,7 @@ QUALIFY 1=ROW_NUMBER() OVER (
 const SUPPRESSION_COUNTS_SQL = `
 SELECT rule, COUNT_IF(suppressed) count, ts
 FROM ${NEW_SUPPRESSIONS_TBL}
+WHERE rule IS NOT NULL
 GROUP BY rule, ts
 ;`;
 
