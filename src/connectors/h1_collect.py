@@ -78,19 +78,17 @@ LANDING_TABLE_COLUMNS_REPORTS = [
     ('awarded_bonus_amount', 'int'),
 ]
 
-#Perform the API call
-def get_data(url: str, token: str, params: dict = {}) -> dict:
+# Perform the API call
+def get_data(url: str, token: str, api_identifier: str, params: dict = {}) -> dict:
     headers: dict = {
         "Accept": "application/json"
     }
-
-    api_identifier = options['api_identifier']
 
     try:
         log.debug(f"Preparing GET: url={url} with params={params}")
         resp = requests.get(
             url,
-            auth=(api_identifier, api_token),
+            auth=(api_identifier, token),
             params=params,
             headers=headers
         )
@@ -102,35 +100,35 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
     log.debug(resp.status_code)
     return resp.json()
 
-#Create 3 tables(main table, landing table, supplementary table)
-def connect(connection_name, options)
-    table_name = f'h1_{connection_name}'
-    LANDING_TRANSACTIONS_TABLE = f'data.h1_collect_transactions_connection'
-    LANDING_REPORTS_TABLE = f'data.h1_collect_reports_connection'
+
+def connect(connection_name, options):
+    landing_transactions_table = f'data.h1_collect_transactions_connection'
+    landing_reports_table = f'data.h1_collect_reports_connection'
+
+    comment = yaml_dump(module='h1_collect', **options)
 
     db.create_table(
-        name=LANDING_TRANSACTIONS_TABLE,
+        name=landing_transactions_table,
         cols=LANDING_TABLE_COLUMNS_TRANSACTIONS,
-        comment=yaml_dump(module='h1_collect', **options),
-        rw_role=ROLE,
+        comment=comment,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {LANDING_TRANSACTIONS_TABLE} TO ROLE {SA_ROLE}')
-    return {'newStage': 'finalized', 'newMessage': "HackerOne transactions ingestion table created!"}
+    db.execute(f'GRANT INSERT, SELECT ON {landing_transactions_table} TO ROLE {SA_ROLE}')
 
     db.create_table(
-        name=LANDING_REPORTS_TABLE,
+        name=landing_reports_table,
         cols=LANDING_TABLE_COLUMNS_REPORTS,
-        comment=yaml_dump(module='h1_collect', **options),
-        rw_role=ROLE,
+        comment=comment,
     )
-    db.execute(f'GRANT INSERT, SELECT ON {LANDING_REPORTS_TABLE} TO ROLE {SA_ROLE}')
+    db.execute(f'GRANT INSERT, SELECT ON {landing_reports_table} TO ROLE {SA_ROLE}')
     return {'newStage': 'finalized', 'newMessage': "HackerOne reports ingestion table created!"}
-    
+
+
 def ingest(table_name, options):
     ingest_type = 'transaction' if table_name.endswith('_TRANSACTIONS_CONNECTION') else 'report'
     landing_table = f'data.{table_name}'
 
     timestamp = datetime.utcnow()
+    api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
     program_name = options['program_name']
@@ -140,6 +138,7 @@ def ingest(table_name, options):
             transactions = get_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
                 api_token,
+                api_identifier,
                 params=None
             )
         except requests.exceptions.HTTPError as e:
@@ -163,12 +162,12 @@ def ingest(table_name, options):
                     for transaction in transactions
                 ]
             )
-
     else:
         try:
             reports = get_data(
                 'https://api.hackerone.com/v1/reports',
                 api_token,
+                api_identifier,
                 params={
                     'filter[program][]': program_name
                 }
