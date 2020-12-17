@@ -148,7 +148,7 @@ def ingest(table_name, options):
         for row in result:
             try:
                 row['users'] = requests.get(
-                    url=row['_links']['users']['href'], headers=headers
+                    url=row['_links']['users']['href'] + '?limit=10000', headers=headers
                 ).json()
             except TypeError:
                 log.info(row)
