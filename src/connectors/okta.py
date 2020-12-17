@@ -146,19 +146,33 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
-            try:
-                row['users'] = requests.get(
-                    url=row['_links']['users']['href'] + '?limit=10000', headers=headers
-                ).json()
-            except TypeError:
-                log.info(row)
-                raise
+            users = []
+            has_next_page = True
+            url = row['_links']['users']['href']
+            while has_next_page:    
+                try:
+                    page = requests.get(
+                        url=url, headers=headers
+                    )
+                    users += page.json()
+                    if 'rel="next"' in page.headers['link']:
+                        for item in str.split(page.headers['link'], ','):
+                            if 'rel="next"' in item:
+                                url = re.findall(r'(?<=\<)(.*?)(?=\>)', item)[0]
+                    else:
+                        has_next_page = False
+                except TypeError:
+                    log.info(row)
+                    raise
+
+            row['users'] = users
 
         db.insert(
             landing_table, [{'raw': row, 'event_time': now} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
+
         yield len(result)
 
     elif ingest_type == 'users':
