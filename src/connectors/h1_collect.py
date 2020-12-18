@@ -207,7 +207,6 @@ def ingest(table_name, options, dryrun=False):
         except requests.exceptions.HTTPError as e:
             log.error(e)
         else:
-            print(reports)
             db.insert(
                 landing_table,
                 dryrun=dryrun,
