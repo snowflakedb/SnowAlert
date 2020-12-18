@@ -463,8 +463,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_tagging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('tag_set', 'VARIANT'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
