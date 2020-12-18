@@ -81,6 +81,13 @@ def connect(connection_name, options):
         'newMessage': "Okta ingestion table, user table, group table created!",
     }
 
+def get_next_page(response):
+    url = ''
+    links = requests.utils.parse_header_links(response.headers['Link'])
+    for link in links:
+        if link['rel'] == 'next':
+            url = link['url']
+    return url
 
 def ingest_users(url, headers, landing_table, now):
     while 1:
@@ -100,11 +107,7 @@ def ingest_users(url, headers, landing_table, now):
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
 
-        url = ''
-        links = requests.utils.parse_header_links(response.headers['Link'])
-        for link in links:
-            if link['rel'] == 'next':
-                url = link['url']
+        url = get_next_page(response)
 
         if len(url) == 0:
             break
@@ -151,20 +154,16 @@ def ingest(table_name, options):
             url = row['_links']['users']['href']
             while has_next_page:    
                 try:
-                    page = requests.get(
+                    response = requests.get(
                         url=url, headers=headers
                     )
-                    users += page.json()
-                    if 'rel="next"' in page.headers['link']:
-                        for item in str.split(page.headers['link'], ','):
-                            if 'rel="next"' in item:
-                                url = re.findall(r'(?<=\<)(.*?)(?=\>)', item)[0]
-                    else:
+                    users += response.json()
+                    url = get_next_page(response)
+                    if len(url) == 0:
                         has_next_page = False
                 except TypeError:
                     log.info(row)
                     raise
-
             row['users'] = users
 
         db.insert(
