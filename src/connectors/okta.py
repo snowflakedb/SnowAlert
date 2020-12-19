@@ -81,7 +81,7 @@ def connect(connection_name, options):
         'newMessage': "Okta ingestion table, user table, group table created!",
     }
 
-def get_next_page(response):
+def get_next_url_from_headers(response):
     url = ''
     links = requests.utils.parse_header_links(response.headers['Link'])
     for link in links:
@@ -107,7 +107,7 @@ def ingest_users(url, headers, landing_table, now):
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
 
-        url = get_next_page(response)
+        url = get_next_url_from_headers(response)
 
         if len(url) == 0:
             break
@@ -158,7 +158,7 @@ def ingest(table_name, options):
                         url=url, headers=headers
                     )
                     users += response.json()
-                    url = get_next_page(response)
+                    url = get_next_url_from_headers(response)
                     if len(url) == 0:
                         has_next_page = False
                 except TypeError:
