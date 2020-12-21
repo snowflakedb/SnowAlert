@@ -23,7 +23,8 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "ENVIRONMENT": "No Environment described",
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
-    "SEVERITY": "Severity Unspecified",
+    "SEVERITY": "-",
+    "CATEGORIES": "-",
 }
 
 JIRA_TICKET_BODY_FMT = """
@@ -32,6 +33,7 @@ Query ID: {QUERY_ID}
 Query Name: {QUERY_NAME}
 Environment: {ENVIRONMENT}
 Sources: {SOURCES}
+Categories: {CATEGORIES}
 Actor: {ACTOR}
 Object: {OBJECT}
 Action: {ACTION}
@@ -149,7 +151,7 @@ def create_jira_ticket(
     issue_params = {
         'project': project,
         'issuetype': {'name': issue_type},
-        'summary': alert['TITLE'],
+        'summary': alert.get('TITLE') or JIRA_TICKET_BODY_DEFAULTS['TITLE'],
         'description': body,
     }
 

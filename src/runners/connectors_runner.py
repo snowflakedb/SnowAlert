@@ -109,7 +109,7 @@ def connection_run(connection_table, run_now=False, option_overrides={}):
         log.error(f"Error loading logs into {table_name}: ", e)
         db.record_metadata(metadata, table=DC_METADATA_TABLE, e=e)
 
-    log.info(f"-- END DC --")
+    log.info(f"-- END DC {table_name} --")
 
 
 def main(connection_table=None, run_now=False, **option_overrides):
