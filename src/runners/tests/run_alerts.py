@@ -357,7 +357,7 @@ def test_alert_runners_processor_and_dispatcher(
     ticket_body = jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
     assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    assert {lines[2], lines[24]} == {
+    assert {lines[2], lines[23]} == {
         'Query ID: test_1_query_id',
         'Query ID: test_3_query',
     }
