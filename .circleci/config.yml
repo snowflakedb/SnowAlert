@@ -20,6 +20,7 @@ jobs:
           command: |
             cd src
             python -m venv .venv
+            .venv/bin/pip install --upgrade pip
             .venv/bin/pip install '.' '.[dev]'
 
       - save_cache:
@@ -31,9 +32,12 @@ jobs:
           name: run static analysis
           command: |
             cd src
-            source .venv/bin/activate
             MYPYPATH="`pwd`/webui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
+              .venv/bin/mypy --config-file mypy.ini \
+                 ./runners \
+                 ./scripts \
+                 ./webui/backend/webui \
+                 ./connectors
             .venv/bin/pytest -vv
             ./scripts/run-whitesource
 
