@@ -81,8 +81,9 @@ LANDING_TABLE_COLUMNS_REPORTS = [
     ('awarded_bonus_amount', 'int'),
 ]
 
+
 # Perform the API call
-def get_data(url: str, token: str, api_identifier: str, params: dict = {}) -> dict:
+def load_data(url: str, token: str, api_identifier: str, params: dict = {}) -> dict:
     headers: dict = {"Accept": "application/json"}
 
     try:
@@ -97,6 +98,15 @@ def get_data(url: str, token: str, api_identifier: str, params: dict = {}) -> di
         raise
     log.debug(resp.status_code)
     return resp.json()['data']
+
+
+def get_path(data, path, default=None):
+    for key in path.split("."):
+        if key not in data:
+            return default
+        else:
+            data = data[key]
+    return data
 
 
 def connect(connection_name, options):
@@ -140,7 +150,7 @@ def ingest(table_name, options, dryrun=False):
 
     if ingest_type == 'transaction' and account_id:
         try:
-            transactions = get_data(
+            transactions = load_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
                 api_token,
                 api_identifier,
@@ -156,49 +166,29 @@ def ingest(table_name, options, dryrun=False):
                     {
                         'timestamp': timestamp,
                         'type': transaction.get('type', ''),
-                        'activity_date': transaction['attributes'].get(
-                            'activity_date', ''
-                        )
-                        if 'attributes' in transaction
-                        else '',
-                        'activity_description': transaction['attributes'].get(
-                            'activity_description', ''
-                        )
-                        if 'attributes' in transaction
-                        else '',
-                        'bounty_award': transaction['attributes'].get(
-                            'bounty_award', ''
-                        )
-                        if 'attributes' in transaction
-                        else '',
-                        'bounty_fee': transaction['attributes'].get('bounty_fee', '')
-                        if 'attributes' in transaction
-                        else '',
-                        'debit_or_credit_amount': transaction['attributes'].get(
-                            'debit_or_credit_amount', ''
-                        )
-                        if 'attributes' in transaction
-                        else '',
-                        'balance': transaction['attributes'].get('balance', '')
-                        if 'attributes' in transaction
-                        else '',
-                        'id': transaction['relationships']['report']['data'].get(
-                            'id', ''
-                        )
-                        if 'relationships' in transaction
-                        else '',
-                        'url': transaction['relationships']['report']['links'].get(
-                            'self', ''
-                        )
-                        if 'relationships' in transaction
-                        else '',
+                        'activity_date': get_path(
+                            transaction, 'attributes.activity_date'
+                        ),
+                        'activity_description': get_path(
+                            transaction, 'attributes.activity_description'
+                        ),
+                        'bounty_award': get_path(
+                            transaction, 'attributes.bounty_award'
+                        ),
+                        'bounty_fee': get_path(transaction, 'attributes.bounty_fee'),
+                        'debit_or_credit_amount': get_path(
+                            transaction, 'attributes.debit_or_credit_amount'
+                        ),
+                        'balance': get_path(transaction, 'attributes.balance'),
+                        'id': get_path(transaction, 'relationships.report.data.id'),
+                        'url': get_path(transaction, 'relationships.report.links.self'),
                     }
                     for transaction in transactions
                 ],
             )
     else:
         try:
-            reports = get_data(
+            reports = load_data(
                 'https://api.hackerone.com/v1/reports',
                 api_token,
                 api_identifier,
@@ -248,7 +238,8 @@ def ingest(table_name, options, dryrun=False):
                         'rating': report['relationships']['severity']['data'][
                             'attributes'
                         ].get('rating', '')
-                        if 'relationships' in report and 'severity' in report['relationships'] 
+                        if 'relationships' in report
+                        and 'severity' in report['relationships']
                         else '',
                         'name': report['relationships']['weakness']['data'][
                             'attributes'
@@ -268,19 +259,32 @@ def ingest(table_name, options, dryrun=False):
                         'asset_identifier': report['relationships']['structured_scope'][
                             'data'
                         ]['attributes'].get('asset_identifier', '')
-                        if 'relationships' in report and 'structured_scope' in report['relationships']
+                        if 'relationships' in report
+                        and 'structured_scope' in report['relationships']
                         else '',
-                        'awarded_amount': sum([
-                            float(bounty['attributes'].get('awarded_amount', 0.0))
-                            for bounty in report['relationships']['bounties']['data']
-                        ])
-                        if 'relationships' in report and 'bounties' in report['relationships'] and report['relationships']['bounties']['data']
+                        'awarded_amount': sum(
+                            [
+                                float(bounty['attributes'].get('awarded_amount', 0.0))
+                                for bounty in report['relationships']['bounties'][
+                                    'data'
+                                ]
+                            ]
+                        )
+                        if 'relationships' in report
+                        and 'bounties' in report['relationships']
+                        and report['relationships']['bounties']['data']
                         else 0,
-                        'awarded_bonus_amount': sum([
-                            float(bounty['attributes'].get('awarded_amount', 0.0))
-                            for bounty in report['relationships']['bounties']['data']
-                        ])
-                        if 'relationships' in report and 'bounties' in report['relationships'] and report['relationships']['bounties']['data']
+                        'awarded_bonus_amount': sum(
+                            [
+                                float(bounty['attributes'].get('awarded_amount', 0.0))
+                                for bounty in report['relationships']['bounties'][
+                                    'data'
+                                ]
+                            ]
+                        )
+                        if 'relationships' in report
+                        and 'bounties' in report['relationships']
+                        and report['relationships']['bounties']['data']
                         else 0,
                     }
                     for report in reports
