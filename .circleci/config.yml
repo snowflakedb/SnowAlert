@@ -20,7 +20,7 @@ jobs:
           command: |
             cd src
             python -m venv .venv
-            .venv/bin/pip install .
+            .venv/bin/pip install '.' '.[dev]'
 
       - save_cache:
           paths:
