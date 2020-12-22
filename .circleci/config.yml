@@ -52,7 +52,7 @@ jobs:
 
   build-docs:
     docker:
-      - image: circleci/python:3.7.2
+      - image: circleci/python:3.9
 
     working_directory: ~/project
 
