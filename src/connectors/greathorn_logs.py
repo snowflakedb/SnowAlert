@@ -83,7 +83,7 @@ def ingest(table_name, options, dryrun=False):
     start = datetime.now()
     offset = 0
     while True:
-        log.info(f"<= loading from id={last_id} offset={offset}")
+        log.info(f"<= loading from offset={offset:04} (last_id={last_id})")
 
         res = requests.post(
             url,
@@ -109,7 +109,7 @@ def ingest(table_name, options, dryrun=False):
         last_id = last['eventId']
 
         log.info(
-            f"=> {len(results)} rows,"
+            f"=> {len(results)}/{response['total']} rows,"
             f" offset {offset:04}"
             f" goes to id={last_id} timestamp={last_ts}"
         )
