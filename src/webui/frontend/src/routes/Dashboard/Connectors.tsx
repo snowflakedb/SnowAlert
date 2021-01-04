@@ -275,7 +275,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   title: 'Row Count',
                   dataIndex: 'row_count',
                   key: 'row_count',
-                  sorter: true,
+                  sorter: (a, b) => a.row_count - b.row_count,
                   sortDirections: ['descend', 'ascend'],
                 },
               ]}
