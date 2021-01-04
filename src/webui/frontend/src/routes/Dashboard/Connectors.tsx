@@ -33,14 +33,6 @@ interface DispatchProps {
   dismissErrorMessage: typeof dismissErrorMessage;
 }
 
-interface SearchBoxProps {
-    query: string;
-    changeSearch: (query: string)=>{}
-  }
-  interface SearchBoxState {
-    query: string;
-  }
-
 type ConnectorsProps = OwnProps & StateProps & DispatchProps;
 
 class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnState> {
