@@ -71,7 +71,7 @@ def connect(connection_name, options):
 def ingest(table_name, options, dryrun=False):
     landing_table = f'data.{table_name}'
 
-    # https://greathorn.zendesk.com/hc/en-us/articles/115000893911-Threat-Platform-API-Reference
+    # https://greathorn.readme.io/reference (ask support for password)
     url = 'https://api.greathorn.com/v2/search/events'
     api_key = options['api_key']
     lookback = options['lookback']
