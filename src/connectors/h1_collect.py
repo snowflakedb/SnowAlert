@@ -83,8 +83,13 @@ LANDING_TABLE_COLUMNS_REPORTS = [
 ]
 
 
-def load_data(url: str, token: str, api_identifier: str, params: dict = {}) -> dict:
-    '''Perform the API call'''
+def load_data(
+    url: str,
+    token: str,
+    api_identifier: str,
+    params: dict = {}
+) -> requests.Response:
+    """Perform the API call"""
     headers: dict = {"Accept": "application/json"}
 
     try:
