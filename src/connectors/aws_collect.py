@@ -459,6 +459,14 @@ SUPPLEMENTARY_TABLES = {
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-tagging.html#output
+    's3_get_bucket_tagging': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('tag_set', 'VARIANT'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
     's3_get_public_access_block': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -964,6 +972,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     's3.get_bucket_acl',
                     's3.get_bucket_policy',
                     's3.get_bucket_logging',
+                    's3.get_bucket_tagging',
                     's3.get_public_access_block',
                 ],
                 'args': {'Bucket': 'bucket_name'},
@@ -992,6 +1001,10 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'TargetPrefix': 'target_prefix',
             }
         },
+    },
+    's3.get_bucket_tagging': {
+        'params': {'Bucket': 'bucket'},
+        'response': {'TagSet': 'tag_set'},
     },
     's3.get_public_access_block': {
         'params': {'Bucket': 'bucket'},

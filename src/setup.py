@@ -41,7 +41,7 @@ setup(
     ],
     extras_require={
         'dev': [
-            'dotenv',
+            'python-dotenv',
             'pytest',
             'black',
             'mypy',

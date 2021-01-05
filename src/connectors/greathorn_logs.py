@@ -71,7 +71,7 @@ def connect(connection_name, options):
 def ingest(table_name, options, dryrun=False):
     landing_table = f'data.{table_name}'
 
-    # https://greathorn.zendesk.com/hc/en-us/articles/115000893911-Threat-Platform-API-Reference
+    # https://greathorn.readme.io/reference (ask support for password)
     url = 'https://api.greathorn.com/v2/search/events'
     api_key = options['api_key']
     lookback = options['lookback']
@@ -83,7 +83,7 @@ def ingest(table_name, options, dryrun=False):
     start = datetime.now()
     offset = 0
     while True:
-        log.info(f"<= loading from id={last_id} offset={offset}")
+        log.info(f"<= loading from offset={offset:04} (last_id={last_id})")
 
         res = requests.post(
             url,
@@ -109,7 +109,7 @@ def ingest(table_name, options, dryrun=False):
         last_id = last['eventId']
 
         log.info(
-            f"=> {len(results)} rows,"
+            f"=> {len(results)}/{response['total']} rows,"
             f" offset {offset:04}"
             f" goes to id={last_id} timestamp={last_ts}"
         )
