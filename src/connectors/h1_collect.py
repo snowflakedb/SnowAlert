@@ -3,6 +3,7 @@ Collect HackerOne reports and payment transactions using an API key
 """
 import os
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from urllib.error import HTTPError
 
 import fire
@@ -48,7 +49,7 @@ CONNECTION_OPTIONS = [
 ]
 
 LANDING_TABLE_COLUMNS_TRANSACTIONS = [
-    ('timestamp', 'TIMESTAMP_LTZ(9)'),
+    ('recorded_at', 'TIMESTAMP_LTZ(9)'),
     ('type', 'string'),
     ('activity_date', 'TIMESTAMP_LTZ(9)'),
     ('activity_description', 'string'),
@@ -61,7 +62,7 @@ LANDING_TABLE_COLUMNS_TRANSACTIONS = [
 ]
 
 LANDING_TABLE_COLUMNS_REPORTS = [
-    ('timestamp', 'TIMESTAMP_LTZ(9)'),
+    ('recorded_at', 'TIMESTAMP_LTZ(9)'),
     ('id', 'number'),
     ('type', 'string'),
     ('title', 'string'),
@@ -96,7 +97,7 @@ def load_data(url: str, token: str, api_identifier: str, params: dict = {}) -> d
         log.error(f"HTTP error occurred: {http_err}")
         raise
     log.debug(resp.status_code)
-    return resp.json()['data']
+    return resp
 
 
 def get_path(data: dict, path: str, default=None):
@@ -139,25 +140,27 @@ def ingest(table_name, options, dryrun=False):
     )
     landing_table = f'data.{table_name}'
 
-    timestamp = datetime.utcnow()
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
     program_name = options['program_name']
 
     if ingest_type == 'transaction' and account_id:
-        transactions = load_data(
+        response = load_data(
             f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
             api_token,
             api_identifier,
             params=None,
         )
+        transactions = response.json()['data']
+        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+
         db.insert(
             landing_table,
             dryrun=dryrun,
             values=[
                 {
-                    'timestamp': timestamp,
+                    'recorded_at': recorded_at,
                     'type': transaction.get('type', ''),
                     'activity_date': get_path(
                         transaction, 'attributes.activity_date'
@@ -180,18 +183,21 @@ def ingest(table_name, options, dryrun=False):
             ],
         )
     else:
-        reports = load_data(
+        response = load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
             api_identifier,
             params={'filter[program][]': program_name},
         )
+        reports = response.json()['data']
+        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+
         db.insert(
             landing_table,
             dryrun=dryrun,
             values=[
                 {
-                    'timestamp': timestamp,
+                    'recorded_at': recorded_at,
                     'id': report.get('id', None),
                     'type': report.get('type', None),
                     'title': get_path(report, 'attributes.title'),
