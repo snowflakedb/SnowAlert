@@ -252,8 +252,6 @@ def test_alert_runners_processor_and_dispatcher(
     assert query_rule_run_record[-1]['QUERY_NAME'] == '_TEST4_ALERT_QUERY'
     assert query_rule_run_record[-1]['NUM_ALERTS_CREATED'] == 1
 
-    print(query_rule_run_record)
-
     queries_run_records = list(
         db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time')
     )
