@@ -82,8 +82,8 @@ LANDING_TABLE_COLUMNS_REPORTS = [
 ]
 
 
-# Perform the API call
 def load_data(url: str, token: str, api_identifier: str, params: dict = {}) -> dict:
+    '''Perform the API call'''
     headers: dict = {"Accept": "application/json"}
 
     try:
@@ -93,14 +93,13 @@ def load_data(url: str, token: str, api_identifier: str, params: dict = {}) -> d
         )
         resp.raise_for_status()
     except HTTPError as http_err:
-        log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
         raise
     log.debug(resp.status_code)
     return resp.json()['data']
 
 
-def get_path(data, path, default=None):
+def get_path(data: dict, path: str, default=None):
     for key in path.split("."):
         if key not in data:
             return default
@@ -110,8 +109,8 @@ def get_path(data, path, default=None):
 
 
 def connect(connection_name, options):
-    landing_transactions_table = f'data.h1_collect_transactions_connection'
-    landing_reports_table = f'data.h1_collect_reports_connection'
+    landing_transactions_table = f'data.h1_collect_{connection_name}_transactions_connection'
+    landing_reports_table = f'data.h1_collect_{connection_name}_reports_connection'
 
     comment = yaml_dump(module='h1_collect', **options)
 
@@ -119,20 +118,18 @@ def connect(connection_name, options):
         name=landing_transactions_table,
         cols=LANDING_TABLE_COLUMNS_TRANSACTIONS,
         comment=comment,
-    )
-    db.execute(
-        f'GRANT INSERT, SELECT ON {landing_transactions_table} TO ROLE {SA_ROLE}'
+        rw_role=SA_ROLE
     )
 
     db.create_table(
         name=landing_reports_table,
         cols=LANDING_TABLE_COLUMNS_REPORTS,
         comment=comment,
+        rw_role=SA_ROLE
     )
-    db.execute(f'GRANT INSERT, SELECT ON {landing_reports_table} TO ROLE {SA_ROLE}')
     return {
         'newStage': 'finalized',
-        'newMessage': "HackerOne reports ingestion table created!",
+        'newMessage': "HackerOne ingestion tables created!",
     }
 
 
@@ -149,147 +146,79 @@ def ingest(table_name, options, dryrun=False):
     program_name = options['program_name']
 
     if ingest_type == 'transaction' and account_id:
-        try:
-            transactions = load_data(
-                f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-                api_token,
-                api_identifier,
-                params=None,
-            )
-        except requests.exceptions.HTTPError as e:
-            log.error(e)
-        else:
-            db.insert(
-                landing_table,
-                dryrun=dryrun,
-                values=[
-                    {
-                        'timestamp': timestamp,
-                        'type': transaction.get('type', ''),
-                        'activity_date': get_path(
-                            transaction, 'attributes.activity_date'
-                        ),
-                        'activity_description': get_path(
-                            transaction, 'attributes.activity_description'
-                        ),
-                        'bounty_award': get_path(
-                            transaction, 'attributes.bounty_award'
-                        ),
-                        'bounty_fee': get_path(transaction, 'attributes.bounty_fee'),
-                        'debit_or_credit_amount': get_path(
-                            transaction, 'attributes.debit_or_credit_amount'
-                        ),
-                        'balance': get_path(transaction, 'attributes.balance'),
-                        'id': get_path(transaction, 'relationships.report.data.id'),
-                        'url': get_path(transaction, 'relationships.report.links.self'),
-                    }
-                    for transaction in transactions
-                ],
-            )
+        transactions = load_data(
+            f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
+            api_token,
+            api_identifier,
+            params=None,
+        )
+        db.insert(
+            landing_table,
+            dryrun=dryrun,
+            values=[
+                {
+                    'timestamp': timestamp,
+                    'type': transaction.get('type', ''),
+                    'activity_date': get_path(
+                        transaction, 'attributes.activity_date'
+                    ),
+                    'activity_description': get_path(
+                        transaction, 'attributes.activity_description'
+                    ),
+                    'bounty_award': get_path(
+                        transaction, 'attributes.bounty_award'
+                    ),
+                    'bounty_fee': get_path(transaction, 'attributes.bounty_fee'),
+                    'debit_or_credit_amount': get_path(
+                        transaction, 'attributes.debit_or_credit_amount'
+                    ),
+                    'balance': get_path(transaction, 'attributes.balance'),
+                    'id': get_path(transaction, 'relationships.report.data.id'),
+                    'url': get_path(transaction, 'relationships.report.links.self'),
+                }
+                for transaction in transactions
+            ],
+        )
     else:
-        try:
-            reports = load_data(
-                'https://api.hackerone.com/v1/reports',
-                api_token,
-                api_identifier,
-                params={'filter[program][]': program_name},
-            )
-        except requests.exceptions.HTTPError as e:
-            log.error(e)
-        else:
-            db.insert(
-                landing_table,
-                dryrun=dryrun,
-                values=[
-                    {
-                        'timestamp': timestamp,
-                        'id': report.get('id', ''),
-                        'type': report.get('type', ''),
-                        'title': report['attributes'].get('title', '')
-                        if 'attributes' in report
-                        else '',
-                        'state': report['attributes'].get('state', '')
-                        if 'attributes' in report
-                        else '',
-                        'created_at': report['attributes'].get('created_at', '')
-                        if 'attributes' in report
-                        else '',
-                        'vulnerability_information': report['attributes'].get(
-                            'vulnerability_information', ''
-                        )
-                        if 'attributes' in report
-                        else '',
-                        'triaged_at': report['attributes'].get('triaged_at', '')
-                        if 'attributes' in report
-                        else '',
-                        'closed_at': report['attributes'].get('closed_at', '')
-                        if 'attributes' in report
-                        else '',
-                        'first_program_activity_at': report['attributes'].get(
-                            'first_program_activity_at', ''
-                        )
-                        if 'attributes' in report
-                        else '',
-                        'bounty_awarded_at': report['attributes'].get(
-                            'bounty_awarded_at', ''
-                        )
-                        if 'attributes' in report
-                        else '',
-                        'rating': report['relationships']['severity']['data'][
-                            'attributes'
-                        ].get('rating', '')
-                        if 'relationships' in report
-                        and 'severity' in report['relationships']
-                        else '',
-                        'name': report['relationships']['weakness']['data'][
-                            'attributes'
-                        ].get('name', '')
-                        if 'relationships' in report
-                        else '',
-                        'description': report['relationships']['weakness']['data'][
-                            'attributes'
-                        ].get('description', '')
-                        if 'relationships' in report
-                        else '',
-                        'external_id': report['relationships']['weakness']['data'][
-                            'attributes'
-                        ].get('external_id', '')
-                        if 'relationships' in report
-                        else '',
-                        'asset_identifier': report['relationships']['structured_scope'][
-                            'data'
-                        ]['attributes'].get('asset_identifier', '')
-                        if 'relationships' in report
-                        and 'structured_scope' in report['relationships']
-                        else '',
-                        'awarded_amount': sum(
-                            [
-                                float(bounty['attributes'].get('awarded_amount', 0.0))
-                                for bounty in report['relationships']['bounties'][
-                                    'data'
-                                ]
-                            ]
-                        )
-                        if 'relationships' in report
-                        and 'bounties' in report['relationships']
-                        and report['relationships']['bounties']['data']
-                        else 0,
-                        'awarded_bonus_amount': sum(
-                            [
-                                float(bounty['attributes'].get('awarded_amount', 0.0))
-                                for bounty in report['relationships']['bounties'][
-                                    'data'
-                                ]
-                            ]
-                        )
-                        if 'relationships' in report
-                        and 'bounties' in report['relationships']
-                        and report['relationships']['bounties']['data']
-                        else 0,
-                    }
-                    for report in reports
-                ],
-            )
+        reports = load_data(
+            'https://api.hackerone.com/v1/reports',
+            api_token,
+            api_identifier,
+            params={'filter[program][]': program_name},
+        )
+        db.insert(
+            landing_table,
+            dryrun=dryrun,
+            values=[
+                {
+                    'timestamp': timestamp,
+                    'id': report.get('id', None),
+                    'type': report.get('type', None),
+                    'title': get_path(report, 'attributes.title'),
+                    'state': get_path(report, 'attributes.state'),
+                    'created_at': get_path(report, 'attributes.created_at'),
+                    'vulnerability_information': get_path(report, 'attributes.vulnerability_information'),
+                    'triaged_at': get_path(report, 'attributes.triaged_at'),
+                    'closed_at': get_path(report, 'attributes.closed_at'),
+                    'first_program_activity_at': get_path(report, 'attributes.first_program_activity_at'),
+                    'bounty_awarded_at': get_path(report, 'attributes.bounty_awarded_at'),
+                    'rating': get_path(report, 'relationships.severity.data.attributes.rating'),
+                    'name': get_path(report, 'relationships.weakness.data.attributes.name'),
+                    'description': get_path(report, 'relationships.weakness.data,attributes.description'),
+                    'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
+                    'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
+                    'awarded_amount': sum(
+                        float(get_path(bounty, 'attributes.awarded_amount', 0.0))
+                        for bounty in get_path(report, 'relationships.bounties.data')
+                    ),
+                    'awarded_bonus_amount': sum(
+                        float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
+                        for bounty in get_path(report, 'relationships.bounties.data')
+                    )
+                }
+                for report in reports
+            ],
+        )
 
 
 def main(
