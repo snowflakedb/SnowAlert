@@ -63,7 +63,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
       data: {baselines},
     } = this.props;
     const toFind = title || selected;
-    return baselines.find(b => b.baseline === toFind);
+    return baselines.find((b) => b.baseline === toFind);
   }
 
   changeOption(name: string, value: string) {
@@ -84,10 +84,10 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
     if (selectedBaseline) {
       options = [
         {
-          name: 'base_table',
-          title: 'Base Table',
-          prompt: 'Table with the data we will be baselining',
-          default: 'data.',
+          name: 'base_table_and_timecol',
+          title: 'Base Table, Time Column',
+          prompt: 'Table to baseline, time column',
+          default: 'data.table_name:event_time',
           required: true,
         },
         ...selectedBaseline.options,
@@ -198,7 +198,7 @@ class Baselines extends React.Component<BaselinesProps, OwnState> {
       </BasicLayout>
     ) : (
       <BasicLayout>
-        {baselines.map(b => (
+        {baselines.map((b) => (
           <Card
             key={b.baseline}
             style={{width: 350, margin: 10, float: 'left'}}

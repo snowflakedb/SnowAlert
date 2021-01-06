@@ -108,11 +108,13 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const rules: ReadonlyArray<SnowAlertRule> = action.payload;
       return {
         ...state,
-        policies: rules.filter(r => r.target === 'POLICY').map(r => new Policy(Object.assign(r, {savedBody: r.body}))),
-        queries: rules.filter(r => r.type === 'QUERY').map(r => new Query(Object.assign(r, {savedBody: r.body}))),
+        policies: rules
+          .filter((r) => r.target === 'POLICY')
+          .map((r) => new Policy(Object.assign(r, {savedBody: r.body}))),
+        queries: rules.filter((r) => r.type === 'QUERY').map((r) => new Query(Object.assign(r, {savedBody: r.body}))),
         suppressions: rules
-          .filter(r => r.type === 'SUPPRESSION')
-          .map(r => new Suppression(Object.assign(r, {savedBody: r.body}))),
+          .filter((r) => r.type === 'SUPPRESSION')
+          .map((r) => new Suppression(Object.assign(r, {savedBody: r.body}))),
         isFetching: false,
       };
     case RulesActions.LOAD_SNOWALERT_RULES_FAILURE: {
@@ -125,9 +127,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName} = action.payload;
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
-        suppressions: state.suppressions.map(q => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
-        policies: state.policies.map(p => (p.viewName === viewName ? Object.assign(p, {isSaving: true}) : p)),
+        queries: state.queries.map((q) => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
+        suppressions: state.suppressions.map((q) => (q.viewName === viewName ? q.copy({isSaving: true}) : q)),
+        policies: state.policies.map((p) => (p.viewName === viewName ? Object.assign(p, {isSaving: true}) : p)),
       };
     }
 
@@ -136,9 +138,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const savedView = `${savedTitle}_${savedTarget}_${savedType}`;
       return {
         ...state,
-        policies: state.policies.map(p => (savedView !== p.viewName ? p : new Policy(action.payload))),
-        queries: state.queries.map(p => (savedView !== p.viewName ? p : new Query(action.payload))),
-        suppressions: state.suppressions.map(p => (savedView !== p.viewName ? p : new Suppression(action.payload))),
+        policies: state.policies.map((p) => (savedView !== p.viewName ? p : new Policy(action.payload))),
+        queries: state.queries.map((p) => (savedView !== p.viewName ? p : new Query(action.payload))),
+        suppressions: state.suppressions.map((p) => (savedView !== p.viewName ? p : new Suppression(action.payload))),
       };
 
     case RulesActions.SAVE_RULE_FAILURE: {
@@ -147,9 +149,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       alert(`SAVE_RULE_FAILURE ${message}`);
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === viewName ? q.copy({isSaving: false}) : q)),
-        suppressions: state.suppressions.map(s => (s.viewName === viewName ? s.copy({isSaving: false}) : s)),
-        policies: state.policies.map(p =>
+        queries: state.queries.map((q) => (q.viewName === viewName ? q.copy({isSaving: false}) : q)),
+        suppressions: state.suppressions.map((s) => (s.viewName === viewName ? s.copy({isSaving: false}) : s)),
+        policies: state.policies.map((p) =>
           p.viewName === state.currentRuleView ? Object.assign(p, {isSaving: false}) : p,
         ),
       };
@@ -160,7 +162,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName, newTitle} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p => (viewName !== p.viewName ? p : Object.assign(p, {title: newTitle}))),
+        policies: state.policies.map((p) => (viewName !== p.viewName ? p : Object.assign(p, {title: newTitle}))),
       };
     }
 
@@ -169,7 +171,9 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {viewName, newDescription} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p => (viewName !== p.viewName ? p : Object.assign(p, {summary: newDescription}))),
+        policies: state.policies.map((p) =>
+          viewName !== p.viewName ? p : Object.assign(p, {summary: newDescription}),
+        ),
       };
     }
 
@@ -185,8 +189,8 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {ruleViewName, rule: r} = action.payload;
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === ruleViewName ? r : q)),
-        suppressions: state.suppressions.map(s => (s.viewName === ruleViewName ? r : s)),
+        queries: state.queries.map((q) => (q.viewName === ruleViewName ? r : q)),
+        suppressions: state.suppressions.map((s) => (s.viewName === ruleViewName ? r : s)),
       };
     }
 
@@ -194,7 +198,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
     case RulesActions.EDIT_RULE:
       return {
         ...state,
-        policies: state.policies.map(p =>
+        policies: state.policies.map((p) =>
           p.viewName === state.currentRuleView ? Object.assign(p, {isEditing: true}) : p,
         ),
       };
@@ -205,8 +209,8 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         policies: state.policies
-          .filter(r => r.isSaved)
-          .map(r => (state.currentRuleView === r.viewName ? policy.copy() : r)),
+          .filter((r) => r.isSaved)
+          .map((r) => (state.currentRuleView === r.viewName ? policy.copy() : r)),
       };
     }
 
@@ -215,7 +219,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {ruleTitle, i} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
+        policies: state.policies.map((p) =>
           p.viewName !== ruleTitle
             ? p
             : Object.assign(p, {subpolicies: p.subpolicies.slice(0, i).concat(p.subpolicies.slice(i + 1))}),
@@ -228,7 +232,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {ruleTitle} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
+        policies: state.policies.map((p) =>
           p.viewName !== ruleTitle
             ? p
             : Object.assign(p, {subpolicies: p.subpolicies.concat(new Subpolicy(p.subpolicies.length))}),
@@ -251,7 +255,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {ruleTitle, i, change} = action.payload;
       return {
         ...state,
-        policies: state.policies.map(p =>
+        policies: state.policies.map((p) =>
           p.viewName !== ruleTitle
             ? p
             : Object.assign(p, {
@@ -267,10 +271,7 @@ export const rules: Reducer<SnowAlertRulesState> = (
     // updating which rule is selected
     case RulesActions.NEW_RULE: {
       const {ruleType, ruleTarget} = action.payload;
-      const qid = Math.random()
-        .toString(36)
-        .substring(2)
-        .toUpperCase();
+      const qid = Math.random().toString(36).substring(2).toUpperCase();
       const title = `${ruleTarget.substr(0, 1)}${ruleType.substr(0, 1)}_${qid}`;
       const newRule = {
         target: ruleTarget,
@@ -313,8 +314,8 @@ export const rules: Reducer<SnowAlertRulesState> = (
       const {view: viewName, body: newBody} = action.payload;
       return {
         ...state,
-        queries: state.queries.map(q => (q.viewName === viewName ? q.copy({raw: {body: newBody}}) : q)),
-        suppressions: state.suppressions.map(s => (s.viewName === viewName ? s.copy({raw: {body: newBody}}) : s)),
+        queries: state.queries.map((q) => (q.viewName === viewName ? q.copy({raw: {body: newBody}}) : q)),
+        suppressions: state.suppressions.map((s) => (s.viewName === viewName ? s.copy({raw: {body: newBody}}) : s)),
       };
     }
 
@@ -348,8 +349,8 @@ export const rules: Reducer<SnowAlertRulesState> = (
       return {
         ...state,
         currentRuleView: '',
-        queries: state.queries.filter(q => q.viewName !== action.payload),
-        suppressions: state.suppressions.filter(s => s.viewName !== action.payload),
+        queries: state.queries.filter((q) => q.viewName !== action.payload),
+        suppressions: state.suppressions.filter((s) => s.viewName !== action.payload),
       };
 
     case RulesActions.DELETE_RULE_FAILURE:
