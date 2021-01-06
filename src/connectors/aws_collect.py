@@ -175,6 +175,20 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-nat-gateways.html
+    'ec2_describe_nat_gateways': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('nat_gateway_addresses', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('state', 'STRING'),
+        ('nat_gateway_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('create_time', 'TIMESTAMP_LTZ'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
     'ec2_describe_route_tables': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -663,6 +677,21 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'OwnerId': 'owner_id',
                     'RequesterId': 'requester_id',
                     'ReservationId': 'reservation_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_nat_gateways': {
+        'response': {
+            'NatGateways': [
+                {
+                    'NatGatewayAddresses': 'nat_gateway_addresses',
+                    'VpcId': 'vpc_id',
+                    'Tags': 'tags',
+                    'State': 'state',
+                    'NatGatewayId': 'nat_gateway_id',
+                    'SubnetId': 'subnet_id',
+                    'CreateTime': 'create_time',
                 }
             ]
         }
@@ -1407,6 +1436,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.get_account_summary',
             'iam.get_account_password_policy',
             'ec2.describe_instances',
+            'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
             'config.describe_configuration_recorders',
