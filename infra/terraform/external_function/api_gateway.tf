@@ -77,6 +77,9 @@ resource "aws_api_gateway_method" "https_post" {
     "method.request.header.sf-custom-timeout"       = false
     "method.request.header.sf-custom-auth"          = false
     "method.request.header.sf-custom-response-type" = false
+    "method.request.header.sf-custom-kwargs"        = false
+    "method.request.header.sf-custom-nextpage-path" = false
+    "method.request.header.sf-custom-results-path"  = false
   }
 }
 
