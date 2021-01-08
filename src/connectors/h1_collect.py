@@ -13,7 +13,7 @@ from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from connectors.utils import yaml_dump
 
-PAGE_SIZE = 500
+PAGE_SIZE = 100
 
 CONNECTION_OPTIONS = [
     {
@@ -198,7 +198,6 @@ def insert_transactions(landing_table, transactions, recorded_at, dryrun):
 
 
 def paginated_insert_reports(landing_table, options, dryrun):
-    page_size = 100
     page_number = 1
     api_identifier = options['api_identifier']
     api_token = options['api_token']
@@ -210,7 +209,7 @@ def paginated_insert_reports(landing_table, options, dryrun):
         api_identifier,
         params={
             'filter[program][]': program_name,
-            'page[size]': page_size,
+            'page[size]': PAGE_SIZE,
             'page[number]': page_number
         },
     )
@@ -227,7 +226,7 @@ def paginated_insert_reports(landing_table, options, dryrun):
             api_identifier,
             params={
             'filter[program][]': program_name,
-            'page[size]': page_size,
+            'page[size]': PAGE_SIZE,
             'page[number]': page_number
             },
         )   
@@ -238,7 +237,6 @@ def paginated_insert_reports(landing_table, options, dryrun):
 
 
 def paginated_insert_transactions(landing_table, options, dryrun):
-    page_size = 100
     page_number = 1
     api_identifier = options['api_identifier']
     api_token = options['api_token']
@@ -249,7 +247,7 @@ def paginated_insert_transactions(landing_table, options, dryrun):
         api_token,
         api_identifier,
         params={
-            'page[size]': page_size,
+            'page[size]': PAGE_SIZE,
             'page[number]': page_number
         },
     )
@@ -264,7 +262,7 @@ def paginated_insert_transactions(landing_table, options, dryrun):
              api_token,
              api_identifier,
              params={
-                 'page[size]': page_size,
+                 'page[size]': PAGE_SIZE,
                  'page[number]': page_number
              },
         )
