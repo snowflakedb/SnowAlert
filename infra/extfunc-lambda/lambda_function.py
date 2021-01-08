@@ -29,8 +29,8 @@ def lambda_handler(event, context=None):
         else:
             raise RuntimeError('url must start with https://')
     else:
-        req_host = headers.get('sf-custom-host')
-        req_path = headers.get('sf-custom-path', '/')
+        req_host = headers.get('sf-custom-base-url', '')
+        req_path = headers.get('sf-custom-url', '/')
 
     req_kwargs = parse_header_dict(headers.get('sf-custom-kwargs'))
 
@@ -56,12 +56,8 @@ def lambda_handler(event, context=None):
         elif 'basic' in auth:
             req_headers['Authorization'] = make_basic_header(auth['basic'])
 
-    elif 'sf-custom-basicauth' in headers:
-        basicauth = decrypt_if_encrypted(headers['sf-custom-basicauth'])
-        req_headers['Authorization'] = make_basic_header(basicauth)
-
     # query, nextpage_path, results_path
-    req_qs = headers.get('sf-custom-querystring', '')
+    req_qs = headers.get('sf-custom-params', '')
     req_nextpage_path = headers.get('sf-custom-nextpage-path', '')
     req_results_path = headers.get('sf-custom-results-path', '')
 
