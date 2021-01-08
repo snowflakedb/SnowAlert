@@ -42,7 +42,7 @@ CONNECTION_OPTIONS = [
     {
         'name': 'account_id',
         'title': "Account ID",
-        'prompt': "https://api.hackerone.com/core-resources/#programs-get-your-programs",
+        'prompt': "Instructions to get account ID are found here: https://api.hackerone.com/core-resources/#programs-get-your-programs",
         'type': 'str',
         'required': False,
     },
@@ -139,97 +139,150 @@ def connect(connection_name, options):
     }
 
 
+def insert_reports(landing_table, reports, recorded_at, dryrun):
+    db.insert(
+        landing_table,
+        dryrun=dryrun,
+        values=[
+            {
+                'recorded_at': recorded_at,
+                'id': report.get('id', None),
+                'type': report.get('type', None),
+                'title': get_path(report, 'attributes.title'),
+                'state': get_path(report, 'attributes.state'),
+                'created_at': get_path(report, 'attributes.created_at'),
+                'vulnerability_information': get_path(report, 'attributes.vulnerability_information'),
+                'triaged_at': get_path(report, 'attributes.triaged_at'),
+                'closed_at': get_path(report, 'attributes.closed_at'),
+                'first_program_activity_at': get_path(report, 'attributes.first_program_activity_at'),
+                'bounty_awarded_at': get_path(report, 'attributes.bounty_awarded_at'),
+                'rating': get_path(report, 'relationships.severity.data.attributes.rating'),
+                'name': get_path(report, 'relationships.weakness.data.attributes.name'),
+                'description': get_path(report, 'relationships.weakness.data,attributes.description'),
+                'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
+                'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
+                'awarded_amount': sum(
+                    float(get_path(bounty, 'attributes.awarded_amount', 0.0))
+                    for bounty in get_path(report, 'relationships.bounties.data')
+                ),
+                'awarded_bonus_amount': sum(
+                    float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
+                    for bounty in get_path(report, 'relationships.bounties.data')
+                )
+            }
+            for report in reports
+        ],
+    )
+
+
+def insert_transactions(landing_table, transactions, recorded_at, dryrun):
+    db.insert(
+        landing_table,
+        dryrun=dryrun,
+        values=[
+            {
+                'recorded_at': recorded_at,
+                'type': transaction.get('type', ''),
+                'activity_date': get_path(transaction, 'attributes.activity_date'),
+                'activity_description': get_path(transaction, 'attributes.activity_description'),
+                'bounty_award': get_path(transaction, 'attributes.bounty_award'),
+                'bounty_fee': get_path(transaction, 'attributes.bounty_fee'),
+                'debit_or_credit_amount': get_path(transaction, 'attributes.debit_or_credit_amount'),
+                'balance': get_path(transaction, 'attributes.balance'),
+                'id': get_path(transaction, 'relationships.report.data.id'),
+                'url': get_path(transaction, 'relationships.report.links.self'),
+            }
+            for transaction in transactions
+        ],
+    )
+
+
+def paginated_insert_reports(landing_table, options, dryrun):
+    page_size = 100
+    page_number = 1
+    api_identifier = options['api_identifier']
+    api_token = options['api_token']
+    program_name = options['program_name']
+
+    response = load_data(
+        'https://api.hackerone.com/v1/reports',
+        api_token,
+        api_identifier,
+        params={
+            'filter[program][]': program_name,
+            'page[size]': page_size,
+            'page[number]': page_number
+        },
+    )
+    reports = response.json()['data']
+    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+    # Insert 1st page
+    insert_reports(landing_table, reports, recorded_at, dryrun)
+
+    while 'next' in response.json()['links']:
+        page_number += 1
+        response = load_data(
+            'https://api.hackerone.com/v1/reports',
+            api_token,
+            api_identifier,
+            params={
+            'filter[program][]': program_name,
+            'page[size]': page_size,
+            'page[number]': page_number
+            },
+        )   
+        reports = response.json()['data']
+        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+        # Insert new page
+        insert_reports(landing_table, reports, recorded_at, dryrun)
+
+
+def paginated_insert_transactions(landing_table, options, dryrun):
+    page_size = 100
+    page_number = 1
+    api_identifier = options['api_identifier']
+    api_token = options['api_token']
+    account_id = options['account_id']
+
+    response = load_data(
+        f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
+        api_token,
+        api_identifier,
+        params={
+            'page[size]': page_size,
+            'page[number]': page_number
+        },
+    )
+    transactions = response.json()['data']
+    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+    insert_transactions(landing_table, transactions, recorded_at, dryrun)
+
+    while 'next' in response.json()['links']:
+        page_number += 1
+        response = load_data(
+            f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
+             api_token,
+             api_identifier,
+             params={
+                 'page[size]': page_size,
+                 'page[number]': page_number
+             },
+        )
+    transactions = response.json()['data']
+    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+    insert_transactions(landing_table, transactions, recorded_at, dryrun)
+
+
 def ingest(table_name, options, dryrun=False):
     ingest_type = (
         'transaction' if table_name.endswith('_TRANSACTIONS_CONNECTION') else 'report'
     )
     landing_table = f'data.{table_name}'
 
-    api_identifier = options['api_identifier']
-    api_token = options['api_token']
-    account_id = options['account_id']
-    program_name = options['program_name']
-
-    if ingest_type == 'transaction' and account_id:
-        response = load_data(
-            f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-            api_token,
-            api_identifier,
-            params=None,
-        )
-        transactions = response.json()['data']
-        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-
-        db.insert(
-            landing_table,
-            dryrun=dryrun,
-            values=[
-                {
-                    'recorded_at': recorded_at,
-                    'type': transaction.get('type', ''),
-                    'activity_date': get_path(
-                        transaction, 'attributes.activity_date'
-                    ),
-                    'activity_description': get_path(
-                        transaction, 'attributes.activity_description'
-                    ),
-                    'bounty_award': get_path(
-                        transaction, 'attributes.bounty_award'
-                    ),
-                    'bounty_fee': get_path(transaction, 'attributes.bounty_fee'),
-                    'debit_or_credit_amount': get_path(
-                        transaction, 'attributes.debit_or_credit_amount'
-                    ),
-                    'balance': get_path(transaction, 'attributes.balance'),
-                    'id': get_path(transaction, 'relationships.report.data.id'),
-                    'url': get_path(transaction, 'relationships.report.links.self'),
-                }
-                for transaction in transactions
-            ],
-        )
+    if ingest_type == 'transaction' and options['account_id']:
+        paginated_insert_transactions(landing_table, options, dryrun)   
     else:
-        response = load_data(
-            'https://api.hackerone.com/v1/reports',
-            api_token,
-            api_identifier,
-            params={'filter[program][]': program_name},
-        )
-        reports = response.json()['data']
-        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-
-        db.insert(
-            landing_table,
-            dryrun=dryrun,
-            values=[
-                {
-                    'recorded_at': recorded_at,
-                    'id': report.get('id', None),
-                    'type': report.get('type', None),
-                    'title': get_path(report, 'attributes.title'),
-                    'state': get_path(report, 'attributes.state'),
-                    'created_at': get_path(report, 'attributes.created_at'),
-                    'vulnerability_information': get_path(report, 'attributes.vulnerability_information'),
-                    'triaged_at': get_path(report, 'attributes.triaged_at'),
-                    'closed_at': get_path(report, 'attributes.closed_at'),
-                    'first_program_activity_at': get_path(report, 'attributes.first_program_activity_at'),
-                    'bounty_awarded_at': get_path(report, 'attributes.bounty_awarded_at'),
-                    'rating': get_path(report, 'relationships.severity.data.attributes.rating'),
-                    'name': get_path(report, 'relationships.weakness.data.attributes.name'),
-                    'description': get_path(report, 'relationships.weakness.data,attributes.description'),
-                    'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
-                    'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
-                    'awarded_amount': sum(
-                        float(get_path(bounty, 'attributes.awarded_amount', 0.0))
-                        for bounty in get_path(report, 'relationships.bounties.data')
-                    ),
-                    'awarded_bonus_amount': sum(
-                        float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
-                        for bounty in get_path(report, 'relationships.bounties.data')
-                    )
-                }
-                for report in reports
-            ],
-        )
+        paginated_insert_reports(landing_table, options, dryrun)
 
 
 def main(
