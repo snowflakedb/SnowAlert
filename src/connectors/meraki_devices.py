@@ -81,7 +81,6 @@ def get_data(url: str, token: str, params: dict = {}) -> dict:
         req = requests.get(url, params=params, headers=headers)
         req.raise_for_status()
     except HTTPError as http_err:
-        log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
         raise
     log.debug(req.status_code)

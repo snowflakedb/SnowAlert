@@ -45,6 +45,7 @@ setup(
             'pytest',
             'black',
             'mypy',
+            'python-dotenv',
             'pyflakes',
             'pytest',
             'pytest-ordering',
