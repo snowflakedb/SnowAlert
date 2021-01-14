@@ -9,7 +9,7 @@ resource "aws_iam_policy" "prod_cloudwatch_write" {
         {
           Action   = "logs:CreateLogGroup"
           Effect   = "Allow"
-          Resource = "arn:aws:logs:us-west-2:${var.aws_aid}:*"
+          Resource = "arn:aws:logs:us-west-2:${local.account_id}:*"
         },
         {
           Action = [
@@ -18,7 +18,7 @@ resource "aws_iam_policy" "prod_cloudwatch_write" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:logs:us-west-2:${var.aws_aid}:log-group:/aws/lambda/${aws_lambda_function.stdefn.function_name}:*",
+            "arn:aws:logs:us-west-2:${local.account_id}:log-group:/aws/lambda/${aws_lambda_function.stdefn.function_name}:*",
           ]
         },
       ]
