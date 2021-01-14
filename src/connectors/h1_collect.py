@@ -53,10 +53,10 @@ LANDING_TABLE_COLUMNS_TRANSACTIONS = [
     ('type', 'string'),
     ('activity_date', 'TIMESTAMP_LTZ(9)'),
     ('activity_description', 'string'),
-    ('bounty_award', 'int'),
-    ('bounty_fee', 'int'),
-    ('debit_or_credit_amount', 'int'),
-    ('balance', 'int'),
+    ('bounty_award', 'float'),
+    ('bounty_fee', 'float'),
+    ('debit_or_credit_amount', 'float'),
+    ('balance', 'float'),
     ('id', 'number'),
     ('url', 'string'),
 ]
@@ -78,8 +78,8 @@ LANDING_TABLE_COLUMNS_REPORTS = [
     ('description', 'string'),
     ('external_id', 'string'),
     ('asset_identifier', 'string'),
-    ('awarded_amount', 'int'),
-    ('awarded_bonus_amount', 'int'),
+    ('awarded_amount', 'float'),
+    ('awarded_bonus_amount', 'float'),
 ]
 
 
@@ -158,16 +158,16 @@ def insert_reports(landing_table, reports, recorded_at, dryrun):
                 'bounty_awarded_at': get_path(report, 'attributes.bounty_awarded_at'),
                 'rating': get_path(report, 'relationships.severity.data.attributes.rating'),
                 'name': get_path(report, 'relationships.weakness.data.attributes.name'),
-                'description': get_path(report, 'relationships.weakness.data,attributes.description'),
+                'description': get_path(report, 'relationships.weakness.data.attributes.description'),
                 'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
                 'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
                 'awarded_amount': sum(
                     float(get_path(bounty, 'attributes.awarded_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data')
+                    for bounty in get_path(report, 'relationships.bounties.data', [])
                 ),
                 'awarded_bonus_amount': sum(
                     float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data')
+                    for bounty in get_path(report, 'relationships.bounties.data', [])
                 )
             }
             for report in reports
