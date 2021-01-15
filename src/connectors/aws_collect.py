@@ -175,6 +175,34 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-interfaces.html
+    'ec2_describe_network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('attachment', 'VARIANT'),
+        ('association', 'VARIANT'),
+        ('availability_zone', 'STRING'),
+        ('description', 'STRING'),
+        ('groups', 'VARIANT'),
+        ('interface_type', 'STRING'),
+        ('ipv6_addresses', 'VARIANT'),
+        ('mac_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('outpost_arn', 'STRING')
+        ('owner_id', 'STRING'),
+        ('private_ip_address', 'STRING'),
+        ('private_dns_name', 'STRING')
+        ('private_ip_addresses', 'VARIANT'),
+        ('requester_id', 'STRING'),
+        ('requester_managed', 'BOOLEAN'),
+        ('source_dest_check', 'BOOLEAN'),
+        ('status', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('tag_set', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-nat-gateways.html
     'ec2_describe_nat_gateways': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -677,6 +705,35 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'OwnerId': 'owner_id',
                     'RequesterId': 'requester_id',
                     'ReservationId': 'reservation_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_network_interfaces': {
+        'response': {
+            'NetworkInterfaces': [
+                {
+                    'Groups': 'groups',
+                    'InterfaceType': 'interface_type',
+                    'Ipv6Addresses': 'ipv6_addresses',
+                    'RequesterId': 'requester_id',
+                    'Attachment': 'attachment',
+                    'Association': 'attachment',
+                    'AvailabilityZone': 'availability_zone',
+                    'Description': 'description',
+                    'MacAddress': 'mac_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'OutpostArn': 'outpost_arn',
+                    'OwnerId': 'owner_id',
+                    'PrivateIpAddress': 'private_ip_address',
+                    'PrivateDnsName': 'private_dns_name',
+                    'PrivateIpAddresses': 'private_ip_addresses',
+                    'RequesterManaged': 'requester_managed',
+                    'SourceDestCheck': 'source_dest_check',
+                    'Status': 'status',
+                    'SubnetId': 'subnet_id',
+                    'TagSet': 'tag_set',
+                    'VpcId': 'vpc_id',
                 }
             ]
         }
@@ -1439,6 +1496,7 @@ async def aioingest(table_name, options, dryrun=False):
             'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
+            'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
             'iam.list_users',
