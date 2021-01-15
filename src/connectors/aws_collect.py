@@ -190,7 +190,7 @@ SUPPLEMENTARY_TABLES = {
         ('ipv6_addresses', 'VARIANT'),
         ('mac_address', 'STRING'),
         ('network_interface_id', 'STRING'),
-        ('outpost_arn', 'STRING')
+        ('outpost_arn', 'STRING'),
         ('owner_id', 'STRING'),
         ('private_ip_address', 'STRING'),
         ('private_dns_name', 'STRING')
