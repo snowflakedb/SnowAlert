@@ -190,13 +190,14 @@ SUPPLEMENTARY_TABLES = {
         ('ipv6_addresses', 'VARIANT'),
         ('mac_address', 'STRING'),
         ('network_interface_id', 'STRING'),
+        ('outpost_arn', 'STRING')
         ('owner_id', 'STRING'),
         ('private_ip_address', 'STRING'),
         ('private_dns_name', 'STRING')
         ('private_ip_addresses', 'VARIANT'),
         ('requester_id', 'STRING'),
         ('requester_managed', 'BOOLEAN'),
-        ('source_dest_check', 'STRING'),
+        ('source_dest_check', 'BOOLEAN'),
         ('status', 'STRING'),
         ('subnet_id', 'STRING'),
         ('tag_set', 'VARIANT'),
@@ -679,6 +680,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'Description': 'description',
                     'MacAddress': 'mac_address',
                     'NetworkInterfaceId': 'network_interface_id',
+                    'OutpostArn': 'outpost_arn',
                     'OwnerId': 'owner_id',
                     'PrivateIpAddress': 'private_ip_address',
                     'PrivateDnsName': 'private_dns_name',
