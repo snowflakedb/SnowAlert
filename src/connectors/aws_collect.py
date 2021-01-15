@@ -193,7 +193,7 @@ SUPPLEMENTARY_TABLES = {
         ('outpost_arn', 'STRING'),
         ('owner_id', 'STRING'),
         ('private_ip_address', 'STRING'),
-        ('private_dns_name', 'STRING')
+        ('private_dns_name', 'STRING'),
         ('private_ip_addresses', 'VARIANT'),
         ('requester_id', 'STRING'),
         ('requester_managed', 'BOOLEAN'),
