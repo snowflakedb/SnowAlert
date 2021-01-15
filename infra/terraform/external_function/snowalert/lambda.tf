@@ -37,3 +37,12 @@ resource "aws_iam_role_policy_attachment" "standard_lib_decrypt_secrets" {
   role       = aws_iam_role.stdefn.name
   policy_arn = aws_iam_policy.prod_kms_decrypt.arn
 }
+
+resource "aws_lambda_permission" "api_gateway" {
+  function_name = aws_lambda_function.stdefn.function_name
+  principal     = "apigateway.amazonaws.com"
+  action        = "lambda:InvokeFunction"
+  source_arn    = "${aws_api_gateway_rest_api.ef_to_lambda.execution_arn}/*/*"
+
+  depends_on = [aws_lambda_function.stdefn]
+}
