@@ -196,6 +196,8 @@ resource "aws_api_gateway_deployment" "prod" {
 }
 
 resource "aws_api_gateway_method_settings" "enable_logging" {
+  depends_on = [aws_api_gateway_account.api_gateway]
+
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
   stage_name  = aws_api_gateway_stage.prod.stage_name
   method_path = "*/*"
