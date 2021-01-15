@@ -194,3 +194,13 @@ resource "aws_api_gateway_deployment" "prod" {
     create_before_destroy = true
   }
 }
+
+resource "aws_api_gateway_method_settings" "enable_logging" {
+  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
+  stage_name  = aws_api_gateway_stage.prod.stage_name
+  method_path = "*/*"
+  settings {
+    logging_level   = "INFO"
+    metrics_enabled = true
+  }
+}
