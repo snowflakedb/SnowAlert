@@ -14,6 +14,18 @@ provider "aws" {
 module "snowalert" {
   source                            = "./snowalert"
   prefix                            = "snowalert"
-  snowflake_integration_external_id = ["aaa"]
-  snowflake_integration_user        = ["arn:aws:iam::bbb:user/c_snowhouse_stage_volume"]
+  snowflake_integration_external_id = var.snowflake_integration_external_id
+  snowflake_integration_user        = var.snowflake_integration_user
+}
+
+variable "snowflake_integration_user" {
+  type        = string
+  description = "API_AWS_EXTERNAL_ID from DESC INTEGRATION ..."
+  default     = "aaa"
+}
+
+variable "snowflake_integration_external_id" {
+  type        = string
+  description = "describe your variable"
+  default     = "bbb"
 }

@@ -1,3 +1,41 @@
+/*
+
+  logging API Gateway logging is set up per-region
+
+*/
+
+resource "aws_iam_role" "gateway_logger" {
+  name = "${var.prefix}-api-gateway-logger"
+  path = "/"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "gateway_logger" {
+  role       = aws_iam_role.gateway_logger.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+resource "aws_api_gateway_account" "api_gateway" {
+  cloudwatch_role_arn = aws_iam_role.gateway_logger.arn
+}
+
+/*
+
+  rest is API Gateway specific to External Functions
+
+*/
+
 resource "aws_iam_role" "gateway_caller" {
   name = "${var.prefix}-api-gateway-caller"
   path = "/"
