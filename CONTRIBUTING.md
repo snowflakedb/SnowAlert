@@ -2,16 +2,7 @@
 
 SnowAlert is an open source project with contributions from Snowflake's security team as well as collaborating security teams. Please reach out to us if you're interested in making SnowAlert better, we'd love to be in touch.
 
-# Technical
-
-## Building docker containers
-
-~~~
-docker build -t snowsec/snowalert -f Dockerfile.snowalert .
-docker build -t snowsec/snowalert-webui -f Dockerfile.webui .
-~~~
-
-## Developing
+# Developing
 
 ### Environment Variables
 

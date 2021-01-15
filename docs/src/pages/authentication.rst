@@ -53,7 +53,7 @@ Where account is the account name of your Snowflake instance for example:
 
 ``https://mydemo.us-east-1.snowflakecomputing.com``
 
-would be ``DEMO`` (note the upper-case). i.e.:
+would be ``MYDEMO`` (note the upper-case). i.e.:
 
     1. ``OAUTH_CLIENT_MYDEMO``
     2. ``OAUTH_SECRET_MYDEMO``

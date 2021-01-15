@@ -49,9 +49,6 @@ def main(target="all", *rule_names):
             if rule_name.upper().endswith("_CONNECTION"):
                 connectors_runner.main(rule_name.upper())
 
-            if rule_name.upper().endswith("_BASELINE"):
-                baseline_runner.main(rule_name.upper())
-
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")
         log.info(f"got command {target}")
