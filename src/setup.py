@@ -7,7 +7,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'aiohttp[speedups]',
-        'aioboto3==8.1.1',
+        'aioboto3',
         'fire==0.3.1',
         'jira==2.0.0',
         'PyYAML==5.3.1',
