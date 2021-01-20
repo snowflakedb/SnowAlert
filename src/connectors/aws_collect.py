@@ -240,7 +240,7 @@ SUPPLEMENTARY_TABLES = {
         ('ip_address', 'STRING'),
         ('network_interface_id', 'STRING'),
         ('availability_zone_id', 'STRING'),
-        ('avilability_zone_name', 'STRING'),
+        ('availability_zone_name', 'STRING'),
         ('vpc_id', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
@@ -743,7 +743,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'IpAddress': 'ip_address',
                     'NetworkInterfaceId': 'network_interface_id',
                     'AvailabilityZoneId': 'availability_zone_id',
-                    'AvailabilityZoneName': 'avilability_zone_name',
+                    'AvailabilityZoneName': 'availability_zone_name',
                     'VpcId': 'vpc_id',
                 }
             ]
