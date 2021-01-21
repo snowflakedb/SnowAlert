@@ -823,7 +823,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         }
     },
-    'efs.describle_file_systems': {
+    'efs.describe_file_systems': {
         'response': {
             'FileSystems': [
                 {
@@ -833,7 +833,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'FileSystemArn': 'file_system_arn',
                     'CreationTime': 'creation_time',
                     'LifeCycleState': 'life_cycle_state',
-                    'Name': 'name'
+                    'Name': 'name',
                     'NumberOfMountTargets': 'number_of_mount_targets',
                     'SizeInBytes': 'size_in_bytes',
                     'PerformanceMode': 'performance_mode',
@@ -844,9 +844,13 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'Tags': 'tags',
                 }
             ]
-        }
+        },
+        'children': [
+            {'method': 'efs.describe_mount_targets', 'args': {'FileSystemId': 'file_system_id'}}
+        ],
     },
     'efs.describe_mount_targets': {
+        'params': {'FileSystemId': 'file_system_id'},
         'response': {
             'MountTargets': [
                 {
@@ -863,7 +867,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 }
             ]
         }
-    }
+    },
     'config.describe_configuration_recorders': {
         # for unknown reasons, client.describe_regions does not seem to work w/
         # Config client. seems like a boto3 bug. the below is a work-around.
@@ -1572,12 +1576,11 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_account_aliases',
             'iam.get_account_summary',
             'iam.get_account_password_policy',
+            'efs.describe_file_systems',
             'ec2.describe_instances',
             'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
-            'efs.describle_file_systems',
-            'efs.describe_mount_targets',
             'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
