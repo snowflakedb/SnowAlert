@@ -205,6 +205,8 @@ def paginated_insert_reports(landing_table, options, dryrun):
     api_token = options['api_token']
     program_name = options['program_name']
     next_exists = True
+    # recorded_at = parsedate_to_datetime(response.headers.get('Date'))
+    recorded_at = datetime.utcnow()
 
     while next_exists:
         print(page_number)
@@ -222,7 +224,6 @@ def paginated_insert_reports(landing_table, options, dryrun):
         page_number += 1
 
         reports = response.json()['data']
-        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
         # Insert new page
         insert_reports(landing_table, reports, recorded_at, dryrun)
 
