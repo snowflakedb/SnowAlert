@@ -1,6 +1,6 @@
 """Helper specific to SnowAlert connecting to the database"""
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from threading import local
 import time
@@ -232,12 +232,20 @@ def connect_and_fetchall(query, params=None):
     return ctx, execute(query, params=params).fetchall()
 
 
-def fetch_latest(table, col='event_time', where=''):
+def fetch_latest(table, col='event_time', where='', default=None):
     where = f' WHERE {where}' if where else ''
     ts = next(
         fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None
     )
-    return ts[col.upper()] if ts else None
+
+    # todo: regex to generalize
+    if default == '-1h':
+        default = timedelta(hours=-1)
+
+    if isinstance(default, timedelta):
+        default = datetime.utcnow() + default
+
+    return ts[col.upper()] if ts else default
 
 
 def fetch_props(sql, filter=None):
@@ -388,6 +396,9 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
 
 
 def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
+    if isinstance(values, dict):
+        values = [values]
+
     num_rows_inserted = 0
     # snowflake limits the number of rows inserted in a single statement:
     #   snowflake.connector.errors.ProgrammingError: 001795 (42601):

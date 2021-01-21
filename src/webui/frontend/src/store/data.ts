@@ -1,4 +1,4 @@
-import {BaselinePayload, ConnectorPayload} from '../reducers/types';
+import {BaselinePayload, ConnectorPayload, ConnectionPayload} from '../reducers/types';
 
 export class Connector {
   raw: ConnectorPayload;
@@ -39,5 +39,21 @@ export class Baseline {
     this.options = bl.options.slice();
     this.title = (bl.docstring || 'title missing').replace(/\n.*/g, '');
     this.description = (bl.docstring || '').replace(/^[^\n]*\n/g, '');
+  }
+}
+
+export class Connection {
+  raw: ConnectionPayload;
+  table_name: string;
+  created_on: Date;
+  byte_count: number;
+  row_count: number;
+
+  constructor(cti: ConnectionPayload) {
+    this.raw = cti;
+    this.table_name = cti.name;
+    this.created_on = new Date(cti.created_on);
+    this.byte_count = cti.bytes;
+    this.row_count = cti.rows;
   }
 }

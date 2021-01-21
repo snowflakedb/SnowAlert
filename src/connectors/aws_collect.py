@@ -175,6 +175,48 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-interfaces.html
+    'ec2_describe_network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('attachment', 'VARIANT'),
+        ('association', 'VARIANT'),
+        ('availability_zone', 'STRING'),
+        ('description', 'STRING'),
+        ('groups', 'VARIANT'),
+        ('interface_type', 'STRING'),
+        ('ipv6_addresses', 'VARIANT'),
+        ('mac_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('private_ip_address', 'STRING'),
+        ('private_dns_name', 'STRING'),
+        ('private_ip_addresses', 'VARIANT'),
+        ('requester_id', 'STRING'),
+        ('requester_managed', 'BOOLEAN'),
+        ('source_dest_check', 'BOOLEAN'),
+        ('status', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('tag_set', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-nat-gateways.html
+    'ec2_describe_nat_gateways': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('nat_gateway_addresses', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('state', 'STRING'),
+        ('nat_gateway_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('create_time', 'TIMESTAMP_LTZ'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
     'ec2_describe_route_tables': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -498,6 +540,35 @@ SUPPLEMENTARY_TABLES = {
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-tagging.html#output
+    's3_get_bucket_tagging': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('tag_set', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
+    's3_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3control/get-public-access-block.html
+    's3control_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -673,6 +744,50 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'OwnerId': 'owner_id',
                     'RequesterId': 'requester_id',
                     'ReservationId': 'reservation_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_network_interfaces': {
+        'response': {
+            'NetworkInterfaces': [
+                {
+                    'Groups': 'groups',
+                    'InterfaceType': 'interface_type',
+                    'Ipv6Addresses': 'ipv6_addresses',
+                    'RequesterId': 'requester_id',
+                    'Attachment': 'attachment',
+                    'Association': 'attachment',
+                    'AvailabilityZone': 'availability_zone',
+                    'Description': 'description',
+                    'MacAddress': 'mac_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'OutpostArn': 'outpost_arn',
+                    'OwnerId': 'owner_id',
+                    'PrivateIpAddress': 'private_ip_address',
+                    'PrivateDnsName': 'private_dns_name',
+                    'PrivateIpAddresses': 'private_ip_addresses',
+                    'RequesterManaged': 'requester_managed',
+                    'SourceDestCheck': 'source_dest_check',
+                    'Status': 'status',
+                    'SubnetId': 'subnet_id',
+                    'TagSet': 'tag_set',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_nat_gateways': {
+        'response': {
+            'NatGateways': [
+                {
+                    'NatGatewayAddresses': 'nat_gateway_addresses',
+                    'VpcId': 'vpc_id',
+                    'Tags': 'tags',
+                    'State': 'state',
+                    'NatGatewayId': 'nat_gateway_id',
+                    'SubnetId': 'subnet_id',
+                    'CreateTime': 'create_time',
                 }
             ]
         }
@@ -1023,6 +1138,8 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     's3.get_bucket_acl',
                     's3.get_bucket_policy',
                     's3.get_bucket_logging',
+                    's3.get_bucket_tagging',
+                    's3.get_public_access_block',
                 ],
                 'args': {'Bucket': 'bucket_name'},
             }
@@ -1048,6 +1165,32 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'TargetBucket': 'target_bucket',
                 'TargetGrants': 'target_grants',
                 'TargetPrefix': 'target_prefix',
+            }
+        },
+    },
+    's3.get_bucket_tagging': {
+        'params': {'Bucket': 'bucket'},
+        'response': {'TagSet': 'tag_set'},
+    },
+    's3.get_public_access_block': {
+        'params': {'Bucket': 'bucket'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
+            }
+        },
+    },
+    's3control.get_public_access_block': {
+        'args': {'AccountId': 'account_id'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
             }
         },
     },
@@ -1311,6 +1454,11 @@ def process_aws_response(task, page):
 
 async def load_task_response(client, task):
     args = task.args or {}
+    argspec = API_METHOD_SPECS[task.method].get('args', {})
+
+    # e.g. for s3control.get_public_access_block
+    if argspec.get('AccountId') == 'account_id':
+        args['AccountId'] = task.account_id
 
     client_name, method_name = task.method.split('.', 1)
 
@@ -1425,10 +1573,12 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.get_account_summary',
             'iam.get_account_password_policy',
             'ec2.describe_instances',
+            'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
             'efs.describle_file_systems',
             'efs.describe_mount_targets',
+            'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
             'iam.list_users',
@@ -1440,6 +1590,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            's3control.get_public_access_block',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')

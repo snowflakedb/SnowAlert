@@ -1,11 +1,22 @@
+import random
+import multiprocessing as mp
+
 import aioboto3
 import boto3
-import random
 import yaml
-import multiprocessing as mp
+from requests import auth
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+
+class Bearer(auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
+
+    def __call__(self, r):
+        r.headers["authorization"] = "Bearer " + self.token
+        return r
 
 
 def updated(d=None, *ds, **kwargs):
@@ -120,3 +131,11 @@ def create_metadata_table(table, cols, addition):
     if any(name == addition[0].upper() for name in table_names):
         return
     db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')
+
+
+def load_sqlfmt(file, params):
+    docstring, template = split_on(lambda x: x.startswith('-- '), file.readlines(), 1)
+    metadata = yaml.safe_loads(docstring)
+    # gen vars
+    # replace vars
+    # return sql
