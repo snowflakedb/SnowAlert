@@ -1,6 +1,7 @@
 """HackerOne Data
 Collect HackerOne reports and payment transactions using an API key
 """
+import json
 import os
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -140,6 +141,7 @@ def connect(connection_name, options):
 
 
 def insert_reports(landing_table, reports, recorded_at, dryrun):
+    print(json.dumps(reports,indent=4))
     db.insert(
         landing_table,
         dryrun=dryrun,
@@ -202,34 +204,23 @@ def paginated_insert_reports(landing_table, options, dryrun):
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     program_name = options['program_name']
+    next_exists = True
 
-    response = load_data(
-        'https://api.hackerone.com/v1/reports',
-        api_token,
-        api_identifier,
-        params={
-            'filter[program][]': program_name,
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
-        },
-    )
-    reports = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    # Insert 1st page
-    insert_reports(landing_table, reports, recorded_at, dryrun)
-
-    while 'next' in response.json()['links']:
-        page_number += 1
+    while next_exists:
+        print(page_number)
         response = load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
             api_identifier,
             params={
-            'filter[program][]': program_name,
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
+                'filter[program][]': program_name,
+                'page[size]': PAGE_SIZE,
+                'page[number]': page_number
             },
-        )   
+        )
+        next_exists = 'next' in response.json()['links']
+        page_number += 1
+
         reports = response.json()['data']
         recorded_at = parsedate_to_datetime(response.headers.get('Date'))
         # Insert new page
