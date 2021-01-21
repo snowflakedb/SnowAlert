@@ -84,6 +84,22 @@ LANDING_TABLE_COLUMNS_REPORTS = [
 ]
 
 
+def calc_awarded_amount(report_data):
+    amount = 0.0
+    for bounty in report_data:
+        bounty_amount = get_path(bounty, 'attributes.awarded_amount', 0.0)
+        amount += float(bounty_amount)
+    return amount
+
+
+def calc_awarded_bonus_amount(report_data):
+    amount = 0.0
+    for bounty in report_data:
+        bounty_bonus_amount = get_path(bounty, 'attributes.awarded_bonus_amount', 0.0)
+        amount += float(bounty_bonus_amount)
+    return amount
+
+
 def load_data(
     url: str,
     token: str,
@@ -140,6 +156,7 @@ def connect(connection_name, options):
     }
 
 
+
 def insert_reports(landing_table, reports, recorded_at, dryrun):
     print(json.dumps(reports,indent=4))
     db.insert(
@@ -163,14 +180,12 @@ def insert_reports(landing_table, reports, recorded_at, dryrun):
                 'description': get_path(report, 'relationships.weakness.data.attributes.description'),
                 'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
                 'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
-                'awarded_amount': sum(
-                    float(get_path(bounty, 'attributes.awarded_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data', [])
+                'awarded_amount': calc_awarded_amount(
+                    get_path(report, 'relationships.bounties.data', default=[])
                 ),
-                'awarded_bonus_amount': sum(
-                    float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data', [])
-                )
+                'awarded_bonus_amount': calc_awarded_bonus_amount(
+                    get_path(report, 'relationships.bounties.data', default=[])
+                ),
             }
             for report in reports
         ],
