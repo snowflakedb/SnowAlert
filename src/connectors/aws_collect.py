@@ -246,6 +246,45 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('vpc_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-file-systems.html
+    'efs_describe_file_systems': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('creation_token', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('file_system_arn', 'STRING'),
+        ('creation_time', 'TIMESTAMP_LTZ'),
+        ('life_cycle_state', 'STRING'),
+        ('name', 'STRING'),
+        ('number_of_mount_targets', 'INTEGER'),
+        ('size_in_bytes', 'VARIANT'),
+        ('performance_mode', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('throughput_mode', 'STRING'),
+        ('provisioned_throughput_in_mibps', 'DOUBLE'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-mount-targets.html#examples
+    'efs_describe_mount_targets': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('mount_target_id', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('life_cycle_state', 'STRING'),
+        ('ip_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('availability_zone_id', 'STRING'),
+        ('availability_zone_name', 'STRING'),
+        ('vpc_id', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
     'config_describe_configuration_recorders': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -779,6 +818,51 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'GroupId': 'group_id',
                     'IpPermissionsEgress': 'ip_permissions_egress',
                     'Tags': 'tags',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        }
+    },
+    'efs.describe_file_systems': {
+        'response': {
+            'FileSystems': [
+                {
+                    'OwnerId': 'owner_id',
+                    'CreationToken': 'creation_token',
+                    'FileSystemId': 'file_system_id',
+                    'FileSystemArn': 'file_system_arn',
+                    'CreationTime': 'creation_time',
+                    'LifeCycleState': 'life_cycle_state',
+                    'Name': 'name',
+                    'NumberOfMountTargets': 'number_of_mount_targets',
+                    'SizeInBytes': 'size_in_bytes',
+                    'PerformanceMode': 'performance_mode',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyId': 'kms_key_id',
+                    'ThroughputMode': 'throughput_mode',
+                    'ProvisionedThroughputInMibps': 'provisioned_throughput_in_mibps',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+        'children': [
+            {'method': 'efs.describe_mount_targets', 'args': {'FileSystemId': 'file_system_id'}}
+        ],
+    },
+    'efs.describe_mount_targets': {
+        'params': {'FileSystemId': 'file_system_id'},
+        'response': {
+            'MountTargets': [
+                {
+                    'OwnerId': 'owner_id',
+                    'MountTargetId': 'mount_target_id',
+                    'FileSystemId': 'file_system_id',
+                    'SubnetId': 'subnet_id',
+                    'LifeCycleState': 'life_cycle_state',
+                    'IpAddress': 'ip_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'AvailabilityZoneId': 'availability_zone_id',
+                    'AvailabilityZoneName': 'availability_zone_name',
                     'VpcId': 'vpc_id',
                 }
             ]
@@ -1492,6 +1576,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_account_aliases',
             'iam.get_account_summary',
             'iam.get_account_password_policy',
+            'efs.describe_file_systems',
             'ec2.describe_instances',
             'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
