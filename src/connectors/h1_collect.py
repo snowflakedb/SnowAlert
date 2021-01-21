@@ -220,11 +220,9 @@ def paginated_insert_reports(landing_table, options, dryrun):
     api_token = options['api_token']
     program_name = options['program_name']
     next_exists = True
-    # recorded_at = parsedate_to_datetime(response.headers.get('Date'))
     recorded_at = datetime.utcnow()
 
     while next_exists:
-        print(page_number)
         response = load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
@@ -248,22 +246,10 @@ def paginated_insert_transactions(landing_table, options, dryrun):
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
+    next_exists = True
+    recorded_at = datetime.utcnow()
 
-    response = load_data(
-        f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-        api_token,
-        api_identifier,
-        params={
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
-        },
-    )
-    transactions = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    insert_transactions(landing_table, transactions, recorded_at, dryrun)
-
-    while 'next' in response.json()['links']:
-        page_number += 1
+    while next_exists:
         response = load_data(
             f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
              api_token,
@@ -273,9 +259,11 @@ def paginated_insert_transactions(landing_table, options, dryrun):
                  'page[number]': page_number
              },
         )
-    transactions = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    insert_transactions(landing_table, transactions, recorded_at, dryrun)
+        next_exists = 'next' in response.json()['links']
+        page_number += 1
+
+        transactions = response.json()['data']
+        insert_transactions(landing_table, transactions, recorded_at, dryrun)
 
 
 def ingest(table_name, options, dryrun=False):
