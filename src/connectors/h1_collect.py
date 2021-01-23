@@ -241,30 +241,26 @@ def paginated_insert_reports(landing_table, options, dryrun):
 
 
 def paginated_insert_transactions(landing_table, options, dryrun):
-    page_number = 1
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
+
     recorded_at = datetime.utcnow()
     now = datetime.now()
-    month = now.month
-    year = now.year
+    current_year = now.year
 
-    for year in range(2020,year+1):
-	    for month in range(1,13):
+    for year in range(2020, current_year + 1):
+        for month in range(1, 13):
             response = load_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-                 api_token,
-                 api_identifier,
-                 params={
-                     'page[size]': PAGE_SIZE,
-                     'page[number]': page_number,
-                     'month': month,
-                     'year': year
-                 },
+                api_token,
+                api_identifier,
+                params={
+                    'page[size]': PAGE_SIZE,
+                    'month': month,
+                    'year': year
+                },
             )
-            page_number += 1
-
             transactions = response.json()['data']
             insert_transactions(landing_table, transactions, recorded_at, dryrun)
 
