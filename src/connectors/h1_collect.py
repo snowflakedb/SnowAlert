@@ -158,7 +158,6 @@ def connect(connection_name, options):
 
 
 def insert_reports(landing_table, reports, recorded_at, dryrun):
-    print(json.dumps(reports,indent=4))
     db.insert(
         landing_table,
         dryrun=dryrun,
@@ -239,7 +238,7 @@ def paginated_insert_reports(landing_table, options, dryrun):
         reports = response.json()['data']
         insert_reports(landing_table, reports, recorded_at, dryrun)
 
-
+            
 def paginated_insert_transactions(landing_table, options, dryrun):
     api_identifier = options['api_identifier']
     api_token = options['api_token']
