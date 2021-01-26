@@ -51,6 +51,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_TABLE_COLUMNS_TRANSACTIONS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw','string'),
     ('type', 'string'),
     ('activity_date', 'TIMESTAMP_LTZ(9)'),
     ('activity_description', 'string'),
@@ -64,6 +65,7 @@ LANDING_TABLE_COLUMNS_TRANSACTIONS = [
 
 LANDING_TABLE_COLUMNS_REPORTS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw','string'),
     ('id', 'number'),
     ('type', 'string'),
     ('title', 'string'),
@@ -107,10 +109,20 @@ def load_data(
     params: dict = {}
 ) -> requests.Response:
     """Perform the API call"""
+    
     headers: dict = {"Accept": "application/json"}
 
-    log.debug(resp.status_code)
-    return parsedate_to_datetime(resp.headers.get('Date')), resp.json().get('data')
+    resp = requests.get(
+            url, auth=(api_identifier, token), params=params, headers=headers
+    )
+
+    resp.raise_for_status()
+    res=resp.json()
+    return (
+        parsedate_to_datetime(resp.headers['Date']),
+        res.get('data'),
+        res.get('links', {}).get('next')
+    )
 
 
 def get_path(data: dict, path: str, default=None):
@@ -155,6 +167,7 @@ def insert_reports(landing_table, reports, recorded_at, dryrun):
         values=[
             {
                 'recorded_at': recorded_at,
+                'raw': report,
                 'id': report.get('id', None),
                 'type': report.get('type', None),
                 'title': get_path(report, 'attributes.title'),
@@ -189,6 +202,7 @@ def insert_transactions(landing_table, transactions, recorded_at, dryrun):
         values=[
             {
                 'recorded_at': recorded_at,
+                'raw': report,
                 'type': transaction.get('type', ''),
                 'activity_date': get_path(transaction, 'attributes.activity_date'),
                 'activity_description': get_path(transaction, 'attributes.activity_description'),
@@ -210,10 +224,9 @@ def paginated_insert_reports(landing_table, options, dryrun):
     api_token = options['api_token']
     program_name = options['program_name']
     next_exists = True
-    recorded_at = datetime.utcnow()
 
     while next_exists:
-        response = load_data(
+        recorded_at,reports,next_exists=load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
             api_identifier,
@@ -223,25 +236,22 @@ def paginated_insert_reports(landing_table, options, dryrun):
                 'page[number]': page_number
             },
         )
-        next_exists = 'next' in response.json()['links']
         page_number += 1
-
-        reports = response.json()['data']
         insert_reports(landing_table, reports, recorded_at, dryrun)
 
-            
+
 def paginated_insert_transactions(landing_table, options, dryrun):
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
 
-    recorded_at = datetime.utcnow()
     now = datetime.now()
     current_year = now.year
-
+    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions  
+             
     for year in range(2020, current_year + 1):
         for month in range(1, 13):
-            response = load_data(
+            recorded_at,transactions,next_exists=load_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
                 api_token,
                 api_identifier,
@@ -251,7 +261,6 @@ def paginated_insert_transactions(landing_table, options, dryrun):
                     'year': year
                 },
             )
-            transactions = response.json()['data']
             insert_transactions(landing_table, transactions, recorded_at, dryrun)
 
 
