@@ -110,7 +110,7 @@ def load_data(
     headers: dict = {"Accept": "application/json"}
 
     log.debug(resp.status_code)
-    return resp
+    return parsedate_to_datetime(resp.headers.get('Date')), resp.json().get('data')
 
 
 def get_path(data: dict, path: str, default=None):
