@@ -51,7 +51,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_TABLE_COLUMNS_TRANSACTIONS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
-    ('raw','string'),
+    ('raw', 'string'),
     ('type', 'string'),
     ('activity_date', 'TIMESTAMP_LTZ(9)'),
     ('activity_description', 'string'),
@@ -65,7 +65,7 @@ LANDING_TABLE_COLUMNS_TRANSACTIONS = [
 
 LANDING_TABLE_COLUMNS_REPORTS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
-    ('raw','string'),
+    ('raw', 'string'),
     ('id', 'number'),
     ('type', 'string'),
     ('title', 'string'),
@@ -97,7 +97,8 @@ def calc_awarded_amount(report_data):
 def calc_awarded_bonus_amount(report_data):
     amount = 0.0
     for bounty in report_data:
-        bounty_bonus_amount = get_path(bounty, 'attributes.awarded_bonus_amount', 0.0)
+        bounty_bonus_amount = get_path(
+            bounty, 'attributes.awarded_bonus_amount', 0.0)
         amount += float(bounty_bonus_amount)
     return amount
 
@@ -109,15 +110,15 @@ def load_data(
     params: dict = {}
 ) -> requests.Response:
     """Perform the API call"""
-    
+
     headers: dict = {"Accept": "application/json"}
 
     resp = requests.get(
-            url, auth=(api_identifier, token), params=params, headers=headers
+        url, auth=(api_identifier, token), params=params, headers=headers
     )
 
     resp.raise_for_status()
-    res=resp.json()
+    res = resp.json()
     return (
         parsedate_to_datetime(resp.headers['Date']),
         res.get('data'),
@@ -157,7 +158,6 @@ def connect(connection_name, options):
         'newStage': 'finalized',
         'newMessage': "HackerOne ingestion tables created!",
     }
-
 
 
 def insert_reports(landing_table, reports, recorded_at, dryrun):
@@ -202,7 +202,7 @@ def insert_transactions(landing_table, transactions, recorded_at, dryrun):
         values=[
             {
                 'recorded_at': recorded_at,
-                'raw': report,
+                'raw': transaction,
                 'type': transaction.get('type', ''),
                 'activity_date': get_path(transaction, 'attributes.activity_date'),
                 'activity_description': get_path(transaction, 'attributes.activity_description'),
@@ -226,7 +226,7 @@ def paginated_insert_reports(landing_table, options, dryrun):
     next_exists = True
 
     while next_exists:
-        recorded_at,reports,next_exists=load_data(
+        recorded_at, reports, next_exists = load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
             api_identifier,
@@ -247,11 +247,11 @@ def paginated_insert_transactions(landing_table, options, dryrun):
 
     now = datetime.now()
     current_year = now.year
-    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions  
-             
+    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
+
     for year in range(2020, current_year + 1):
         for month in range(1, 13):
-            recorded_at,transactions,next_exists=load_data(
+            recorded_at, transactions, next_exists = load_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
                 api_token,
                 api_identifier,
@@ -261,17 +261,19 @@ def paginated_insert_transactions(landing_table, options, dryrun):
                     'year': year
                 },
             )
-            insert_transactions(landing_table, transactions, recorded_at, dryrun)
+            insert_transactions(landing_table, transactions,
+                                recorded_at, dryrun)
 
 
 def ingest(table_name, options, dryrun=False):
     ingest_type = (
-        'transaction' if table_name.endswith('_TRANSACTIONS_CONNECTION') else 'report'
+        'transaction' if table_name.endswith(
+            '_TRANSACTIONS_CONNECTION') else 'report'
     )
     landing_table = f'data.{table_name}'
 
     if ingest_type == 'transaction' and options['account_id']:
-        paginated_insert_transactions(landing_table, options, dryrun)   
+        paginated_insert_transactions(landing_table, options, dryrun)
     else:
         paginated_insert_reports(landing_table, options, dryrun)
 
