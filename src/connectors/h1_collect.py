@@ -109,15 +109,6 @@ def load_data(
     """Perform the API call"""
     headers: dict = {"Accept": "application/json"}
 
-    try:
-        log.debug(f"Preparing GET: url={url} with params={params}")
-        resp = requests.get(
-            url, auth=(api_identifier, token), params=params, headers=headers
-        )
-        resp.raise_for_status()
-    except HTTPError as http_err:
-        log.error(f"HTTP error occurred: {http_err}")
-        raise
     log.debug(resp.status_code)
     return resp
 
