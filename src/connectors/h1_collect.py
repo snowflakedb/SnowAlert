@@ -108,7 +108,7 @@ def load_data(
     token: str,
     api_identifier: str,
     params: dict = {}
-) -> requests.Response:
+):
     """Perform the API call"""
 
     headers: dict = {"Accept": "application/json"}
@@ -247,8 +247,8 @@ def paginated_insert_transactions(landing_table, options, dryrun):
 
     now = datetime.now()
     current_year = now.year
-    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
 
+    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
     for year in range(2020, current_year + 1):
         for month in range(1, 13):
             recorded_at, transactions, next_exists = load_data(
