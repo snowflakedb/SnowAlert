@@ -1,6 +1,7 @@
 """HackerOne Data
 Collect HackerOne reports and payment transactions using an API key
 """
+import json
 import os
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -50,6 +51,7 @@ CONNECTION_OPTIONS = [
 
 LANDING_TABLE_COLUMNS_TRANSACTIONS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw', 'string'),
     ('type', 'string'),
     ('activity_date', 'TIMESTAMP_LTZ(9)'),
     ('activity_description', 'string'),
@@ -63,6 +65,7 @@ LANDING_TABLE_COLUMNS_TRANSACTIONS = [
 
 LANDING_TABLE_COLUMNS_REPORTS = [
     ('recorded_at', 'TIMESTAMP_LTZ(9)'),
+    ('raw', 'string'),
     ('id', 'number'),
     ('type', 'string'),
     ('title', 'string'),
@@ -83,26 +86,44 @@ LANDING_TABLE_COLUMNS_REPORTS = [
 ]
 
 
+def calc_awarded_amount(report_data):
+    amount = 0.0
+    for bounty in report_data:
+        bounty_amount = get_path(bounty, 'attributes.awarded_amount', 0.0)
+        amount += float(bounty_amount)
+    return amount
+
+
+def calc_awarded_bonus_amount(report_data):
+    amount = 0.0
+    for bounty in report_data:
+        bounty_bonus_amount = get_path(
+            bounty, 'attributes.awarded_bonus_amount', 0.0)
+        amount += float(bounty_bonus_amount)
+    return amount
+
+
 def load_data(
     url: str,
     token: str,
     api_identifier: str,
     params: dict = {}
-) -> requests.Response:
+):
     """Perform the API call"""
+
     headers: dict = {"Accept": "application/json"}
 
-    try:
-        log.debug(f"Preparing GET: url={url} with params={params}")
-        resp = requests.get(
-            url, auth=(api_identifier, token), params=params, headers=headers
-        )
-        resp.raise_for_status()
-    except HTTPError as http_err:
-        log.error(f"HTTP error occurred: {http_err}")
-        raise
-    log.debug(resp.status_code)
-    return resp
+    resp = requests.get(
+        url, auth=(api_identifier, token), params=params, headers=headers
+    )
+
+    resp.raise_for_status()
+    res = resp.json()
+    return (
+        parsedate_to_datetime(resp.headers['Date']),
+        res.get('data'),
+        res.get('links', {}).get('next')
+    )
 
 
 def get_path(data: dict, path: str, default=None):
@@ -146,6 +167,7 @@ def insert_reports(landing_table, reports, recorded_at, dryrun):
         values=[
             {
                 'recorded_at': recorded_at,
+                'raw': report,
                 'id': report.get('id', None),
                 'type': report.get('type', None),
                 'title': get_path(report, 'attributes.title'),
@@ -161,14 +183,12 @@ def insert_reports(landing_table, reports, recorded_at, dryrun):
                 'description': get_path(report, 'relationships.weakness.data.attributes.description'),
                 'external_id': get_path(report, 'relationships.weakness.data.attributes.external_id'),
                 'asset_identifier': get_path(report, 'relationships.structured_scope.data.attributes.asset_identifier'),
-                'awarded_amount': sum(
-                    float(get_path(bounty, 'attributes.awarded_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data', [])
+                'awarded_amount': calc_awarded_amount(
+                    get_path(report, 'relationships.bounties.data', default=[])
                 ),
-                'awarded_bonus_amount': sum(
-                    float(get_path(bounty, 'attributes.awarded_bonus_amount', 0.0))
-                    for bounty in get_path(report, 'relationships.bounties.data', [])
-                )
+                'awarded_bonus_amount': calc_awarded_bonus_amount(
+                    get_path(report, 'relationships.bounties.data', default=[])
+                ),
             }
             for report in reports
         ],
@@ -182,6 +202,7 @@ def insert_transactions(landing_table, transactions, recorded_at, dryrun):
         values=[
             {
                 'recorded_at': recorded_at,
+                'raw': transaction,
                 'type': transaction.get('type', ''),
                 'activity_date': get_path(transaction, 'attributes.activity_date'),
                 'activity_description': get_path(transaction, 'attributes.activity_description'),
@@ -202,83 +223,57 @@ def paginated_insert_reports(landing_table, options, dryrun):
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     program_name = options['program_name']
+    next_exists = True
 
-    response = load_data(
-        'https://api.hackerone.com/v1/reports',
-        api_token,
-        api_identifier,
-        params={
-            'filter[program][]': program_name,
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
-        },
-    )
-    reports = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    # Insert 1st page
-    insert_reports(landing_table, reports, recorded_at, dryrun)
-
-    while 'next' in response.json()['links']:
-        page_number += 1
-        response = load_data(
+    while next_exists:
+        recorded_at, reports, next_exists = load_data(
             'https://api.hackerone.com/v1/reports',
             api_token,
             api_identifier,
             params={
-            'filter[program][]': program_name,
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
+                'filter[program][]': program_name,
+                'page[size]': PAGE_SIZE,
+                'page[number]': page_number
             },
-        )   
-        reports = response.json()['data']
-        recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-        # Insert new page
+        )
+        page_number += 1
         insert_reports(landing_table, reports, recorded_at, dryrun)
 
 
 def paginated_insert_transactions(landing_table, options, dryrun):
-    page_number = 1
     api_identifier = options['api_identifier']
     api_token = options['api_token']
     account_id = options['account_id']
 
-    response = load_data(
-        f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-        api_token,
-        api_identifier,
-        params={
-            'page[size]': PAGE_SIZE,
-            'page[number]': page_number
-        },
-    )
-    transactions = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    insert_transactions(landing_table, transactions, recorded_at, dryrun)
+    now = datetime.now()
+    current_year = now.year
 
-    while 'next' in response.json()['links']:
-        page_number += 1
-        response = load_data(
-            f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-             api_token,
-             api_identifier,
-             params={
-                 'page[size]': PAGE_SIZE,
-                 'page[number]': page_number
-             },
-        )
-    transactions = response.json()['data']
-    recorded_at = parsedate_to_datetime(response.headers.get('Date'))
-    insert_transactions(landing_table, transactions, recorded_at, dryrun)
+    # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
+    for year in range(2020, current_year + 1):
+        for month in range(1, 13):
+            recorded_at, transactions, next_exists = load_data(
+                f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
+                api_token,
+                api_identifier,
+                params={
+                    'page[size]': PAGE_SIZE,
+                    'month': month,
+                    'year': year
+                },
+            )
+            insert_transactions(landing_table, transactions,
+                                recorded_at, dryrun)
 
 
 def ingest(table_name, options, dryrun=False):
     ingest_type = (
-        'transaction' if table_name.endswith('_TRANSACTIONS_CONNECTION') else 'report'
+        'transaction' if table_name.endswith(
+            '_TRANSACTIONS_CONNECTION') else 'report'
     )
     landing_table = f'data.{table_name}'
 
     if ingest_type == 'transaction' and options['account_id']:
-        paginated_insert_transactions(landing_table, options, dryrun)   
+        paginated_insert_transactions(landing_table, options, dryrun)
     else:
         paginated_insert_reports(landing_table, options, dryrun)
 
