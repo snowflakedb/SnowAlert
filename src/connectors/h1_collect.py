@@ -262,7 +262,7 @@ def paginated_insert_transactions(landing_table, options, dryrun):
     current_year = now.year
 
     # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
-    for year in range(2020, current_year + 1):
+    for year in range(2012, current_year + 1):
         for month in range(1, 13):
             recorded_at, transactions, next_exists = load_data(
                 f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
