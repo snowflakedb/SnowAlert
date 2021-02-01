@@ -27,7 +27,8 @@
     "react-redux": "^7.2.0",
     "react-router": "^5.2.0",
     "redux": "^4.0.5",
-    "redux-thunk": "^2.3.0"
+    "redux-thunk": "^2.3.0",
+    "snowsql-formatter": "1.1.0"
   },
   "scripts": {
     "build-ts": "react-scripts build",
@@ -41,10 +42,11 @@
     "eject": "react-scripts eject",
     "analyze": "source-map-explorer build/static/js/main.*",
     "precommit": "lint-staged",
+    "lint-all": "prettier --write --no-bracket-spacing --single-quote --trailing-comma=all --print-width=120 \"src/**/*.{ts,tsx}\"",
     "tslint-check": "tslint-config-prettier-check ./tslint.json"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,css}": [
+    "*.{ts,tsx}": [
       "prettier --write --no-bracket-spacing --single-quote --trailing-comma=all --print-width=120",
       "git add"
     ]
