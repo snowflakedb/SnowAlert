@@ -1,3 +1,12 @@
+data "archive_file" "test_lambda_package" {
+  type        = "zip"
+  source_dir  = "${path.module}/lambda-code"
+  output_path = "${path.module}/lambda-code.zip"
+  excludes = [
+    "__pycache__"
+  ]
+}
+
 resource "aws_lambda_function" "stdefn" {
   function_name = "${var.prefix}_external_function"
   role          = aws_iam_role.stdefn.arn
@@ -6,7 +15,7 @@ resource "aws_lambda_function" "stdefn" {
   runtime       = "python3.8"
   timeout       = "300"
   publish       = null
-  filename      = "${path.module}/snowalert-lambda-v0.zip"
+  filename      = "${path.module}/lambda-code.zip"
 }
 
 resource "aws_iam_role" "stdefn" {

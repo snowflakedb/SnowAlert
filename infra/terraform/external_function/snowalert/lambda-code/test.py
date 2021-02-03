@@ -1,3 +1,4 @@
+from codecs import decode
 from json import loads
 from os import environ
 from urllib.parse import urlencode
@@ -12,14 +13,33 @@ def test_abuseipdb():
             'path': '/https',
             'headers': {
                 'sf-custom-headers': urlencode({'Key': key}),
-                'sf-custom-querystring': 'ipAddress={0}',
+                'sf-custom-params': 'ipAddress={0}',
                 'sf-custom-url': 'https://api.abuseipdb.com/api/v2/check',
                 'sf-custom-results-path': 'data',
             },
             'body': '{"data": [[0, "127.0.0.1"]]}',
         })
+        res = loads(result['body'])['data'][0][1]
+        assert {'isp': 'Loopback'}.items() < res.items()
 
-        assert {'isp': 'Loopback'}.items() < loads(result['body'])['data'][0][1].items()
+
+def test_abuseipdb_zipped():
+    key = environ.get('ABUSEIPDB_KEY')
+    if key:
+        result = lambda_handler({
+            'path': '/https',
+            'headers': {
+                'sf-custom-headers': urlencode({'Key': key}),
+                'sf-custom-params': 'ipAddress={0}',
+                'sf-custom-url': 'https://api.abuseipdb.com/api/v2/check',
+                'sf-custom-results-path': 'data',
+                'sf-custom-response-encoding': 'gzip',
+            },
+            'body': '{"data": [[0, "127.0.0.1"]]}',
+        })
+        s = loads(result['body'])['data'][0][1]
+        res = loads(decode(decode(s.encode(), encoding='base64'), 'zlib').decode())
+        assert {'isp': 'Loopback'}.items() < res.items()
 
 
 def test_zengrc():
@@ -30,7 +50,8 @@ def test_zengrc():
             'path': '/https',
             'headers': {
                 'sf-custom-auth': f'{zauth}',
-                'sf-custom-path': '/api/v2/{0}',
+                'sf-custom-base_url': 'https://snowflake.api.zengrc.com',
+                'sf-custom-url': '/api/v2/{0}',
                 'sf-custom-nextpage-path': 'links.next.href',
                 'sf-custom-results-path': 'data'
             },
@@ -48,8 +69,8 @@ def test_tenable_start():
         result = lambda_handler({
             'path': '/https',
             'headers': {
-                'sf-custom-host': 'cloud.tenable.com',
-                'sf-custom-path': '/vulns/export/status',
+                'sf-custom-base_url': 'https://cloud.tenable.com',
+                'sf-custom-url': '/vulns/export/status',
                 'sf-custom-kwargs': urlencode({'apisecret': ts}),
                 'sf-custom-headers': urlencode({'X-ApiKeys': f'accessKey={tc};secretKey={{apisecret}}'}),
                 'sf-custom-results-path': 'exports',
@@ -67,9 +88,9 @@ def test_slack():
         result = lambda_handler({
             'path': '/https',
             'headers': {
-                'sf-custom-host': 'slack.com',
+                'sf-custom-base_url': 'https://slack.com',
                 'sf-custom-method': '{0}',
-                'sf-custom-path': '/api/{1}',
+                'sf-custom-url': '/api/{1}',
                 'sf-custom-data': '{2}',
                 'sf-custom-kwargs': urlencode({'token': ts}),
                 'sf-custom-headers': urlencode({'Authorization': f'Bearer {{token}}'}),
@@ -89,7 +110,7 @@ def test_email():
         result = lambda_handler({
             'path': '/smtp',
             'headers': {
-                'sf-custom-host': 'smtp.gmail.com',
+                'sf-custom-base_url': 'https://smtp.gmail.com',
                 'sf-custom-user': tc,
                 'sf-custom-password': ts,
                 'sf-custom-recipient_email': '{0}',
@@ -103,16 +124,16 @@ def test_email():
 
 
 def test_okta():
-    h = environ.get('OKTA_HOST')
-    k = environ.get('OKTA_APIKEY')
+    h = 'https://' + environ.get('OKTA_DEV_HOST')
+    k = environ.get('OKTA_DEV_APIKEY')
 
     if k and k:
         result = lambda_handler({
             'path': '/https',
             'headers': {
-                'sf-custom-host': h,
-                'sf-custom-path': '{0}',
-                'sf-custom-querystring': '{1}',
+                'sf-custom-base_url': h,
+                'sf-custom-url': '{0}',
+                'sf-custom-params': '{1}',
                 'sf-custom-kwargs': urlencode({'apikey': k}),
                 'sf-custom-headers': urlencode({'Authorization': 'SSWS {apikey}'}),
             },
