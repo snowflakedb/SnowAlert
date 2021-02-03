@@ -202,7 +202,9 @@ resource "aws_api_gateway_method_settings" "enable_logging" {
   stage_name  = aws_api_gateway_stage.prod.stage_name
   method_path = "*/*"
   settings {
-    logging_level   = "INFO"
-    metrics_enabled = true
+    logging_level          = "INFO"
+    metrics_enabled        = true
+    throttling_burst_limit = 5000
+    throttling_rate_limit  = 10000
   }
 }

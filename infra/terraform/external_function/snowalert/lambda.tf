@@ -3,7 +3,9 @@ data "archive_file" "test_lambda_package" {
   source_dir  = "${path.module}/lambda-code"
   output_path = "${path.module}/lambda-code.zip"
   excludes = [
-    "__pycache__"
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
   ]
 }
 
