@@ -1,4 +1,4 @@
-data "archive_file" "test_lambda_package" {
+data "archive_file" "lambda_code" {
   type        = "zip"
   source_dir  = "${path.module}/lambda-code"
   output_path = "${path.module}/lambda-code.zip"
@@ -10,14 +10,15 @@ data "archive_file" "test_lambda_package" {
 }
 
 resource "aws_lambda_function" "stdefn" {
-  function_name = "${var.prefix}_external_function"
-  role          = aws_iam_role.stdefn.arn
-  handler       = "lambda_function.lambda_handler"
-  memory_size   = "512"
-  runtime       = "python3.8"
-  timeout       = "300"
-  publish       = null
-  filename      = "${path.module}/lambda-code.zip"
+  function_name    = "${var.prefix}_external_function"
+  role             = aws_iam_role.stdefn.arn
+  handler          = "lambda_function.lambda_handler"
+  memory_size      = "512"
+  runtime          = "python3.8"
+  timeout          = "300"
+  publish          = null
+  filename         = "${path.module}/lambda-code.zip"
+  source_code_hash = data.archive_file.lambda_code.output_base64sha256
 }
 
 resource "aws_iam_role" "stdefn" {

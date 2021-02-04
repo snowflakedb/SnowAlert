@@ -92,12 +92,6 @@ resource "aws_api_gateway_resource" "https" {
   path_part   = "https"
 }
 
-resource "aws_api_gateway_resource" "smtp" {
-  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
-  parent_id   = aws_api_gateway_rest_api.ef_to_lambda.root_resource_id
-  path_part   = "smtp"
-}
-
 resource "aws_api_gateway_method" "https_post" {
   rest_api_id    = aws_api_gateway_rest_api.ef_to_lambda.id
   resource_id    = aws_api_gateway_resource.https.id
@@ -118,6 +112,28 @@ resource "aws_api_gateway_method" "https_post" {
   }
 }
 
+resource "aws_api_gateway_integration" "https_to_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id             = aws_api_gateway_resource.https.id
+  http_method             = aws_api_gateway_method.https_post.http_method
+  integration_http_method = aws_api_gateway_method.https_post.http_method
+  type                    = "AWS_PROXY"
+  content_handling        = "CONVERT_TO_TEXT"
+  timeout_milliseconds    = 29000
+  uri                     = aws_lambda_function.stdefn.invoke_arn
+
+  cache_key_parameters = null
+
+  request_parameters = {}
+  request_templates  = {}
+}
+
+resource "aws_api_gateway_resource" "smtp" {
+  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
+  parent_id   = aws_api_gateway_rest_api.ef_to_lambda.root_resource_id
+  path_part   = "smtp"
+}
+
 resource "aws_api_gateway_method" "smtp_post" {
   rest_api_id    = aws_api_gateway_rest_api.ef_to_lambda.id
   resource_id    = aws_api_gateway_resource.smtp.id
@@ -135,11 +151,11 @@ resource "aws_api_gateway_method" "smtp_post" {
   }
 }
 
-resource "aws_api_gateway_integration" "https_to_lambda" {
+resource "aws_api_gateway_integration" "smtp_to_lambda" {
   rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
-  resource_id             = aws_api_gateway_resource.https.id
-  http_method             = aws_api_gateway_method.https_post.http_method
-  integration_http_method = aws_api_gateway_method.https_post.http_method
+  resource_id             = aws_api_gateway_resource.smtp.id
+  http_method             = aws_api_gateway_method.smtp_post.http_method
+  integration_http_method = aws_api_gateway_method.smtp_post.http_method
   type                    = "AWS_PROXY"
   content_handling        = "CONVERT_TO_TEXT"
   timeout_milliseconds    = 29000
@@ -151,9 +167,30 @@ resource "aws_api_gateway_integration" "https_to_lambda" {
   request_templates  = {}
 }
 
-resource "aws_api_gateway_integration" "smtp_to_lambda" {
+resource "aws_api_gateway_resource" "cloudwatch_metric" {
+  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
+  parent_id   = aws_api_gateway_rest_api.ef_to_lambda.root_resource_id
+  path_part   = "cloudwatch_metric"
+}
+
+resource "aws_api_gateway_method" "cloudwatch_metric_post" {
+  rest_api_id    = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id    = aws_api_gateway_resource.cloudwatch_metric.id
+  http_method    = "POST"
+  authorization  = "AWS_IAM"
+  request_models = {}
+  request_parameters = {
+    "method.request.header.sf-custom-namespace"  = false
+    "method.request.header.sf-custom-name"       = false
+    "method.request.header.sf-custom-dimensions" = false
+    "method.request.header.sf-custom-value"      = false
+    "method.request.header.sf-custom-region"     = false
+  }
+}
+
+resource "aws_api_gateway_integration" "cloudwatch_metric_to_lambda" {
   rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
-  resource_id             = aws_api_gateway_resource.smtp.id
+  resource_id             = aws_api_gateway_resource.cloudwatch_metric.id
   http_method             = aws_api_gateway_method.smtp_post.http_method
   integration_http_method = aws_api_gateway_method.smtp_post.http_method
   type                    = "AWS_PROXY"
