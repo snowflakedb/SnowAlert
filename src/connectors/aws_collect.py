@@ -1584,7 +1584,6 @@ async def aioingest(table_name, options, dryrun=False):
             'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
-            'iam.list_users',
             'iam.list_policies',
             'iam.list_virtual_mfa_devices',
             's3.list_buckets',
@@ -1594,6 +1593,7 @@ async def aioingest(table_name, options, dryrun=False):
             'inspector.list_findings',
             'iam.list_groups',
             's3control.get_public_access_block',
+            'iam.list_users',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
