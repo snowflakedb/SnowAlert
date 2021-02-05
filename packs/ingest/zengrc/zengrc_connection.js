@@ -52,6 +52,9 @@ const FIRST_PAGES_SQL = indent(4,
     .join('\nUNION ALL\n')
 )
 
+// ZenGRC can have a lot of pages that take longer than API Gateway allows to
+// iterate through, so we can't use the pagination in the external function
+
 const GET_FIRST_PAGES_SQL = `
 INSERT INTO zengrc_connection
 SELECT

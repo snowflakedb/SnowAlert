@@ -185,6 +185,7 @@ resource "aws_api_gateway_method" "cloudwatch_metric_post" {
     "method.request.header.sf-custom-dimensions" = false
     "method.request.header.sf-custom-value"      = false
     "method.request.header.sf-custom-region"     = false
+    "method.request.header.sf-custom-timestamp"  = false
   }
 }
 
