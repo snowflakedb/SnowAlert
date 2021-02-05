@@ -17,7 +17,7 @@ resource "aws_lambda_function" "stdefn" {
   runtime          = "python3.8"
   timeout          = "300"
   publish          = null
-  filename         = "${path.module}/lambda-code.zip"
+  filename         = data.archive_file.lambda_code.output_path
   source_code_hash = data.archive_file.lambda_code.output_base64sha256
 }
 
