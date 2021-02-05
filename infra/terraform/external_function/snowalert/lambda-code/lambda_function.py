@@ -6,12 +6,12 @@ from vault import decrypt_if_encrypted
 from protocols import https, smtp, cloudwatch_metric
 
 
-def zip(s, chunk_size=5_000_000):
+def zip(s, chunk_size=1_000_000):
     '''zip in pieces, as it is tough to inflate large chunks in Snowflake per UDF mem limits'''
     do_zip = lambda s: encode(encode(s.encode(), encoding='zlib'), 'base64').decode()
     if len(s) > chunk_size:
-        return [do_zip(s[chunk_size:])] + zip(s[:chunk_size], chunk_size)
-    return do_zip(s)
+        return [do_zip(s[:chunk_size])] + zip(s[chunk_size:], chunk_size)
+    return [do_zip(s)]
 
 
 def format(s, ps):
