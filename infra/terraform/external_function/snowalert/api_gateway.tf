@@ -51,8 +51,24 @@ resource "aws_iam_role" "gateway_caller" {
         }
         Effect = "Allow"
         Principal = {
-          AWS = var.snowflake_integration_user
+          AWS = coalesce(var.snowflake_integration_user, "arn:aws:iam::${local.account_id}:root")
         }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "gateway_caller" {
+  name = "gateway_caller"
+  role = aws_iam_role.gateway_caller.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "execute-api:Invoke"
+        Resource = "${aws_api_gateway_rest_api.ef_to_lambda.execution_arn}/*/POST/*"
       }
     ]
   })

@@ -19,9 +19,19 @@ def format(s, ps):
 
     >>> format('{0}', [{'a': 'b'}])
     {'a': 'b'}
+
+    >>> format('{"z": [{0}]}', [{'a': 'b'}])
+
     """
+    def replace_refs(s, ps):
+        for i, p in enumerate(ps):
+            old = '{' + str(i) + '}'
+            new = dumps(p) if isinstance(p, (list, dict)) else str(p)
+            s = s.replace(old, new)
+        return s
+
     m = re.match('{(\d+)}', s)
-    return ps[int(m.group(1))] if m else s.format(*ps)
+    return ps[int(m.group(1))] if m else replace_refs(s, ps)
 
 
 def lambda_handler(event, context=None):

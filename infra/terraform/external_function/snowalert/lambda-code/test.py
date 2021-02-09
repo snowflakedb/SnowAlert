@@ -6,6 +6,24 @@ from urllib.parse import urlencode
 from lambda_function import lambda_handler
 
 
+def test_greathorn():
+    auth = environ.get('GREATHORN_AUTH')
+    if auth:
+        result = lambda_handler({
+            'path': '/https',
+            'headers': {
+              'sf-custom-method': 'post',
+              'sf-custom-auth': auth,
+              'sf-custom-base-url': 'https://api.greathorn.com',
+              'sf-custom-url': '/v2/search/events',
+              'sf-custom-json': '{"limit": 10, "offset": 0, "sortDir": "asc", "filters": [{"minEventId": {0}}]}',
+            },
+            'body': '{"data": [[0, 99999999]]}',
+        })
+        res = loads(result['body'])['data'][0][1]
+        assert len(res['results']) == 10
+
+
 def test_abuseipdb():
     key = environ.get('ABUSEIPDB_KEY')
     if key:

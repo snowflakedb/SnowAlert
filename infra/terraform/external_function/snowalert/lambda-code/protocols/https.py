@@ -46,6 +46,7 @@ def https(
     req_headers = {
         k: v.format(**req_kwargs) for k, v in parse_header_dict(headers).items()
     }
+    req_headers.setdefault('User-Agent', 'Snowflake SnowAlert External Function 1.0')
     if auth:
         auth = decrypt_if_encrypted(auth)
         req_auth = (
@@ -63,6 +64,8 @@ def https(
             pass  # if host in ct, only send creds to that host
         elif 'basic' in req_auth:
             req_headers['Authorization'] = make_basic_header(req_auth['basic'])
+        elif 'bearer' in req_auth:
+            req_headers['Authorization'] = f"Bearer {req_auth['bearer']}"
 
     # query, nextpage_path, results_path
     req_qs = params
@@ -71,7 +74,10 @@ def https(
 
     req_method = method.upper()
     if json:
-        req_data = dumps(parse_header_dict(json)).encode()
+        req_data = (
+            json if json.startswith('{') else dumps(parse_header_dict(json))
+        ).encode()
+        req_headers['Content-Type'] = 'application/json'
     else:
         req_data = data.encode()
 

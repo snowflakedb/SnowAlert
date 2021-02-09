@@ -22,13 +22,13 @@ module "snowalert" {
 variable "snowflake_integration_user" {
   type        = string
   description = "user who will be calling the API Gateway"
-  default     = "aaa"
+  default     = null
 }
 
 variable "snowflake_integration_external_id" {
   type        = string
   description = "API_AWS_EXTERNAL_ID from DESC INTEGRATION ..."
-  default     = "bbb"
+  default     = "external-id-goes-here"
 }
 
 variable "aws_cloudwatch_metric_namespace" {
