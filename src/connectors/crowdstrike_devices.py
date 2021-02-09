@@ -2,8 +2,8 @@
 Collect Crowdstrike Device information using a Client ID and Secret
 """
 
+import functools
 from typing import Coroutine, Generator, Dict, Tuple
-from baselines import percentiles
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from datetime import datetime
@@ -329,19 +329,19 @@ async def does_rem_exist(rem_id: str) -> str:
         return ""
 
     # Check if we have it stored in the table already
-    # row = db.fetch_latest(
-    #     "data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION", where=f"REM_ID={rem_id}"
-    # )
-    # if row is not None:
-    #     log.info(f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake")
-    #     return ""
+    row = db.fetch_latest(
+        "data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION",
+        where=f"REM_ID='{rem_id}'",
+    )
+    if row is not None:
+        log.info(f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake")
+        rem_id_cache[rem_id] = True
+        return ""
 
     return rem_id
 
 
-async def get_uncached_rem_dets(
-    token: str, vuln_dets: list
-) -> Coroutine[None, None, list]:
+async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
     """
     get_uncached_rem_dets returns the remediation details of only remediations that have not been recorded yet.
     According to the documentation, it pretty common for many of the vulns to share the same remediations.
@@ -367,8 +367,7 @@ async def get_uncached_rem_dets(
     # pull the data
     if len(uncached_rem_ids) == 0:
         return []
-    return get_data(
-        token,
+    return authenticated_get_data(
         CROWDSTRIKE_REMEDIATIONS_URL,
         [("ids", r) for r in uncached_rem_ids],
     ).get("resources", [])
@@ -378,77 +377,103 @@ async def insert_rem_dets(dets: list) -> Coroutine[None, None, int]:
     """
     insert_rem_dets inserts a remediation into the database.
     """
-    # if len(dets) == 0:
-    #     return 0
+    if len(dets) == 0:
+        return 0
 
-    # numRows = db.insert(
-    #     f'data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION',
-    #     values=[
-    #         {'raw': det, 'rem_id': det['id'], 'event_time': datetime.utcnow()}
-    #         for det in dets
-    #     ],
-    #     select=db.derive_insert_select(LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS),
-    #     columns=db.derive_insert_columns(LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS),
-    # )["number of rows inserted"]
+    numRows = db.insert(
+        f'data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION',
+        values=[
+            {'raw': det, 'rem_id': det['id'], 'event_time': datetime.utcnow()}
+            for det in dets
+        ],
+        select=db.derive_insert_select(LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS),
+    )["number of rows inserted"]
 
-    # log.info(f"[UPLOAD]: Inserting {numRows} rows in rem details")
-    # return numRows
-    return len(dets)
+    log.info(f"[UPLOAD]: Inserting {numRows} rows in rem details")
+    return numRows
 
 
-async def get_vuln_dets(token: str, vuln_ids: list) -> Coroutine[None, None, list]:
+async def get_vuln_dets(vuln_ids: list) -> Coroutine[None, None, list]:
     """
     get_vuln_dets pulls the vulnerability details information for a set of vuln IDs.
     """
-    return get_data(token, CROWDSTRIKE_VULN_ENTITY_URL, vuln_ids).get("resources", [])
+    return authenticated_get_data(CROWDSTRIKE_VULN_ENTITY_URL, vuln_ids).get(
+        "resources", []
+    )
 
 
 async def insert_vuln_dets(table_name: str, dets: list) -> Coroutine[None, None, int]:
     """
     insert_vuln_dets inserts the vuln details into the database.
     """
-    # if len(dets) == 0:
-    #     return 0
-    # numRows = db.insert(
-    #     table_name,
-    #     values=[{'raw': det, 'event_time': datetime.utcnow()} for det in dets],
-    #     select=db.derive_insert_select(LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS),
-    #     columns=db.derive_insert_columns(LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS),
-    # )["number of rows inserted"]
+    if len(dets) == 0:
+        return 0
+    numRows = db.insert(
+        table_name,
+        values=[{'raw': det, 'event_time': datetime.utcnow()} for det in dets],
+        select=db.derive_insert_select(LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS),
+        columns=db.derive_insert_columns(LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS),
+    )["number of rows inserted"]
 
-    # log.info(f"[UPLOAD]: Inserting {numRows} rows in vuln details")
-    # return numRows
-    return len(dets)
+    log.info(f"[UPLOAD]: Inserting {numRows} rows in vuln details")
+    return numRows
 
 
-async def get_and_insert_rem_dets(
-    token: str, vuln_dets: list
-) -> Coroutine[None, None, int]:
+async def get_and_insert_rem_dets(vuln_dets: list) -> Coroutine[None, None, int]:
     """
     get_and_insert_rem_dets dedupes and remediation IDs and then fetches their
     details from the API. The results are then inserted into the database.
     """
-    dets = await get_uncached_rem_dets(token, vuln_dets)
+    dets = await get_uncached_rem_dets(vuln_dets)
     return await insert_rem_dets(dets)
 
 
 async def pull_spotlight_vuln_details(
-    table_name: str, token: str, vuln_ids: Tuple[str, str]
+    table_name: str, vuln_ids: Tuple[str, str]
 ) -> Coroutine[None, None, list]:
     """
     pull_spotlight_vuln_details gets all the vuln detail information, inserts it
     into the database and retrieves any remediation IDs and pulls those into Snowflake
     as well.
     """
-    dets: list = await get_vuln_dets(token, vuln_ids)
+    dets: list = await get_vuln_dets(vuln_ids)
     return await asyncio.gather(
         insert_vuln_dets(table_name, dets),
-        get_and_insert_rem_dets(token, dets),
+        get_and_insert_rem_dets(dets),
     )
 
 
+def authenticated_get_data_builder(options: Dict[str, str]):
+    token = get_token_basic(
+        options.get('client_id', ""), options.get('client_secret', "")
+    )
+
+    def request(url: str, params: Dict[str, str]):
+        nonlocal token
+        while True:
+            try:
+                return get_data(token, url, params)
+            except requests.HTTPError as http_err:
+                log.info(http_err)
+                if http_err.errno == 401 | http_err.errno == 403:
+                    log.info("Token expired, getting new token...")
+                    token = get_token_basic(
+                        options.get('client_id', ""), options.get('client_secret', "")
+                    )
+                    log.info(f"Retying request: {url} {params}")
+
+    return request
+
+
+def authenticated_get_data(url: str, params: Dict[str, str]):
+    log.info("NOT IMPLEMENTED")
+
+
 def paginate_api(
-    token: str, params: Dict[str, str], url: str, max_page_entries: int = 400
+    params: Dict[str, str],
+    url: str,
+    max_page_entries: int = 400,
 ):
     """
     paginate_api returns a generator that yields page entries from the Crowdstrike
@@ -463,7 +488,7 @@ def paginate_api(
     # This API provides an 'after' pagination key to indicate their are more pages.
     # If the key is empty, we know we are on the last page.
     while len(after) != 0:
-        resp = get_data(token, url, params)
+        resp = authenticated_get_data(url, params)
         page = resp.get("meta", {}).get("pagination", {})
         # Set the next pagination key.
         after = page.get("after", "")
@@ -481,27 +506,22 @@ def paginate_api(
     yield page_entries, i + len(page_entries), page.get("total", 0)
 
 
-def pull_spotlight_data(
-    table_name: str, options: Dict[str, str], params: Dict[str, str]
-):
+def pull_spotlight_data(table_name: str, params: Dict[str, str]):
     """
     pull_spotlight_data pulls all vulnerability and associated remediation data
     from the spotlight API based on the provided filter params. Filter params
     can be configured using the Falcon Query Language (FQL).
     """
-    # Call the authorization endpoint so we can make subsequent calls to the API with an auth token
-    token = get_token_basic(
-        options.get('client_id', ""), options.get('client_secret', "")
-    )
 
-    for vuln_ids, accum, total in paginate_api(
-        token, params, CROWDSTRIKE_VULN_QUERY_URL
-    ):
+    for vuln_ids, accum, total in paginate_api(params, CROWDSTRIKE_VULN_QUERY_URL):
+        if len(vuln_ids) == 0 | total == 0:
+            break
+
         log.info(
             f"[DOWNLOAD]: {accum}/{total} ({'{:.0%}'.format(accum / total)}) vulns downloaded"
         )
         vid_tup = [("ids", v) for v in vuln_ids]
-        asyncio.run(pull_spotlight_vuln_details(table_name, token, vid_tup))
+        asyncio.run(pull_spotlight_vuln_details(table_name, vid_tup))
 
     return accum
 
@@ -521,17 +541,21 @@ def ingest_spotlight(
     # Since this API has a lot of data, only get vuln data starting from the
     # last insertion date. This assumes someone has already done a bulk download
     # at the beginning to create a vuln baseline.
-    row = db.fetch_latest(table_name, 'raw')
+    row = db.fetch_latest(table_name, 'raw:created_timestamp')
     ts = datetime.strptime("1999-01-01", "%Y-%m-%d")
     if row is not None:
-        ts = datetime.strptime(row["created_timestamp"][:10], "%Y-%m-%d")
+        ts = datetime.fromisoformat(row[: len(row) - 1])
+
     date = ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     params: Dict[str, str] = {
         "filter": f"created_timestamp:>'{date}'",
+        "sort": "created_timestamp|asc",
     }
+    global authenticated_get_data
+    authenticated_get_data = authenticated_get_data_builder(options)
 
     # pull the data
-    yield pull_spotlight_data(table_name, options, params)
+    yield pull_spotlight_data(table_name, params)
 
 
 def ingest(table_name: str, options: Dict[str, str]) -> Generator[int, None, None]:
