@@ -4,7 +4,6 @@
 
 """
 import fire
-
 from multiprocessing import Pool
 from datetime import datetime
 import importlib
@@ -74,9 +73,7 @@ def connection_run(connection_table, run_now=False):
 
         module = options['module']
 
-        metadata.update(
-            {'RUN_ID': RUN_ID, 'TYPE': module, 'LANDING_TABLE': table_name}
-        )
+        metadata.update({'RUN_ID': RUN_ID, 'TYPE': module, 'LANDING_TABLE': table_name})
 
         connector = importlib.import_module(f"connectors.{module}")
 
