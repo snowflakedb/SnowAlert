@@ -41,7 +41,7 @@ LANDING_EVENTS_TABLE_COLUMNS = [
     ('recorded_at', 'TIMESTAMP_LTZ'),
     ('raw', 'VARIANT'),
     ('timestamp', 'TIMESTAMP_LTZ'),
-    ('event_id', 'STRING'),
+    ('event_id', 'NUMBER'),
     ('source', 'STRING'),
     ('origin', 'STRING'),
     ('ip', 'STRING'),
@@ -76,7 +76,7 @@ def ingest(table_name, options, dryrun=False):
     api_key = options['api_key']
     lookback = options['lookback']
 
-    query = f'SELECT MAX(event_id) id FROM {landing_table}'
+    query = f'SELECT MAX(event_id::NUMBER) id FROM {landing_table}'
     last_id = next(db.fetch(query), {}).get('ID')
     filter = {'minEventId': last_id}
 
