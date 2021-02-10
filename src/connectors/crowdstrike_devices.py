@@ -6,6 +6,7 @@ from typing import Coroutine, Generator, Dict, Tuple
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 from datetime import datetime
+import aiohttp
 import asyncio
 from functools import reduce
 import requests
@@ -152,24 +153,27 @@ def get_offset_from_devices_results(result: dict) -> str:
 
 
 # Perform a generic API call
-def get_data(token: str, url: str, params: dict = {}) -> dict:
+async def get_data(token: str, url: str, params: dict = {}) -> dict:
     headers: dict = {"Authorization": f"Bearer {token}"}
     try:
         log.debug(f"Preparing GET: url={url} with params={params}")
-        req = requests.get(url, params=params, headers=headers)
-        req.raise_for_status()
-    except requests.HTTPError as http_err:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, headers=headers) as response:
+                return await response.json()
+        # req = requests.get(url, params=params, headers=headers)
+        # req.raise_for_status()
+    except aiohttp.ClientError as http_err:
         log.error(f"Error GET: url={url}")
         log.error(f"HTTP error occurred: {http_err}")
         raise http_err
-    try:
-        json = req.json()
+    # try:
+    #     json = req.json()
 
-    except Exception as json_error:
-        log.debug(f"JSON error occurred: {json_error}")
-        log.debug(f"requests response {req}")
-        json = {}
-    return json
+    # except Exception as json_error:
+    #     log.debug(f"JSON error occurred: {json_error}")
+    #     log.debug(f"requests response {req}")
+    #     json = {}
+    # return json
 
 
 # Helper function to format the /devices endpoint parameters
@@ -224,13 +228,13 @@ def connect(connection_name, options):
     }
 
 
-def ingest_devices(landing_table: str) -> Generator[int, None, None]:
+async def ingest_devices(landing_table: str) -> Generator[int, None, None]:
     timestamp = datetime.utcnow()
     offset = ""
     params_get_id_devices: dict = {"limit": PAGE_SIZE, "offset": offset}
 
     while 1:
-        dict_id_devices: dict = authenticated_get_data(
+        dict_id_devices: dict = await authenticated_get_data(
             CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices
         )
         resources: list = dict_id_devices["resources"]
@@ -245,7 +249,7 @@ def ingest_devices(landing_table: str) -> Generator[int, None, None]:
             CROWDSTRIKE_DEVICE_DETAILS_URL, resources
         )
 
-        dict_devices: dict = authenticated_get_data(device_details_url_and_params)
+        dict_devices: dict = await authenticated_get_data(device_details_url_and_params)
         devices = dict_devices["resources"]
 
         db.insert(
@@ -308,26 +312,40 @@ def ingest_devices(landing_table: str) -> Generator[int, None, None]:
 rem_id_cache = {}
 
 
-async def does_rem_exist(rem_id: str, rem_id_cache: Dict[str, str]) -> Tuple[bool, str]:
+async def do_rem_ids_exist(
+    rem_ids: list, rem_id_cache: Dict[str, str]
+) -> Tuple[bool, str]:
     """
     does_rem_exist returns "" if the remediation is has already been cached locally
     or is recorded in the database. Otherwise, it returns the remediation ID.
     """
-    # Check local cache if you have seen this ID in this run
-    if rem_id in rem_id_cache:
-        log.info(f"[CACHE]: Local cache hit! Already recorded {rem_id} in this round")
-        return True, ""
 
-    # Check if we have it stored in the table already
-    row = db.fetch_latest(
-        "data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION",
-        where=f"REM_ID='{rem_id}'",
-    )
-    if row is not None:
-        log.info(f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake")
-        return True, rem_id
+    def does_rem_exist(rem_id: str):
+        # Check local cache if you have seen this ID in this run
+        if rem_id in rem_id_cache:
+            log.info(
+                f"[CACHE]: Local cache hit! Already recorded {rem_id} in this round"
+            )
+            return True, ""
 
-    return False, rem_id
+        # Check if we have it stored in the table already
+        row = db.fetch_latest(
+            "data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION",
+            where=f"REM_ID='{rem_id}'",
+        )
+        if row is not None:
+            log.info(
+                f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake"
+            )
+            return True, rem_id
+
+        return False, rem_id
+
+    ret = []
+    for rem_id in rem_ids:
+        ret.append(does_rem_exist(rem_id))
+
+    return
 
 
 async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
@@ -344,9 +362,7 @@ async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
         )
     )
     # find the IDs that we have not already recorded
-    rem_ids = await asyncio.gather(
-        *[asyncio.create_task(does_rem_exist(r, rem_ids)) for r in rem_ids]
-    )
+    rem_ids = await do_rem_ids_exist(rem_ids, rem_id_cache)
 
     # update the local cache so we don't have to look them up again
     uncached_rem_ids = [r for _, r in rem_ids if r is not ""]
@@ -358,10 +374,11 @@ async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
     # pull the data
     if len(uploaded_rem_ids) == 0:
         return []
-    return authenticated_get_data(
+    resp = await authenticated_get_data(
         CROWDSTRIKE_REMEDIATIONS_URL,
         [("ids", r) for r in uploaded_rem_ids],
-    ).get("resources", [])
+    )
+    return resp.get("resources", [])
 
 
 async def insert_rem_dets(dets: list) -> Coroutine[None, None, int]:
@@ -389,9 +406,8 @@ async def get_vuln_dets(vuln_ids: list) -> Coroutine[None, None, list]:
     """
     get_vuln_dets pulls the vulnerability details information for a set of vuln IDs.
     """
-    return authenticated_get_data(CROWDSTRIKE_VULN_ENTITY_URL, vuln_ids).get(
-        "resources", []
-    )
+    resp = await authenticated_get_data(CROWDSTRIKE_VULN_ENTITY_URL, vuln_ids)
+    return resp.get("resources", [])
 
 
 async def insert_vuln_dets(table_name: str, dets: list) -> Coroutine[None, None, int]:
@@ -440,12 +456,12 @@ def authenticated_get_data_builder(options: Dict[str, str]):
         options.get('client_id', ""), options.get('client_secret', "")
     )
 
-    def request(url: str, params: Dict[str, str] = {}):
+    async def request(url: str, params: Dict[str, str] = {}):
         nonlocal token
         while True:
             try:
-                return get_data(token, url, params)
-            except requests.HTTPError as http_err:
+                return await get_data(token, url, params)
+            except aiohttp.ClientError as http_err:
                 log.info(http_err)
                 if len(http_err.args) > 0 and "401" in http_err.args[0]:
                     log.info("Token expired, getting new token...")
@@ -457,11 +473,11 @@ def authenticated_get_data_builder(options: Dict[str, str]):
     return request
 
 
-def authenticated_get_data(url: str, params: Dict[str, str] = {}):
+async def authenticated_get_data(url: str, params: Dict[str, str] = {}):
     log.info("NOT IMPLEMENTED")
 
 
-def paginate_api(
+async def paginate_api(
     params: Dict[str, str],
     url: str,
     max_page_entries: int = 400,
@@ -479,7 +495,7 @@ def paginate_api(
     # This API provides an 'after' pagination key to indicate their are more pages.
     # If the key is empty, we know we are on the last page.
     while len(after) != 0:
-        resp = authenticated_get_data(url, params)
+        resp = await authenticated_get_data(url, params)
         page = resp.get("meta", {}).get("pagination", {})
         # Set the next pagination key.
         after = page.get("after", "")
@@ -497,14 +513,17 @@ def paginate_api(
     yield page_entries, i + len(page_entries), page.get("total", 0)
 
 
-def pull_spotlight_data(table_name: str, params: Dict[str, str]):
+async def pull_spotlight_data(table_name: str, params: Dict[str, str]) -> int:
     """
     pull_spotlight_data pulls all vulnerability and associated remediation data
     from the spotlight API based on the provided filter params. Filter params
     can be configured using the Falcon Query Language (FQL).
     """
 
-    for vuln_ids, accum, total in paginate_api(params, CROWDSTRIKE_VULN_QUERY_URL):
+    tasks = []
+    async for vuln_ids, accum, total in paginate_api(
+        params, CROWDSTRIKE_VULN_QUERY_URL
+    ):
         if len(vuln_ids) == 0 | total == 0:
             break
 
@@ -512,12 +531,14 @@ def pull_spotlight_data(table_name: str, params: Dict[str, str]):
             f"[DOWNLOAD]: {accum}/{total} ({'{:.0%}'.format(accum / total)}) vulns downloaded"
         )
         vid_tup = [("ids", v) for v in vuln_ids]
-        asyncio.run(pull_spotlight_vuln_details(table_name, vid_tup))
+        task = asyncio.create_task(pull_spotlight_vuln_details(table_name, vid_tup))
+        tasks.append(task)
 
+    await asyncio.gather(*tasks)
     return accum
 
 
-def ingest_spotlight(table_name: str) -> Generator[int, None, None]:
+async def ingest_spotlight(table_name: str) -> int:
     """
     ingest_spotlight pulls the latest vulnerability data from the spotlight API
     NOTES:
@@ -541,14 +562,24 @@ def ingest_spotlight(table_name: str) -> Generator[int, None, None]:
         "sort": "created_timestamp|asc",
     }
 
+    # Fill the local cache with the remediation IDs we already know about.
+    for rem_id in db.fetch(
+        "select rem_id from data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION;"
+    ):
+        rem_id_cache[rem_id["REM_ID"]] = True
+
     # pull the data
-    yield pull_spotlight_data(table_name, params)
+    return await pull_spotlight_data(table_name, params)
+
+
+async def main(table_name: str):
+    if table_name.startswith("data.CROWDSTRIKE_DEVICES"):
+        return await ingest_devices(table_name)
+    elif table_name.startswith("data.CROWDSTRIKE_SPOTLIGHT_VULNS"):
+        return await ingest_spotlight(table_name)
 
 
 def ingest(table_name: str, options: Dict[str, str]) -> Generator[int, None, None]:
     global authenticated_get_data
     authenticated_get_data = authenticated_get_data_builder(options)
-    if table_name.startswith("CROWDSTRIKE_DEVICES"):
-        return ingest_devices(f'data.{table_name}', options)
-    elif table_name.startswith("CROWDSTRIKE_SPOTLIGHT_VULNS"):
-        return ingest_spotlight(f'data.{table_name}', options)
+    return asyncio.run(main(f'data.{table_name}'))
