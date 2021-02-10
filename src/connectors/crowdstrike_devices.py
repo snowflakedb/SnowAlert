@@ -103,11 +103,17 @@ LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS = [
     ('event_time', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
 ]
 
+REM_ID_COL = "REM_ID"
 LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS = [
-    ('raw', 'VARIANT'),
-    ('rem_id', 'STRING'),
-    ('event_time', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
+    ('RAW', 'VARIANT'),
+    (REM_ID_COL, 'STRING'),
+    ('EVENT_TIME', 'TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP'),
 ]
+
+
+def spotlight_rems_table_name(connection_name: str = "DEFAULT"):
+    return f"data.CROWDSTRIKE_SPOTLIGHT_REMS_{connection_name}_CONNECTION"
+
 
 # Perform the authorization call to create access token for subsequent API calls
 def get_token_basic(client_id: str, client_secret: str) -> str:
@@ -189,12 +195,9 @@ def connect(connection_name, options):
     spotlight_vulns_table_name = (
         f'crowdstrike_spotlight_vulns_{connection_name}_connection'
     )
-    spotlight_rems_table_name = (
-        f'crowdstrike_spotlight_rems_{connection_name}_connection'
-    )
     landing_devices_table = f'data.{devices_table_name}'
     landing_spotlight_vulns_table = f'data.{spotlight_vulns_table_name}'
-    landing_spotlight_rems_table = f'data.{spotlight_rems_table_name}'
+    landing_spotlight_rems_table = spotlight_rems_table_name(connection_name)
 
     comment = yaml_dump(module='crowdstrike_devices', **options)
 
@@ -328,8 +331,8 @@ async def do_rem_ids_exist(
 
         # Check if we have it stored in the table already
         row = db.fetch_latest(
-            "data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION",
-            where=f"REM_ID='{rem_id}'",
+            spotlight_rems_table_name(),
+            where=f"{REM_ID_COL}='{rem_id}'",
         )
         if row is not None:
             log.info(
@@ -343,7 +346,7 @@ async def do_rem_ids_exist(
     for rem_id in rem_ids:
         ret.append(does_rem_exist(rem_id))
 
-    return
+    return ret
 
 
 async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
@@ -561,10 +564,8 @@ async def ingest_spotlight(table_name: str) -> int:
     }
 
     # Fill the local cache with the remediation IDs we already know about.
-    for rem_id in db.fetch(
-        "select rem_id from data.CROWDSTRIKE_SPOTLIGHT_REMS_DEFAULT_CONNECTION;"
-    ):
-        rem_id_cache[rem_id["REM_ID"]] = True
+    for rem_id in db.fetch(f"select {REM_ID_COL} from {spotlight_rems_table_name()};"):
+        rem_id_cache[rem_id[REM_ID_COL]] = True
 
     # pull the data
     return await pull_spotlight_data(table_name, params)
