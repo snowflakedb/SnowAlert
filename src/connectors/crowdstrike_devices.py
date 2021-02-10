@@ -2,7 +2,6 @@
 Collect Crowdstrike Device information using a Client ID and Secret
 """
 
-import functools
 from typing import Coroutine, Generator, Dict, Tuple
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -225,23 +224,14 @@ def connect(connection_name, options):
     }
 
 
-def ingest_devices(
-    landing_table: str, options: Dict[str, str]
-) -> Generator[int, None, None]:
+def ingest_devices(landing_table: str) -> Generator[int, None, None]:
     timestamp = datetime.utcnow()
-
-    client_id = options['client_id']
-    client_secret = options['client_secret']
-
-    # Call the authorization endpoint so we can make subsequent calls to the API with an auth token
-    token: str = get_token_basic(client_id, client_secret)
-
     offset = ""
     params_get_id_devices: dict = {"limit": PAGE_SIZE, "offset": offset}
 
     while 1:
-        dict_id_devices: dict = get_data(
-            token, CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices
+        dict_id_devices: dict = authenticated_get_data(
+            CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices
         )
         resources: list = dict_id_devices["resources"]
         params_get_id_devices["offset"] = get_offset_from_devices_results(
@@ -255,7 +245,7 @@ def ingest_devices(
             CROWDSTRIKE_DEVICE_DETAILS_URL, resources
         )
 
-        dict_devices: dict = get_data(token, device_details_url_and_params)
+        dict_devices: dict = authenticated_get_data(device_details_url_and_params)
         devices = dict_devices["resources"]
 
         db.insert(
@@ -318,7 +308,7 @@ def ingest_devices(
 rem_id_cache = {}
 
 
-async def does_rem_exist(rem_id: str) -> str:
+async def does_rem_exist(rem_id: str, rem_id_cache: Dict[str, str]) -> Tuple[bool, str]:
     """
     does_rem_exist returns "" if the remediation is has already been cached locally
     or is recorded in the database. Otherwise, it returns the remediation ID.
@@ -326,7 +316,7 @@ async def does_rem_exist(rem_id: str) -> str:
     # Check local cache if you have seen this ID in this run
     if rem_id in rem_id_cache:
         log.info(f"[CACHE]: Local cache hit! Already recorded {rem_id} in this round")
-        return ""
+        return True, ""
 
     # Check if we have it stored in the table already
     row = db.fetch_latest(
@@ -335,10 +325,9 @@ async def does_rem_exist(rem_id: str) -> str:
     )
     if row is not None:
         log.info(f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake")
-        rem_id_cache[rem_id] = True
-        return ""
+        return True, rem_id
 
-    return rem_id
+    return False, rem_id
 
 
 async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
@@ -356,20 +345,22 @@ async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
     )
     # find the IDs that we have not already recorded
     rem_ids = await asyncio.gather(
-        *[asyncio.create_task(does_rem_exist(r)) for r in rem_ids]
+        *[asyncio.create_task(does_rem_exist(r, rem_ids)) for r in rem_ids]
     )
 
     # update the local cache so we don't have to look them up again
-    uncached_rem_ids = [r for r in rem_ids if r is not ""]
+    uncached_rem_ids = [r for _, r in rem_ids if r is not ""]
     for r in uncached_rem_ids:
         rem_id_cache[r] = True
 
+    uploaded_rem_ids = [up for up, _ in rem_ids if up]
+
     # pull the data
-    if len(uncached_rem_ids) == 0:
+    if len(uploaded_rem_ids) == 0:
         return []
     return authenticated_get_data(
         CROWDSTRIKE_REMEDIATIONS_URL,
-        [("ids", r) for r in uncached_rem_ids],
+        [("ids", r) for r in uploaded_rem_ids],
     ).get("resources", [])
 
 
@@ -390,7 +381,7 @@ async def insert_rem_dets(dets: list) -> Coroutine[None, None, int]:
         columns=db.derive_insert_columns(LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS),
     )["number of rows inserted"]
 
-    log.info(f"[UPLOAD]: Inserting {numRows} rows in rem details")
+    log.info(f"[UPLOAD]: Inserted {numRows} rows in rem details")
     return numRows
 
 
@@ -416,7 +407,7 @@ async def insert_vuln_dets(table_name: str, dets: list) -> Coroutine[None, None,
         columns=db.derive_insert_columns(LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS),
     )["number of rows inserted"]
 
-    log.info(f"[UPLOAD]: Inserting {numRows} rows in vuln details")
+    log.info(f"[UPLOAD]: Inserted {numRows} rows in vuln details")
     return numRows
 
 
@@ -449,14 +440,14 @@ def authenticated_get_data_builder(options: Dict[str, str]):
         options.get('client_id', ""), options.get('client_secret', "")
     )
 
-    def request(url: str, params: Dict[str, str]):
+    def request(url: str, params: Dict[str, str] = {}):
         nonlocal token
         while True:
             try:
                 return get_data(token, url, params)
             except requests.HTTPError as http_err:
                 log.info(http_err)
-                if http_err.errno == 401 | http_err.errno == 403:
+                if len(http_err.args) > 0 and "401" in http_err.args[0]:
                     log.info("Token expired, getting new token...")
                     token = get_token_basic(
                         options.get('client_id', ""), options.get('client_secret', "")
@@ -466,7 +457,7 @@ def authenticated_get_data_builder(options: Dict[str, str]):
     return request
 
 
-def authenticated_get_data(url: str, params: Dict[str, str]):
+def authenticated_get_data(url: str, params: Dict[str, str] = {}):
     log.info("NOT IMPLEMENTED")
 
 
@@ -526,9 +517,7 @@ def pull_spotlight_data(table_name: str, params: Dict[str, str]):
     return accum
 
 
-def ingest_spotlight(
-    table_name: str, options: Dict[str, str]
-) -> Generator[int, None, None]:
+def ingest_spotlight(table_name: str) -> Generator[int, None, None]:
     """
     ingest_spotlight pulls the latest vulnerability data from the spotlight API
     NOTES:
@@ -551,14 +540,14 @@ def ingest_spotlight(
         "filter": f"created_timestamp:>'{date}'",
         "sort": "created_timestamp|asc",
     }
-    global authenticated_get_data
-    authenticated_get_data = authenticated_get_data_builder(options)
 
     # pull the data
     yield pull_spotlight_data(table_name, params)
 
 
 def ingest(table_name: str, options: Dict[str, str]) -> Generator[int, None, None]:
+    global authenticated_get_data
+    authenticated_get_data = authenticated_get_data_builder(options)
     if table_name.startswith("CROWDSTRIKE_DEVICES"):
         return ingest_devices(f'data.{table_name}', options)
     elif table_name.startswith("CROWDSTRIKE_SPOTLIGHT_VULNS"):
