@@ -316,7 +316,7 @@ async def do_rem_ids_exist(
     rem_ids: list, rem_id_cache: Dict[str, str]
 ) -> Tuple[bool, str]:
     """
-    does_rem_exist returns "" if the remediation is has already been cached locally
+    does_rem_exist returns "" if the remediation has already been cached locally
     or is recorded in the database. Otherwise, it returns the remediation ID.
     """
 
@@ -483,8 +483,8 @@ async def paginate_api(
     max_page_entries: int = 400,
 ):
     """
-    paginate_api returns a generator that yields page entries from the Crowdstrike
-    Spotlight API. By default, page sizes are only 400 entries long because that maps
+    paginate_api returns a generator that yields page entries from the specified
+    Crowdstrike API. By default, page sizes are only 400 entries long because that maps
     to the maximim number of vuln IDs that can be specified in the vuln details API, but
     this is configurable.
     """
