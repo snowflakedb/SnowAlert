@@ -313,9 +313,7 @@ async def ingest_devices(landing_table: str) -> Generator[int, None, None]:
 rem_id_cache = {}
 
 
-async def do_rem_ids_exist(
-    rem_ids: list, rem_id_cache: Dict[str, str]
-) -> Tuple[bool, str]:
+async def do_rem_ids_exist(rem_ids: list) -> list:
     """
     does_rem_exist returns "" if the remediation has already been cached locally
     or is recorded in the database. Otherwise, it returns the remediation ID.
@@ -327,7 +325,7 @@ async def do_rem_ids_exist(
             log.info(
                 f"[CACHE]: Local cache hit! Already recorded {rem_id} in this round"
             )
-            return True, ""
+            return ""
 
         # Check if we have it stored in the table already
         row = db.fetch_latest(
@@ -338,15 +336,12 @@ async def do_rem_ids_exist(
             log.info(
                 f"[CACHE]: Database cache hit! Already recorded {rem_id} in Snowflake"
             )
-            return True, rem_id
+            rem_id_cache[rem_id] = True
+            return ""
 
-        return False, rem_id
+        return rem_id
 
-    ret = []
-    for rem_id in rem_ids:
-        ret.append(does_rem_exist(rem_id))
-
-    return ret
+    return [does_rem_exist(rem_id) for rem_id in rem_ids if rem_id is not ""]
 
 
 async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
@@ -363,21 +358,18 @@ async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
         )
     )
     # find the IDs that we have not already recorded
-    rem_ids = await do_rem_ids_exist(rem_ids, rem_id_cache)
+    uncached_rem_ids = await do_rem_ids_exist(rem_ids)
+    if len(uncached_rem_ids) == 0:
+        return []
 
-    # update the local cache so we don't have to look them up again
-    uncached_rem_ids = [r for _, r in rem_ids if r is not ""]
-    for r in uncached_rem_ids:
-        rem_id_cache[r] = True
-
-    uploaded_rem_ids = [up for up, _ in rem_ids if up]
+    # update the cache
+    for rem_id in uncached_rem_ids:
+        rem_id_cache[rem_id] = True
 
     # pull the data
-    if len(uploaded_rem_ids) == 0:
-        return []
     resp = await authenticated_get_data(
         CROWDSTRIKE_REMEDIATIONS_URL,
-        [("ids", r) for r in uploaded_rem_ids],
+        [("ids", r) for r in uncached_rem_ids],
     )
     return resp.get("resources", [])
 
