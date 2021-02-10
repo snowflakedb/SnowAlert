@@ -341,7 +341,7 @@ async def do_rem_ids_exist(rem_ids: list) -> list:
 
         return rem_id
 
-    return [does_rem_exist(rem_id) for rem_id in rem_ids if rem_id is not ""]
+    return filter(lambda x: x is not "", [does_rem_exist(rem_id) for rem_id in rem_ids])
 
 
 async def get_uncached_rem_dets(vuln_dets: list) -> Coroutine[None, None, list]:
