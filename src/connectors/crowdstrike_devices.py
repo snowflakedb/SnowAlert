@@ -208,7 +208,6 @@ def connect(connection_name, options):
         cols=LANDING_SPOTLIGHT_VULNS_TABLE_COLUMNS,
         comment=comment,
     )
-
     db.execute(
         f'GRANT INSERT, SELECT ON {landing_spotlight_vulns_table} TO ROLE {SA_ROLE}'
     )
@@ -218,7 +217,6 @@ def connect(connection_name, options):
         cols=LANDING_SPOTLIGHT_REMS_TABLE_COLUMNS,
         comment=comment,
     )
-
     db.execute(
         f'GRANT INSERT, SELECT ON {landing_spotlight_rems_table} TO ROLE {SA_ROLE}'
     )
