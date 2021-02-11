@@ -11,7 +11,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-module "snowalert" {
+module "snowflake_api_integration_aws_gateway" {
   source                            = "./snowalert"
   prefix                            = "snowalert"
   snowflake_integration_external_id = var.snowflake_integration_external_id
