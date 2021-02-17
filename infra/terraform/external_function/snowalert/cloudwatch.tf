@@ -9,7 +9,7 @@ resource "aws_iam_policy" "prod_cloudwatch_write" {
         {
           Action   = "logs:CreateLogGroup"
           Effect   = "Allow"
-          Resource = "arn:aws:logs:us-west-2:${local.account_id}:*"
+          Resource = "arn:aws:logs:${data.aws_region.current.name}:${local.account_id}:*"
         },
         {
           Action = [
