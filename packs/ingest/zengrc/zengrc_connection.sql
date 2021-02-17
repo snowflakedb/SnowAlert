@@ -3,6 +3,7 @@
 -- params:
 -- - name: auth
 --   secret: true
+-- - name: zengrc_subdomain
 -- - name: sfk_api_integration
 -- - name: aws_apigateway_prefix
 -- - name: aws_apigateway_region
@@ -14,8 +15,9 @@ CREATE OR REPLACE SECURE EXTERNAL FUNCTION data.zengrc_snowflake_api(path STRING
   COMMENT='https://docs.api.zengrc.com/'
   API_INTEGRATION={sfk_api_integration}
   HEADERS=(
+    'base-url'='https://{zengrc_subdomain}.api.zengrc.com'
+    'url'='{0}'
     'auth'='{auth}'
-    'path'='{0}'
   )
   AS 'https://{aws_apigateway_prefix}.execute-api.{aws_apigateway_region}.amazonaws.com/prod/https'
 ;

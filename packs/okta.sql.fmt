@@ -17,8 +17,8 @@ MAX_BATCH_ROWS=1
 COMMENT='okta{deployment}: (path STRING) -> response'
 API_INTEGRATION={sfk_api_integration}
 HEADERS=(
-  'host'='{okta_url}'
-  'path'='{0}'
+  'base-url'='{okta_url}'
+  'url'='{0}'
   'querystring'='{1}'
   'kwargs'='apikey={api_key}'
   'headers'='Authorization=SSWS+%7Bapikey%7D'
