@@ -2,15 +2,11 @@
 Collect Google API responses using a Service Account
 """
 
-from collections import namedtuple
-
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-
-from .utils import yaml_dump
 
 CONNECTION_OPTIONS = [
     {
@@ -35,8 +31,6 @@ CONNECTION_OPTIONS = [
         'placeholder': "auditor@first-gcp-project.company.com,auditor@second-gcp-project.company.com",
     },
 ]
-
-column = namedtuple('column', ['name', 'type'])
 
 API_SPECS = {
     'users': {
