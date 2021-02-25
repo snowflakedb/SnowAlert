@@ -121,7 +121,7 @@ def ingest_helper(spec, api_name, lambda_arg, **kwargs):
 
 
 def ingest(table_name, options, dryrun=False):
-    # Contruct kwargs for helper function
+    # Construct kwargs for helper function
     kwargs = {
         **options,
         'table_name': table_name,
