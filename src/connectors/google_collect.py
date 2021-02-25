@@ -2,10 +2,10 @@
 Collect Google API responses using a Service Account
 """
 
-from googleapiclient.discovery import build
 from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
-from runners.helpers import db
+from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 CONNECTION_OPTIONS = [
@@ -40,6 +40,28 @@ API_SPECS = {
         'resource_name': 'users',
         'method': 'list',
         'params': lambda subject: {'domain': subject.split('@')[1]},
+    },
+    'groups': {
+        'service_name': 'admin',
+        'service_version': 'directory_v1',
+        'scopes': [
+            "https://www.googleapis.com/auth/admin.directory.group.readonly",
+        ],
+        'resource_name': 'groups',
+        'method': 'list',
+        'params': lambda subject: {'domain': subject.split('@')[1]},
+        'children': {
+            'members': {
+                'service_name': 'admin',
+                'service_version': 'directory_v1',
+                'scopes': [
+                    "https://www.googleapis.com/auth/admin.directory.group.readonly",
+                ],
+                'resource_name': 'members',
+                'method': 'list',
+                'params': lambda parent: {'groupKey': parent['email']},
+            }
+        },
     },
 }
 
@@ -76,24 +98,52 @@ def make_call(
     return getattr(resource, method)(**params).execute()
 
 
+def ingest_helper(spec, api_name, lambda_arg, **kwargs):
+    call_params = {
+        'subject': kwargs['subject'],
+        'scopes': spec['scopes'],
+        'service_name': spec['service_name'],
+        'service_version': spec['service_version'],
+        'resource_name': spec['resource_name'],
+        'method': spec['method'],
+        'params': spec['params'](lambda_arg),
+    }
+    response = make_call(kwargs['service_user_creds'], **call_params)
+
+    db.insert(
+        f"data.{kwargs['table_name']}",
+        {'api_name': api_name, 'response': response, 'request': call_params},
+        dryrun=kwargs['dryrun'],
+    )
+    result = response.get(api_name, [])
+    log.debug(f"Extracted {len(result)} {api_name}.")
+    return result
+
+
 def ingest(table_name, options, dryrun=False):
-    service_user_creds = options['service_user_creds']
+    # Contruct kwargs for helper function
+    kwargs = {
+        **options,
+        'table_name': table_name,
+        'dryrun': dryrun,
+    }
+
+    # Iterate over the list of subjects in domains
+    # for which we want to list entities (users, groups, members)
     for subject in options.get('subjects_list') or ['']:
         for api_name, spec in API_SPECS.items():
-            landing_table = f'data.google_collect_{api_name}'
-            call_params = {
-                'subject': subject,
-                'scopes': spec['scopes'],
-                'service_name': spec['service_name'],
-                'service_version': spec['service_version'],
-                'resource_name': spec['resource_name'],
-                'method': spec['method'],
-                'params': spec['params'](subject=subject),
-            }
-            response = make_call(service_user_creds, **call_params)
-            db.insert(
-                f'data.{table_name}',
-                {'api_name': api_name, 'response': response, 'request': call_params},
-                dryrun=dryrun,
+            kwargs.update({'subject': subject})
+            parents = ingest_helper(
+                spec, api_name, subject, **kwargs
             )
-            yield 1
+            if 'children' not in spec:
+                yield 1
+            else:
+                # This means we've come to a resource for which we're interested in the child resources
+                # E.g. For groups() we would want to pull members()
+                for parent in parents:
+                    for child_api_name, child_spec in spec['children'].items():
+                        ingest_helper(
+                            child_spec, child_api_name, parent, **kwargs
+                        )
+                        yield 1
