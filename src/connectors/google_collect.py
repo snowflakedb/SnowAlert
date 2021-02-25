@@ -116,7 +116,7 @@ def ingest_helper(spec, api_name, lambda_arg, **kwargs):
         dryrun=kwargs['dryrun'],
     )
     result = response.get(api_name, [])
-    log.debug(f"Extracted {len(result)} {api_name}.")
+    log.debug(f"Extracted and Loaded {len(result)} {api_name}.")
     return result
 
 
