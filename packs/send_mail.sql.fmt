@@ -1,4 +1,4 @@
--- --
+-- ---
 -- name: Send Mail Pack
 -- params:
 -- - name: api_gateway
