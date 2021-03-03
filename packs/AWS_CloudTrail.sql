@@ -1,18 +1,28 @@
+-- ---
+-- params:
+-- - name: connection_name
+--   default: ""
+-- - name: bucket
+-- - name: iam_role
+--   required: true
+-- - name: integration_name
+--   required: true
+-- - name: warehouse
 -- varmap:
---   base_name: 'AWS_CLOUDTRAIL_{connection_name}_EVENTS'
---   stage: 'data.{base_name}_STAGE'
---   staging_table: 'data.{base_name}_STAGING'
---   landing_table: 'data.{base_name}_CONNECTION'
---   pipe = 'data.{base_name}_PIPE'
---   task: 'data.{base_name}_TASK'
---   stream: 'data.{base_name}_STREAM'
---   storage_integration: 'data.{base_name}_STORAGE_INTEGRATION'
+--   base_name : AWS_CLOUDTRAIL_{connection_name}_EVENTS
+--   stage : data.{base_name}_STAGE
+--   staging_table : data.{base_name}_STAGING
+--   landing_table : data.{base_name}_CONNECTION
+--   pipe : data.{base_name}_PIPE
+--   task : data.{base_name}_TASK
+--   stream : data.{base_name}_STREAM
+--   storage_integration : data.{base_name}_STORAGE_INTEGRATION
 
 
-CREATE SEQUENCE IF NOT EXISTS LANDING_TABLE_SEQ START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS landing_table_seq START 1 INCREMENT 1;
 
 CREATE TABLE IF NOT EXISTS {landing_table} (
-    insert_id NUMBER DEFAULT LANDING_TABLE_SEQ.nextval,
+    insert_id NUMBER DEFAULT landing_table_seq.nextval,
     insert_time TIMESTAMP_LTZ(9),
     raw VARIANT,
     hash_raw NUMBER,
@@ -82,7 +92,7 @@ DESC INTEGRATION {integration_name};
 
 --Staging table
 CREATE TABLE IF NOT EXISTS {staging_table} (
-    -- recorded_at TIMESTAMP_LTZ,
+    recorded_at TIMESTAMP_LTZ(9),
     v VARIANT
 );
 
@@ -98,7 +108,7 @@ CREATE OR REPLACE STREAM {stream}
 CREATE OR REPLACE PIPE {pipe}
     AUTO_INGEST = TRUE
     AS
-    COPY INTO {staging_table(v)}
+    COPY INTO {staging_table}(CURRENT_TIMESTAMP(),v)
     FROM @{stage}/
 ;
 
