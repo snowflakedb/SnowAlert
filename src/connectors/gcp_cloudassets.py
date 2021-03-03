@@ -44,7 +44,7 @@ LANDING_TABLES_COLUMNS = {
 }
 
 
-def start_export_assets_job(client, org_id, gcs_uri_prefix):
+def start_export_assets_job(client, org_id, gcs_uri_prefix, content_type):
     try:
         result = (
             client.v1()
@@ -53,7 +53,7 @@ def start_export_assets_job(client, org_id, gcs_uri_prefix):
                 body={
                     'outputConfig': {'gcsDestination': {'uriPrefix': gcs_uri_prefix}},
                     'assetTypes': ['.*'],
-                    'contentType': 'RESOURCE',
+                    'contentType': content_type,
                 },
             )
             .execute()
@@ -81,4 +81,8 @@ def ingest(table_name, options):
         org_id, location = org_location.split(':')
         dt = datetime.utcnow().strftime('%Y/%m/%d/%H:%M:%S')
         prefix = 'gs://' + location + '/cloudassets/' + dt
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix))
+        # https://cloud.google.com/asset-inventory/docs/reference/rpc/google.cloud.asset.v1#google.cloud.asset.v1.ContentType
+        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'RESOURCE'))
+        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'IAM_POLICY'))
+        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'ORG_POLICY'))
+        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'ACCESS_POLICY'))   
