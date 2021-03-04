@@ -1,4 +1,5 @@
 from base64 import b64encode
+from email.utils import parsedate_to_datetime
 from json import dumps, loads, JSONDecodeError
 from re import match
 from urllib.request import urlopen, Request
@@ -27,6 +28,7 @@ def https(
     kwargs='',
     auth=None,
     params='',
+    verbose=False,
     nextpage_path='',
     results_path='',
 ):
@@ -95,7 +97,21 @@ def https(
                 ','.join(res.headers.get_all('link', []))
             )
             response_body = res.read()
-            response = loads(response_body)
+            response_headers = dict(res.getheaders())
+            response_date = (
+                parsedate_to_datetime(response_headers['Date']).isoformat()
+                if 'Date' in response_headers
+                else None
+            )
+            response = (
+                {
+                    'body': loads(response_body),
+                    'headers': response_headers,
+                    'responded_at': response_date,
+                }
+                if verbose
+                else loads(response_body)
+            )
             result = pick(req_results_path, response)
         except HTTPError as e:
             result = {
