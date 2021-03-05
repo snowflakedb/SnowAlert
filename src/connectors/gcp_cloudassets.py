@@ -77,12 +77,12 @@ def ingest(table_name, options):
     )
     client = build('cloudasset', version='v1', credentials=creds)
 
+    # https://cloud.google.com/asset-inventory/docs/reference/rpc/google.cloud.asset.v1#google.cloud.asset.v1.ContentType
+    content_types = ['RESOURCE', 'IAM_POLICY', 'ORG_POLICY', 'ACCESS_POLICY']
+
     for org_location in options['org_locations'].split(','):
         org_id, location = org_location.split(':')
         dt = datetime.utcnow().strftime('%Y/%m/%d/%H:%M:%S')
-        prefix = 'gs://' + location + '/cloudassets/' + dt
-        # https://cloud.google.com/asset-inventory/docs/reference/rpc/google.cloud.asset.v1#google.cloud.asset.v1.ContentType
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'RESOURCE'))
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'IAM_POLICY'))
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'ORG_POLICY'))
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix, 'ACCESS_POLICY'))   
+        for content_type in content_types:
+            prefix = 'gs://' + location + '/cloudassets/' + content_type + '/' + dt      
+            db.insert(landing_table, start_export_assets_job(client, org_id, prefix, content_type)) 
