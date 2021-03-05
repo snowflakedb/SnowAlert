@@ -20,7 +20,7 @@ WHERE alert:EVENT_TIME > DATEADD(minutes, {CORRELATION_PERIOD}, '{{event_time}}'
 GET_CORRELATED_ALERT = f"""
 SELECT *
 FROM results.alerts
-WHERE alert:ACTOR = %s
+WHERE alert:ACTOR::STRING = %s
   AND (alert:OBJECT::STRING = %s OR alert:ACTION::STRING = %s)
   AND correlation_id IS NOT NULL
   AND NOT IS_NULL_VALUE(alert:ACTOR)
@@ -41,19 +41,23 @@ WHERE correlation_id IS NULL
 
 def get_correlation_id(ctx, alert):
     try:
-        actor = alert['ACTOR']
-        object = alert['OBJECT']
-        action = alert['ACTION']
+        alert_actor = alert['ACTOR']
+        alert_object = alert['OBJECT']
+        alert_action = alert['ACTION']
         time = str(alert['EVENT_TIME'])
 
         # TODO: make robust by using data.alerts view
-        if type(object) is list:
-            o = '","'.join(object)
-            object = f'["{o}"]'
+        if type(alert_actor) is list:
+            actor_str = '","'.join(str(a) for a in alert_actor)
+            alert_actor = f'["{actor_str}"]'
 
-        if type(action) is list:
-            o = '","'.join(action)
-            action = f'["{o}"]'
+        if type(alert_object) is list:
+            obj_str = '","'.join(str(o) for o in alert_object)
+            alert_object = f'["{obj_str}"]'
+
+        if type(alert_action) is list:
+            action_str = '","'.join(str(a) for a in alert_action)
+            alert_action = f'["{action_str}"]'
 
     except KeyError as e:
         log.error(f"Alert missing a required field: {e.args[0]}", e)
@@ -63,7 +67,7 @@ def get_correlation_id(ctx, alert):
     query = GET_CORRELATED_ALERT.format(time=time)
 
     try:
-        match = list(db.fetch(query, params=[actor, object, action]))
+        match = list(db.fetch(query, params=[alert_actor, alert_object, alert_action]))
     except Exception as e:
         log.error("Failed unexpectedly while getting correlation matches", e)
         match = []
