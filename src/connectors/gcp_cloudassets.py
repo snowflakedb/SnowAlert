@@ -44,7 +44,7 @@ LANDING_TABLES_COLUMNS = {
 }
 
 
-def start_export_assets_job(client, org_id, gcs_uri_prefix):
+def start_export_assets_job(client, org_id, gcs_uri_prefix, content_type):
     try:
         result = (
             client.v1()
@@ -53,7 +53,7 @@ def start_export_assets_job(client, org_id, gcs_uri_prefix):
                 body={
                     'outputConfig': {'gcsDestination': {'uriPrefix': gcs_uri_prefix}},
                     'assetTypes': ['.*'],
-                    'contentType': 'RESOURCE',
+                    'contentType': content_type,
                 },
             )
             .execute()
@@ -77,8 +77,12 @@ def ingest(table_name, options):
     )
     client = build('cloudasset', version='v1', credentials=creds)
 
+    # https://cloud.google.com/asset-inventory/docs/reference/rpc/google.cloud.asset.v1#google.cloud.asset.v1.ContentType
+    content_types = ['RESOURCE', 'IAM_POLICY', 'ORG_POLICY', 'ACCESS_POLICY']
+
     for org_location in options['org_locations'].split(','):
         org_id, location = org_location.split(':')
         dt = datetime.utcnow().strftime('%Y/%m/%d/%H:%M:%S')
-        prefix = 'gs://' + location + '/cloudassets/' + dt
-        db.insert(landing_table, start_export_assets_job(client, org_id, prefix))
+        for content_type in content_types:
+            prefix = 'gs://' + location + '/cloudassets/' + content_type + '/' + dt      
+            db.insert(landing_table, start_export_assets_job(client, org_id, prefix, content_type)) 
