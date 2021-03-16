@@ -68,6 +68,8 @@ def https(
             req_headers['Authorization'] = make_basic_header(req_auth['basic'])
         elif 'bearer' in req_auth:
             req_headers['Authorization'] = f"Bearer {req_auth['bearer']}"
+        elif 'authorization' in req_auth:
+            req_headers['Authorization'] = req_auth['authorization']
 
     # query, nextpage_path, results_path
     req_qs = params
