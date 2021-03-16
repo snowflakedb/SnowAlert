@@ -86,7 +86,6 @@ resource "aws_api_gateway_rest_api" "ef_to_lambda" {
 }
 
 resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
-  depends_on = [aws_iam_role.gateway_caller]
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
   policy = jsonencode(
     {
@@ -231,13 +230,6 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   retention_in_days = 0 # never expire
 }
 
-# resource "aws_api_gateway_stage" "prod" {
-#   depends_on = [aws_cloudwatch_log_group.api_gateway]
-
-#   stage_name    = "prod"
-#   rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
-#   deployment_id = aws_api_gateway_deployment.prod.id
-# }
 
 resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
