@@ -1,5 +1,4 @@
 from base64 import b64encode
-from email.utils import parsedate_to_datetime
 from json import dumps, loads, JSONDecodeError
 from re import match
 from urllib.request import urlopen, Request
@@ -28,7 +27,6 @@ def https(
     kwargs='',
     auth=None,
     params='',
-    verbose=False,
     nextpage_path='',
     results_path='',
 ):
@@ -68,8 +66,6 @@ def https(
             req_headers['Authorization'] = make_basic_header(req_auth['basic'])
         elif 'bearer' in req_auth:
             req_headers['Authorization'] = f"Bearer {req_auth['bearer']}"
-        elif 'authorization' in req_auth:
-            req_headers['Authorization'] = req_auth['authorization']
 
     # query, nextpage_path, results_path
     req_qs = params
@@ -99,21 +95,7 @@ def https(
                 ','.join(res.headers.get_all('link', []))
             )
             response_body = res.read()
-            response_headers = dict(res.getheaders())
-            response_date = (
-                parsedate_to_datetime(response_headers['Date']).isoformat()
-                if 'Date' in response_headers
-                else None
-            )
-            response = (
-                {
-                    'body': loads(response_body),
-                    'headers': response_headers,
-                    'responded_at': response_date,
-                }
-                if verbose
-                else loads(response_body)
-            )
+            response = loads(response_body)
             result = pick(req_results_path, response)
         except HTTPError as e:
             result = {

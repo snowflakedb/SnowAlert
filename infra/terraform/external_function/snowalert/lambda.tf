@@ -39,6 +39,7 @@ resource "aws_iam_role" "stdefn" {
       ]
     }
   )
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy_attachment" "standard_lib_write_logs" {

@@ -23,7 +23,6 @@ def format(s, ps):
     >>> format('{"z": [{0}]}', [{'a': 'b'}])
 
     """
-
     def replace_refs(s, ps):
         for i, p in enumerate(ps):
             old = '{' + str(i) + '}'
@@ -70,24 +69,4 @@ def lambda_handler(event, context=None):
             ]
         )
 
-    data_dumps = dumps({'data': res_data})
-
-    if len(data_dumps) > 6_000_000:
-        data_dumps = dumps(
-            {
-                'data': [
-                    [
-                        rn,
-                        {
-                            'error': (
-                                f'Response size ({len(data_dumps)} bytes) will likely'
-                                'exceeded maximum allowed payload size (6291556 bytes).'
-                            )
-                        },
-                    ]
-                    for rn, *args in req_body['data']
-                ]
-            }
-        )
-
-    return {'statusCode': 200, 'body': data_dumps}
+    return {'statusCode': 200, 'body': dumps({'data': res_data})}

@@ -17,6 +17,7 @@ module "snowflake_api_integration_aws_gateway" {
   snowflake_integration_external_id = var.snowflake_integration_external_id
   snowflake_integration_user        = var.snowflake_integration_user
   aws_cloudwatch_metric_namespace   = var.aws_cloudwatch_metric_namespace
+  aws_permission_boundry            = "sandbox_user_role_permissions_boundary"
 }
 
 variable "snowflake_integration_user" {
@@ -28,7 +29,7 @@ variable "snowflake_integration_user" {
 variable "snowflake_integration_external_id" {
   type        = string
   description = "API_AWS_EXTERNAL_ID from DESC INTEGRATION ..."
-  default     = "external-id-goes-here"
+  default     = "0000000"
 }
 
 variable "aws_cloudwatch_metric_namespace" {

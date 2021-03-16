@@ -21,7 +21,7 @@ resource "aws_kms_key" "prod" {
 }
 
 resource "aws_iam_policy" "prod_kms_decrypt" {
-  name        = "prod_kms_decrypt"
+  name        = "${var.prefix}_snowalert_kms_decrypt"
   path        = "/"
   description = ""
   policy = jsonencode(

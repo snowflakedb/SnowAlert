@@ -19,6 +19,7 @@ resource "aws_iam_role" "gateway_logger" {
       }
     ]
   })
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy_attachment" "gateway_logger" {
@@ -56,6 +57,7 @@ resource "aws_iam_role" "gateway_caller" {
       }
     ]
   })
+  permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy" "gateway_caller" {
@@ -84,6 +86,7 @@ resource "aws_api_gateway_rest_api" "ef_to_lambda" {
 }
 
 resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
+  depends_on = [aws_iam_role.gateway_caller]
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
   policy = jsonencode(
     {
@@ -125,7 +128,6 @@ resource "aws_api_gateway_method" "https_post" {
     "method.request.header.sf-custom-timeout"       = false
     "method.request.header.sf-custom-auth"          = false
     "method.request.header.sf-custom-response-type" = false
-    "method.request.header.sf-custom-verbose"       = false
   }
 }
 
@@ -229,13 +231,13 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   retention_in_days = 0 # never expire
 }
 
-resource "aws_api_gateway_stage" "prod" {
-  depends_on = [aws_cloudwatch_log_group.api_gateway]
+# resource "aws_api_gateway_stage" "prod" {
+#   depends_on = [aws_cloudwatch_log_group.api_gateway]
 
-  stage_name    = "prod"
-  rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
-  deployment_id = aws_api_gateway_deployment.prod.id
-}
+#   stage_name    = "prod"
+#   rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
+#   deployment_id = aws_api_gateway_deployment.prod.id
+# }
 
 resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
@@ -255,7 +257,7 @@ resource "aws_api_gateway_method_settings" "enable_logging" {
   depends_on = [aws_api_gateway_account.api_gateway]
 
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
-  stage_name  = aws_api_gateway_stage.prod.stage_name
+  stage_name  = aws_api_gateway_deployment.prod.stage_name
   method_path = "*/*"
   settings {
     logging_level          = "INFO"
