@@ -18,7 +18,7 @@ def parse_header_dict(value):
     return {k: decrypt_if_encrypted(v) for k, v in parse_qsl(value)}
 
 
-def https(
+def process_row(
     data='',
     base_url='',
     url='',
@@ -69,7 +69,7 @@ def https(
         elif 'bearer' in req_auth:
             req_headers['Authorization'] = f"Bearer {req_auth['bearer']}"
         elif 'authorization' in req_auth:
-            req_headers['Authorization'] = req_auth['authorization']
+            req_headers['authorization'] = req_auth['authorization']
 
     # query, nextpage_path, results_path
     req_qs = params

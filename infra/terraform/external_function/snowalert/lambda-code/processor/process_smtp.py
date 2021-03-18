@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 
-def smtp(
+def process_row(
     user,
     password,
     recipient_email,

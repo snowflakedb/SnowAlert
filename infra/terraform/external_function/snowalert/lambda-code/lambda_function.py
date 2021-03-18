@@ -1,9 +1,9 @@
 from codecs import encode
+from importlib import import_module
 from json import dumps, loads
 import re
 
 from vault import decrypt_if_encrypted
-from protocols import https, smtp, cloudwatch_metric
 
 
 def zip(s, chunk_size=1_000_000):
@@ -43,7 +43,7 @@ def lambda_handler(event, context=None):
     res_data = []
     for row_number, *args in req_body['data']:
         row_result = []
-        header_params = {
+        processor_params = {
             k.replace('sf-custom-', '').replace('-', '_'): format(v, args)
             for k, v in headers.items()
             if k.startswith('sf-custom-')
@@ -51,14 +51,10 @@ def lambda_handler(event, context=None):
 
         try:
 
-            if event['path'] == '/https':
-                row_result = https(**header_params)
-
-            elif event['path'] == '/smtp':
-                row_result = smtp(**header_params)
-
-            elif event['path'] == '/cloudwatch_metric':
-                row_result = cloudwatch_metric(**header_params)
+            protocol, *path = event['path'].lstrip('/').split('/')
+            protocol = protocol.replace('-', '_')
+            process_row = import_module(f'processor.process_{protocol}').process_row
+            row_result = process_row(*path, **processor_params)
 
         except Exception as e:
             row_result = {'error': repr(e)}

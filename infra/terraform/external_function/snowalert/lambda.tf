@@ -47,7 +47,7 @@ resource "aws_iam_role_policy_attachment" "standard_lib_write_logs" {
 }
 resource "aws_iam_role_policy_attachment" "standard_lib_decrypt_secrets" {
   role       = aws_iam_role.stdefn.name
-  policy_arn = aws_iam_policy.prod_kms_decrypt.arn
+  policy_arn = aws_iam_policy.kms_decrypt.arn
 }
 
 resource "aws_lambda_permission" "api_gateway" {

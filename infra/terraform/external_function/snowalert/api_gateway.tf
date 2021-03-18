@@ -210,8 +210,77 @@ resource "aws_api_gateway_method" "cloudwatch_metric_post" {
 resource "aws_api_gateway_integration" "cloudwatch_metric_to_lambda" {
   rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
   resource_id             = aws_api_gateway_resource.cloudwatch_metric.id
-  http_method             = aws_api_gateway_method.smtp_post.http_method
-  integration_http_method = aws_api_gateway_method.smtp_post.http_method
+  http_method             = aws_api_gateway_method.cloudwatch_metric_post.http_method
+  integration_http_method = aws_api_gateway_method.cloudwatch_metric_post.http_method
+  type                    = "AWS_PROXY"
+  content_handling        = "CONVERT_TO_TEXT"
+  timeout_milliseconds    = 29000
+  uri                     = aws_lambda_function.stdefn.invoke_arn
+
+  cache_key_parameters = null
+
+  request_parameters = {}
+  request_templates  = {}
+}
+
+resource "aws_api_gateway_resource" "boto3" {
+  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
+  parent_id   = aws_api_gateway_rest_api.ef_to_lambda.root_resource_id
+  path_part   = "boto3"
+}
+
+resource "aws_api_gateway_method" "boto3_post" {
+  rest_api_id    = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id    = aws_api_gateway_resource.boto3.id
+  http_method    = "POST"
+  authorization  = "AWS_IAM"
+  request_models = {}
+  request_parameters = {
+    "method.request.header.sf-custom-Namespace"     = false
+    "method.request.header.sf-custom-MetricData"    = false
+    "method.request.header.sf-custom-logGroupName"  = false
+    "method.request.header.sf-custom-logStreamName" = false
+  }
+}
+
+resource "aws_api_gateway_integration" "boto3_to_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id             = aws_api_gateway_resource.boto3.id
+  http_method             = aws_api_gateway_method.boto3_post.http_method
+  integration_http_method = aws_api_gateway_method.boto3_post.http_method
+  type                    = "AWS_PROXY"
+  content_handling        = "CONVERT_TO_TEXT"
+  timeout_milliseconds    = 29000
+  uri                     = aws_lambda_function.stdefn.invoke_arn
+
+  cache_key_parameters = null
+
+  request_parameters = {}
+  request_templates  = {}
+}
+
+resource "aws_api_gateway_resource" "xmlrpc" {
+  rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
+  parent_id   = aws_api_gateway_rest_api.ef_to_lambda.root_resource_id
+  path_part   = "xml-rpc"
+}
+
+resource "aws_api_gateway_method" "xmlrpc_post" {
+  rest_api_id    = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id    = aws_api_gateway_resource.xmlrpc.id
+  http_method    = "POST"
+  authorization  = "AWS_IAM"
+  request_models = {}
+  request_parameters = {
+    "method.request.header.sf-custom-url" = false
+  }
+}
+
+resource "aws_api_gateway_integration" "xmlrpc_to_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.ef_to_lambda.id
+  resource_id             = aws_api_gateway_resource.xmlrpc.id
+  http_method             = aws_api_gateway_method.xmlrpc_post.http_method
+  integration_http_method = aws_api_gateway_method.xmlrpc_post.http_method
   type                    = "AWS_PROXY"
   content_handling        = "CONVERT_TO_TEXT"
   timeout_milliseconds    = 29000
@@ -232,7 +301,7 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
 resource "aws_api_gateway_stage" "prod" {
   depends_on = [aws_cloudwatch_log_group.api_gateway]
 
-  stage_name    = "prod"
+  stage_name    = aws_api_gateway_deployment.prod.stage_name
   rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
   deployment_id = aws_api_gateway_deployment.prod.id
 }
@@ -240,7 +309,9 @@ resource "aws_api_gateway_stage" "prod" {
 resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
     aws_api_gateway_integration.https_to_lambda,
-    aws_api_gateway_integration.smtp_to_lambda
+    aws_api_gateway_integration.smtp_to_lambda,
+    aws_api_gateway_integration.boto3_to_lambda,
+    aws_api_gateway_integration.xmlrpc_to_lambda,
   ]
 
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id

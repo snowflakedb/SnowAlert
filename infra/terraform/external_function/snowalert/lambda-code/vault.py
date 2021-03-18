@@ -11,6 +11,7 @@ KMS_KEY = environ.get('SA_KMS_KEY')
 ENABLED = bool(KMS_KEY)
 
 kms = boto3.client('kms', region_name=SA_KMS_REGION)
+secretsmanager = boto3.client('secretsmanager', region_name=SA_KMS_REGION)
 
 
 def decrypt_if_encrypted(
@@ -19,7 +20,11 @@ def decrypt_if_encrypted(
     if envar:
         ct = environ.get(envar)
 
-    if not ct or len(ct) < 205 or not ct.startswith('AQICAH'):  # 1-byte plaintext has 205-byte ct
+    if ct.startswith('arn:aws:secretsmanager:'):
+        return secretsmanager.get_secret_value(SecretId=ct).get('SecretString')
+
+    # 1-byte plaintext has 205-byte ct
+    if not ct or len(ct) < 205 or not ct.startswith('AQICAH'):
         return ct
 
     try:
@@ -42,6 +47,7 @@ def decrypt_if_encrypted(
                 # )]
                 # fixed by waiting
                 import time
+
                 time.sleep(0.1)
                 n -= 1
                 if n == 0:

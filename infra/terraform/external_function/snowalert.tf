@@ -28,7 +28,7 @@ variable "snowflake_integration_user" {
 variable "snowflake_integration_external_id" {
   type        = string
   description = "API_AWS_EXTERNAL_ID from DESC INTEGRATION ..."
-  default     = "external-id-goes-here"
+  default     = "000000"
 }
 
 variable "aws_cloudwatch_metric_namespace" {

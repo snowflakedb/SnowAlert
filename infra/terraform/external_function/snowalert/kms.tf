@@ -20,8 +20,8 @@ resource "aws_kms_key" "prod" {
   tags = {}
 }
 
-resource "aws_iam_policy" "prod_kms_decrypt" {
-  name        = "prod_kms_decrypt"
+resource "aws_iam_policy" "kms_decrypt" {
+  name        = "snowalert_kms_decrypt"
   path        = "/"
   description = ""
   policy = jsonencode(
