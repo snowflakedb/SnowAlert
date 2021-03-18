@@ -2,11 +2,10 @@
 Use API key to regularly catch up on Greathorn Events
 '''
 
-import requests
-import os
+from datetime import datetime, timedelta
 import json
-from datetime import datetime
-from datetime import timedelta
+import os
+import requests
 import time
 
 import fire
@@ -14,6 +13,9 @@ from dateutil.parser import parse as parse_date
 
 from connectors.utils import Bearer
 from runners.helpers import db, log
+
+
+RUN_LIMIT = timedelta(minutes=10)
 
 CONNECTION_OPTIONS = [
     {
@@ -39,7 +41,7 @@ LANDING_EVENTS_TABLE_COLUMNS = [
     ('recorded_at', 'TIMESTAMP_LTZ'),
     ('raw', 'VARIANT'),
     ('timestamp', 'TIMESTAMP_LTZ'),
-    ('event_id', 'STRING'),
+    ('event_id', 'NUMBER'),
     ('source', 'STRING'),
     ('origin', 'STRING'),
     ('ip', 'STRING'),
@@ -69,30 +71,28 @@ def connect(connection_name, options):
 def ingest(table_name, options, dryrun=False):
     landing_table = f'data.{table_name}'
 
-    # https://greathorn.zendesk.com/hc/en-us/articles/115000893911-Threat-Platform-API-Reference
+    # https://greathorn.readme.io/reference (ask support for password)
     url = 'https://api.greathorn.com/v2/search/events'
     api_key = options['api_key']
     lookback = options['lookback']
 
-    starttime = db.fetch_latest(landing_table, 'timestamp', default='-1h').replace(
-        microsecond=0
-    ) + timedelta(milliseconds=1)
-    endtime = datetime.utcnow().replace(microsecond=0)
-    offset = 0
+    query = f'SELECT MAX(event_id::NUMBER) id FROM {landing_table}'
+    last_id = next(db.fetch(query), {}).get('ID')
+    filter = {'minEventId': last_id}
 
+    start = datetime.now()
+    offset = 0
     while True:
+        log.info(f"<= loading from offset={offset:04} (last_id={last_id})")
+
         res = requests.post(
             url,
             auth=Bearer(api_key),
             json={
                 'limit': 200,
                 'offset': offset,
-                'filters': [
-                    {
-                        'startDate': starttime.isoformat(),
-                        'endDate': endtime.isoformat(),
-                    }
-                ],
+                'sortDir': 'asc',
+                'filters': [filter],
             },
         )
         if res.status_code != 200:
@@ -104,19 +104,15 @@ def ingest(table_name, options, dryrun=False):
         results = response['results']
         yield len(results)
 
-        if offset == 0:
-            log.info(
-                f"[{starttime.isoformat()}, {endtime.isoformat()}] has {total} events"
-            )
+        last = results[-1]
+        last_ts = last['timestamp']
+        last_id = last['eventId']
 
-        if total > 9000:  # 10k is max & messages have ~30s delay
-            endtime -= (endtime - starttime) / 2
-            log.info(f"new endtime {endtime}")
-            continue
-
-        if not results:
-            log.info(f"That's all Folks!")
-            break
+        log.info(
+            f"=> {len(results)}/{response['total']} rows,"
+            f" offset {offset:04}"
+            f" goes to id={last_id} timestamp={last_ts}"
+        )
 
         db.insert(
             landing_table,
@@ -140,11 +136,16 @@ def ingest(table_name, options, dryrun=False):
 
         offset += len(results)
 
-        log.info(f"offset {offset} desc from {parse_date(results[-1]['timestamp'])}")
+        ran_too_long = datetime.now() - start > RUN_LIMIT
+        if offset > 10000 or len(results) < 200 or ran_too_long:
+            log.info(f"That's all Folks!")
+            break
 
 
 def main(
-    table_name='greathorn_logs_connection', api_key=os.environ['GH_TOKEN'], dryrun=True
+    table_name='greathorn_logs_connection',
+    api_key=os.environ.get('GH_TOKEN'),
+    dryrun=True,
 ):
     return ingest(table_name, {'api_key': api_key, 'lookback': '-1h'}, dryrun=dryrun)
 

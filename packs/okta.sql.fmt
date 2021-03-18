@@ -1,0 +1,209 @@
+-- --
+-- name: Okta API extfunc deployment
+-- params:
+-- - name: deployment
+-- - name: api_key
+--   secret: true
+-- - name: okta_url
+-- - name: sfk_api_integration
+-- - name: aws_apigateway_prefix
+-- - name: aws_apigateway_region
+
+CREATE OR REPLACE SECURE EXTERNAL FUNCTION okta{deployment}(path STRING, queryargs STRING)
+RETURNS VARIANT
+RETURNS NULL ON NULL INPUT
+VOLATILE
+MAX_BATCH_ROWS=1
+COMMENT='okta{deployment}: (path STRING) -> response'
+API_INTEGRATION={sfk_api_integration}
+HEADERS=(
+  'base-url'='{okta_url}'
+  'url'='{0}'
+  'querystring'='{1}'
+  'kwargs'='apikey={api_key}'
+  'headers'='Authorization=SSWS+%7Bapikey%7D'
+)
+AS 'https://{aws_apigateway_prefix}.execute-api.{aws_apigateway_region}.amazonaws.com/prod/https'
+;
+
+CREATE OR REPLACE SECURE FUNCTION okta{deployment}_users() RETURNS VARIANT
+AS $$
+  okta{deployment}('/api/v1/users', '')
+$$
+;
+
+CREATE OR REPLACE SECURE FUNCTION okta{deployment}_user_factors_catalog(userid STRING) RETURNS VARIANT
+AS $$
+  okta{deployment}('/api/v1/users/' || userid || '/factors/catalog', '')
+$$
+;
+
+CREATE OR REPLACE SECURE FUNCTION okta{deployment}_groups() RETURNS VARIANT
+AS $$
+  okta{deployment}('/api/v1/groups', '')
+$$
+;
+
+CREATE OR REPLACE SECURE FUNCTION okta{deployment}_logs(since TIMESTAMP_LTZ, limit NUMBER) RETURNS VARIANT
+AS $$
+  okta{deployment}(
+    '/api/v1/logs',
+    URLENCODE(OBJECT_CONSTRUCT(
+      'since', since,
+      'limit', limit,
+      'sortOrder', 'ASCENDING'
+    ))
+  )
+$$
+;
+
+CREATE OR REPLACE SECURE FUNCTION okta{deployment}_logs(since TIMESTAMP_LTZ) RETURNS VARIANT
+AS $$
+  okta{deployment}_logs(since, 500)
+$$
+;
+
+CREATE OR REPLACE TABLE okta{deployment}_users (
+  recorded_at TIMESTAMP_LTZ,
+  raw VARIANT,
+  id STRING,
+  status STRING,
+  created TIMESTAMP_LTZ,
+  activated TIMESTAMP_LTZ,
+  statusChanged TIMESTAMP_LTZ,
+  lastLogin TIMESTAMP_LTZ,
+  lastUpdated TIMESTAMP_LTZ,
+  passwordChanged TIMESTAMP_LTZ,
+  profile VARIANT,
+  credentials VARIANT,
+  _links VARIANT,
+  factors VARIANT
+)
+;
+
+CREATE OR REPLACE VIEW okta{deployment}_users_latest AS
+SELECT *
+FROM okta{deployment}_users
+WHERE recorded_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'
+  AND factors IS NOT NULL
+QUALIFY 1=ROW_NUMBER() OVER (
+  PARTITION BY profile:login
+  ORDER BY recorded_at DESC
+)
+;
+
+CREATE OR REPLACE TASK okta{deployment}_users_populate
+  WAREHOUSE=snowalert_warehouse
+  SCHEDULE='USING CRON 0 * * * * UTC'
+AS
+INSERT INTO data.okta{deployment}_users
+SELECT
+  CURRENT_TIMESTAMP,
+  value raw,
+  raw:id::STRING id,
+  raw:status::STRING status,
+  raw:created::TIMESTAMP_LTZ created,
+  raw:activated::TIMESTAMP_LTZ activated,
+  raw:statusChanged::TIMESTAMP_LTZ status_changed,
+  raw:lastLogin::TIMESTAMP_LTZ last_login,
+  raw:lastUpdated::TIMESTAMP_LTZ last_updated,
+  raw:passwordChanged::TIMESTAMP_LTZ password_changed,
+  raw:profile::VARIANT profile,
+  raw:credentials::VARIANT credentials,
+  raw:_links::VARIANT links,
+  NULL factors
+FROM (
+  SELECT data.okta{deployment}_users() result
+), LATERAL FLATTEN ( input => result )
+;
+ALTER TASK okta{deployment}_users_populate RESUME;
+
+CREATE OR REPLACE TASK okta{deployment}_users_enrich_factors
+  WAREHOUSE={warehouse}
+  SCHEDULE='USING CRON * * * * * UTC'
+AS
+MERGE INTO data.okta{deployment}_users d
+USING (
+  SELECT DISTINCT raw
+  FROM data.okta{deployment}_users
+  WHERE factors IS NULL
+     OR factors:error = '429 Too Many Requests'
+  LIMIT 100
+) s
+ON (
+  s.raw = d.raw
+)
+WHEN MATCHED THEN UPDATE
+SET factors = data.okta{deployment}_user_factors_catalog(d.id)
+;
+ALTER TASK okta{deployment}_users_enrich_factors RESUME;
+
+SELECT COUNT(DISTINCT id)
+FROM data.okta{deployment}_users
+WHERE factors IS NULL
+   OR factors:error = '429 Too Many Requests'
+;
+
+
+-- Groups
+
+CREATE OR REPLACE VIEW data.okta_groups_snapshots
+  COMMENT='all groups snapshots'
+AS
+SELECT
+  event_time recorded_at,
+  raw,
+  raw:id::STRING id,
+  raw:created::TIMESTAMP_LTZ created,
+  raw:lastUpdated::TIMESTAMP_LTZ last_updated,
+  raw:lastMembershipUpdated::TIMESTAMP_LTZ last_membership_updated,
+  raw:objectClass::VARIANT object_class,
+  raw:type::STRING type,
+  raw:profile::VARIANT profile,
+  raw:_links::VARIANT links,
+  raw:users::VARIANT users,
+  raw:apps::VARIANT apps
+FROM data.okta_groups_connection
+;
+
+CREATE OR REPLACE VIEW data.okta_groups
+  COMMENT='latest entry seen for each group'
+AS
+SELECT *
+FROM data.okta_groups_snapshots
+QUALIFY 1=ROW_NUMBER() OVER (
+  PARTITION BY id
+  ORDER BY recorded_at DESC
+)
+;
+
+-- System Logs
+
+CREATE OR REPLACE VIEW data.okta_system_logs
+  COMMENT='all system logs'
+AS
+SELECT
+  event_time recorded_at,
+  raw,
+  raw:uuid::STRING uuid,
+  raw:published::TIMESTAMP_LTZ published,
+  raw:eventType::STRING event_type,
+  raw:version::STRING version,
+  raw:severity::STRING severity,
+  raw:legacyEventType::STRING legacy_event_type,
+  raw:displayMessage::STRING display_message,
+  raw:actor::VARIANT actor,
+  raw:client::VARIANT client,
+  raw:request::VARIANT request,
+  raw:outcome::VARIANT outcome,
+  raw:target::VARIANT target,
+  raw:transaction::VARIANT transaction,
+  raw:debugContext::VARIANT debug_context,
+  raw:authenticationContext::VARIANT authentication_context,
+  raw:securityContext::VARIANT security_context
+FROM data.okta_system_log_connection
+;
+
+SELECT * FROM data.okta_system_logs;
+SELECT * FROM data.okta_users;
+SELECT * FROM data.okta_groups;

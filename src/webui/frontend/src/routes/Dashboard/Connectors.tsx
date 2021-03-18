@@ -86,6 +86,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
       this.state.optionValues,
     );
 
+
     let options: any[] = [];
     if (selectedConnector) {
       options = [
@@ -244,17 +245,23 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   title: 'Name',
                   dataIndex: 'table_name',
                   key: 'name',
+                  sorter: (a, b) => (a > b ? -1 : 1),
+                  sortDirections: ['descend', 'ascend'],
                 },
                 {
                   title: 'Created On',
                   dataIndex: 'created_on',
                   key: 'created_on',
+                  sorter: (a, b) => a.created_on.getTime() - b.created_on.getTime(),
+                  sortDirections: ['descend', 'ascend'],
                   render: (c) => c.toLocaleDateString(),
                 },
                 {
                   title: 'Byte Count',
                   dataIndex: 'byte_count',
                   key: 'byte_count',
+                  sorter: (a, b) => a.byte_count - b.byte_count,
+                  sortDirections: ['descend', 'ascend'],
                   render: (bytes) => {
                     if (bytes === 0) return '0 Bytes';
                     const k = 1024;
@@ -268,6 +275,8 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
                   title: 'Row Count',
                   dataIndex: 'row_count',
                   key: 'row_count',
+                  sorter: (a, b) => a.row_count - b.row_count,
+                  sortDirections: ['descend', 'ascend'],
                 },
               ]}
             />

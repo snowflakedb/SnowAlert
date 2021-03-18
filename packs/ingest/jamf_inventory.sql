@@ -3,6 +3,7 @@
 -- params:
 -- - name: basicauth
 --   secret: true
+-- - name: jamf_account
 -- - name: sfk_api_integration
 -- - name: aws_apigateway_prefix
 -- - name: aws_apigateway_region
@@ -15,7 +16,7 @@ MAX_BATCH_ROWS=1
 COMMENT='jamf_api: (path STRING) -> response'
 API_INTEGRATION={sfk_api_integration}
 HEADERS=(
-  'host'='snowflake.jamfcloud.com'
+  'host'='{jamf_account}.jamfcloud.com'
   'path'='/JSSResource/{0}'
   'headers'='accept=application%2Fjson'
   'basicauth'='{basicauth}'

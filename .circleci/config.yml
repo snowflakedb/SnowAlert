@@ -32,9 +32,14 @@ jobs:
           name: run static analysis
           command: |
             cd src
-            source .venv/bin/activate
-            MYPYPATH="`pwd`/webui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
+            # -- error: Source file found twice under different module names:
+            # -- 'src.runners.helpers' and 'runners.helpers'
+            # MYPYPATH="`pwd`/webui/backend/" \
+            #   .venv/bin/mypy --config-file mypy.ini \
+            #      ./runners \
+            #      ./scripts \
+            #      ./webui/backend/webui \
+            #      ./connectors
             .venv/bin/pytest -vv
             ./scripts/run-whitesource
 
