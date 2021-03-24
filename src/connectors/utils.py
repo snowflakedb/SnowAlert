@@ -1,3 +1,4 @@
+from inspect import signature
 import random
 import multiprocessing as mp
 
@@ -139,3 +140,8 @@ def load_sqlfmt(file, params):
     # gen vars
     # replace vars
     # return sql
+
+
+def apply_part(f, *args, **kwargs):
+    params = signature(f).parameters
+    return f(*args, **{p: v for p, v in kwargs.items() if p in params})
