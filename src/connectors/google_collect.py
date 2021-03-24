@@ -8,6 +8,8 @@ from googleapiclient.discovery import build
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
+from .utils import apply_part
+
 CONNECTION_OPTIONS = [
     {
         'name': 'service_user_creds',
@@ -40,6 +42,17 @@ API_SPECS = {
         'resource_name': 'users',
         'method': 'list',
         'params': lambda subject: {'domain': subject.split('@')[1]},
+    },
+    'findings': {
+        'service_name': 'securitycenter',
+        'service_version': 'v1',
+        'scopes': ['https://www.googleapis.com/auth/cloud-platform'],
+        'resource_name': 'organizations.sources.findings',
+        'method': 'list',
+        'without_subject': True,
+        'params': lambda orgId: {
+            'parent': f'organizations/{orgId}/sources/-'
+        },
     },
     'groups': {
         'service_name': 'admin',
@@ -82,12 +95,16 @@ def make_call(
     resource_name,
     method,
     params,
+    without_subject=False,
     subject=None,
     scopes=None,
 ):
-    creds = service_account.Credentials.from_service_account_info(service_account_info)
-    if subject is not None:
-        creds = creds.with_subject(subject).with_scopes(scopes)
+    c = service_account.Credentials.from_service_account_info(service_account_info)
+    if subject is None or without_subject:
+        creds = c.with_scopes(scopes)
+    else:
+        creds = c.with_subject(subject).with_scopes(scopes)
+
 
     service = build(service_name, version=service_version, credentials=creds)
     resource_name, *subresource_names = resource_name.split('.')
@@ -98,17 +115,10 @@ def make_call(
     return getattr(resource, method)(**params).execute()
 
 
-def ingest_helper(spec, api_name, lambda_arg, **kwargs):
-    call_params = {
-        'subject': kwargs['subject'],
-        'scopes': spec['scopes'],
-        'service_name': spec['service_name'],
-        'service_version': spec['service_version'],
-        'resource_name': spec['resource_name'],
-        'method': spec['method'],
-        'params': spec['params'](lambda_arg),
-    }
-    response = make_call(kwargs['service_user_creds'], **call_params)
+def ingest_helper(spec, api_name, **kwargs):
+    call_params = {**kwargs, **spec}
+    call_params['params'] = apply_part(spec['params'], **call_params)
+    response = apply_part(make_call, kwargs['service_user_creds'], **call_params)
 
     db.insert(
         f"data.{kwargs['table_name']}",
@@ -123,19 +133,19 @@ def ingest_helper(spec, api_name, lambda_arg, **kwargs):
 def ingest(table_name, options, dryrun=False):
     # Construct kwargs for helper function
     kwargs = {
-        **options,
         'table_name': table_name,
         'dryrun': dryrun,
+        **options,
     }
 
     # Iterate over the list of subjects in domains
     # for which we want to list entities (users, groups, members)
-    for subject in options.get('subjects_list') or ['']:
-        for api_name, spec in API_SPECS.items():
-            kwargs.update({'subject': subject})
-            parents = ingest_helper(
-                spec, api_name, subject, **kwargs
-            )
+    for collectee in options.get('collect') or ['']:
+        apis = options['apis'].split(',') if 'apis' in options else API_SPECS
+        for api_name in apis:
+            spec = API_SPECS[api_name]
+            kwargs.update(collectee)
+            parents = ingest_helper(spec, api_name, **kwargs)
             if 'children' not in spec:
                 yield 1
             else:
@@ -143,7 +153,6 @@ def ingest(table_name, options, dryrun=False):
                 # E.g. For groups() we would want to pull members()
                 for parent in parents:
                     for child_api_name, child_spec in spec['children'].items():
-                        ingest_helper(
-                            child_spec, child_api_name, parent, **kwargs
-                        )
+                        kwargs['parent'] = parent
+                        ingest_helper(child_spec, child_api_name, **kwargs)
                         yield 1

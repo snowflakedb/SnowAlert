@@ -1,3 +1,4 @@
+from inspect import signature
 import random
 import multiprocessing as mp
 
@@ -131,3 +132,9 @@ def create_metadata_table(table, cols, addition):
     if any(name == addition[0].upper() for name in table_names):
         return
     db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')
+
+
+def apply_part(f, *args, **kwargs):
+    "apply to f args and whatever part of kwargs it has params for"
+    params = signature(f).parameters
+    return f(*args, **{p: v for p, v in kwargs.items() if p in params})
