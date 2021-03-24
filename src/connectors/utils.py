@@ -131,11 +131,3 @@ def create_metadata_table(table, cols, addition):
     if any(name == addition[0].upper() for name in table_names):
         return
     db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')
-
-
-def load_sqlfmt(file, params):
-    docstring, template = split_on(lambda x: x.startswith('-- '), file.readlines(), 1)
-    metadata = yaml.safe_loads(docstring)
-    # gen vars
-    # replace vars
-    # return sql
