@@ -10,7 +10,7 @@ setup(
         'aioboto3==8.0.5',
         'fire==0.1.3',
         'jira==2.0.0',
-        'PyYAML==5.3.1',
+        'PyYAML==5.4',
         'xmltodict==0.12.0',
         'snowflake-connector-python==2.2.10',
         'snowflake-sqlalchemy==1.2.3',
