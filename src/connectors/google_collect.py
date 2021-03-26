@@ -27,10 +27,10 @@ CONNECTION_OPTIONS = [
     },
     {
         'type': 'list',
-        'name': 'subjects_list',
-        'title': "List of Subjects (optional)",
-        'prompt': "Comma-separated list credentials delegated to Service Account",
-        'placeholder': "auditor@first-gcp-project.company.com,auditor@second-gcp-project.company.com",
+        'name': 'collect',
+        'title': "List of Collections",
+        'prompt': "Comma-separated list of domain, subject, orgId",
+        'placeholder': '{"domain":"...","subject":"...","orgId":"..."}',
     },
 ]
 
@@ -115,15 +115,15 @@ def make_call(
     return getattr(resource, method)(**params).execute()
 
 
-def ingest_helper(spec, api_name, **kwargs):
+def ingest_helper(spec, api_name, service_user_creds, table_name, dryrun, **kwargs):
     call_params = {**kwargs, **spec}
     call_params['params'] = apply_part(spec['params'], **call_params)
-    response = apply_part(make_call, kwargs['service_user_creds'], **call_params)
+    response = apply_part(make_call, service_user_creds, **call_params)
 
     db.insert(
-        f"data.{kwargs['table_name']}",
+        f"data.{table_name}",
         {'api_name': api_name, 'response': response, 'request': call_params},
-        dryrun=kwargs['dryrun'],
+        dryrun=dryrun,
     )
     result = response.get(api_name, [])
     log.debug(f"Extracted and Loaded {len(result)} {api_name}.")
@@ -138,7 +138,7 @@ def ingest(table_name, options, dryrun=False):
         **options,
     }
 
-    # Iterate over the list of subjects in domains
+    # Iterate over the list of domains, subjects, orgId's
     # for which we want to list entities (users, groups, members)
     for collectee in options.get('collect') or ['']:
         apis = options['apis'].split(',') if 'apis' in options else API_SPECS
