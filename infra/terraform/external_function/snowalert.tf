@@ -31,6 +31,12 @@ variable "aws_api_integration_assumed_role" {
   default     = "snowflake_api_integration_gateway_caller"
 }
 
+variable "aws_iam_permission_boundary" {
+  type        = string
+  description = "if your account requires a permission boundary on IAM Roles"
+  default     = none
+}
+  
 variable "aws_cloudwatch_metric_namespace" {
   type        = string
   description = "where EF can write CloudWatch Metrics"
