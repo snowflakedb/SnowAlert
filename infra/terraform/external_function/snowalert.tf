@@ -19,16 +19,16 @@ module "snowflake_api_integration_aws_gateway" {
   aws_cloudwatch_metric_namespace   = var.aws_cloudwatch_metric_namespace
 }
 
-variable "snowflake_integration_user" {
+variable "snowflake_api_integration_name" {
   type        = string
-  description = "user who will be calling the API Gateway"
+  description = "API Integration that can be used to make calls"
   default     = null
 }
 
-variable "snowflake_integration_external_id" {
+variable "aws_api_integration_assumed_role" {
   type        = string
-  description = "API_AWS_EXTERNAL_ID from DESC INTEGRATION ..."
-  default     = "000000"
+  description = "IAM Role assumed by Snowflake to make calls"
+  default     = "snowflake_api_integration_gateway_caller"
 }
 
 variable "aws_cloudwatch_metric_namespace" {
