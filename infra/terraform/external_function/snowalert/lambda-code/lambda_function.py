@@ -2,8 +2,14 @@ from codecs import encode
 from importlib import import_module
 from json import dumps, loads
 import re
+import sys
+import os.path
 
 from vault import decrypt_if_encrypted
+
+# pip install --target ./site-packages -r requirements.txt
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(dir_path, 'site-packages'))
 
 
 def zip(s, chunk_size=1_000_000):
