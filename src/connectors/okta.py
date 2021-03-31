@@ -81,13 +81,6 @@ def connect(connection_name, options):
         'newMessage': "Okta ingestion table, user table, group table created!",
     }
 
-def get_next_url_from_headers(response):
-    url = ''
-    links = requests.utils.parse_header_links(response.headers['Link'])
-    for link in links:
-        if link['rel'] == 'next':
-            url = link['url']
-    return url
 
 def ingest_users(url, headers, landing_table, now):
     while 1:
@@ -107,7 +100,11 @@ def ingest_users(url, headers, landing_table, now):
         log.info(f'Inserted {len(result)} rows.')
         yield len(result)
 
-        url = get_next_url_from_headers(response)
+        url = ''
+        links = requests.utils.parse_header_links(response.headers['Link'])
+        for link in links:
+            if link['rel'] == 'next':
+                url = link['url']
 
         if len(url) == 0:
             break
@@ -149,29 +146,19 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
-            users = []
-            has_next_page = True
-            url = row['_links']['users']['href']
-            while has_next_page:    
-                try:
-                    response = requests.get(
-                        url=url, headers=headers
-                    )
-                    users += response.json()
-                    url = get_next_url_from_headers(response)
-                    if len(url) == 0:
-                        has_next_page = False
-                except TypeError:
-                    log.info(row)
-                    raise
-            row['users'] = users
+            try:
+                row['users'] = requests.get(
+                    url=row['_links']['users']['href'], headers=headers
+                ).json()
+            except TypeError:
+                log.info(row)
+                raise
 
         db.insert(
             landing_table, [{'raw': row, 'event_time': now} for row in result],
         )
 
         log.info(f'Inserted {len(result)} rows.')
-
         yield len(result)
 
     elif ingest_type == 'users':
