@@ -11,7 +11,6 @@ import * as stateTypes from '../../reducers/types';
 import {Query, Suppression} from '../../store/rules';
 import BasicLayout from '../../layouts/BasicLayout';
 import {history, navigate} from '../../store/history';
-import Viz from './viz'
 
 import './Alerts.css';
 
@@ -39,7 +38,6 @@ class Dependencies extends React.PureComponent<Props> {
     
     return (
       <BasicLayout>
-        <Viz  />
         <Card
           className={'card'}
         

@@ -2,7 +2,6 @@ import {useRef, useEffect, useState, useCallback} from 'react';
 import {Query, Suppression} from '../../store/rules';
 import * as React from 'react';
 import {updateRuleBody, saveRule, deleteRule, editRule} from '../../actions/rules';
-import cmstore from '../../store/cmstore';
 import {
   EditorView,
   ViewUpdate,
@@ -29,59 +28,37 @@ import {oneDark} from '@codemirror/theme-one-dark';
 import './RawEditor.css';
 import sqlFormatter from 'snowsql-formatter';
 
-
-/*
-type MyProps = {
-  initialValue: string;
-  editorRule: Query | Suppression | undefined;
-  updateRuleBody: typeof updateRuleBody;
-};
-
-const initialState = {
-  editorValue: '',
-};
-*/
-
 const Codemirror: React.FC<{
-  editorInitialValue: string ;
-  editorRule: Query | Suppression ;
+  editorInitialValue: string;
+  editorRule: Query | Suppression;
   updateRuleBody: typeof updateRuleBody;
-  forEffect: Boolean ;
+  forEffect: Boolean;
 }> = ({editorInitialValue, editorRule, updateRuleBody, forEffect}) => {
-
-
   const [editorValue, setEditorValue] = useState<string>('');
 
   const editor = useRef<EditorView>();
 
-  useEffect(() => {    
+  useEffect(() => {
     editor.current?.dispatch({
       changes: {
         from: 0,
         to: editor.current.state.doc.length,
-        insert: sqlFormatter.format(JSON.parse(JSON.stringify(editorRule._raw.body.toString()))),
+        insert: sqlFormatter.format(editorRule.raw.body.toString()),
       },
-      
     });
-      //a work around to reflect Formatted SQL
-
+    //to reflect Formatted SQL
   }, [forEffect]);
-
 
   const onUpdate = (editorRule: any) =>
     EditorView.updateListener.of((view: ViewUpdate) => {
-
       const editorDocument = view.state.doc;
 
       const docString = editorDocument.toString();
 
       if (docString !== editorValue) {
-        
-        setEditorValue(docString)
+        setEditorValue(docString);
         updateRuleBody(editorRule?.viewName, docString);
-
       }
-
     });
 
   // Initialize view

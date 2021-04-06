@@ -1,6 +1,4 @@
-import {Button, Input} from 'antd';
-import {useRef, useEffect, useState, useCallback} from 'react';
-
+import {Button} from 'antd';
 import {
   LoadingOutlined,
   UploadOutlined,
@@ -10,21 +8,16 @@ import {
 } from '@ant-design/icons';
 
 import * as React from 'react';
-import {connect, Provider} from 'react-redux';
+import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
-
 import {getRules} from '../../reducers/rules';
 import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 import {State, SnowAlertRulesState} from '../../reducers/types';
 import sqlFormatter from 'snowsql-formatter';
-//import { Route } from "react-router-dom";
-
 import './RawEditor.css';
 import {Query, Suppression} from '../../store/rules';
-import {render} from 'stylus';
 import Codemirror from './codemirror_wrapper';
-import cmstore from '../../store/cmstore';
-declare const window: any;
+
 
 interface OwnProps {
   currentRuleView: string | null;
@@ -84,13 +77,12 @@ class RawEditor extends React.Component<RawEditorProps> {
           type="default"
           disabled={!rule || rule.isSaving}
           onClick={() => {
-            rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body));
+       //     rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body));
             this.setState({formatBoolean: !formatBoolean});
           }}
         >
           <CheckCircleOutlined /> Format
         </Button>
-
       </div>
     );
   }
