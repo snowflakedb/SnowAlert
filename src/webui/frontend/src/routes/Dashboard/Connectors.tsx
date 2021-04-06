@@ -215,7 +215,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         <Tabs>
           <Tabs.TabPane tab="Connectors" key="1">
             {connectors.map((c) => (
-              <Card className = "custom"
+              <Card className = "custom-hover"
                 key={c.name}
                 style={
                   { width: 350, margin: 10, float: 'left'}
