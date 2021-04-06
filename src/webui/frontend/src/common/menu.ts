@@ -46,9 +46,11 @@ export const getMenuData = () =>
         },
       ],
     },
+    /*
     {
       name: 'Data Dependencies',
       icon: 'dependency',
       path: '/dashboard/dependencies/',
     },
+    */
   ].filter(isNotNull);
