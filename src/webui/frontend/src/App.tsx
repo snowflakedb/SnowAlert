@@ -33,6 +33,10 @@ const SnowAlertWebUI = () => (
 
       <ViolationsDashboard path="dashboard/violations" />
       <ViolationsDashboard path="dashboard/violations/:selected" />
+
+
+      <ViolationsDashboard path="dashboard/dependencies" />
+
     </Router>
   </>
 );

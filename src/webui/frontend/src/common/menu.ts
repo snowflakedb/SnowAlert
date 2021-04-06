@@ -9,6 +9,7 @@ export const getMenuData = () =>
       icon: 'api',
       path: '/dashboard/connectors/',
     },
+    
     localStorage.getItem('enable_baselines')
       ? {
           name: 'Baselines',
@@ -44,5 +45,10 @@ export const getMenuData = () =>
           path: '404',
         },
       ],
+    },
+    {
+      name: 'Data Dependencies',
+      icon: 'dependency',
+      path: '/dashboard/dependencies/',
     },
   ].filter(isNotNull);
