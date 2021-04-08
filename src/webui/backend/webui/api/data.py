@@ -51,7 +51,7 @@ def jsonified(f):
 @jsonified
 @cache_oauth_connection
 def get_data():
-    query = "SHOW TABLES LIKE '%_CONNECTION' IN SCHEMA SNOWALERT.DATA"
+    query = "SHOW TERSE TABLES LIKE '%_CONNECTION' IN SCHEMA SNOWALERT.DATA"
     connections = list(db.fetch(query))
 
     return {
