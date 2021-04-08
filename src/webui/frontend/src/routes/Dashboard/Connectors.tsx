@@ -217,13 +217,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
             {connectors.map((c) => (
               <Card className = "custom-hover"
                 key={c.name}
-                style={
-                  { width: 350, margin: 10, float: 'left'}
-
-                
-                
-                
-                }
+                style={{width: 350, margin: 10, float: 'left'}}
                 actions={[
                   // eslint-disable-next-line
                   <a key={1} onClick={() => this.selectConnector(c.name)}>
