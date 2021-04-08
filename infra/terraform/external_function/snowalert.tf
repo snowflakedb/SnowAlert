@@ -30,6 +30,10 @@ module "snowflake_api_integration_aws_gateway" {
   gateway_logger_name               = var.gateway_logger_name
   gateway_caller_name               = var.gateway_caller_name
   aws_iam_role_policy_name          = var.aws_iam_role_policy_name
+  snowflake_username                = var.snowflake_username
+  snowflake_account                 = var.snowflake_account
+  snowflake_password                = var.snowflake_password
+  snowflake_role                    = var.snowflake_role
 }
 
 variable "aws_permission_boundry" {
@@ -72,4 +76,24 @@ variable "aws_iam_role_policy_name" {
 variable "aws_deployment_stage_name" {
   type        = string
   default     = "prod"
+}
+
+variable "snowflake_username" {
+  type        = string
+  default     = ""
+}
+
+variable "snowflake_account" {
+  type        = string
+  default     = ""
+}
+
+variable "snowflake_password" {
+  type        = string
+  default     = ""
+}
+
+variable "snowflake_role" {
+  type        = string
+  default     = ""
 }

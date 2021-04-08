@@ -9,10 +9,10 @@ terraform {
 
 provider "snowflake" {
   # Configuration options
-  username = "chetan"
-  account  = "kh54840"
-  password = "Alwaysmotivated@1"
-  role = "ACCOUNTADMIN"
+  username = var.snowflake_username   
+  account  = var.snowflake_account    
+  password = var.snowflake_password   
+  role     = var.snowflake_role       
 }
 
 resource "snowflake_api_integration" "api_integration" {
