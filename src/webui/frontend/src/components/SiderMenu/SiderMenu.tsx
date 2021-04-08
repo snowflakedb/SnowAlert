@@ -33,8 +33,6 @@ const getIcon = (icon: string | React.ReactNode) => {
       return <EyeOutlined />;
     case 'file-done':
     return <FileDoneOutlined />;
-    case 'dependency':
-      return <FileDoneOutlined />;
     default:
       return <ExceptionOutlined />;
   }
