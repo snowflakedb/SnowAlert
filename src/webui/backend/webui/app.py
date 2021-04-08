@@ -18,7 +18,7 @@ URL_EXTENSIONS_CACHED = ('js', 'woff2', 'css')
 
 class SAJSONEncoder(json.JSONEncoder):
     def default(self, o):
-        return json_dumps(o)
+        return json.loads(json_dumps(o))
 
 
 class SAFlask(Flask):

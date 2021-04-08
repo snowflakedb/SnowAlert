@@ -51,7 +51,14 @@ def jsonified(f):
 @jsonified
 @cache_oauth_connection
 def get_data():
-    return {'connectors': CONNECTION_OPTIONS, 'baselines': BASELINE_OPTIONS}
+    query = "SHOW TABLES LIKE '%_CONNECTION' IN SCHEMA SNOWALERT.DATA"
+    connections = list(db.fetch(query))
+
+    return {
+        'connectors': CONNECTION_OPTIONS,
+        'baselines': BASELINE_OPTIONS,
+        'connections': connections,
+    }
 
 
 @data_api.route('/connectors/<connector>/<name>', methods=['POST'])
@@ -121,7 +128,7 @@ def post_connector_test(connector, name):
 def create_baseline(baseline):
     options_from_request = request.get_json()
 
-    if 'base_table' not in options_from_request:
+    if 'base_table_and_timecol' not in options_from_request:
         raise RuntimeError('please specify a target table')
 
     baseline = importlib.import_module(f"baselines.{baseline}")
@@ -139,6 +146,4 @@ def create_baseline(baseline):
             'errorMessage': f"Missing required configuration options:{missing_titles_str}",
         }
 
-    return {
-        'results': baseline.create(options)
-    }
+    return {'results': baseline.create(options)}

@@ -114,7 +114,7 @@ def append_to_body(id, alert, project):
 
 
 def link_search_todos(description=None, project=PROJECT):
-    q = f'project = {project} ORDER BY created ASC'
+    q = f'project = {project} ORDER BY created DESC'
 
     if description:
         q = f'description ~ "{description}" AND {q}'

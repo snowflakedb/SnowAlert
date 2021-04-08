@@ -14,7 +14,9 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , 'test1_alert_query_title' AS title
     , 'This is a test alert query; this should be grouped with Test 3' AS description
     , 'SnowAlert' AS detector
-    , 'Common Test Actor' AS actor
+    , ARRAY_CONSTRUCT(
+        OBJECT_CONSTRUCT('complex-actor-type', 'Common Test Actor')
+      ) AS actor
     , 'test action 1' AS action
     , 'test_1_query_id' AS query_id
     , 'low' AS severity
@@ -76,7 +78,7 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , 'test3_alert_query' AS title
     , 'This is a third test alert query; this should be grouped with Test 1' AS description
     , 'SnowAlert' AS detector
-    , 'Common Test Actor' AS actor
+    , ARRAY_CONSTRUCT(OBJECT_CONSTRUCT('complex-actor-type', 'Common Test Actor')) AS actor
     , 'test action 3' AS action
     , 'test_3_query' AS query_id
     , 'low' AS severity
@@ -122,7 +124,7 @@ WHERE 1=1
 
 EXPECTED_TEST_1_OUTPUT = {
     "ACTION": "test action 1",
-    "ACTOR": "Common Test Actor",
+    "ACTOR": '[{"complex-actor-type":"Common Test Actor"}]',
     "DESCRIPTION": "This is a test alert query; this should be grouped with Test 3",
     "DETECTOR": "SnowAlert",
     "ENVIRONMENT": {"account": "account_test", "cloud": "cloud_test"},
@@ -252,8 +254,6 @@ def test_alert_runners_processor_and_dispatcher(
     assert query_rule_run_record[-1]['QUERY_NAME'] == '_TEST4_ALERT_QUERY'
     assert query_rule_run_record[-1]['NUM_ALERTS_CREATED'] == 1
 
-    print(query_rule_run_record)
-
     queries_run_records = list(
         db.fetch('SELECT * FROM data.alert_queries_runs ORDER BY start_time')
     )
@@ -333,7 +333,7 @@ def test_alert_runners_processor_and_dispatcher(
     alert_processor.main()
 
     # basics
-    rows = list(db.get_alerts(actor='Common Test Actor'))
+    rows = list(db.get_alerts(actor='[{"complex-actor-type":"Common Test Actor"}]'))
     assert len(rows) == 2
     assert rows[0]['CORRELATION_ID'] is not None
     assert rows[0]['CORRELATION_ID'] != ""

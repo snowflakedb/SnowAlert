@@ -10,7 +10,7 @@ from runners.helpers import vault
 
 
 HOST = env.get('SA_SMTP_HOST', env.get('SMTP_SERVER', ''))
-PORT = int(env.get('SA_SMTP_PORT', env.get('port', 587)))
+PORT = int(env.get('SA_SMTP_PORT', env.get('SMTP_PORT', 587)))
 USER = env.get('SA_SMTP_USER', env.get('SMTP_USER', ''))
 PASSWORD = env.get('SA_SMTP_PASSWORD', env.get('SMTP_PASSWORD', ''))
 USE_SSL = env.get('SA_SMTP_USE_SSL', env.get('SMTP_USE_SSL', True))
