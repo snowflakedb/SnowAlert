@@ -10,7 +10,7 @@ data "archive_file" "lambda_code" {
 }
 
 resource "aws_lambda_function" "stdefn" {
-  function_name    = "${var.prefix}_external_function"
+  function_name    = "${var.prefix}_external_function1"
   role             = aws_iam_role.stdefn.arn
   handler          = "lambda_function.lambda_handler"
   memory_size      = "512"
@@ -22,7 +22,7 @@ resource "aws_lambda_function" "stdefn" {
 }
 
 resource "aws_iam_role" "stdefn" {
-  name = "${var.prefix}-external-function"
+  name = "${var.prefix}-external-function1"
   path = "/service-role/"
 
   assume_role_policy = jsonencode(
@@ -39,6 +39,7 @@ resource "aws_iam_role" "stdefn" {
       ]
     }
   )
+  # permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy_attachment" "standard_lib_write_logs" {

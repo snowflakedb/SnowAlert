@@ -5,7 +5,7 @@
 */
 
 resource "aws_iam_role" "gateway_logger" {
-  name = "${var.prefix}-api-gateway-logger"
+  name = var.gateway_logger_name
   path = "/"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -19,6 +19,7 @@ resource "aws_iam_role" "gateway_logger" {
       }
     ]
   })
+  # permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy_attachment" "gateway_logger" {
@@ -37,7 +38,7 @@ resource "aws_api_gateway_account" "api_gateway" {
 */
 
 resource "aws_iam_role" "gateway_caller" {
-  name = "${var.prefix}-api-gateway-caller"
+  name = var.gateway_caller_name
   path = "/"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -46,20 +47,21 @@ resource "aws_iam_role" "gateway_caller" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "sts:ExternalId" = var.snowflake_integration_external_id
+            "sts:ExternalId" = snowflake_api_integration.api_integration.api_aws_external_id
           }
         }
         Effect = "Allow"
         Principal = {
-          AWS = coalesce(var.snowflake_integration_user, "arn:aws:iam::${local.account_id}:root")
+          AWS = snowflake_api_integration.api_integration.api_aws_iam_user_arn #"arn:aws:iam::${local.account_id}:role/var.gateway_logger_name"
         }
       }
     ]
   })
+  # permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy" "gateway_caller" {
-  name = "gateway_caller"
+  name = var.aws_iam_role_policy_name
   role = aws_iam_role.gateway_caller.id
 
   policy = jsonencode({
@@ -74,6 +76,11 @@ resource "aws_iam_role_policy" "gateway_caller" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "gateway_caller" {
+  role       = aws_iam_role.gateway_caller.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess"
+}
+
 resource "aws_api_gateway_rest_api" "ef_to_lambda" {
   name = "${var.prefix}-seceng-external-functions"
   endpoint_configuration {
@@ -84,22 +91,27 @@ resource "aws_api_gateway_rest_api" "ef_to_lambda" {
 }
 
 resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
+  depends_on = [
+    aws_iam_role.gateway_caller,
+    aws_api_gateway_rest_api.ef_to_lambda,
+    aws_api_gateway_method_settings.enable_logging,
+  ]
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
-  policy = jsonencode(
-    {
+
+  policy = jsonencode({
       Version = "2012-10-17"
       Statement = [
         {
           Effect = "Allow"
           Principal = {
-            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${aws_iam_role.gateway_caller.name}/snowflake"
+            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${var.gateway_caller_name}/snowflake"
           }
           Action   = "execute-api:Invoke"
           Resource = "${aws_api_gateway_rest_api.ef_to_lambda.execution_arn}/*/POST/*"
         },
       ]
-    }
-  )
+    })
+
 }
 
 resource "aws_api_gateway_resource" "https" {
@@ -298,13 +310,7 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   retention_in_days = 0 # never expire
 }
 
-resource "aws_api_gateway_stage" "prod" {
-  depends_on = [aws_cloudwatch_log_group.api_gateway]
 
-  stage_name    = aws_api_gateway_deployment.prod.stage_name
-  rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
-  deployment_id = aws_api_gateway_deployment.prod.id
-}
 
 resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
@@ -315,18 +321,28 @@ resource "aws_api_gateway_deployment" "prod" {
   ]
 
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
-  stage_name  = "prod"
+  stage_name = var.aws_deployment_stage_name
+
+  stage_description = "Deployed at ${timestamp()}"
 
   lifecycle {
     create_before_destroy = true
   }
 }
 
+# resource "aws_api_gateway_stage" "prod" {
+#   # depends_on = [aws_cloudwatch_log_group.api_gateway]
+
+#   stage_name    = "prod"
+#   rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
+#   deployment_id = aws_api_gateway_deployment.prod.id
+# }
+
 resource "aws_api_gateway_method_settings" "enable_logging" {
   depends_on = [aws_api_gateway_account.api_gateway]
 
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
-  stage_name  = aws_api_gateway_stage.prod.stage_name
+  stage_name  = aws_api_gateway_deployment.prod.stage_name
   method_path = "*/*"
   settings {
     logging_level          = "INFO"
