@@ -18,6 +18,7 @@ import './RawEditor.css';
 import {Query, Suppression} from '../../store/rules';
 import Codemirror from './codemirror_wrapper';
 
+
 interface OwnProps {
   currentRuleView: string | null;
 }
@@ -35,10 +36,10 @@ interface StateProps {
 type RawEditorProps = OwnProps & DispatchProps & StateProps;
 
 class RawEditor extends React.Component<RawEditorProps> {
-  state = {formatBoolean: false, revertBoolean: false};
+  state = {formatBoolean: false};
 
   render(): JSX.Element {
-    const {formatBoolean, revertBoolean} = this.state;
+    const {formatBoolean} = this.state;
 
     const {currentRuleView, deleteRule, saveRule, updateRuleBody} = this.props;
     const {queries, suppressions} = this.props.rules;
@@ -52,8 +53,7 @@ class RawEditor extends React.Component<RawEditorProps> {
           editorInitialValue={rule ? rule.raw.body.toString() : ''}
           editorRule={rule!}
           updateRuleBody={updateRuleBody}
-          effectFormat={this.state.formatBoolean}
-          effectRevert={this.state.revertBoolean}
+          forEffect={this.state.formatBoolean}
         />
         <div className="app"></div>
         <Button
@@ -66,14 +66,10 @@ class RawEditor extends React.Component<RawEditorProps> {
         <Button
           type="default"
           disabled={!rule || rule.isSaving || (rule.isSaved && !rule.isEdited)}
-          onClick={() => {
-            //rule && updateRuleBody(rule.viewName, rule.raw.savedBody)
-            this.setState({revertBoolean: !revertBoolean});
-          }}
+          onClick={() => rule && updateRuleBody(rule.viewName, rule.raw.savedBody)}
         >
           <RollbackOutlined /> Revert
         </Button>
-
         <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && deleteRule(rule.raw)}>
           <DeleteOutlined /> Delete
         </Button>
@@ -81,10 +77,8 @@ class RawEditor extends React.Component<RawEditorProps> {
           type="default"
           disabled={!rule || rule.isSaving}
           onClick={() => {
-            //rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body));
+       //     rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body));
             this.setState({formatBoolean: !formatBoolean});
-            //Upon clicking, triggers a state change that causes the 'useEffect' in codemirror_wrapper to replace contets of the editor with a formatted value.
-            //the useEffect in the wrapper is given this state through the 'effectFormat' prop given to the codemirror component
           }}
         >
           <CheckCircleOutlined /> Format

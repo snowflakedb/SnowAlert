@@ -32,9 +32,8 @@ const Codemirror: React.FC<{
   editorInitialValue: string;
   editorRule: Query | Suppression;
   updateRuleBody: typeof updateRuleBody;
-  effectFormat: Boolean;
-  effectRevert: Boolean;
-}> = ({editorInitialValue, editorRule, updateRuleBody, effectFormat, effectRevert}) => {
+  forEffect: Boolean;
+}> = ({editorInitialValue, editorRule, updateRuleBody, forEffect}) => {
   const [editorValue, setEditorValue] = useState<string>('');
 
   const editor = useRef<EditorView>();
@@ -48,18 +47,7 @@ const Codemirror: React.FC<{
       },
     });
     //to reflect Formatted SQL
-  }, [effectFormat]);
-
-
-  useEffect(() => {
-    editor.current?.dispatch({
-      changes: {
-        from: 0,
-        to: editor.current.state.doc.length,
-        insert: editorRule.raw.savedBody.toString(),
-      },
-    });
-  }, [effectRevert]);
+  }, [forEffect]);
 
   const onUpdate = (editorRule: any) =>
     EditorView.updateListener.of((view: ViewUpdate) => {
