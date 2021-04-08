@@ -14,7 +14,7 @@ Having our security data in Snowflake means that we can define advanced correlat
 
 We hope that Snowflake customers can do better data-driven security using Snowflake and that this project will make getting started easy.
 
-Ready? Let's [get started!](https://snowalert.readthedocs.io/en/latest/pages/start.html "SnowAlert Documentation")
+Ready? Let's [get started!](https://docs.snowalert.com/getting-started "SnowAlert Documentation")
 
 ## License
 

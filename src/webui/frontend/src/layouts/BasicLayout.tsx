@@ -14,7 +14,7 @@ import {enquireScreen, unenquireScreen} from '../utils/media';
 const {Content} = Layout;
 
 let isMobile: boolean;
-enquireScreen(result => {
+enquireScreen((result) => {
   isMobile = result;
 });
 

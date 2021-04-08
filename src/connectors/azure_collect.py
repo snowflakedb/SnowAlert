@@ -260,6 +260,20 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'STRING'),
         ('zones', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networkinterfaces/listall
+    'network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('etag', 'STRING'),
+        ('name', 'STRING'),
+        ('location', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
     'role_definitions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -461,24 +475,7 @@ SUPPLEMENTARY_TABLES = {
         ('group_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(50)'),
-        ('odata_type', 'VARIANT'),
-        ('business_phones', 'VARIANT'),
-        ('display_name', 'VARCHAR(1000)'),
-        ('given_name', 'VARCHAR(1000)'),
-        ('job_title', 'VARCHAR(1000)'),
-        ('mail', 'VARCHAR(1000)'),
-        ('mobile_phone', 'VARCHAR(1000)'),
-        ('office_location', 'VARCHAR(1000)'),
-        ('preferred_language', 'VARCHAR(1000)'),
-        ('surname', 'VARCHAR(1000)'),
-        ('user_principal_name', 'VARCHAR(1000)'),
-        ('group_id', 'VARCHAR(1000)'),
-        ('header_date', 'TIMESTAMP_LTZ'),
-        ('deleted', 'TIMESTAMP_LTZ'),
-        ('created', 'TIMESTAMP_LTZ'),
-        ('classification', 'VARCHAR(1000)'),
-        ('creation_options', 'VARIANT'),
-        ('description', 'VARCHAR(5000)'),
+        ('odata_type', 'VARCHAR(100)'),
         ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
@@ -789,6 +786,10 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'network_interfaces',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
             {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_security_groups',
@@ -1504,6 +1505,28 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'id': 'id',
             'name': 'name',
             'properties': 'properties',
+            'type': 'type',
+        },
+    },
+    'network_interfaces': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/networkInterfaces'
+            ),
+            'api-version': '2020-05-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
             'type': 'type',
         },
     },
