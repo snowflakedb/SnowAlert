@@ -1648,8 +1648,8 @@ async def aioingest(table_name, options, dryrun=False):
 
         collection_tasks = [
             CollectTask(a['id'], method, {})
-            for method in collect_apis
             for a in accounts
+            for method in collect_apis
         ]
 
         def add_task(t):
