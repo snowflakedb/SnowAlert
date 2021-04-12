@@ -58,7 +58,8 @@
     "y18n": "5.0.8"
   },
   "resolutions": {
-    "react-script/resolve-url-loader/object-path": "0.11.5"
+    "react-script/resolve-url-loader/adjust-sourcemap-loader/object-path": "0.11.5",
+    "tinycolor2/jquery": "3.6.0"
   },
   "scripts": {
     "build-ts": "react-scripts build",
