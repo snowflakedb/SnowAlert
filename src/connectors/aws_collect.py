@@ -661,6 +661,40 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-authorization-details.html
+    'iam_get_account_authorization_details': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('arn', 'STRING'),
+        ('assume_role_policy_document', 'VARIANT'),
+        ('attached_managed_policies', 'VARIANT'),
+        ('attachment_count', 'NUMBER'),
+        ('create_date', 'TIMESTAMP'),
+        ('default_version_id', 'STRING'),
+        ('description', 'STRING'),
+        ('group_id', 'STRING'),
+        ('group_list', 'VARIANT'),
+        ('group_name', 'STRING'),
+        ('group_policy_list', 'VARIANT'),
+        ('instance_profile_list', 'VARIANT'),
+        ('is_attachable', 'BOOLEAN'),
+        ('path', 'STRING'),
+        ('permissions_boundary', 'VARIANT'),
+        ('permissions_boundary_usage_count', 'NUMBER'),
+        ('policy_id', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_version_list', 'VARIANT'),
+        ('role_id', 'STRING'),
+        ('role_last_used', 'VARIANT'),
+        ('role_name', 'STRING'),
+        ('role_policy_list', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('update_date', 'TIMESTAMP'),
+        ('user_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('user_policy_list', 'VARIANT'),
+    ],
 }
 
 API_METHOD_SPECS: Dict[str, dict] = {
@@ -1334,6 +1368,66 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'iam.get_account_authorization_details': {
+        'response': {
+            'UserDetailList': [
+                {
+                    'Path': 'path',
+                    'UserName': 'user_name',
+                    'UserId': 'user_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'UserPolicyList': 'user_policy_list',
+                    'GroupList': 'group_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                }
+            ],
+            'GroupDetailList': [
+                {
+                    'Path': 'path',
+                    'GroupName': 'group_name',
+                    'GroupId': 'group_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'GroupPolicyList': 'group_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                }
+            ],
+            'RoleDetailList': [
+                {
+                    'RoleName': 'role_name',
+                    'RoleId': 'role_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
+                    'InstanceProfileList': 'instance_profile_list',
+                    'RolePolicyList': 'role_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                    'RoleLastUsed': 'role_last_used',
+                }
+            ],
+            'Policies': [
+                {
+                    'PolicyName': 'policy_name',
+                    'PolicyId': 'policy_id',
+                    'Arn': 'arn',
+                    'Path': 'path',
+                    'DefaultVersionId': 'default_version_id',
+                    'AttachmentCount': 'attachment_count',
+                    'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
+                    'IsAttachable': 'is_attachable',
+                    'Description': 'description',
+                    'CreateDate': 'create_date',
+                    'UpdateDate': 'update_date',
+                    'PolicyVersionList': 'policy_version_list',
+                }
+            ],
+        },
+    },
 }
 
 
@@ -1593,6 +1687,7 @@ async def aioingest(table_name, options, dryrun=False):
             'inspector.list_findings',
             'iam.list_groups',
             's3control.get_public_access_block',
+            'iam.get_account_authorization_details',
             'iam.list_users',
         ]
         if options.get('collect_apis', 'all') == 'all'
