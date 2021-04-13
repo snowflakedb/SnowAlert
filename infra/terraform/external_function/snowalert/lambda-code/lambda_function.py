@@ -59,7 +59,7 @@ def lambda_handler(event, context=None):
 
             protocol, *path = event['path'].lstrip('/').split('/')
             protocol = protocol.replace('-', '_')
-            process_row = import_module(f'processor.process_{protocol}').process_row
+            process_row = import_module(f'drivers.process_{protocol}').process_row
             row_result = process_row(*path, **processor_params)
 
         except Exception as e:
