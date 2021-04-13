@@ -880,7 +880,10 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         },
         'children': [
-            {'method': 'efs.describe_mount_targets', 'args': {'FileSystemId': 'file_system_id'}}
+            {
+                'method': 'efs.describe_mount_targets',
+                'args': {'FileSystemId': 'file_system_id'},
+            }
         ],
     },
     'efs.describe_mount_targets': {
@@ -900,7 +903,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'VpcId': 'vpc_id',
                 }
             ]
-        }
+        },
     },
     'config.describe_configuration_recorders': {
         # for unknown reasons, client.describe_regions does not seem to work w/
