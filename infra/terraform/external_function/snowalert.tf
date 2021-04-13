@@ -18,7 +18,6 @@ module "snowflake_api_integration_aws_gateway" {
   prefix                            = "snowalert"
   snowflake_integration_user        = var.snowflake_integration_user
   aws_cloudwatch_metric_namespace   = var.aws_cloudwatch_metric_namespace
-  aws_permission_boundry            = var.aws_permission_boundry
   aws_deployment_stage_name         = var.aws_deployment_stage_name
   gateway_logger_name               = var.gateway_logger_name
   gateway_caller_name               = var.gateway_caller_name
@@ -32,10 +31,6 @@ module "snowflake_api_integration_aws_gateway" {
   aws_lambda_function_name          = var.aws_lambda_function_name
 }
 
-variable "aws_permission_boundry" {
-  type        = string
-  default     = null
-}
 variable "snowflake_integration_user" {
   type        = string
   description = "user who will be calling the API Gateway"
