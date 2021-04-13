@@ -19,7 +19,6 @@ resource "aws_iam_role" "gateway_logger" {
       }
     ]
   })
-  # permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy_attachment" "gateway_logger" {
@@ -52,12 +51,11 @@ resource "aws_iam_role" "gateway_caller" {
         }
         Effect = "Allow"
         Principal = {
-          AWS = snowflake_api_integration.api_integration.api_aws_iam_user_arn #"arn:aws:iam::${local.account_id}:role/var.gateway_logger_name"
+          AWS = snowflake_api_integration.api_integration.api_aws_iam_user_arn
         }
       }
     ]
   })
-  # permissions_boundary = "arn:aws:iam::${local.account_id}:policy/${var.aws_permission_boundry}"
 }
 
 resource "aws_iam_role_policy" "gateway_caller" {
@@ -310,8 +308,6 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
   retention_in_days = 0 # never expire
 }
 
-
-
 resource "aws_api_gateway_deployment" "prod" {
   depends_on = [
     aws_api_gateway_integration.https_to_lambda,
@@ -329,14 +325,6 @@ resource "aws_api_gateway_deployment" "prod" {
     create_before_destroy = true
   }
 }
-
-# resource "aws_api_gateway_stage" "prod" {
-#   # depends_on = [aws_cloudwatch_log_group.api_gateway]
-
-#   stage_name    = "prod"
-#   rest_api_id   = aws_api_gateway_rest_api.ef_to_lambda.id
-#   deployment_id = aws_api_gateway_deployment.prod.id
-# }
 
 resource "aws_api_gateway_method_settings" "enable_logging" {
   depends_on = [aws_api_gateway_account.api_gateway]

@@ -10,7 +10,7 @@ data "archive_file" "lambda_code" {
 }
 
 resource "aws_lambda_function" "stdefn" {
-  function_name    = "${var.prefix}_external_function1"
+  function_name    = var.aws_lambda_function_name
   role             = aws_iam_role.stdefn.arn
   handler          = "lambda_function.lambda_handler"
   memory_size      = "512"
@@ -22,7 +22,7 @@ resource "aws_lambda_function" "stdefn" {
 }
 
 resource "aws_iam_role" "stdefn" {
-  name = "${var.prefix}-external-function1"
+  name = var.aws_lambda_function_name
   path = "/service-role/"
 
   assume_role_policy = jsonencode(
