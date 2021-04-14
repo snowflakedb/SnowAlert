@@ -1589,7 +1589,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     try:
         now = datetime.utcnow()
         expires = (
-            _SESSION_CACHE.get('account_arn', {})
+            _SESSION_CACHE.get(account_arn, {})
             .get('Credentials', {})
             .get('Expiration')
         )
