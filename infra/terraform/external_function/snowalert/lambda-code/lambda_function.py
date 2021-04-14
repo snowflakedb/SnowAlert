@@ -49,7 +49,7 @@ def lambda_handler(event, context=None):
     res_data = []
     for row_number, *args in req_body['data']:
         row_result = []
-        processor_params = {
+        process_row_params = {
             k.replace('sf-custom-', '').replace('-', '_'): format(v, args)
             for k, v in headers.items()
             if k.startswith('sf-custom-')
@@ -57,10 +57,10 @@ def lambda_handler(event, context=None):
 
         try:
 
-            protocol, *path = event['path'].lstrip('/').split('/')
-            protocol = protocol.replace('-', '_')
-            process_row = import_module(f'drivers.process_{protocol}').process_row
-            row_result = process_row(*path, **processor_params)
+            driver, *path = event['path'].lstrip('/').split('/')
+            driver = driver.replace('-', '_')
+            process_row = import_module(f'drivers.process_{driver}').process_row
+            row_result = process_row(*path, **process_row_params)
 
         except Exception as e:
             row_result = {'error': repr(e)}
