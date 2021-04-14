@@ -165,6 +165,8 @@ def create_jira_ticket(
         for field_id, field_value in custom_fields:
             if field_value.startswith('key:'):
                 issue_params[f'customfield_{field_id}'] = field_value[4:]
+            elif field_value.startswith('[') and field_value.endswith(']'):
+                issue_params[f'customfield_{field_id}'] = [{'value': v} for v in field_value[1:-1].split(',')]
             else:
                 issue_params[f'customfield_{field_id}'] = {'value': field_value}
 
