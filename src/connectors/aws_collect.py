@@ -551,6 +551,22 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html
+    'ebs_describe_snapshot': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('description', 'STRING'),
+        ('encrypted','BOOLEAN'),
+        ('volume_id','STRING'),
+        ('state','STRING'),
+        ('volume_size','NUMBER'),
+        ('start_time','TIMESTAMP_LTZ'),
+        ('progress','STRING'),
+        ('owner_id','STRING'),
+        ('snapshot_id','STRING'),
+        ('tags', 'VARIANT')
+    ],
 }
 
 API_METHOD_SPECS: Dict[str, dict] = {
@@ -1107,6 +1123,22 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'ebs.describe_snapshot':{
+      'response': {
+            'DescribeSnapshot': {
+                'Description': 'description',
+                'Encrypted': 'encrypted',
+                'VolumeID': 'volume_id',
+                'State': 'state',
+                'VolumeSize': 'volume_size',
+                'StartTime': 'start_time',
+                'Progress': 'progress',
+                'OwnerID': 'owner_id',
+                'SnapshotID': 'snapshot_id',
+                'Tags': 'tags',
+            }
+        }
+    },
 }
 
 
@@ -1358,6 +1390,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            'ebs.describe_snapshot',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
