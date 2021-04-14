@@ -21,7 +21,7 @@ const GlobalFooter = (props: GlobalFooterProps) => {
     <div className={clsString}>
       {links && (
         <div className={'links'}>
-          {links.map(link => (
+          {links.map((link) => (
             <a key={link.key} target={link.blankTarget ? '_blank' : '_self'} href={link.href}>
               {link.title}
             </a>

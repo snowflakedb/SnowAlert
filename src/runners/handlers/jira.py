@@ -114,7 +114,7 @@ def append_to_body(id, alert, project):
 
 
 def link_search_todos(description=None, project=PROJECT):
-    q = f'project = {project} ORDER BY created ASC'
+    q = f'project = {project} ORDER BY created DESC'
 
     if description:
         q = f'description ~ "{description}" AND {q}'
@@ -165,6 +165,8 @@ def create_jira_ticket(
         for field_id, field_value in custom_fields:
             if field_value.startswith('key:'):
                 issue_params[f'customfield_{field_id}'] = field_value[4:]
+            elif field_value.startswith('[') and field_value.endswith(']'):
+                issue_params[f'customfield_{field_id}'] = [{'value': v} for v in field_value[1:-1].split(',')]
             else:
                 issue_params[f'customfield_{field_id}'] = {'value': field_value}
 

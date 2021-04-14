@@ -27,7 +27,13 @@ export const LoginActions = {
 
 export type LoginActions = ActionsUnion<typeof LoginActions>;
 
-export const oauthRedirect = (account: string, role: string, database: string, warehouse: string, returnHref: string) => async (dispatch: Dispatch) => {
+export const oauthRedirect = (
+  account: string,
+  role: string,
+  database: string,
+  warehouse: string,
+  returnHref: string,
+) => async (dispatch: Dispatch) => {
   try {
     const response = await api.oauthRedirect({account, role, database, warehouse, returnHref});
     if (response.url) {

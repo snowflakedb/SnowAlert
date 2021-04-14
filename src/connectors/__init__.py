@@ -17,6 +17,7 @@ from . import nginx_log
 from . import ldap_log
 from . import airwatch_devices
 from . import salesforce_event_log
+from . import h1_collect
 
 __all__ = [
     'aws_cloudtrail',
@@ -38,6 +39,7 @@ __all__ = [
     'nginx_log',
     'airwatch_devices',
     'salesforce_event_log',
+    'h1_collect',
 ]
 
 connectors = {
@@ -60,6 +62,7 @@ connectors = {
     'ldap_log': ldap_log,
     'airwatch_devices': airwatch_devices,
     'salesforce_event_log': salesforce_event_log,
+    'h1_collect': h1_collect,
 }
 
 CONNECTION_OPTIONS = [

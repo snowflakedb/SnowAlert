@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import datetime
+from multiprocessing import Pool
 
 from .config import (
+    POOLSIZE,
     QUERY_METADATA_TABLE,
     RUN_METADATA_TABLE,
     VIOLATION_QUERY_POSTFIX,
@@ -11,7 +13,26 @@ from .config import (
 )
 from .helpers import db, log
 
-METADATA_RECORDS = []
+
+def create_violations(rule_name):
+        metadata = {
+            'QUERY_NAME': rule_name,
+            'RUN_ID': RUN_ID,
+            'ATTEMPTS': 1,
+            'START_TIME': datetime.datetime.utcnow(),
+        }
+        try:
+            insert_count = db.insert_violations_query_run(rule_name)
+        except Exception as e:
+            log.info(f"{rule_name} threw an exception.")
+            insert_count = 0
+            metadata['EXCEPTION'] = e
+
+        metadata['ROW_COUNT'] = {'INSERTED': insert_count}
+        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
+        log.info(f"{rule_name} done.")
+
+        return metadata
 
 
 def main(rules_postfix=VIOLATION_QUERY_POSTFIX):
@@ -19,30 +40,16 @@ def main(rules_postfix=VIOLATION_QUERY_POSTFIX):
         'RUN_TYPE': 'VIOLATION QUERY',
         'START_TIME': datetime.datetime.utcnow(),
         'RUN_ID': RUN_ID,
+        'ROW_COUNT': {'INSERTED': 0},
     }
+    QUERY_METADATA_RECORDS = []
 
     # Force warehouse resume so query runner doesn't have a bunch of queries waiting for warehouse resume
-    for query_name in db.load_rules(rules_postfix):
-        metadata = {
-            'QUERY_NAME': query_name,
-            'RUN_ID': RUN_ID,
-            'ATTEMPTS': 1,
-            'START_TIME': datetime.datetime.utcnow(),
-        }
-        try:
-            insert_count = db.insert_violations_query_run(query_name)
-        except Exception as e:
-            log.info(f"{query_name} threw an exception.")
-            insert_count = 0
-            metadata['EXCEPTION'] = e
-
-        metadata['ROW_COUNT'] = {'INSERTED': insert_count}
-        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
-        log.info(f"{query_name} done.")
-        METADATA_RECORDS.append(metadata)
+    rules = list(db.load_rules(rules_postfix))
+    QUERY_METADATA_RECORDS += list(Pool(POOLSIZE).map(create_violations, rules))
 
     RUN_METADATA['ROW_COUNT'] = {
-        'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in METADATA_RECORDS)
+        'INSERTED': sum(r['ROW_COUNT']['INSERTED'] for r in QUERY_METADATA_RECORDS)
     }
     db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
 

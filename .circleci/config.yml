@@ -13,92 +13,36 @@ jobs:
 
       - restore_cache:
           keys:
-          - app-venv-{{ checksum "src/setup.py" }}
-          - app-venv-  # fallback to using the latest cache if no exact match is found
+          - app-venv-{{ checksum "src/setup.py" }}-0
 
       - run:
           name: install_dependencies
           command: |
             cd src
             python -m venv .venv
-            source .venv/bin/activate
-            pip install --upgrade pip
-            pip uninstall -y typing
-            pip install . && touch .venv/lib/python3.7/site-packages/snowflake/__init__.py
-            pip uninstall -y typing
+            .venv/bin/pip install --upgrade pip
+            .venv/bin/pip install '.' '.[dev]'
 
       - save_cache:
           paths:
             - ./src/.venv
-          key: app-venv-{{ checksum "src/setup.py" }}
+          key: app-venv-{{ checksum "src/setup.py" }}-0
 
       - run:
           name: run static analysis
           command: |
             cd src
-            source .venv/bin/activate
-            ./scripts/run-whitesource
             MYPYPATH="`pwd`/webui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
-            pytest -vv
-
-      # - run:
-      #     name: do the build
-      #     command: |
-      #       docker build -t snowsec/snowalert .
-
-      # - store_artifacts:
-      #     path: code/infra/build
-      #     destination: lambda-builds
-
-  build-docs:
-    docker:
-      - image: circleci/python:3.7.2
-
-    working_directory: ~/project
-
-    steps:
-      - checkout
-
-      - restore_cache:
-          keys:
-          - docs-venv-{{ checksum "docs/requirements.txt" }}
-          - docs-venv-
-
-      - run:
-          name: Install or Update Docs Dependencies
-          command: |
-            cd docs
-            python -m venv .venv
-            source .venv/bin/activate
-            pip install -r requirements.txt
-
-      - save_cache:
-          paths:
-            - ./docs/.venv
-          key: docs-venv-{{ checksum "docs/requirements.txt" }}
-
-      - run:
-          name: Run Tests (pyflakes conf.py)
-          command: |
-            cd docs
-            source .venv/bin/activate
-            pyflakes src/conf.py
-
-      - run:
-          name: do the build
-          command: |
-            cd docs
-            source .venv/bin/activate
-            sphinx-build src build -d doctrees
-
-      - store_artifacts:
-          path: docs/build
-          destination: docs-pages
+              .venv/bin/mypy --config-file mypy.ini \
+                 ./runners \
+                 ./scripts \
+                 ./webui/backend/webui \
+                 ./connectors
+            .venv/bin/pytest -vv
+            ./scripts/run-whitesource
 
 workflows:
   version: 2
   docs_and_lambdas:
     jobs:
       - build
-      - build-docs
