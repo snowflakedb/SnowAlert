@@ -110,10 +110,13 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
                 )
             )
 
-            return aioboto3.Session(
-                aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
-                aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
-                aws_session_token=sts_role['Credentials']['SessionToken'],
+            return (
+                sts_role['Credentials']['Expiration'],
+                aioboto3.Session(
+                    aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
+                    aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
+                    aws_session_token=sts_role['Credentials']['SessionToken'],
+                ),
             )
 
 
