@@ -670,7 +670,7 @@ SUPPLEMENTARY_TABLES = {
         ('error', 'VARIANT'),
         ('description', 'STRING'),
         ('encrypted', 'BOOLEAN'),
-        ('kmskeyid', 'STRING'),
+        ('kms_key_id', 'STRING'),
         ('owner_id', 'STRING'),
         ('progress', 'STRING'),
         ('snapshot_id', 'STRING'),
