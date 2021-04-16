@@ -9,7 +9,6 @@ variable "snowflake_username" {}
 variable "snowflake_account" {}
 variable "snowflake_password" {}
 variable "snowflake_role" {}
-variable "prod_cloudwatch_write_name"{}
 
 
 data "aws_caller_identity" "current" {}
