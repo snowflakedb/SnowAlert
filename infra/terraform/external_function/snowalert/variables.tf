@@ -10,8 +10,7 @@ variable "snowflake_account" {}
 variable "snowflake_password" {}
 variable "snowflake_role" {}
 variable "prod_cloudwatch_write_name"{}
-variable "kms_decrypt_name" {}
-variable "aws_lambda_function_name" {}
+
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
