@@ -43,26 +43,21 @@ variable "aws_deployment_stage_name" {
   description = "AWS stage name the Snowflake user will assume to deploy the API Gateway in your account"
 }
 
-variable "snowflake_username" {
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
 variable "snowflake_account" {
   type        = string
-  default     = ""
+}
+
+variable "snowflake_role" {
+  type        = string
+  default     = "ACCOUNTADMIN"
+}
+
+variable "snowflake_username" {
+  type        = string
   sensitive   = true
 }
 
 variable "snowflake_password" {
   type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "snowflake_role" {
-  type        = string
-  default     = ""
   sensitive   = true
 }
