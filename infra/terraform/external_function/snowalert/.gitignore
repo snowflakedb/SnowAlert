@@ -1,1 +1,11 @@
 lambda-code.zip
+lambda-code/site-packages/
+
+# Compiled files
+*.tfstate
+*.tfstate.backup
+.terraform.tfstate.lock.info
+*.plan
+
+# Module directory
+.terraform/

@@ -5,7 +5,7 @@
 */
 
 resource "aws_iam_role" "gateway_logger" {
-  name = var.gateway_logger_name
+  name = "${var.prefix}-api-gateway-logger"
   path = "/"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -37,7 +37,7 @@ resource "aws_api_gateway_account" "api_gateway" {
 */
 
 resource "aws_iam_role" "gateway_caller" {
-  name = var.gateway_caller_name
+  name = "${var.prefix}-api-gateway-caller"
   path = "/"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -59,7 +59,7 @@ resource "aws_iam_role" "gateway_caller" {
 }
 
 resource "aws_iam_role_policy" "gateway_caller" {
-  name = var.aws_iam_role_policy_name
+  name = "${var.prefix}-api-gateway-caller"
   role = aws_iam_role.gateway_caller.id
 
   policy = jsonencode({
@@ -102,7 +102,7 @@ resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
         {
           Effect = "Allow"
           Principal = {
-            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${var.gateway_caller_name}/snowflake"
+            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${aws_iam_role.gateway_caller.name}/snowflake"
           }
           Action   = "execute-api:Invoke"
           Resource = "${aws_api_gateway_rest_api.ef_to_lambda.execution_arn}/*/POST/*"
