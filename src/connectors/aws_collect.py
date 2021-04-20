@@ -662,6 +662,28 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
+    'ec2_describe_snapshots': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('data_encryption_key_id', 'STRING'),
+        ('description', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('progress', 'STRING'),
+        ('snapshot_id', 'STRING'),
+        ('start_time', 'TIMESTAMP_LTZ'),
+        ('state', 'STRING'),
+        ('state_message', 'STRING'),
+        ('volume_id', 'STRING'),
+        ('volume_size', 'NUMBER'),
+        ('owner_alias', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('tags', 'VARIANT'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-authorization-details.html
     'iam_get_account_authorization_details': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -1372,6 +1394,29 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'ec2.describe_snapshots':{
+      'response': {
+            'Snapshot': [
+                {
+                    'DataEncryptionKeyId': 'data_encryption_key_id',
+                    'Description': 'description',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyID': 'kms_key_id',
+                    'OwnerID': 'owner_id',
+                    'Progress': 'progress',
+                    'SnapshotID': 'snapshot_id',
+                    'StartTime': 'start_time',
+                    'State': 'state',
+                    'StateMessage': 'state_message',
+                    'VolumeID': 'volume_id',
+                    'VolumeSize': 'volume_size',
+                    'OwnerAlias': 'owner_alias',
+                    'OutpostArn': 'outpost_arn',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+    },
     'iam.get_account_authorization_details': {
         'response': {
             'UserDetailList': [
@@ -1685,6 +1730,7 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            'ec2.describe_snapshots',
             's3control.get_public_access_block',
             'iam.get_account_authorization_details',
             'iam.list_users',
