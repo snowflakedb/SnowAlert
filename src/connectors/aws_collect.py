@@ -662,8 +662,9 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
-    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
     'ec2_describe_snapshots': [
+        ('data_encryption_key_id', 'STRING'),
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
@@ -1395,22 +1396,25 @@ API_METHOD_SPECS: Dict[str, dict] = {
     },
     'ec2.describe_snapshots':{
       'response': {
-            'Snapshot': {
-                'Description': 'description',
-                'Encrypted': 'encrypted',
-                'KmsKeyID': 'kms_key_id',
-                'OwnerID': 'owner_id',
-                'Progress': 'progress',
-                'SnapshotID': 'snapshot_id',
-                'StartTime': 'start_time',
-                'State': 'state',
-                'StateMessage': 'state_message',
-                'VolumeID': 'volume_id',
-                'VolumeSize': 'volume_size',
-                'OwnerAlias': 'owner_alias',
-                'OutpostArn': 'outpost_arn',
-                'Tags': 'tags',
-            }
+            'Snapshot': [
+                {
+                    'DataEncryptionKeyId': 'data_encryption_key_id',
+                    'Description': 'description',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyID': 'kms_key_id',
+                    'OwnerID': 'owner_id',
+                    'Progress': 'progress',
+                    'SnapshotID': 'snapshot_id',
+                    'StartTime': 'start_time',
+                    'State': 'state',
+                    'StateMessage': 'state_message',
+                    'VolumeID': 'volume_id',
+                    'VolumeSize': 'volume_size',
+                    'OwnerAlias': 'owner_alias',
+                    'OutpostArn': 'outpost_arn',
+                    'Tags': 'tags',
+                }
+            ]
         },
     },
     'iam.get_account_authorization_details': {
