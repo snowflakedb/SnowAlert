@@ -664,11 +664,11 @@ SUPPLEMENTARY_TABLES = {
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
     'ec2_describe_snapshots': [
-        ('data_encryption_key_id', 'STRING'),
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
         ('region', 'STRING'),
         ('error', 'VARIANT'),
+        ('data_encryption_key_id', 'STRING'),
         ('description', 'STRING'),
         ('encrypted', 'BOOLEAN'),
         ('kms_key_id', 'STRING'),
