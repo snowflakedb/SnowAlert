@@ -12,103 +12,50 @@ from runners.config import (
 )
 from runners.helpers import db, log
 
-OLD_SUPPRESSION_QUERY = f"""
-MERGE INTO results.alerts AS target
-USING(rules.{{suppression_name}}) AS s
-ON target.alert:ALERT_ID = s.alert:ALERT_ID
-WHEN MATCHED THEN UPDATE
-SET target.SUPPRESSED = 'true'
-  , target.SUPPRESSION_RULE = '{{suppression_name}}'
-"""
-
-SUPPRESSION_QUERY = f"""
-MERGE INTO results.alerts AS target
-USING(rules.{{suppression_name}}) AS s
-ON target.alert:ALERT_ID = s.id
-WHEN MATCHED THEN UPDATE
-SET target.SUPPRESSED = 'true'
-  , target.SUPPRESSION_RULE = '{{suppression_name}}'
-"""
-
-SET_SUPPRESSED_FALSE = f"""
-UPDATE results.alerts
-SET suppressed=FALSE
-WHERE suppressed IS NULL
-;
-"""
-
-METADATA_HISTORY: List = []
+CALL_ASR = f'''
+CALL results.alert_suppressions_runner(
+  '{RUN_ID}',
+  '{{squelch_name}}'
+)
+'''
 
 
-def run_suppression_query(squelch_name):
-    try:
-        query = SUPPRESSION_QUERY.format(suppression_name=squelch_name)
-        return next(db.fetch(query, fix_errors=False))['number of rows updated']
-
-    except Exception as e:
-        log.info(e, f"{squelch_name} query broken, attempting fallback")
-        query = OLD_SUPPRESSION_QUERY.format(suppression_name=squelch_name)
-        try:
-            result = next(db.fetch(query))
-        except StopIteration:
-            result = []
-
-        if not result:
-            # if neither query worked, re-raise original error
-            raise
-
-        return result[0]['number of rows updated']
-
-
-def run_suppressions(squelch_name):
-    log.info(f"{squelch_name} processing...")
-    metadata = {
-        'QUERY_NAME': squelch_name,
-        'RUN_ID': RUN_ID,
-        'ATTEMPTS': 1,
-        'START_TIME': datetime.datetime.utcnow(),
-    }
-
-    try:
-        suppression_count = run_suppression_query(squelch_name)
-        log.info(f"{squelch_name} updated {suppression_count} rows.")
-        metadata['ROW_COUNT'] = {'SUPPRESSED': suppression_count}
-        db.record_metadata(metadata, table=QUERY_METADATA_TABLE)
-
-    except Exception as e:
-        metadata['ROW_COUNT'] = {'SUPPRESSED': 0}
-        db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
-
-    METADATA_HISTORY.append(metadata)
-    log.info(f"{squelch_name} done.")
-
-
-def main(squelch_name=None):
-    RUN_METADATA = {
-        'RUN_TYPE': 'ALERT SUPPRESSION',
-        'START_TIME': datetime.datetime.utcnow(),
-        'RUN_ID': RUN_ID,
-    }
-
-    rules = (
-        db.load_rules(ALERT_SQUELCH_POSTFIX) if squelch_name is None else [squelch_name]
-    )
-    for squelch_name in rules:
-        run_suppressions(squelch_name)
-
-    num_rows_updated = next(db.fetch(SET_SUPPRESSED_FALSE, fix_errors=False))[
-        'number of rows updated'
-    ]
-    log.info(
-        f'All suppressions done, {num_rows_updated} remaining alerts marked suppressed=FALSE.'
+def call_asr(squelch_name):
+    return next(db.fetch(CALL_ASR.format(squelch_name=squelch_name))).get(
+        'ALERT_SUPPRESSIONS_RUNNER'
     )
 
-    RUN_METADATA['ROW_COUNT'] = {
-        'PASSED': num_rows_updated,
-        'SUPPRESSED': sum(m['ROW_COUNT']['SUPPRESSED'] for m in METADATA_HISTORY),
-    }
 
-    db.record_metadata(RUN_METADATA, table=RUN_METADATA_TABLE)
+def main(squelch_name=''):
+    start_time = datetime.datetime.utcnow()
+    res = call_asr(squelch_name)
+    for c in res['suppression_counts']:
+        db.record_metadata(
+            {
+                'QUERY_NAME': c['RULE'],
+                'RUN_ID': res['run_id'],
+                'ATTEMPTS': 1,
+                'START_TIME': start_time,
+                'ROW_COUNT': {'SUPPRESSED': c['COUNT']},
+            },
+            table=QUERY_METADATA_TABLE,
+        )
+
+    total_updated = res['merge_result']['number of rows updated']
+    total_suppressed = sum(c['COUNT'] for c in res['suppression_counts'])
+
+    db.record_metadata(
+        {
+            'RUN_TYPE': 'ALERT SUPPRESSION',
+            'START_TIME': start_time,
+            'RUN_ID': RUN_ID,
+            'ROW_COUNT': {
+                'PASSED': total_updated - total_suppressed,
+                'SUPPRESSED': total_suppressed,
+            },
+        },
+        table=RUN_METADATA_TABLE,
+    )
 
     try:
         if CLOUDWATCH_METRICS:

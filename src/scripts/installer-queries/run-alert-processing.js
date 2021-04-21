@@ -1,16 +1,40 @@
-#!/usr/bin/env python
+// args
 
-import json
-import uuid
+var CORRELATION_PERIOD_MINUTES;
 
-from .helpers import db, log
+CORRELATION_PERIOD_MINUTES = CORRELATION_PERIOD_MINUTES || 60;
 
-import snowflake.connector
+// library
 
-CORRELATION_PERIOD = -60
+function exec(sqlText, binds=[]) {
+  let retval = []
+  const stmnt = snowflake.createStatement({sqlText, binds})
+  const result = stmnt.execute()
+  const columnCount = stmnt.getColumnCount();
+  const columnNames = []
+  for (let i = 1 ; i < columnCount + 1 ; i++) {
+    columnNames.push(stmnt.getColumnName(i))
+  }
 
+  while(result.next()) {
+    let o = {};
+    for (let c of columnNames) {
+      o[c] = result.getColumnValue(c)
+    }
+    retval.push(o)
+  }
+  return retval
+}
 
-CORRELATE = f"""
+function fillArray(value, len) {
+  const arr = []
+  for (var i = 0; i < len; i++) {
+    arr.push(value)
+  }
+  return arr
+}
+
+CORRELATE = `
 MERGE INTO results.alerts dst
 USING (
   SELECT
@@ -40,7 +64,7 @@ USING (
     )
   )
   WHERE d.suppressed = FALSE
-    AND d.alert_time > CURRENT_TIMESTAMP - INTERVAL '2 hours'
+    AND d.alert_time > CURRENT_TIMESTAMP - INTERVAL '${CORRELATION_PERIOD_MINUTES} minutes'
   QUALIFY 1=ROW_NUMBER() OVER (
       PARTITION BY d.id  -- one update per destination id
       ORDER BY -- most recent wins
@@ -57,16 +81,12 @@ ON (
 WHEN MATCHED THEN UPDATE SET
   correlation_id = src.correlation_id
 ;
-"""
+`
 
+while (exec(CORRELATE)['number of rows updated'] != 0) {
+  // todo: count results
+}
 
-def correlate():
-  log.debug('correlating')
-  result = next(db.fetch(CORRELATE))
-  log.debug(f'result: {result}')
-  return result.get('number of rows updated')
-
-
-def main():
-  while correlate() != 0:
-      pass
+return {
+  // todo: return metadata
+}

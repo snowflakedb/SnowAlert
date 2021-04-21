@@ -33,79 +33,19 @@ ALERTS_FROM_TIME = os.environ.get(
     'SA_ALERT_FROM_TIME', f'DATEADD(minute, {ALERT_CUTOFF_MINUTES}, {ALERTS_TO_TIME})'
 )
 
-RUN_ALERT_QUERY = f"""
-CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
-SELECT OBJECT_CONSTRUCT(
-         'ALERT_ID', UUID_STRING(),
-         'QUERY_NAME', '{{query_name}}',
-         'QUERY_ID', IFNULL(QUERY_ID::VARIANT, PARSE_JSON('null')),
-         'ENVIRONMENT', IFNULL(ENVIRONMENT::VARIANT, PARSE_JSON('null')),
-         'SOURCES', IFNULL(SOURCES::VARIANT, PARSE_JSON('null')),
-         'ACTOR', IFNULL(ACTOR::VARIANT, PARSE_JSON('null')),
-         'OBJECT', IFNULL(OBJECT::VARIANT, PARSE_JSON('null')),
-         'ACTION', IFNULL(ACTION::VARIANT, PARSE_JSON('null')),
-         'TITLE', IFNULL(TITLE::VARIANT, PARSE_JSON('null')),
-         'EVENT_TIME', IFNULL(EVENT_TIME::VARIANT, PARSE_JSON('null')),
-         'ALERT_TIME', IFNULL(ALERT_TIME::VARIANT, PARSE_JSON('null')),
-         'DESCRIPTION', IFNULL(DESCRIPTION::VARIANT, PARSE_JSON('null')),
-         'DETECTOR', IFNULL(DETECTOR::VARIANT, PARSE_JSON('null')),
-         'EVENT_DATA', IFNULL(EVENT_DATA::VARIANT, PARSE_JSON('null')),
-         'SEVERITY', IFNULL(SEVERITY::VARIANT, PARSE_JSON('null')),
-         'HANDLERS', IFNULL(OBJECT_CONSTRUCT(*):HANDLERS::VARIANT, PARSE_JSON('null'))
-       ) AS alert
-     , alert_time
-     , event_time
-     , 1 AS counter
-FROM rules.{{query_name}}
-WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
-"""
 
-
-MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
-
-  SELECT ANY_VALUE(alert) AS alert
-       , SUM(counter) AS counter
-       , MIN(alert_time) AS alert_time
-       , MIN(event_time) AS event_time
-
-  FROM results.{{new_alerts_table}}
-  GROUP BY alert:OBJECT, alert:DESCRIPTION
-
-) AS new_alerts
-
-ON (
-  alerts.alert:OBJECT = new_alerts.alert:OBJECT
-  AND alerts.alert:DESCRIPTION = new_alerts.alert:DESCRIPTION
-  AND alerts.alert:EVENT_TIME > {{from_time_sql}}
+CALL_AQR = f'''CALL results.alert_queries_runner(
+  '{{rule_name}}',
+  '{ALERTS_FROM_TIME}',
+  '{ALERTS_TO_TIME}'
 )
-
-WHEN MATCHED
-THEN UPDATE SET counter = alerts.counter + new_alerts.counter
-
-WHEN NOT MATCHED
-THEN INSERT (alert, counter, alert_time, event_time)
-  VALUES (
-    new_alerts.alert,
-    new_alerts.counter,
-    new_alerts.alert_time,
-    new_alerts.event_time
-  )
-;
-"""
+;'''
 
 
-def merge_alerts(query_name, from_time_sql):
-    log.info(f"{query_name} processing...")
-
-    sql = MERGE_ALERTS.format(
-        query_name=query_name,
-        from_time_sql=from_time_sql,
-        new_alerts_table=f"RUN_{RUN_ID}_{query_name}",
+def call_aqr(rule_name):
+    return next(db.fetch(CALL_AQR.format(rule_name=rule_name))).get(
+        'ALERT_QUERIES_RUNNER'
     )
-    result = db.execute(sql, fix_errors=False).fetchall()
-    created_count, updated_count = result[0]
-    log.info(f"{query_name} created {created_count}, updated {updated_count} rows.")
-    return created_count, updated_count
 
 
 def create_alerts(rule_name: str) -> Dict[str, Any]:
@@ -118,17 +58,11 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
     }
 
     try:
-        db.execute(
-            RUN_ALERT_QUERY.format(
-                query_name=rule_name,
-                from_time_sql=ALERTS_FROM_TIME,
-                to_time_sql=ALERTS_TO_TIME,
-            ),
-            fix_errors=False,
-        )
-        insert_count, update_count = merge_alerts(rule_name, ALERTS_FROM_TIME)
-        metadata['ROW_COUNT'] = {'INSERTED': insert_count, 'UPDATED': update_count}
-        db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
+        res = call_aqr(rule_name)
+        metadata['ROW_COUNT'] = {
+            'INSERTED': res['merge_alerts_result']['number of rows inserted'],
+            'UPDATED': res['merge_alerts_result']['number of rows updated'],
+        }
 
     except Exception as e:
         db.record_metadata(metadata, table=QUERY_METADATA_TABLE, e=e)
