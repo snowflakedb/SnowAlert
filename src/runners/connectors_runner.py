@@ -50,7 +50,7 @@ def time_to_run(schedule, now) -> bool:
     return False
 
 
-def connection_run(connection_table, run_now=False, option_overrides={}):
+def connection_run(connection_table, run_now=False, debug=False, option_overrides={}):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
 
@@ -107,12 +107,14 @@ def connection_run(connection_table, run_now=False, option_overrides={}):
 
     except Exception as e:
         log.error(f"Error loading logs into {table_name}: ", e)
+        if debug:
+            raise
         db.record_metadata(metadata, table=DC_METADATA_TABLE, e=e)
 
     log.info(f"-- END DC {table_name} --")
 
 
-def main(connection_table=None, run_now=False, **option_overrides):
+def main(connection_table=None, run_now=False, debug=False, **option_overrides):
     if connection_table is not None:
         # for a single table, we ignore schedule and run now
         run_now = True
@@ -121,7 +123,7 @@ def main(connection_table=None, run_now=False, **option_overrides):
 
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
     if len(tables) == 1:
-        connection_run(tables[0], run_now=run_now, option_overrides=option_overrides)
+        connection_run(tables[0], run_now=run_now, debug=debug, option_overrides=option_overrides)
     else:
         Pool(DC_POOLSIZE).map(connection_run, tables)
 

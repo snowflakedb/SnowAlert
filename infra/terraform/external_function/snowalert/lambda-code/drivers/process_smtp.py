@@ -1,51 +1,30 @@
-from os import environ as env
 import smtplib
 import ssl
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from runners.helpers import log
-from runners.helpers import vault
 
-
-HOST = env.get('SA_SMTP_HOST', env.get('SMTP_SERVER', ''))
-PORT = int(env.get('SA_SMTP_PORT', env.get('SMTP_PORT', 587)))
-USER = env.get('SA_SMTP_USER', env.get('SMTP_USER', ''))
-PASSWORD = env.get('SA_SMTP_PASSWORD', env.get('SMTP_PASSWORD', ''))
-USE_SSL = env.get('SA_SMTP_USE_SSL', env.get('SMTP_USE_SSL', True))
-USE_TLS = env.get('SA_SMTP_USE_TLS', env.get('SMTP_USE_TLS', True))
-
-def handle(
-    alert,
-    type='smtp',
+def process_row(
+    user,
+    password,
+    recipient_email,
+    text,
     sender_email=None,
-    recipient_email=None,
-    text=None,
     html=None,
     subject=None,
     reply_to=None,
     cc=None,
     bcc=None,
-    host=HOST,
-    port=PORT,
-    user=USER,
-    password=PASSWORD,
-    use_ssl=USE_SSL,
-    use_tls=USE_TLS,
+    host='smtp.gmail.com',
+    port=587,
+    use_ssl=True,
+    use_tls=True,
 ):
 
-    user = vault.decrypt_if_encrypted(user)
-    password = vault.decrypt_if_encrypted(password)
+    user = decrypt_if_encrypted(user)
+    password = decrypt_if_encrypted(password)
     sender_email = sender_email or user
-
-    if recipient_email is None:
-        log.error(f"param 'recipient_email' required")
-        return None
-
-    if text is None:
-        log.error(f"param 'text' required")
-        return None
 
     # Create the base MIME message.
     if html is None:
@@ -93,7 +72,16 @@ def handle(
     if user and password:
         smtpserver.login(user, password)
 
-    result = smtpserver.sendmail(sender_email, recipients, message.as_string())
-    smtpserver.close()
+    try:
+        result = smtpserver.sendmail(sender_email, recipients, message.as_string())
+    except smtplib.SMTPDataError as e:
+        result = {
+            'error': 'SMTPDataError',
+            'smtp_code': e.smtp_code,
+            'smtp_error': e.smtp_error.decode(),
+        }
+
+    finally:
+        smtpserver.close()
 
     return result

@@ -1,3 +1,4 @@
+from inspect import signature
 import random
 import multiprocessing as mp
 
@@ -109,10 +110,13 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
                 )
             )
 
-            return aioboto3.Session(
-                aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
-                aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
-                aws_session_token=sts_role['Credentials']['SessionToken'],
+            return (
+                sts_role['Credentials']['Expiration'],
+                aioboto3.Session(
+                    aws_access_key_id=sts_role['Credentials']['AccessKeyId'],
+                    aws_secret_access_key=sts_role['Credentials']['SecretAccessKey'],
+                    aws_session_token=sts_role['Credentials']['SessionToken'],
+                ),
             )
 
 
@@ -133,9 +137,7 @@ def create_metadata_table(table, cols, addition):
     db.execute(f'ALTER TABLE {table} ADD COLUMN {addition[0]} {addition[1]}')
 
 
-def load_sqlfmt(file, params):
-    docstring, template = split_on(lambda x: x.startswith('-- '), file.readlines(), 1)
-    metadata = yaml.safe_loads(docstring)
-    # gen vars
-    # replace vars
-    # return sql
+def apply_part(f, *args, **kwargs):
+    "apply to f args and whatever part of kwargs it has params for"
+    params = signature(f).parameters
+    return f(*args, **{p: v for p, v in kwargs.items() if p in params})

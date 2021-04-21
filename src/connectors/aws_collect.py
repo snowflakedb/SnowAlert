@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiobotocore.config import AioConfig
 from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
@@ -16,6 +17,7 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
+import pytz
 from typing import Tuple, AsyncGenerator, Dict
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -28,6 +30,8 @@ from runners.helpers import db, log
 AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
+
+AIOBOTO_CONFIG = AioConfig(retries={'max_attempts': 6, 'mode': 'standard'})
 
 _SESSION_CACHE: dict = {}
 
@@ -175,6 +179,48 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-interfaces.html
+    'ec2_describe_network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('attachment', 'VARIANT'),
+        ('association', 'VARIANT'),
+        ('availability_zone', 'STRING'),
+        ('description', 'STRING'),
+        ('groups', 'VARIANT'),
+        ('interface_type', 'STRING'),
+        ('ipv6_addresses', 'VARIANT'),
+        ('mac_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('private_ip_address', 'STRING'),
+        ('private_dns_name', 'STRING'),
+        ('private_ip_addresses', 'VARIANT'),
+        ('requester_id', 'STRING'),
+        ('requester_managed', 'BOOLEAN'),
+        ('source_dest_check', 'BOOLEAN'),
+        ('status', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('tag_set', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-nat-gateways.html
+    'ec2_describe_nat_gateways': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('nat_gateway_addresses', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('state', 'STRING'),
+        ('nat_gateway_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('create_time', 'TIMESTAMP_LTZ'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
     'ec2_describe_route_tables': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -202,6 +248,45 @@ SUPPLEMENTARY_TABLES = {
         ('group_id', 'STRING'),
         ('ip_permissions_egress', 'VARIANT'),
         ('tags', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-file-systems.html
+    'efs_describe_file_systems': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('creation_token', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('file_system_arn', 'STRING'),
+        ('creation_time', 'TIMESTAMP_LTZ'),
+        ('life_cycle_state', 'STRING'),
+        ('name', 'STRING'),
+        ('number_of_mount_targets', 'INTEGER'),
+        ('size_in_bytes', 'VARIANT'),
+        ('performance_mode', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('throughput_mode', 'STRING'),
+        ('provisioned_throughput_in_mibps', 'DOUBLE'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-mount-targets.html#examples
+    'efs_describe_mount_targets': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('mount_target_id', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('life_cycle_state', 'STRING'),
+        ('ip_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('availability_zone_id', 'STRING'),
+        ('availability_zone_name', 'STRING'),
         ('vpc_id', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
@@ -453,8 +538,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
@@ -580,6 +665,62 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
+    'ec2_describe_snapshots': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('data_encryption_key_id', 'STRING'),
+        ('description', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('progress', 'STRING'),
+        ('snapshot_id', 'STRING'),
+        ('start_time', 'TIMESTAMP_LTZ'),
+        ('state', 'STRING'),
+        ('state_message', 'STRING'),
+        ('volume_id', 'STRING'),
+        ('volume_size', 'NUMBER'),
+        ('owner_alias', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-authorization-details.html
+    'iam_get_account_authorization_details': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('arn', 'STRING'),
+        ('assume_role_policy_document', 'VARIANT'),
+        ('attached_managed_policies', 'VARIANT'),
+        ('attachment_count', 'NUMBER'),
+        ('create_date', 'TIMESTAMP'),
+        ('default_version_id', 'STRING'),
+        ('description', 'STRING'),
+        ('group_id', 'STRING'),
+        ('group_list', 'VARIANT'),
+        ('group_name', 'STRING'),
+        ('group_policy_list', 'VARIANT'),
+        ('instance_profile_list', 'VARIANT'),
+        ('is_attachable', 'BOOLEAN'),
+        ('path', 'STRING'),
+        ('permissions_boundary', 'VARIANT'),
+        ('permissions_boundary_usage_count', 'NUMBER'),
+        ('policy_id', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_version_list', 'VARIANT'),
+        ('role_id', 'STRING'),
+        ('role_last_used', 'VARIANT'),
+        ('role_name', 'STRING'),
+        ('role_policy_list', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('update_date', 'TIMESTAMP'),
+        ('user_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('user_policy_list', 'VARIANT'),
+    ],
 }
 
 API_METHOD_SPECS: Dict[str, dict] = {
@@ -667,6 +808,50 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         }
     },
+    'ec2.describe_network_interfaces': {
+        'response': {
+            'NetworkInterfaces': [
+                {
+                    'Groups': 'groups',
+                    'InterfaceType': 'interface_type',
+                    'Ipv6Addresses': 'ipv6_addresses',
+                    'RequesterId': 'requester_id',
+                    'Attachment': 'attachment',
+                    'Association': 'attachment',
+                    'AvailabilityZone': 'availability_zone',
+                    'Description': 'description',
+                    'MacAddress': 'mac_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'OutpostArn': 'outpost_arn',
+                    'OwnerId': 'owner_id',
+                    'PrivateIpAddress': 'private_ip_address',
+                    'PrivateDnsName': 'private_dns_name',
+                    'PrivateIpAddresses': 'private_ip_addresses',
+                    'RequesterManaged': 'requester_managed',
+                    'SourceDestCheck': 'source_dest_check',
+                    'Status': 'status',
+                    'SubnetId': 'subnet_id',
+                    'TagSet': 'tag_set',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_nat_gateways': {
+        'response': {
+            'NatGateways': [
+                {
+                    'NatGatewayAddresses': 'nat_gateway_addresses',
+                    'VpcId': 'vpc_id',
+                    'Tags': 'tags',
+                    'State': 'state',
+                    'NatGatewayId': 'nat_gateway_id',
+                    'SubnetId': 'subnet_id',
+                    'CreateTime': 'create_time',
+                }
+            ]
+        }
+    },
     'ec2.describe_route_tables': {
         'response': {
             'RouteTables': [
@@ -697,6 +882,54 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 }
             ]
         }
+    },
+    'efs.describe_file_systems': {
+        'response': {
+            'FileSystems': [
+                {
+                    'OwnerId': 'owner_id',
+                    'CreationToken': 'creation_token',
+                    'FileSystemId': 'file_system_id',
+                    'FileSystemArn': 'file_system_arn',
+                    'CreationTime': 'creation_time',
+                    'LifeCycleState': 'life_cycle_state',
+                    'Name': 'name',
+                    'NumberOfMountTargets': 'number_of_mount_targets',
+                    'SizeInBytes': 'size_in_bytes',
+                    'PerformanceMode': 'performance_mode',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyId': 'kms_key_id',
+                    'ThroughputMode': 'throughput_mode',
+                    'ProvisionedThroughputInMibps': 'provisioned_throughput_in_mibps',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+        'children': [
+            {
+                'method': 'efs.describe_mount_targets',
+                'args': {'FileSystemId': 'file_system_id'},
+            }
+        ],
+    },
+    'efs.describe_mount_targets': {
+        'params': {'FileSystemId': 'file_system_id'},
+        'response': {
+            'MountTargets': [
+                {
+                    'OwnerId': 'owner_id',
+                    'MountTargetId': 'mount_target_id',
+                    'FileSystemId': 'file_system_id',
+                    'SubnetId': 'subnet_id',
+                    'LifeCycleState': 'life_cycle_state',
+                    'IpAddress': 'ip_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'AvailabilityZoneId': 'availability_zone_id',
+                    'AvailabilityZoneName': 'availability_zone_name',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        },
     },
     'config.describe_configuration_recorders': {
         # for unknown reasons, client.describe_regions does not seem to work w/
@@ -1164,6 +1397,89 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'ec2.describe_snapshots':{
+      'response': {
+            'Snapshot': [
+                {
+                    'DataEncryptionKeyId': 'data_encryption_key_id',
+                    'Description': 'description',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyID': 'kms_key_id',
+                    'OwnerID': 'owner_id',
+                    'Progress': 'progress',
+                    'SnapshotID': 'snapshot_id',
+                    'StartTime': 'start_time',
+                    'State': 'state',
+                    'StateMessage': 'state_message',
+                    'VolumeID': 'volume_id',
+                    'VolumeSize': 'volume_size',
+                    'OwnerAlias': 'owner_alias',
+                    'OutpostArn': 'outpost_arn',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+    },
+    'iam.get_account_authorization_details': {
+        'response': {
+            'UserDetailList': [
+                {
+                    'Path': 'path',
+                    'UserName': 'user_name',
+                    'UserId': 'user_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'UserPolicyList': 'user_policy_list',
+                    'GroupList': 'group_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                }
+            ],
+            'GroupDetailList': [
+                {
+                    'Path': 'path',
+                    'GroupName': 'group_name',
+                    'GroupId': 'group_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'GroupPolicyList': 'group_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                }
+            ],
+            'RoleDetailList': [
+                {
+                    'RoleName': 'role_name',
+                    'RoleId': 'role_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
+                    'InstanceProfileList': 'instance_profile_list',
+                    'RolePolicyList': 'role_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                    'RoleLastUsed': 'role_last_used',
+                }
+            ],
+            'Policies': [
+                {
+                    'PolicyName': 'policy_name',
+                    'PolicyId': 'policy_id',
+                    'Arn': 'arn',
+                    'Path': 'path',
+                    'DefaultVersionId': 'default_version_id',
+                    'AttachmentCount': 'attachment_count',
+                    'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
+                    'IsAttachable': 'is_attachable',
+                    'Description': 'description',
+                    'CreateDate': 'create_date',
+                    'UpdateDate': 'update_date',
+                    'PolicyVersionList': 'policy_version_list',
+                }
+            ],
+        },
+    },
 }
 
 
@@ -1320,22 +1636,17 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     client_name, method_name = task.method.split('.', 1)
 
     try:
-        now = datetime.utcnow()
-        expires = (
-            _SESSION_CACHE.get('account_arn', {})
-            .get('Credentials', {})
-            .get('Expiration')
-        )
-        session = _SESSION_CACHE[account_arn] = (
-            _SESSION_CACHE[account_arn]
-            if expires and expires > now + timedelta(minutes=5)
-            else await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
+        expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
+        if expiration is None or expiration < datetime.now(pytz.utc) + timedelta(minutes=5):
+            expiration, session = _SESSION_CACHE[account_arn] = (
+                await aio_sts_assume_role(
+                    src_role_arn=AUDIT_ASSUMER_ARN,
+                    dest_role_arn=account_arn,
+                    dest_external_id=READER_EID,
+                )
             )
-        )
-        async with session.client(client_name) as client:
+
+        async with session.client(client_name, config=AIOBOTO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
@@ -1343,7 +1654,9 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
-            async with session.client(client_name, region_name=rn) as client:
+            async with session.client(
+                client_name, config=AIOBOTO_CONFIG, region_name=rn
+            ) as client:
                 async for response in load_task_response(client, task):
                     if type(response) is DBEntry:
                         if rn is not None:
@@ -1406,12 +1719,14 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_account_aliases',
             'iam.get_account_summary',
             'iam.get_account_password_policy',
+            'efs.describe_file_systems',
             'ec2.describe_instances',
+            'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
+            'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
-            'iam.list_users',
             'iam.list_policies',
             'iam.list_virtual_mfa_devices',
             's3.list_buckets',
@@ -1420,7 +1735,10 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            'ec2.describe_snapshots',
             's3control.get_public_access_block',
+            'iam.get_account_authorization_details',
+            'iam.list_users',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
@@ -1445,7 +1763,7 @@ async def aioingest(table_name, options, dryrun=False):
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        session = await aio_sts_assume_role(
+        expiration, session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,

@@ -1,0 +1,44 @@
+-- ---
+-- name: Send Mail Pack
+-- params:
+-- - name: api_gateway
+-- - name: sendgrid_apikey
+-- - name: aws_apigateway_prefix
+-- - name: aws_apigateway_region
+
+-- this function specifies the API and stores its credentials
+CREATE OR REPLACE SECURE EXTERNAL FUNCTION sendgrid_send_mail(
+  sender STRING,
+  recipient STRING,
+  subject STRING,
+  body STRING
+)
+RETURNS VARIANT
+RETURNS NULL ON NULL INPUT
+VOLATILE
+COMMENT='sendgrid_send_mail: (sender, recipient, subject, text) -> rejected emails object'
+API_INTEGRATION={api_gateway}
+HEADERS=(
+  'host'='smtp.sendgrid.net'
+  'user'='apikey'
+  'password'='{sendgrid_apikey}'
+  'sender-email'='{0}'
+  'recipient-email'='{1}'
+  'subject'='{2}'
+  'text'='{3}'
+)
+AS 'https://{aws_apigateway_prefix}.execute-api.{aws_apigateway_region}.amazonaws.com/prod/smtp'
+;
+
+-- this function models a resource for consumption in SQL
+CREATE OR REPLACE SECURE FUNCTION snowalert_send_mail(
+  recipient STRING,
+  subject STRING,
+  body STRING
+)
+RETURNS VARIANT
+COMMENT='snowalert_send_mail(recipient, subject, body) -> rejected emails object'
+AS $$
+  sendgrid_send_mail('alerts@snowalert.com', recipient, subject, body)
+$$
+;
