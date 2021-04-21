@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiobotocore.config import AioConfig
 from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
@@ -29,6 +30,8 @@ from runners.helpers import db, log
 AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
+
+AIOBOTO_CONFIG = AioConfig(retries={'max_attempts': 6, 'mode': 'standard'})
 
 _SESSION_CACHE: dict = {}
 
@@ -1643,7 +1646,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 )
             )
 
-        async with session.client(client_name) as client:
+        async with session.client(client_name, config=AIOBOTO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
@@ -1651,7 +1654,9 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
-            async with session.client(client_name, region_name=rn) as client:
+            async with session.client(
+                client_name, config=AIOBOTO_CONFIG, region_name=rn
+            ) as client:
                 async for response in load_task_response(client, task):
                     if type(response) is DBEntry:
                         if rn is not None:
