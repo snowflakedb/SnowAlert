@@ -90,9 +90,10 @@ resource "aws_api_gateway_rest_api" "ef_to_lambda" {
 
 resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
   depends_on = [
-    aws_iam_role.gateway_caller,
     aws_api_gateway_rest_api.ef_to_lambda,
     aws_api_gateway_method_settings.enable_logging,
+    aws_iam_role_policy_attachment.gateway_caller,
+    aws_iam_role_policy.gateway_caller,
   ]
   rest_api_id = aws_api_gateway_rest_api.ef_to_lambda.id
 
@@ -102,7 +103,7 @@ resource "aws_api_gateway_rest_api_policy" "ef_to_lambda" {
         {
           Effect = "Allow"
           Principal = {
-            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${aws_iam_role.gateway_caller.name}/snowflake"
+            AWS = "arn:aws:sts::${local.account_id}:assumed-role/${var.prefix}-api-gateway-caller/snowflake"
           }
           Action   = "execute-api:Invoke"
           Resource = "${aws_api_gateway_rest_api.ef_to_lambda.execution_arn}/*/POST/*"

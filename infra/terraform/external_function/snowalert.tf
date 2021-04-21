@@ -8,14 +8,14 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-west-2"
+  region = "ap-south-1"
 }
 
 
 
 module "snowflake_api_integration_aws_gateway" {
   source                            = "./snowalert"
-  prefix                            = "snowalert"
+  prefix                            = var.prefix
   snowflake_integration_user        = var.snowflake_integration_user
   aws_cloudwatch_metric_namespace   = var.aws_cloudwatch_metric_namespace
   aws_deployment_stage_name         = var.aws_deployment_stage_name
@@ -23,6 +23,11 @@ module "snowflake_api_integration_aws_gateway" {
   snowflake_account                 = var.snowflake_account
   snowflake_password                = var.snowflake_password
   snowflake_role                    = var.snowflake_role
+}
+
+variable "prefix" {
+  type        = string
+  default     = "snowalert"
 }
 
 variable "snowflake_integration_user" {
