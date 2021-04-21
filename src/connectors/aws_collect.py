@@ -538,8 +538,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
