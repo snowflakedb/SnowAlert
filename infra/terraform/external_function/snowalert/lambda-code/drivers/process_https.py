@@ -63,7 +63,7 @@ def process_row(
         if 'host' in req_auth and not req_host:
             req_host = req_auth['host']
 
-        if req_auth.get("host") != req_host:
+        if req_auth.get('host') != req_host:
             pass  # if host in ct, only send creds to that host
         elif 'basic' in req_auth:
             req_headers['Authorization'] = make_basic_header(req_auth['basic'])
