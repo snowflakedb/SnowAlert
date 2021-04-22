@@ -111,7 +111,7 @@ def connection_run(connection_table, run_now=False, debug=False, option_override
             raise
         db.record_metadata(metadata, table=DC_METADATA_TABLE, e=e)
 
-    log.info(f"-- END DC --")
+    log.info(f"-- END DC {table_name} --")
 
 
 def main(connection_table=None, run_now=False, debug=False, **option_overrides):
