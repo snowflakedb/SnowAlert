@@ -23,7 +23,7 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "ENVIRONMENT": "No Environment described",
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
-    "SEVERITY": "-",
+    "SEVERITY": "Severity Unspecified",
     "CATS": "-",
 }
 
