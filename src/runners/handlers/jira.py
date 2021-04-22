@@ -24,7 +24,7 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
     "SEVERITY": "-",
-    "CATEGORIES": "-",
+    "CATS": "-",
 }
 
 JIRA_TICKET_BODY_FMT = """
@@ -33,7 +33,7 @@ Query ID: {QUERY_ID}
 Query Name: {QUERY_NAME}
 Environment: {ENVIRONMENT}
 Sources: {SOURCES}
-Categories: {CATEGORIES}
+Categories: {CATS}
 Actor: {ACTOR}
 Object: {OBJECT}
 Action: {ACTION}
