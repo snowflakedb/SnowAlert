@@ -145,7 +145,7 @@ def process_row(
             )
         elif links_headers and isinstance(result, list):
             row_data += result
-            link_dict: Dict = next((l for l in links_headers if l["rel"] == "next"), {})
+            link_dict: Dict[Any, Any] = next((l for l in links_headers if l["rel"] == "next"), {})
             nu: Optional[str] = link_dict.get("url")
             next_url = nu if nu != next_url else None
         else:
