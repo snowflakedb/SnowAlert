@@ -50,8 +50,9 @@ def process_row(
         k: v.format(**req_kwargs) for k, v in parse_header_dict(headers).items()
     }
     req_headers.setdefault('User-Agent', 'Snowflake SnowAlert External Function 1.0')
-    if auth:
-        auth = str(decrypt_if_encrypted(auth))
+    if auth is not None:
+        auth = decrypt_if_encrypted(auth)
+        assert auth is not None
         req_auth = (
             loads(auth)
             if auth.startswith('{')
