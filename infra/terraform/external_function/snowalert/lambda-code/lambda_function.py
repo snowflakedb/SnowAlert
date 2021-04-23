@@ -1,3 +1,4 @@
+import re
 from codecs import encode
 from importlib import import_module
 from json import dumps, loads

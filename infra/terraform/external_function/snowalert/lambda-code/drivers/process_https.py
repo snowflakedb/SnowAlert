@@ -1,10 +1,11 @@
 from base64 import b64encode
 from email.utils import parsedate_to_datetime
-from json import dumps, loads, JSONDecodeError
+from json import JSONDecodeError, dumps, loads
 from re import match
-from urllib.request import urlopen, Request
+from typing import Dict, Union, Optional, List, Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl
+from urllib.request import Request, urlopen
 
 from utils import parse_header_links, pick
 from vault import decrypt_if_encrypted
@@ -19,18 +20,18 @@ def parse_header_dict(value):
 
 
 def process_row(
-    data='',
-    base_url='',
-    url='',
-    json=None,
-    method='get',
-    headers='',
-    kwargs='',
-    auth=None,
-    params='',
-    verbose=False,
-    nextpage_path='',
-    results_path='',
+    data: Optional[str] = None,
+    base_url: str = '',
+    url: str = '',
+    json: Optional[str] = None,
+    method: str = 'get',
+    headers: str = '',
+    kwargs: Union[Dict, str] = '',
+    auth: str = None,
+    params: str = '',
+    verbose: bool = False,
+    cursor: str = '',
+    results_path: str = '',
 ):
     if url:
         req_url = base_url + url
@@ -38,7 +39,7 @@ def process_row(
         if m:
             req_host, req_path = m.groups()
         else:
-            raise RuntimeError('url must start with https://')
+            raise RuntimeError("url must start with https://")
     else:
         req_host = base_url
         req_path = url or '/'
@@ -49,8 +50,9 @@ def process_row(
         k: v.format(**req_kwargs) for k, v in parse_header_dict(headers).items()
     }
     req_headers.setdefault('User-Agent', 'Snowflake SnowAlert External Function 1.0')
-    if auth:
+    if auth is not None:
         auth = decrypt_if_encrypted(auth)
+        assert auth is not None
         req_auth = (
             loads(auth)
             if auth.startswith('{')
@@ -72,23 +74,22 @@ def process_row(
             req_headers['authorization'] = req_auth['authorization']
 
     # query, nextpage_path, results_path
-    req_qs = params
-    req_nextpage_path = nextpage_path
-    req_results_path = results_path
+    req_params: str = params
+    req_results_path: str = results_path
+    req_cursor: str = cursor
+    req_method: str = method.upper()
 
-    req_method = method.upper()
     if json:
-        req_data = (
+        req_data: Optional[bytes] = (
             json if json.startswith('{') else dumps(parse_header_dict(json))
         ).encode()
         req_headers['Content-Type'] = 'application/json'
     else:
-        req_data = data.encode()
+        req_data = None if data is None else data.encode()
 
-    req_url = f'https://{req_host}{req_path}'
-    next_url = req_url
-    next_url += ('?' + req_qs) if req_qs else ''
-    row_data = []
+    req_url += f'?{req_params}'
+    next_url: Optional[str] = req_url
+    row_data: List[Any] = []
 
     while next_url:
         req = Request(next_url, method=req_method, headers=req_headers, data=req_data)
@@ -117,7 +118,7 @@ def process_row(
             result = pick(req_results_path, response)
         except HTTPError as e:
             result = {
-                'error': f'{e.status} {e.reason}',
+                'error': f'{e.code} {e.reason}',
                 'url': next_url,
             }
         except URLError as e:
@@ -132,13 +133,21 @@ def process_row(
                 'text': response_body.decode(),
             }
 
-        if req_nextpage_path and isinstance(result, list):
+        if req_cursor and isinstance(result, list):
             row_data += result
-            nextpage = pick(req_nextpage_path, response)
-            next_url = f'https://{req_host}{nextpage}' if nextpage else None
+            if ':' in req_cursor:
+                cursor_path, cursor_param = req_cursor.rsplit(':', 1)
+            else:
+                cursor_path = req_cursor
+                cursor_param = cursor_path.split('.')[-1]
+            cursor_value = pick(cursor_path, response)
+            next_url = (
+                f'{req_url}&{cursor_param}={cursor_value}' if cursor_value else None
+            )
         elif links_headers and isinstance(result, list):
             row_data += result
-            nu = next((l for l in links_headers if l['rel'] == 'next'), {}).get('url')
+            link_dict: Dict[Any, Any] = next((l for l in links_headers if l['rel'] == 'next'), {})
+            nu: Optional[str] = link_dict.get('url')
             next_url = nu if nu != next_url else None
         else:
             row_data = result
