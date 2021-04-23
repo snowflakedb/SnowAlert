@@ -96,7 +96,7 @@ def process_row(
         try:
             res = urlopen(req)
             links_headers = parse_header_links(
-                ",".join(res.headers.get_all('link', []))
+                ','.join(res.headers.get_all('link', []))
             )
             response_body = res.read()
             response_headers = dict(res.getheaders())
@@ -134,7 +134,7 @@ def process_row(
 
         if req_cursor and isinstance(result, list):
             row_data += result
-            if ":" in req_cursor:
+            if ':' in req_cursor:
                 cursor_path, cursor_param = req_cursor.rsplit(':', 1)
             else:
                 cursor_path = req_cursor
