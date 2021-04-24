@@ -1400,8 +1400,8 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
-    'ec2.describe_snapshots':{
-      'response': {
+    'ec2.describe_snapshots': {
+        'response': {
             'Snapshot': [
                 {
                     'DataEncryptionKeyId': 'data_encryption_key_id',
@@ -1640,13 +1640,14 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     try:
         expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
-        if expiration is None or expiration < datetime.now(pytz.utc) + timedelta(minutes=5):
-            expiration, session = _SESSION_CACHE[account_arn] = (
-                await aio_sts_assume_role(
-                    src_role_arn=AUDIT_ASSUMER_ARN,
-                    dest_role_arn=account_arn,
-                    dest_external_id=READER_EID,
-                )
+        in_5m = datetime.now(pytz.utc) + timedelta(minutes=5)
+        if expiration is None or expiration < in_5m:
+            expiration, session = _SESSION_CACHE[
+                account_arn
+            ] = await aio_sts_assume_role(
+                src_role_arn=AUDIT_ASSUMER_ARN,
+                dest_role_arn=account_arn,
+                dest_external_id=READER_EID,
             )
 
         async with session.client(client_name, config=AIO_CONFIG) as client:
