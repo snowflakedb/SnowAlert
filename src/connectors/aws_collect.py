@@ -18,7 +18,7 @@ import fire
 import io
 from typing import Tuple, AsyncGenerator, Dict
 
-from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
 from runners.utils import format_exception_only, format_exception
 
 from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
@@ -1439,7 +1439,7 @@ def connect(connection_name, options):
         '' if connection_name in ('', 'default') else connection_name
     )
     table_name = f'{table_prefix}_organizations_list_accounts_connection'
-    landing_table = f'data.{table_name}'
+    landing_table = f'{DATA_SCHEMA}.{table_name}'
 
     audit_assumer_arn = options['audit_assumer_arn']
     org_account_ids = options['org_account_ids']
@@ -1459,7 +1459,7 @@ def connect(connection_name, options):
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     for table_postfix, cols in SUPPLEMENTARY_TABLES.items():
-        supp_table = f'data.{table_prefix}_{table_postfix}'
+        supp_table = f'{DATA_SCHEMA}.{table_prefix}_{table_postfix}'
         db.create_table(name=supp_table, cols=cols)
         db.execute(f'GRANT INSERT, SELECT ON {supp_table} TO ROLE {SA_ROLE}')
 
@@ -1643,7 +1643,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
 def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
-    table_name = table_name or f'data.aws_collect_{name}'
+    table_name = table_name or f'{DATA_SCHEMA}.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
     return db.insert(table_name, values, dryrun=dryrun)
 
@@ -1739,7 +1739,7 @@ async def aioingest(table_name, options, dryrun=False):
         insert_list(
             'organizations.list_accounts',
             accounts,
-            table_name=f'data.{table_name}',
+            table_name=f'{DATA_SCHEMA}.{table_name}',
             dryrun=dryrun,
         )
         num_entries += len(accounts)
