@@ -1632,6 +1632,20 @@ async def load_task_response(client, task):
             yield x
 
 
+async def get_session(account_arn):
+    expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
+    in_15m = datetime.now(pytz.utc) + timedelta(minutes=15)
+    if expiration is None or expiration < in_15m:
+        expiration, session = _SESSION_CACHE[
+            account_arn
+        ] = await aio_sts_assume_role(
+            src_role_arn=AUDIT_ASSUMER_ARN,
+            dest_role_arn=account_arn,
+            dest_external_id=READER_EID,
+        )
+    return session
+
+
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
     account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
@@ -1639,17 +1653,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     client_name, method_name = task.method.split('.', 1)
 
     try:
-        expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
-        in_5m = datetime.now(pytz.utc) + timedelta(minutes=5)
-        if expiration is None or expiration < in_5m:
-            expiration, session = _SESSION_CACHE[
-                account_arn
-            ] = await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
-            )
-
+        session = await get_session(account_arn)
         async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
@@ -1658,6 +1662,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
+            session = await get_session(account_arn)
             async with session.client(
                 client_name, region_name=rn, config=AIO_CONFIG
             ) as client:
