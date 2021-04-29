@@ -1735,7 +1735,6 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_virtual_mfa_devices',
             's3.list_buckets',
             'cloudtrail.describe_trails',
-            'iam.get_credential_report',
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
@@ -1743,6 +1742,7 @@ async def aioingest(table_name, options, dryrun=False):
             's3control.get_public_access_block',
             'iam.get_account_authorization_details',
             'iam.list_users',
+            'iam.get_credential_report',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
