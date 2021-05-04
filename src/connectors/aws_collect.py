@@ -1742,11 +1742,11 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
-            'ec2.describe_snapshots',
             's3control.get_public_access_block',
             'iam.get_account_authorization_details',
             'iam.list_users',
             'iam.get_credential_report',
+            'ec2.describe_snapshots',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
