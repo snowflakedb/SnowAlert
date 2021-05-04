@@ -1632,13 +1632,12 @@ async def load_task_response(client, task):
             yield x
 
 
-async def get_session(account_arn):
-    expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
-    in_15m = datetime.now(pytz.utc) + timedelta(minutes=15)
-    if expiration is None or expiration < in_15m:
-        expiration, session = _SESSION_CACHE[
-            account_arn
-        ] = await aio_sts_assume_role(
+async def get_session(account_arn, client_name=None):
+    session_key = (account_arn, client_name)
+    expiration, session = _SESSION_CACHE.get(session_key, (None, None))
+    in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
+    if expiration is None or expiration < in_10m:
+        expiration, session = _SESSION_CACHE[session_key] = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=account_arn,
             dest_external_id=READER_EID,
@@ -1662,7 +1661,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
-            session = await get_session(account_arn)
+            session = await get_session(account_arn, client_name)
             async with session.client(
                 client_name, region_name=rn, config=AIO_CONFIG
             ) as client:
