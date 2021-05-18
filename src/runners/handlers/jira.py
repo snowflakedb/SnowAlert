@@ -210,7 +210,7 @@ def set_issue_done(issueId):
 
 
 def record_ticket_id(ticket_id, alert_id):
-    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
+    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert_id='{alert_id}'"
     print('Updating alert table:', query)
     try:
         db.execute(query)
