@@ -26,7 +26,7 @@ def record_status(results, alert_id):
         db.execute(
             f"UPDATE results.alerts "
             f"SET handled=PARSE_JSON(%s) "
-            f"WHERE alert:ALERT_ID='{alert_id}'",
+            f"WHERE alert_id='{alert_id}'",
             params=[json_dumps(results)]
         )
     except Exception as e:

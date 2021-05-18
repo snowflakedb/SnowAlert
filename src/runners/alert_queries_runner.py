@@ -62,7 +62,9 @@ WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
 """
 
 
-MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
+MERGE_ALERTS = f"""
+MERGE INTO results.alerts AS alerts
+USING (
 
   SELECT ANY_VALUE(alert) AS alert
        , SUM(counter) AS counter
@@ -84,9 +86,10 @@ WHEN MATCHED
 THEN UPDATE SET counter = alerts.counter + new_alerts.counter
 
 WHEN NOT MATCHED
-THEN INSERT (alert, counter, alert_time, event_time)
+THEN INSERT (alert, alert_id, counter, alert_time, event_time)
   VALUES (
     new_alerts.alert,
+    new_alerts.alert['ALERT_ID'],
     new_alerts.counter,
     new_alerts.alert_time,
     new_alerts.event_time
