@@ -48,7 +48,7 @@ USING (
     )
 ) src
 ON (
-  dst.alert:ALERT_ID = src.alert_id_to_update
+  dst.alert_id = src.alert_id_to_update
   AND (
     dst.correlation_id IS NULL
     OR dst.correlation_id != src.correlation_id
