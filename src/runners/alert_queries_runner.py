@@ -65,6 +65,7 @@ WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
 MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
 
   SELECT ANY_VALUE(alert) AS alert
+       , alert['ALERT_ID'] AS alert_id
        , SUM(counter) AS counter
        , MIN(alert_time) AS alert_time
        , MIN(event_time) AS event_time
