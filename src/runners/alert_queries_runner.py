@@ -85,9 +85,10 @@ WHEN MATCHED
 THEN UPDATE SET counter = alerts.counter + new_alerts.counter
 
 WHEN NOT MATCHED
-THEN INSERT (alert, counter, alert_time, event_time)
+THEN INSERT (alert, alert_id, counter, alert_time, event_time)
   VALUES (
     new_alerts.alert,
+    new_alerts.alert_id,
     new_alerts.counter,
     new_alerts.alert_time,
     new_alerts.event_time
