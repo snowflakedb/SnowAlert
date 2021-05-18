@@ -100,6 +100,7 @@ CREATE_TABLES_QUERIES = [
     f"""
       CREATE TABLE IF NOT EXISTS results.alerts(
         alert VARIANT
+        , alert_id VARCHAR(36)
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
         , ticket STRING
