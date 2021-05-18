@@ -61,6 +61,7 @@ FROM rules.{{query_name}}
 WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
 """
 
+ALERT_RUN_RESULT_COUNT = f"SELECT COUNT(*) n FROM results.RUN_{RUN_ID}_{{query_name}}"
 
 MERGE_ALERTS = f"""
 MERGE INTO results.alerts AS alerts
@@ -130,7 +131,12 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
             ),
             fix_errors=False,
         )
-        insert_count, update_count = merge_alerts(rule_name, ALERTS_FROM_TIME)
+        count_result = db.fetch(ALERT_RUN_RESULT_COUNT.format(query_name=rule_name))
+        insert_count, update_count = (
+            merge_alerts(rule_name, ALERTS_FROM_TIME)
+            if next(count_result)['N'] > 0
+            else (0, 0)
+        )
         metadata['ROW_COUNT'] = {'INSERTED': insert_count, 'UPDATED': update_count}
         db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 
