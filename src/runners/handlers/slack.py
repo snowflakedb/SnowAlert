@@ -82,8 +82,7 @@ def handle(
             user = result['user']
             userid = user['id']
         else:
-            log.error(f'Cannot identify  Slack user for email {recipient_email}')
-            return None
+            raise RuntimeError(f'no Slack user for email {recipient_email}')
 
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
@@ -95,8 +94,7 @@ def handle(
                 f'Creating new SLACK message for {title} for user {recipient_email}'
             )
         else:
-            log.error(f'Cannot identify assignee email')
-            return None
+            raise RuntimeError("missing both 'channel' and 'recipient_email' param")
 
     text = title
 
@@ -116,8 +114,8 @@ def handle(
             if 'text' in payload:
                 text = payload['text']
         else:
-            log.error(f'Payload is empty for template {template}')
-            return None
+            raise RuntimeError(f"Payload is empty for template {template}")
+
     else:
         # does not have template, will send just simple message
         if message is not None:
@@ -163,8 +161,7 @@ def handle(
         log.debug(f'Slack response', response)
 
         if response['ok'] is False:
-            log.error(f"Slack handler error", response['error'])
-            return None
+            raise RuntimeError(f"Slack handler error {response['error']}")
 
         if 'message' in response:
             del response['message']
