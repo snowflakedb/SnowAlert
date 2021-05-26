@@ -51,7 +51,6 @@ USING (
 ) s
 ON d.alert['ALERT_ID'] = s.id
 WHEN MATCHED THEN UPDATE SET d.handled=s.handled
-;
 `
 
 return {

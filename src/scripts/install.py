@@ -43,6 +43,12 @@ def read_sasql(file):
     return [t + sep for t in tmpl.split(sep) if t.strip()]
 
 
+def format(tmpl, vars):
+    for k, v in vars.items():
+        tmpl = tmpl.replace(f'{{{k}}}', v)
+    return tmpl
+
+
 def read_queries(file, tmpl_vars=None):
     if tmpl_vars is None:
         tmpl_vars = {}
@@ -61,7 +67,7 @@ def read_queries(file, tmpl_vars=None):
 
     pwd = path.dirname(path.realpath(__file__))
     tmpl = open(f'{pwd}/installer-queries/{file}.sql.fmt').read()
-    return [t + ';' for t in tmpl.format(**tmpl_vars).split(';') if t.strip()]
+    return [t for t in format(tmpl, tmpl_vars).split(';') if t.strip() != '']
 
 
 VERBOSE = False

@@ -2,5 +2,12 @@ CREATE OR REPLACE PROCEDURE results.violation_queries_runner()
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
-USING TEMPLATE 'violation_queries_runner.js'
+USING TEMPLATE 'run-violation-queries.js'
+;
+
+CREATE OR REPLACE PROCEDURE results.violation_suppressions_runner()
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'run-violation-suppressions.js'
 ;

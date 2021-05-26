@@ -26,14 +26,6 @@ function exec(sqlText, binds=[]) {
   return retval
 }
 
-function fillArray(value, len) {
-  const arr = []
-  for (var i = 0; i < len; i++) {
-    arr.push(value)
-  }
-  return arr
-}
-
 CORRELATE = `
 MERGE INTO results.alerts dst
 USING (
@@ -80,13 +72,13 @@ ON (
 )
 WHEN MATCHED THEN UPDATE SET
   correlation_id = src.correlation_id
-;
 `
-
-while (exec(CORRELATE)['number of rows updated'] != 0) {
-  // todo: count results
-}
+var n, results = []
+do {
+  n = exec(CORRELATE)[0]['number of rows updated']
+  results.push(n)
+} while (n != 0)
 
 return {
-  // todo: return metadata
+  'ROWS_UPDATED': results
 }

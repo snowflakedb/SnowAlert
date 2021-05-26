@@ -75,13 +75,13 @@ $$
 CREATE OR REPLACE FUNCTION urlencode("obj" VARIANT) RETURNS STRING
 LANGUAGE JAVASCRIPT
 AS $$
-var ret = [];
+var ret = []
 for (var p in obj)
 if (obj.hasOwnProperty(p)) {
-  var v = obj[p];
-  v = v instanceof Date ? v.toISOString() : v;
-  ret.push(encodeURIComponent(p) + "=" + encodeURIComponent(v));
+  var v = obj[p]
+  v = v instanceof Date ? v.toISOString() : v
+  ret.push(encodeURIComponent(p) + "=" + encodeURIComponent(v))
 }
-return ret.join("&");
+return ret.join("&")
 $$
 ;

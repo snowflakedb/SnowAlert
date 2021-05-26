@@ -13,22 +13,13 @@ from runners.config import (
 from runners.helpers import db, log
 
 CALL_ASR = f'''
-CALL results.alert_suppressions_runner(
-  '{RUN_ID}',
-  '{{squelch_name}}'
-)
+CALL results.alert_suppressions_runner()
 '''
 
 
-def call_asr(squelch_name):
-    return next(db.fetch(CALL_ASR.format(squelch_name=squelch_name))).get(
-        'ALERT_SUPPRESSIONS_RUNNER'
-    )
-
-
-def main(squelch_name=''):
+def main():
     start_time = datetime.datetime.utcnow()
-    res = call_asr(squelch_name)
+    res = next(db.fetch(CALL_ASR)).get('ALERT_SUPPRESSIONS_RUNNER')
     for c in res['suppression_counts']:
         db.record_metadata(
             {

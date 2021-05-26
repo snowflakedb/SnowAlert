@@ -5,7 +5,7 @@ EXECUTE AS CALLER
 USING TEMPLATE 'run-alert-queries.js'
 ;
 
-CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, from_time_sql STRING)
+CREATE OR REPLACE PROCEDURE results.alert_queries_runner(query_name STRING, offset STRING)
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
@@ -20,7 +20,7 @@ USING TEMPLATE 'run-alert-queries.js'
 ;
 
 
-CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner(run_id STRING, alert_squelch_postfix STRING)
+CREATE OR REPLACE PROCEDURE results.alert_suppressions_runner(queries_like STRING)
 RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
@@ -48,4 +48,12 @@ RETURNS VARIANT
 LANGUAGE JAVASCRIPT
 EXECUTE AS CALLER
 USING TEMPLATE 'run-alert-dispatcher.js'
+;
+
+
+CREATE OR REPLACE PROCEDURE results.alert_scheduler(warehouse STRING)
+RETURNS VARIANT
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+USING TEMPLATE 'run-alert-scheduler.js'
 ;
