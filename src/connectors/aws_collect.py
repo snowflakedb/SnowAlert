@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiobotocore.config import AioConfig
 from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
@@ -16,14 +17,20 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
+import pytz
 from typing import Tuple, AsyncGenerator, Dict
 
-from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
 from runners.utils import format_exception_only, format_exception
 
 from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
 from runners.helpers import db, log
 
+
+AIO_CONFIG = AioConfig(
+    read_timeout=600,
+    connect_timeout=600,
+)
 
 AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
@@ -534,8 +541,8 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
@@ -660,6 +667,62 @@ SUPPLEMENTARY_TABLES = {
         ('user_attributes', 'VARIANT'),
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
+    'ec2_describe_snapshots': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('data_encryption_key_id', 'STRING'),
+        ('description', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('progress', 'STRING'),
+        ('snapshot_id', 'STRING'),
+        ('start_time', 'TIMESTAMP_LTZ'),
+        ('state', 'STRING'),
+        ('state_message', 'STRING'),
+        ('volume_id', 'STRING'),
+        ('volume_size', 'NUMBER'),
+        ('owner_alias', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-authorization-details.html
+    'iam_get_account_authorization_details': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('arn', 'STRING'),
+        ('assume_role_policy_document', 'VARIANT'),
+        ('attached_managed_policies', 'VARIANT'),
+        ('attachment_count', 'NUMBER'),
+        ('create_date', 'TIMESTAMP'),
+        ('default_version_id', 'STRING'),
+        ('description', 'STRING'),
+        ('group_id', 'STRING'),
+        ('group_list', 'VARIANT'),
+        ('group_name', 'STRING'),
+        ('group_policy_list', 'VARIANT'),
+        ('instance_profile_list', 'VARIANT'),
+        ('is_attachable', 'BOOLEAN'),
+        ('path', 'STRING'),
+        ('permissions_boundary', 'VARIANT'),
+        ('permissions_boundary_usage_count', 'NUMBER'),
+        ('policy_id', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_version_list', 'VARIANT'),
+        ('role_id', 'STRING'),
+        ('role_last_used', 'VARIANT'),
+        ('role_name', 'STRING'),
+        ('role_policy_list', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('update_date', 'TIMESTAMP'),
+        ('user_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('user_policy_list', 'VARIANT'),
     ],
 }
 
@@ -846,7 +909,10 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         },
         'children': [
-            {'method': 'efs.describe_mount_targets', 'args': {'FileSystemId': 'file_system_id'}}
+            {
+                'method': 'efs.describe_mount_targets',
+                'args': {'FileSystemId': 'file_system_id'},
+            }
         ],
     },
     'efs.describe_mount_targets': {
@@ -866,7 +932,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     'VpcId': 'vpc_id',
                 }
             ]
-        }
+        },
     },
     'config.describe_configuration_recorders': {
         # for unknown reasons, client.describe_regions does not seem to work w/
@@ -1334,6 +1400,89 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'ec2.describe_snapshots': {
+        'response': {
+            'Snapshot': [
+                {
+                    'DataEncryptionKeyId': 'data_encryption_key_id',
+                    'Description': 'description',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyID': 'kms_key_id',
+                    'OwnerID': 'owner_id',
+                    'Progress': 'progress',
+                    'SnapshotID': 'snapshot_id',
+                    'StartTime': 'start_time',
+                    'State': 'state',
+                    'StateMessage': 'state_message',
+                    'VolumeID': 'volume_id',
+                    'VolumeSize': 'volume_size',
+                    'OwnerAlias': 'owner_alias',
+                    'OutpostArn': 'outpost_arn',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+    },
+    'iam.get_account_authorization_details': {
+        'response': {
+            'UserDetailList': [
+                {
+                    'Path': 'path',
+                    'UserName': 'user_name',
+                    'UserId': 'user_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'UserPolicyList': 'user_policy_list',
+                    'GroupList': 'group_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                }
+            ],
+            'GroupDetailList': [
+                {
+                    'Path': 'path',
+                    'GroupName': 'group_name',
+                    'GroupId': 'group_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'GroupPolicyList': 'group_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                }
+            ],
+            'RoleDetailList': [
+                {
+                    'RoleName': 'role_name',
+                    'RoleId': 'role_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
+                    'InstanceProfileList': 'instance_profile_list',
+                    'RolePolicyList': 'role_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                    'RoleLastUsed': 'role_last_used',
+                }
+            ],
+            'Policies': [
+                {
+                    'PolicyName': 'policy_name',
+                    'PolicyId': 'policy_id',
+                    'Arn': 'arn',
+                    'Path': 'path',
+                    'DefaultVersionId': 'default_version_id',
+                    'AttachmentCount': 'attachment_count',
+                    'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
+                    'IsAttachable': 'is_attachable',
+                    'Description': 'description',
+                    'CreateDate': 'create_date',
+                    'UpdateDate': 'update_date',
+                    'PolicyVersionList': 'policy_version_list',
+                }
+            ],
+        },
+    },
 }
 
 
@@ -1342,7 +1491,7 @@ def connect(connection_name, options):
         '' if connection_name in ('', 'default') else connection_name
     )
     table_name = f'{table_prefix}_organizations_list_accounts_connection'
-    landing_table = f'data.{table_name}'
+    landing_table = f'{DATA_SCHEMA}.{table_name}'
 
     audit_assumer_arn = options['audit_assumer_arn']
     org_account_ids = options['org_account_ids']
@@ -1362,7 +1511,7 @@ def connect(connection_name, options):
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     for table_postfix, cols in SUPPLEMENTARY_TABLES.items():
-        supp_table = f'data.{table_prefix}_{table_postfix}'
+        supp_table = f'{DATA_SCHEMA}.{table_prefix}_{table_postfix}'
         db.create_table(name=supp_table, cols=cols)
         db.execute(f'GRANT INSERT, SELECT ON {supp_table} TO ROLE {SA_ROLE}')
 
@@ -1483,6 +1632,19 @@ async def load_task_response(client, task):
             yield x
 
 
+async def get_session(account_arn, client_name=None):
+    session_key = (account_arn, client_name)
+    expiration, session = _SESSION_CACHE.get(session_key, (None, None))
+    in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
+    if expiration is None or expiration < in_10m:
+        expiration, session = _SESSION_CACHE[session_key] = await aio_sts_assume_role(
+            src_role_arn=AUDIT_ASSUMER_ARN,
+            dest_role_arn=account_arn,
+            dest_external_id=READER_EID,
+        )
+    return session
+
+
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
     account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
@@ -1490,22 +1652,8 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     client_name, method_name = task.method.split('.', 1)
 
     try:
-        now = datetime.utcnow()
-        expires = (
-            _SESSION_CACHE.get('account_arn', {})
-            .get('Credentials', {})
-            .get('Expiration')
-        )
-        session = _SESSION_CACHE[account_arn] = (
-            _SESSION_CACHE[account_arn]
-            if expires and expires > now + timedelta(minutes=5)
-            else await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
-            )
-        )
-        async with session.client(client_name) as client:
+        session = await get_session(account_arn)
+        async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
@@ -1513,7 +1661,10 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
         for rn in region_names:
-            async with session.client(client_name, region_name=rn) as client:
+            session = await get_session(account_arn, client_name)
+            async with session.client(
+                client_name, region_name=rn, config=AIO_CONFIG
+            ) as client:
                 async for response in load_task_response(client, task):
                     if type(response) is DBEntry:
                         if rn is not None:
@@ -1546,7 +1697,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
 def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
-    table_name = table_name or f'data.aws_collect_{name}'
+    table_name = table_name or f'{DATA_SCHEMA}.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
     return db.insert(table_name, values, dryrun=dryrun)
 
@@ -1588,12 +1739,14 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_virtual_mfa_devices',
             's3.list_buckets',
             'cloudtrail.describe_trails',
-            'iam.get_credential_report',
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
             's3control.get_public_access_block',
+            'iam.get_account_authorization_details',
             'iam.list_users',
+            'iam.get_credential_report',
+            'ec2.describe_snapshots',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
@@ -1618,7 +1771,7 @@ async def aioingest(table_name, options, dryrun=False):
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        session = await aio_sts_assume_role(
+        expiration, session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,
@@ -1641,7 +1794,7 @@ async def aioingest(table_name, options, dryrun=False):
         insert_list(
             'organizations.list_accounts',
             accounts,
-            table_name=f'data.{table_name}',
+            table_name=f'{DATA_SCHEMA}.{table_name}',
             dryrun=dryrun,
         )
         num_entries += len(accounts)

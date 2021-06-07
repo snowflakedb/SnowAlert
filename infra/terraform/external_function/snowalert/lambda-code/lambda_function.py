@@ -1,9 +1,16 @@
+import re
 from codecs import encode
 from importlib import import_module
 from json import dumps, loads
 import re
+import sys
+import os.path
 
 from vault import decrypt_if_encrypted
+
+# pip install --target ./site-packages -r requirements.txt
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(dir_path, 'site-packages'))
 
 
 def zip(s, chunk_size=1_000_000):
@@ -43,7 +50,7 @@ def lambda_handler(event, context=None):
     res_data = []
     for row_number, *args in req_body['data']:
         row_result = []
-        processor_params = {
+        process_row_params = {
             k.replace('sf-custom-', '').replace('-', '_'): format(v, args)
             for k, v in headers.items()
             if k.startswith('sf-custom-')
@@ -51,10 +58,10 @@ def lambda_handler(event, context=None):
 
         try:
 
-            protocol, *path = event['path'].lstrip('/').split('/')
-            protocol = protocol.replace('-', '_')
-            process_row = import_module(f'processor.process_{protocol}').process_row
-            row_result = process_row(*path, **processor_params)
+            driver, *path = event['path'].lstrip('/').split('/')
+            driver = driver.replace('-', '_')
+            process_row = import_module(f'drivers.process_{driver}').process_row
+            row_result = process_row(*path, **process_row_params)
 
         except Exception as e:
             row_result = {'error': repr(e)}

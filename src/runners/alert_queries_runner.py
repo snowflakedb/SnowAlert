@@ -51,7 +51,8 @@ SELECT OBJECT_CONSTRUCT(
          'DETECTOR', IFNULL(DETECTOR::VARIANT, PARSE_JSON('null')),
          'EVENT_DATA', IFNULL(EVENT_DATA::VARIANT, PARSE_JSON('null')),
          'SEVERITY', IFNULL(SEVERITY::VARIANT, PARSE_JSON('null')),
-         'HANDLERS', IFNULL(OBJECT_CONSTRUCT(*):HANDLERS::VARIANT, PARSE_JSON('null'))
+         'HANDLERS', IFNULL(OBJECT_CONSTRUCT(*):HANDLERS::VARIANT, PARSE_JSON('null')),
+         'CATS', IFNULL(OBJECT_CONSTRUCT(*):CATS::VARIANT, PARSE_JSON('null'))
        ) AS alert
      , alert_time
      , event_time
@@ -60,8 +61,11 @@ FROM rules.{{query_name}}
 WHERE event_time BETWEEN {{from_time_sql}} AND {{to_time_sql}}
 """
 
+ALERT_RUN_RESULT_COUNT = f"SELECT COUNT(*) n FROM results.RUN_{RUN_ID}_{{query_name}}"
 
-MERGE_ALERTS = f"""MERGE INTO results.alerts AS alerts USING (
+MERGE_ALERTS = f"""
+MERGE INTO results.alerts AS alerts
+USING (
 
   SELECT ANY_VALUE(alert) AS alert
        , SUM(counter) AS counter
@@ -83,9 +87,10 @@ WHEN MATCHED
 THEN UPDATE SET counter = alerts.counter + new_alerts.counter
 
 WHEN NOT MATCHED
-THEN INSERT (alert, counter, alert_time, event_time)
+THEN INSERT (alert, alert_id, counter, alert_time, event_time)
   VALUES (
     new_alerts.alert,
+    new_alerts.alert['ALERT_ID'],
     new_alerts.counter,
     new_alerts.alert_time,
     new_alerts.event_time
@@ -126,7 +131,12 @@ def create_alerts(rule_name: str) -> Dict[str, Any]:
             ),
             fix_errors=False,
         )
-        insert_count, update_count = merge_alerts(rule_name, ALERTS_FROM_TIME)
+        count_result = db.fetch(ALERT_RUN_RESULT_COUNT.format(query_name=rule_name))
+        insert_count, update_count = (
+            merge_alerts(rule_name, ALERTS_FROM_TIME)
+            if next(count_result)['N'] > 0
+            else (0, 0)
+        )
         metadata['ROW_COUNT'] = {'INSERTED': insert_count, 'UPDATED': update_count}
         db.execute(f"DROP TABLE results.RUN_{RUN_ID}_{rule_name}")
 

@@ -24,6 +24,7 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
     "SEVERITY": "Severity Unspecified",
+    "CATS": "-",
 }
 
 JIRA_TICKET_BODY_FMT = """
@@ -32,6 +33,7 @@ Query ID: {QUERY_ID}
 Query Name: {QUERY_NAME}
 Environment: {ENVIRONMENT}
 Sources: {SOURCES}
+Categories: {CATS}
 Actor: {ACTOR}
 Object: {OBJECT}
 Action: {ACTION}
@@ -149,7 +151,7 @@ def create_jira_ticket(
     issue_params = {
         'project': project,
         'issuetype': {'name': issue_type},
-        'summary': alert['TITLE'],
+        'summary': alert.get('TITLE') or JIRA_TICKET_BODY_DEFAULTS['TITLE'],
         'description': body,
     }
 
@@ -165,6 +167,8 @@ def create_jira_ticket(
         for field_id, field_value in custom_fields:
             if field_value.startswith('key:'):
                 issue_params[f'customfield_{field_id}'] = field_value[4:]
+            elif field_value.startswith('[') and field_value.endswith(']'):
+                issue_params[f'customfield_{field_id}'] = [{'value': v} for v in field_value[1:-1].split(',')]
             else:
                 issue_params[f'customfield_{field_id}'] = {'value': field_value}
 
@@ -206,7 +210,7 @@ def set_issue_done(issueId):
 
 
 def record_ticket_id(ticket_id, alert_id):
-    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
+    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert_id='{alert_id}'"
     print('Updating alert table:', query)
     try:
         db.execute(query)

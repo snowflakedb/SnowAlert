@@ -24,6 +24,7 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , OBJECT_CONSTRUCT('data', 'test data') AS event_data
     , CURRENT_TIMESTAMP() AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
+    , OBJECT_CONSTRUCT('test difficulty', OBJECT_CONSTRUCT('for dogs', 3, 'for cats', 1)) AS cats
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
@@ -137,6 +138,7 @@ EXPECTED_TEST_1_OUTPUT = {
     "TITLE": "test1_alert_query_title",
     "TICKET": None,
     "HANDLERS": None,
+    "CATS": {'test difficulty': {'for dogs': 3, 'for cats': 1}},
 }
 
 SLACK_MOCK_RETURN_VALUE = {'ok': True}
@@ -358,8 +360,8 @@ def test_alert_runners_processor_and_dispatcher(
     update_jira_issue_status_done(ticket_id)
     ticket_body = jira.get_ticket_description(ticket_id)
     lines = ticket_body.split('\n')
-    assert lines[20] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    assert {lines[2], lines[23]} == {
+    assert lines[21] == '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    assert {lines[2], lines[24]} == {
         'Query ID: test_1_query_id',
         'Query ID: test_3_query',
     }

@@ -16,7 +16,7 @@ import {State, SnowAlertRulesState} from '../../reducers/types';
 import sqlFormatter from 'snowsql-formatter';
 import './RawEditor.css';
 import {Query, Suppression} from '../../store/rules';
-import Codemirror from './codemirror_wrapper';
+import Codemirror from './CodemirrorWrapper';
 
 interface OwnProps {
   currentRuleView: string | null;
@@ -54,7 +54,6 @@ class RawEditor extends React.Component<RawEditorProps> {
           updateRuleBody={updateRuleBody}
           effectFormat={this.state.formatBoolean}
           effectRevert={this.state.revertBoolean}
-
         />
         <div className="app"></div>
         <Button

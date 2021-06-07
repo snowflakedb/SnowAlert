@@ -1,9 +1,11 @@
+from typing import Optional, Any
+
 import re
 
 
 def pick(path: str, d: dict):
     # path e.g. "a.b.c"
-    retval = d
+    retval: Optional[Any] = d
     for p in path.split('.'):
         if p and retval:
             retval = retval.get(p)

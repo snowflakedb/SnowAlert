@@ -20,12 +20,12 @@ def decrypt_if_encrypted(
     if envar:
         ct = environ.get(envar)
 
-    if ct.startswith('arn:aws:secretsmanager:'):
-        return secretsmanager.get_secret_value(SecretId=ct).get('SecretString')
-
     # 1-byte plaintext has 205-byte ct
     if not ct or len(ct) < 205 or not ct.startswith('AQICAH'):
         return ct
+
+    if ct.startswith('arn:aws:secretsmanager:'):
+        return secretsmanager.get_secret_value(SecretId=ct).get('SecretString')
 
     try:
         ctBlob = b64decode(ct)
