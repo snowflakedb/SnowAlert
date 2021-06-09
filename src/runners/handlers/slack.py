@@ -2,6 +2,7 @@ import os
 import json
 
 from slackclient import SlackClient
+from slack import WebClient
 
 from runners.helpers import log
 from runners.helpers import db
@@ -67,14 +68,18 @@ def handle(
     slack_token = vault.decrypt_if_encrypted(slack_token_ct)
 
     sc = SlackClient(slack_token)
-
+    client = WebClient(slack_token)
     # otherwise we will retrieve email from assignee and use it to identify Slack user
     # Slack user id will be assigned as a channel
 
     title = alert['TITLE']
 
     if recipient_email is not None:
-        result = sc.api_call("users.lookupByEmail", email=recipient_email)
+        if isinstance(recipient_email, str):
+            result = sc.api_call("users.lookupByEmail", email=recipient_email)
+
+        else:
+            response = client.conversations_open(users= recipient_email)
 
         # log.info(f'Slack user info for {email}', result)
 
