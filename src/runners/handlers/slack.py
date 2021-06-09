@@ -79,7 +79,7 @@ def handle(
             result = sc.api_call("users.lookupByEmail", email=recipient_email)
 
         else:
-            response = client.conversations_open(users= recipient_email)
+            result = client.conversations_open(users= recipient_email)
 
         # log.info(f'Slack user info for {email}', result)
 
