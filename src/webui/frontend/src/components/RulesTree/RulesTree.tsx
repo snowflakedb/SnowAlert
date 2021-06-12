@@ -115,7 +115,6 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     return (
       <div>
         <Search
-          style={{width: 200}}
           placeholder={`${target} Query Name`}
           value={filter}
           onChange={(e) => changeFilter(e.target.value)}
