@@ -58,7 +58,7 @@
     "y18n": "5.0.8"
   },
   "resolutions": {
-    "react-script/resolve-url-loader/adjust-sourcemap-loader/object-path": "0.11.5",
+    "react-scripts/resolve-url-loader/adjust-sourcemap-loader/object-path": "0.11.5",
     "tinycolor2/jquery": "3.6.0"
   },
   "scripts": {
@@ -106,7 +106,7 @@
     "npm-run-all": "^4.1.5",
     "prettier": "^2.1.2",
     "react-app-rewired": "^2.1.5",
-    "react-scripts": "^4.0.3",
+    "react-scripts": "^3.4.3",
     "redux-devtools-extension": "^2.13.9",
     "source-map-explorer": "^2.5.0",
     "style-loader": "^1.1.3",
