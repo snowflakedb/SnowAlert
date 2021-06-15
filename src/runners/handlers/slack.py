@@ -2,7 +2,6 @@ import os
 import json
 
 from slackclient import SlackClient
-from slack import WebClient
 
 from runners.helpers import log
 from runners.helpers import db
@@ -13,7 +12,7 @@ API_TOKEN = os.environ.get('SA_SLACK_API_TOKEN', os.environ.get('SLACK_API_TOKEN
 
 def message_template(vars):
     payload = None
-
+    # print("Hi")
     # remove handlers data, it might contain JSON incompatible strucutres
     vars['alert'].pop('HANDLERS')
 
@@ -68,7 +67,6 @@ def handle(
     slack_token = vault.decrypt_if_encrypted(slack_token_ct)
 
     sc = SlackClient(slack_token)
-    client = WebClient(slack_token)
     # otherwise we will retrieve email from assignee and use it to identify Slack user
     # Slack user id will be assigned as a channel
 
@@ -76,15 +74,24 @@ def handle(
 
     if recipient_email is not None:
         if isinstance(recipient_email, str):
-            result = sc.api_call("users.lookupByEmail", email=recipient_email)
+                user_object = sc.api_call("users.lookupByEmail", email=recipient_email)
+                user = user_object['user']
+                users.append(user['id'])
+                result = sc.api_call("conversations.open", users=users)
+
 
         else:
-            result = client.conversations_open(users= recipient_email)
+            users = []
+            for email in recipient_email:
+                user_object = sc.api_call("users.lookupByEmail", email=email)
+                user = user_object['user']
+                users.append(user['id'])
+            result = sc.api_call("conversations.open", users=users)
 
         # log.info(f'Slack user info for {email}', result)
 
         if result['ok'] is True and 'error' not in result:
-            user = result['user']
+            user = result['channel']
             userid = user['id']
         else:
             log.error(f'Cannot identify  Slack user for email {recipient_email}')
