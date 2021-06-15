@@ -12,7 +12,6 @@ API_TOKEN = os.environ.get('SA_SLACK_API_TOKEN', os.environ.get('SLACK_API_TOKEN
 
 def message_template(vars):
     payload = None
-    # print("Hi")
     # remove handlers data, it might contain JSON incompatible strucutres
     vars['alert'].pop('HANDLERS')
 
