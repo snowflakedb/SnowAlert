@@ -73,28 +73,38 @@ def handle(
 
     if recipient_email is not None:
         if isinstance(recipient_email, str):
-                user_object = sc.api_call("users.lookupByEmail", email=recipient_email)
-                user = user_object['user']
-                users.append(user['id'])
-                result = sc.api_call("conversations.open", users=users)
-
-
-        else:
+            user = sc.api_call("users.lookupByEmail", email=recipient_email)
+            if not user['ok']:
+                log.error(f'Cannot identify Slack user for email {recipient_email}')
+                return None
+                
+            else:
+                user_id = user['id']
+                result = sc.api_call("conversations.open", users=user_id)
+                if not result['ok']:
+                    log.error(f'Error ocurred while opening conversation channel')
+                    return None
+                    
+        elif(recipient_email, list):
             users = []
             for email in recipient_email:
-                user_object = sc.api_call("users.lookupByEmail", email=email)
-                user = user_object['user']
-                users.append(user['id'])
-            result = sc.api_call("conversations.open", users=users)
+                user = sc.api_call("users.lookupByEmail", email=email)
+                if not user['ok']:
+                    log.error('Cannot identify Slack user for email {email}')
+                    return None
+                users.append(user['user']['id'])
+                user_ids = ",".join(users)                  
+                #converting list to comma seperated string
+            result = sc.api_call("conversations.open", users=user_ids)
 
         # log.info(f'Slack user info for {email}', result)
 
         if result['ok'] is True and 'error' not in result:
             user = result['channel']
             userid = user['id']
-        else:
-            log.error(f'Cannot identify  Slack user for email {recipient_email}')
-            return None
+        # else:
+        #     log.error(f'Cannot identify Slack user for email {recipient_email}')
+        #     return None
 
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
