@@ -71,11 +71,11 @@ def handle(
     # Slack user id will be assigned as a channel
 
     title = alert['TITLE']
-    
+
     if recipient_email is not None:
         if isinstance(recipient_email, str):
             recipient_email = [recipient_email]
-                        
+
         users = []
         for email in recipient_email:
             response = sc.api_call("users.lookupByEmail", email=email)
@@ -83,13 +83,13 @@ def handle(
                 log.error(f'Cannot identify Slack user for email {email}')
                 continue
             users.append(response['user']['id'])
-        user_ids = ",".join(users)                  
+        user_ids = ",".join(users)
         result = sc.api_call("conversations.open", users=user_ids)
         if result['ok']:
             channel_id = result['channel']['id']
         else:
             raise RuntimeError(f"Error ocurred while opening conversation channel")
-            
+
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
         log.info(f'Creating new SLACK message for {title} in channel', channel)
@@ -101,7 +101,7 @@ def handle(
             )
         else:
             raise RuntimeError("missing both 'channel' and 'recipient_email' param")
-    
+
     text = title
 
     if template is not None:
