@@ -65,6 +65,7 @@ def handle(
 ):
     slack_token_ct = slack_api_token or api_token
     slack_token = vault.decrypt_if_encrypted(slack_token_ct)
+
     sc = SlackClient(slack_token)
 
     # otherwise we will retrieve email from assignee and use it to identify Slack user
@@ -73,29 +74,22 @@ def handle(
     title = alert['TITLE']
 
     if recipient_email is not None:
-        if isinstance(recipient_email, str):
-            recipient_email = [recipient_email]
+        result = sc.api_call("users.lookupByEmail", email=recipient_email)
 
-        users = []
-        for email in recipient_email:
-            response = sc.api_call("users.lookupByEmail", email=email)
-            if not response['ok']:
-                log.error(f'Cannot identify Slack user for email {email}')
-                continue
-            users.append(response['user']['id'])
-        user_ids = ",".join(users)
-        result = sc.api_call("conversations.open", users=user_ids)
-        if result['ok']:
-            channel_id = result['channel']['id']
+        # log.info(f'Slack user info for {email}', result)
+
+        if result['ok'] is True and 'error' not in result:
+            user = result['user']
+            userid = user['id']
         else:
-            raise RuntimeError(f"Error ocurred while opening conversation channel")
+            raise RuntimeError(f'no Slack user for email {recipient_email}')
 
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
         log.info(f'Creating new SLACK message for {title} in channel', channel)
     else:
         if recipient_email is not None:
-            channel = channel_id
+            channel = userid
             log.info(
                 f'Creating new SLACK message for {title} for user {recipient_email}'
             )
