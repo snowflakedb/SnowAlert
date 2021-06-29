@@ -70,8 +70,8 @@ def handle(
     # otherwise we will retrieve email from assignee and use it to identify Slack user
     # Slack user id will be assigned as a channel
 
-    # title = alert['TITLE']
-    title = ""
+    title = alert['TITLE']
+
     if recipient_email is not None:
         if isinstance(recipient_email, str):
             if recipient_email is not None:
