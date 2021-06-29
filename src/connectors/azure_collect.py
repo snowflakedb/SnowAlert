@@ -112,6 +112,23 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'VARCHAR(1000)'),
         ('zones', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/network-interfaces/list-all#response
+    'network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'VARCHAR(500)'),
+        ('identity', 'VARIANT'),
+        ('location', 'VARCHAR(100)'),
+        ('name', 'VARCHAR(100)'),
+        ('etag', 'VARCHAR(100'),
+        ('properties', 'VARIANT'),
+        ('resources', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'VARCHAR(1000)'),
+        ('zones', 'VARIANT'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/aks/managedclusters/list#response
     'managed_clusters': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -764,6 +781,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         },
         'children': [
             {'kind': 'virtual_machines', 'args': {'subscriptionId': 'subscription_id'}},
+            {'kind': 'network_interfaces', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'disks', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'sql_servers', 'args': {'subscriptionId': 'subscription_id'}},
             {'kind': 'role_definitions', 'args': {'subscriptionId': 'subscription_id'}},
@@ -1149,6 +1167,28 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             {'kind': 'virtual_machines_instance_view', 'args': {'vmId': 'id'}},
             {'kind': 'virtual_machines_extensions', 'args': {'vmId': 'id'}},
         ],
+    },
+    'network_intrfaces': {
+        'request': {
+            'path': '/subscriptions/{subscriptionId}/providers/Microsoft.Network/networkInterfaces',
+            'api-version': '2020-11-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'etag': 'etag',
+            'identity': 'identity',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'resources': 'resources',
+            'tags': 'tags',
+            'type': 'type',
+            'zones': 'zones',
+        }
     },
     'virtual_machines_instance_view': {
         'request': {'path': '{vmId}/instanceView', 'api-version': '2019-07-01'},
