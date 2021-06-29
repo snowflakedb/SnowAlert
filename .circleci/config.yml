@@ -32,10 +32,18 @@ jobs:
           name: run static analysis
           command: |
             cd src
-            source .venv/bin/activate
             MYPYPATH="`pwd`/webui/backend/" \
-              mypy --config-file mypy.ini ./runners ./scripts ./webui/backend/webui ./connectors
+              .venv/bin/mypy \
+                --install-types \
+                --non-interactive \
+                --config-file mypy.ini \
+                 ./runners \
+                 ./scripts \
+                 ./webui/backend/webui \
+                 ./connectors \
+
             .venv/bin/pytest -vv
+
             ./scripts/run-whitesource
 
       # - run:
