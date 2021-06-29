@@ -32,6 +32,7 @@ jobs:
           name: run static analysis
           command: |
             cd src
+            .venv/bin/mypy --install-types --non-interactive
             MYPYPATH="`pwd`/webui/backend/" \
               .venv/bin/mypy --config-file mypy.ini \
                  ./runners \
