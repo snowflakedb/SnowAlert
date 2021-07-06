@@ -34,7 +34,7 @@ ALERTS_FROM_TIME = os.environ.get(
 )
 
 RUN_ALERT_QUERY = f"""
-CREATE TEMP TABLE results.RUN_{RUN_ID}_{{query_name}} AS
+CREATE TRANSIENT TABLE results.RUN_{RUN_ID}_{{query_name}} AS
 SELECT OBJECT_CONSTRUCT(
          'ALERT_ID', UUID_STRING(),
          'QUERY_NAME', '{{query_name}}',
