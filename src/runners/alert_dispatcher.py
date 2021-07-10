@@ -49,13 +49,13 @@ def main():
             handlers = [handlers]
 
         for handler in handlers:
-            if handler is None:
+            if type(handler) is str:
+                handler = {'type': handler}
+
+            if handler is None or handler.get('type', '').startswith('ef-'):
                 results.append(None)
 
             else:
-                if type(handler) is str:
-                    handler = {'type': handler}
-
                 if 'type' not in handler:
                     result = {
                         'success': False,
