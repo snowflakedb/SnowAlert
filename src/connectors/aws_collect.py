@@ -391,6 +391,15 @@ SUPPLEMENTARY_TABLES = {
         ('error', 'VARIANT'),
         ('policy_name', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-user-policy.html#output
+    'iam_get_user_policy': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_document', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
     'iam_list_attached_user_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -410,6 +419,23 @@ SUPPLEMENTARY_TABLES = {
         ('group_name', 'STRING'),
         ('arn', 'STRING'),
         ('create_date', 'TIMESTAMP_LTZ'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-group-policies.html#output
+    'iam_list_group_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_name', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-group-policy.html#output
+    'iam_get_group_policy': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_document', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-group-policies.html#output
     'iam_list_attached_group_policies': [
@@ -454,6 +480,15 @@ SUPPLEMENTARY_TABLES = {
         ('policy_name', 'STRING'),
         ('error', 'VARIANT'),
         ('policy_document', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-role-policies.html#output
+    'iam_list_attached_role_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('role_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_name', 'STRING'),
+        ('policy_arn', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
     'iam_list_policies': [
@@ -995,10 +1030,27 @@ API_METHOD_SPECS: Dict[str, dict] = {
         },
         'children': [
             {
-                'method': 'iam.list_attached_group_policies',
+                'methods': {
+                    'iam.list_attached_group_policies',
+                    'iam.list_group_policies',
+                }
                 'args': {'GroupName': 'group_name'},
             }
         ],
+    },
+    'iam.list_group_policies': {
+        'params': {'GroupName': 'group_name'},
+        'response': {'PolicyNames': ['policy_name']},
+        'children': [
+            {
+                'method': 'iam.get_group_policy',
+                'args': {'GroupName': 'group_name', 'PolicyName': 'policy_name'},
+            }
+        ],
+    },
+    'iam.get_group_policy': {
+        'params': {'GroupName': 'group_name', 'PolicyName': 'policy_name'},
+        'response': {'PolicyDocument': 'policy_document'},
     },
     'iam.list_users': {
         'response': {
@@ -1081,6 +1133,16 @@ API_METHOD_SPECS: Dict[str, dict] = {
     'iam.list_user_policies': {
         'params': {'UserName': 'user_name'},
         'response': {'PolicyNames': ['policy_name']},
+        'children': [
+            {
+                'method': 'iam.get_user_policy',
+                'args': {'UserName': 'user_name', 'PolicyName': 'policy_name'},
+            }
+        ],
+    },
+    'iam.get_user_policy': {
+        'params': {'UserName': 'user_name', 'PolicyName': 'policy_name'},
+        'response': {'PolicyDocument': 'policy_document'},
     },
     'iam.list_attached_user_policies': {
         'params': {'UserName': 'user_name'},
@@ -1092,6 +1154,14 @@ API_METHOD_SPECS: Dict[str, dict] = {
     },
     'iam.list_attached_group_policies': {
         'params': {'GroupName': 'group_name'},
+        'response': {
+            'AttachedPolicies': [
+                {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
+            ]
+        },
+    },
+    'iam.list_attached_role_policies': {
+        'params': {'RoleName': 'role_name'},
         'response': {
             'AttachedPolicies': [
                 {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
@@ -1120,7 +1190,13 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         },
         'children': [
-            {'method': 'iam.list_role_policies', 'args': {'RoleName': 'role_name'}}
+            {
+                'methods': [
+                    'iam.list_role_policies', 
+                    'iam.list_attached_role_policies', 
+                ],
+                'args': {'RoleName': 'role_name'},
+            }
         ],
     },
     'iam.list_role_policies': {
