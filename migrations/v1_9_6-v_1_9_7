@@ -1,0 +1,6 @@
+# Update Azure Collect Users table to add raw col
+
+```sql
+ALTER TABLE azure_collect_users ADD COLUMN raw VARIANT;
+```
+

@@ -549,6 +549,7 @@ SUPPLEMENTARY_TABLES = {
         ('usage_location', 'STRING'),
         ('user_principal_name', 'STRING'),
         ('user_type', 'STRING'),
+        ('raw', 'variant'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/intune-devices-manageddevice?view=graph-rest-1.0#properties
     'managed_devices': [
@@ -1045,6 +1046,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'usageLocation': 'usage_location',
             'userPrincipalName': 'user_principal_name',
             'userType': 'user_type',
+            '*': 'raw',
         },
     },
     'managed_devices': {
