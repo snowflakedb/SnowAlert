@@ -1030,10 +1030,10 @@ API_METHOD_SPECS: Dict[str, dict] = {
         },
         'children': [
             {
-                'methods': {
+                'methods': [
                     'iam.list_attached_group_policies',
                     'iam.list_group_policies',
-                }
+                ],
                 'args': {'GroupName': 'group_name'},
             }
         ],
@@ -1192,8 +1192,8 @@ API_METHOD_SPECS: Dict[str, dict] = {
         'children': [
             {
                 'methods': [
-                    'iam.list_role_policies', 
-                    'iam.list_attached_role_policies', 
+                    'iam.list_role_policies',
+                    'iam.list_attached_role_policies',
                 ],
                 'args': {'RoleName': 'role_name'},
             }
