@@ -579,6 +579,8 @@ def record_metadata(metadata, table, e=None):
         }
         if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
             metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
+        if hasattr(e, 'sfqid'):
+            metadata['ERROR']['SFQID'] = e.sfqid
 
     metadata.setdefault(
         'ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0}
