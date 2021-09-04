@@ -177,7 +177,7 @@ def test_run_violations(violation_queries):
     #
 
     violation_suppressions_runner.main()
-    vs = list(db.fetch('SELECT * FROM data.violations ORDER BY created_time'))
+    vs = list(db.fetch('SELECT * FROM data.violations ORDER BY query_name'))
     v = vs[-1]
 
     # basics
