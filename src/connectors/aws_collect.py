@@ -19,6 +19,7 @@ import fire
 import io
 import pytz
 from typing import Tuple, AsyncGenerator, Dict
+from os import environ
 
 from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
 from runners.utils import format_exception_only, format_exception
@@ -32,7 +33,9 @@ AIO_CONFIG = AioConfig(
     connect_timeout=600,
 )
 
-AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
+AWS_ZONE = environ.get('SA_AWS_ZONE', 'aws')
+
+AUDIT_ASSUMER_ARN = f'arn:{AWS_ZONE}:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
@@ -48,7 +51,7 @@ CONNECTION_OPTIONS = [
         'name': 'audit_assumer_arn',
         'title': "Audit Assumer ARN",
         'prompt': "The auditor role that assumes local roles in your accounts",
-        'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
+        'placeholder': f"arn:{AWS_ZONE}:iam::111111111111:role/security-auditor",
         'required': True,
     },
     {
@@ -1722,7 +1725,7 @@ async def get_session(account_arn, client_name=None):
 
 
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
-    account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
+    account_arn = f'arn:{AWS_ZONE}:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
 
     client_name, method_name = task.method.split('.', 1)
@@ -1841,7 +1844,7 @@ async def aioingest(table_name, options, dryrun=False):
         master_reader_arn = (
             options.get('master_reader_arn')
             if oid == ''
-            else f'arn:aws:iam::{oid}:role/{AUDIT_READER_ROLE}'
+            else f'arn:{AWS_ZONE}:iam::{oid}:role/{AUDIT_READER_ROLE}'
         )
 
         if master_reader_arn is None:
