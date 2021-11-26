@@ -34,7 +34,7 @@ setup(
         'sentry-sdk==0.17.7',
         'pdpyras==4.0',
         'duo_client==4.2.3',
-        'cryptography==3.3.1',
+        'cryptography==3.3.2',
         'requests==2.23.0',
         'pymsteams==0.1.14',
     ],
