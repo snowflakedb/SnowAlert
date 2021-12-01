@@ -39,10 +39,8 @@ export const loadSAData = () => async (dispatch: Dispatch, getState: GetState) =
     try {
       const response = await api.loadSnowAlertData();
       dispatch(LoadDataActions.loadDataSuccess(response));
-    } catch (error) {
-      if (error instanceof Error) {
-        dispatch(LoadDataActions.loadDataFailure(error.message));
-      }
+    } catch (error: any) {
+      dispatch(LoadDataActions.loadDataFailure(error.message));
     }
   }
 };

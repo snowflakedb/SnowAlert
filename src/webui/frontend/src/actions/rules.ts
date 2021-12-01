@@ -34,10 +34,8 @@ export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: Get
     try {
       const response = await api.loadSnowAlertRules();
       dispatch(LoadRulesActions.loadSnowAlertRulesSuccess(response.rules));
-    } catch (error) {
-      if (error instanceof Error) {
-        dispatch(LoadRulesActions.loadSnowAlertRulesFailure(error.message));
-      }
+    } catch (error: any) {
+      dispatch(LoadRulesActions.loadSnowAlertRulesFailure(error.message));
     }
   }
 };
