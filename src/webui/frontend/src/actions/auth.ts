@@ -55,10 +55,8 @@ export const oauthLogin = (account: string, code: string, redirectUri: string) =
 
     dispatch(LoginActions.oauthReturnSuccess(toks));
     navigate(routes.DEFAULT);
-  } catch (error) {
-    if (error instanceof Error) {
-      dispatch(LoginActions.oauthReturnFailure(error.message));
-    }
+  } catch (error: any) {
+    dispatch(LoginActions.oauthReturnFailure(error.message));
   }
 };
 

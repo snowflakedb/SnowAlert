@@ -51,7 +51,7 @@
   },
   "proxy": "http://localhost:8000",
   "devDependencies": {
-    "@types/classnames": "2.3.1",
+    "@types/classnames": "^2.3.1",
     "@types/enquire.js": "^2.1.1",
     "@types/history": "^4.7.8",
     "@types/jwt-decode": "^2.2.1",
