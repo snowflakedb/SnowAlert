@@ -274,6 +274,18 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/public-ip-addresses/list-all
+    'public_ip_addresses': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('name', 'STRING'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
     'role_definitions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -789,6 +801,10 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_interfaces',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'public_ip_addresses',
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
@@ -1529,6 +1545,26 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'properties': 'properties',
             'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'public_ip_addresses': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/publicIPAddresses'
+            ),
+            'api-version': '2021-03-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
             'type': 'type',
         },
     },
