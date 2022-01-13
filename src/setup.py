@@ -8,6 +8,7 @@ setup(
     install_requires=[
         'aiohttp[speedups]==3.7.3',
         'aioboto3==8.2.0',
+        'demjson==2.2.4',
         'fire==0.3.1',
         'jira==2.0.0',
         'PyYAML==5.4',
