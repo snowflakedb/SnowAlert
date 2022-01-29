@@ -9,7 +9,7 @@ from os import getpid, environ
 from re import match
 import operator
 
-import demjson
+from demjson3 import decode as demjson_decode
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import (
@@ -180,7 +180,7 @@ def load_js_object(text: str):
     try:
         return json.loads(text)
     except json.decoder.JSONDecodeError:
-        return undefined_to_none(demjson.decode(text))
+        return undefined_to_none(demjson_decode(text))
 
 
 def fetch(ctx, query=None, fix_errors=True, params=None):
@@ -196,7 +196,7 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
             break
 
         def parse_field(value, field_type):
-            if value is not None and field_type['name'] in {
+            if value is not None and field_type.name in {
                 'OBJECT',
                 'ARRAY',
                 'VARIANT',
