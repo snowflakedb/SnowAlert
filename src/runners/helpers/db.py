@@ -9,7 +9,7 @@ from os import getpid, environ
 from re import match
 import operator
 
-from demjson3 import decode as demjson_decode
+from demjson3 import decode as demjson_decode, undefined as demjson_undefined
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import (
@@ -172,7 +172,7 @@ def load_js_object(text: str):
             return {k: undefined_to_none(v) for k, v in dj.items()}
         if isinstance(dj, list):
             return [undefined_to_none(k) for k in dj]
-        elif dj == demjson.undefined:
+        elif dj == demjson_undefined:
             return None
         else:
             return dj
