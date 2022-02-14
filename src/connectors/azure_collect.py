@@ -274,6 +274,23 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/public-ip-addresses/list-all
+    'public_ip_addresses': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('etag', 'STRING'),
+        ('extended_location', 'VARIANT'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+        ('zones', 'VARIANT'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
     'role_definitions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -789,6 +806,10 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_interfaces',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'public_ip_addresses',
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
@@ -1530,6 +1551,31 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'properties': 'properties',
             'tags': 'tags',
             'type': 'type',
+        },
+    },
+    'public_ip_addresses': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/publicIPAddresses'
+            ),
+            'api-version': '2021-03-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'extendedLocation': 'extended_location',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'tags': 'tags',
+            'type': 'type',
+            'zones': 'zones',
         },
     },
     'network_security_groups': {

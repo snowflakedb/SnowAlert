@@ -9,6 +9,7 @@ from os import getpid, environ
 from re import match
 import operator
 
+from demjson3 import decode as demjson_decode
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import (
@@ -165,6 +166,23 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
+def load_js_object(text: str):
+    def undefined_to_none(dj):
+        if isinstance(dj, dict):
+            return {k: undefined_to_none(v) for k, v in dj.items()}
+        if isinstance(dj, list):
+            return [undefined_to_none(k) for k in dj]
+        elif dj == demjson.undefined:
+            return None
+        else:
+            return dj
+
+    try:
+        return json.loads(text)
+    except json.decoder.JSONDecodeError:
+        return undefined_to_none(demjson_decode(text))
+
+
 def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = connect(), ctx
@@ -178,12 +196,12 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
             break
 
         def parse_field(value, field_type):
-            if value is not None and field_type['name'] in {
+            if value is not None and field_type.name in {
                 'OBJECT',
                 'ARRAY',
                 'VARIANT',
             }:
-                return json.loads(value)
+                return load_js_object(value)
             return value
 
         yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}

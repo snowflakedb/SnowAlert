@@ -1796,9 +1796,12 @@ async def aioingest(table_name, options, dryrun=False):
     global AUDIT_ASSUMER_ARN
     global AUDIT_READER_ROLE
     global READER_EID
-    AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', '')
-    AUDIT_READER_ROLE = options.get('audit_reader_role', '')
-    READER_EID = options.get('reader_eid', '')
+    global AWS_ZONE
+
+    AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', AUDIT_ASSUMER_ARN)
+    AUDIT_READER_ROLE = options.get('audit_reader_role', AUDIT_READER_ROLE)
+    READER_EID = options.get('reader_eid', READER_EID)
+    AWS_ZONE = options.get('aws_zone', AWS_ZONE)
 
     collect_apis = (
         [
@@ -1837,6 +1840,8 @@ async def aioingest(table_name, options, dryrun=False):
         if type(oids) is str
         else [str(oids)]
         if type(oids) is int
+        else map(str, oids)
+        if type(oids) is list
         else oids
     )
     num_entries = 0

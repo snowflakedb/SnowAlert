@@ -8,9 +8,9 @@ import yaml
 
 
 yaml.add_representer(
-    str,  # type: ignore
-    lambda dumper, data: dumper.represent_scalar(  # type: ignore
-        'tag:yaml.org,2002:str', data, style='|' if '\n' in data else None
+    str,
+    lambda dumper, data: dumper.represent_scalar(
+        'tag:yaml.org,2002:str', data, style='|' if '\n' in data else None  # type: ignore
     ),
 )
 
