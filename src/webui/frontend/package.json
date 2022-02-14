@@ -88,8 +88,8 @@
     "tslint-react": "^5.0.0",
     "typescript": "^4.0.3"
   },
-  "resolutions": { 
-    "**/@svgr/plugin-svgo/svgo/css-select": "^4.0.0" 
+  "resolutions": {
+    "**/@svgr/plugin-svgo/svgo/css-select": "^4.0.0"
   },
   "browserslist": {
     "production": [
