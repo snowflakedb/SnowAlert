@@ -37,6 +37,7 @@ jobs:
               .venv/bin/mypy \
                 --install-types \
                 --non-interactive \
+                --check-untyped-defs \
                 --config-file mypy.ini \
                  ./runners \
                  ./scripts \
