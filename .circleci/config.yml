@@ -33,8 +33,6 @@ jobs:
           command: |
             cd src
 
-            .venv/bin/pytest -vv
-
             MYPYPATH="`pwd`/webui/backend/" \
               .venv/bin/mypy \
                 --install-types \
@@ -46,6 +44,8 @@ jobs:
                  ./webui/backend/webui \
                  ./connectors \
                  ./../infra/terraform/external_function/snowalert/lambda-code
+
+            .venv/bin/pytest -vv
 
             ./scripts/run-whitesource
 
