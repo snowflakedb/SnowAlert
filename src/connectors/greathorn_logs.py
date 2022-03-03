@@ -7,12 +7,14 @@ import json
 import os
 import requests
 import time
+from typing import Any
 
 import fire
 from dateutil.parser import parse as parse_date
 
-from connectors.utils import Bearer
+from connectors.utils import Bearer, yaml_dump
 from runners.helpers import db, log
+from runners.helpers.dbconfig import ROLE
 
 
 RUN_LIMIT = timedelta(minutes=10)
@@ -77,7 +79,8 @@ def ingest(table_name, options, dryrun=False):
     lookback = options['lookback']
 
     query = f'SELECT MAX(event_id::NUMBER) id FROM {landing_table}'
-    last_id = next(db.fetch(query), {}).get('ID')
+    db_fetch: Any = next(db.fetch(query), {})
+    last_id = db_fetch.get('ID')
     filter = {'minEventId': last_id}
 
     start = datetime.now()

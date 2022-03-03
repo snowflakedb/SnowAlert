@@ -1,4 +1,5 @@
 from json import loads
+from typing import Any
 
 from google.oauth2 import service_account, credentials
 from googleapiclient.discovery import build
@@ -19,13 +20,16 @@ def process_row(
     scopes=None,
 ):
     if authorized_user_info is not None:
+        decrypt_authorized: Any = decrypt_if_encrypted(authorized_user_info)
         creds = credentials.Credentials.from_authorized_user_info(
-            loads(decrypt_if_encrypted(authorized_user_info)), scopes
+            loads(decrypt_authorized), scopes
         )
 
     else:
+        decrypt_service: Any = decrypt_if_encrypted(service_account_info)
+
         c = service_account.Credentials.from_service_account_info(
-            loads(decrypt_if_encrypted(service_account_info))
+            loads(decrypt_service)
         )
         if subject is None or without_subject:
             creds = c.with_scopes(scopes)

@@ -2,6 +2,7 @@ import re
 from codecs import encode
 from importlib import import_module
 from json import dumps, loads
+from typing import Dict, List, Union, Any
 import re
 import sys
 import os.path
@@ -49,7 +50,7 @@ def lambda_handler(event, context=None):
     req_body = loads(event['body'])
     res_data = []
     for row_number, *args in req_body['data']:
-        row_result = []
+        row_result: Union[Dict[str, str], List[Any]] = []
         process_row_params = {
             k.replace('sf-custom-', '').replace('-', '_'): format(v, args)
             for k, v in headers.items()

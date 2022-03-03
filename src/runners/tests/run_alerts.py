@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
+from typing import List,Any
 
 from runners.config import RUN_ID
 from runners.helpers import db
@@ -175,7 +176,7 @@ def sample_alert_rules(db_schemas):
 
 @pytest.fixture
 def update_jira_issue_status_done(request):
-    issues_to_update = []
+    issues_to_update: List[Any] = []
 
     @request.addfinalizer
     def fin():

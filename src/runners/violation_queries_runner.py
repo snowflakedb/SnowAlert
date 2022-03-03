@@ -2,6 +2,7 @@
 
 import datetime
 from multiprocessing import Pool
+from typing import Union,Tuple
 
 from .config import (
     POOLSIZE,
@@ -22,7 +23,7 @@ def create_violations(rule_name):
             'START_TIME': datetime.datetime.utcnow(),
         }
         try:
-            insert_count = db.insert_violations_query_run(rule_name)
+            insert_count: Union[Tuple[int, int],int] = db.insert_violations_query_run(rule_name)
         except Exception as e:
             log.info(f"{rule_name} threw an exception.")
             insert_count = 0

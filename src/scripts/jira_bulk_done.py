@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import getpass
+from typing import Any
 
 from fire import Fire
 from jira import JIRA
@@ -12,7 +13,7 @@ PROJECT_NAME = 'SA'
 
 # Max 100 issues can be retrieved from API at a time.
 MAX_RESULTS = 100
-CLIENT = None
+CLIENT: Any = None
 
 
 def connect_jira():

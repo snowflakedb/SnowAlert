@@ -164,7 +164,7 @@ def test_email():
 
 
 def test_okta():
-    h = "https://" + environ.get("OKTA_DEV_HOST")
+    h = "https://" + str(environ.get("OKTA_DEV_HOST"))
     k = environ.get("OKTA_DEV_APIKEY")
 
     if k and k:

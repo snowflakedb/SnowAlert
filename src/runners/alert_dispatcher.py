@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import importlib
+from typing import Any
 
 from runners.config import CLOUDWATCH_METRICS
 from runners.helpers import db, log
@@ -40,7 +41,7 @@ def main():
 
     for alert_row in alert_rows:
         alert = alert_row['ALERT']
-        results = []
+        results: Any = []
 
         handlers = alert.get('HANDLERS')
         if handlers is None:

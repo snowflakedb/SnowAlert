@@ -18,7 +18,7 @@ import json
 import fire
 import io
 import pytz
-from typing import Tuple, AsyncGenerator, Dict
+from typing import Tuple, AsyncGenerator, Dict, Any
 from os import environ
 
 from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
@@ -1621,7 +1621,7 @@ def process_response_items(coldict, page, db_entry=None):
         db_entry[coldict] = page
 
     elif type(coldict) is ParsedCol:
-        parse = PARSERS[coldict.type]
+        parse : Any = PARSERS[coldict.type]
         db_entry[coldict.colname] = bytes_to_str(page)
         db_entry[coldict.parsed_colname] = parse(bytes_to_str(page))
 
@@ -1904,7 +1904,7 @@ async def aioingest(table_name, options, dryrun=False):
                 f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
             )
 
-            all_results = defaultdict(list)
+            all_results: Any = defaultdict(list)
             for coro in asyncio.as_completed(coroutines):
                 result_lists = await coro
                 for k, vs in result_lists.items():

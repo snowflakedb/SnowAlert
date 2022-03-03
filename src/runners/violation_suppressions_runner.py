@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+from typing import Optional
 
 from runners.config import (
     CLOUDWATCH_METRICS,
@@ -54,7 +55,7 @@ def run_suppression(squelch_name):
     print(f"Suppression query {squelch_name} executed")
 
 
-def main():
+def main(arg_optional = None):
     RUN_METADATA = {
         'RUN_TYPE': 'VIOLATION SUPPRESSION',
         'START_TIME': datetime.datetime.utcnow(),
