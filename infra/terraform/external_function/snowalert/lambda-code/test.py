@@ -164,15 +164,15 @@ def test_email():
 
 
 def test_okta():
-    h = "https://" + environ.get("OKTA_DEV_HOST", "")
+    h = environ.get("OKTA_DEV_HOST")
     k = environ.get("OKTA_DEV_APIKEY")
 
-    if k and k:
+    if h and k:
         result = lambda_handler(
             {
                 "path": "/https",
                 "headers": {
-                    "sf-custom-base_url": h,
+                    "sf-custom-base_url": "https://" + h,
                     "sf-custom-url": "{0}",
                     "sf-custom-params": "{1}",
                     "sf-custom-kwargs": urlencode({"apikey": k}),
