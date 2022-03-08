@@ -1,5 +1,5 @@
 {
-  "plugins": [
+  plugins: [
     "syntax-dynamic-import"
   ]
 }

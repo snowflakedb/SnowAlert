@@ -40,7 +40,7 @@ export const oauthRedirect = (
       console.log('navigating', response.url);
       navigate(response.url);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.log(error);
   }
 };
@@ -59,7 +59,7 @@ export const oauthLogin = (account: string, code: string, redirectUri: string) =
 
     dispatch(LoginActions.oauthReturnSuccess(toks));
     navigate(routes.DEFAULT);
-  } catch (error) {
+  } catch (error: any) {
     dispatch(LoginActions.oauthReturnFailure(error.message));
   }
 };
