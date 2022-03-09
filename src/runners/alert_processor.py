@@ -61,7 +61,13 @@ WHEN MATCHED THEN UPDATE SET
 
 def correlate():
   log.debug('correlating')
-  result = next(db.fetch(CORRELATE))
+  result = db.retry(
+        lambda: next(db.fetch(CORRELATE, fix_errors=False)),
+        E=StopIteration,
+        n=60,
+        log_errors=True,
+        sleep_seconds_btw_retry=60,
+    )
   log.debug(f'result: {result}')
   return result.get('number of rows updated')
 
