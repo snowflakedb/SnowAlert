@@ -7,7 +7,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'aiohttp[speedups]==3.8.1',
-        'aioboto3==9.4.0',
+        'aioboto3==8.3.0',
         'demjson3==3.0.5',
         'fire==0.4.0',
         'jira==2.0.0',
