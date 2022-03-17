@@ -48,11 +48,18 @@ def main():
         if isinstance(handlers, (str, dict)):
             handlers = [handlers]
 
+        if any(
+            isinstance(h, dict) and '-' in h.get('type', '')
+            for h in handlers
+        ):
+            # this alert is for SnowAlert-on-Snowflake to handle
+            continue
+
         for handler in handlers:
             if type(handler) is str:
                 handler = {'type': handler}
 
-            if handler is None or '-' in handler.get('type', ''):
+            if handler is None:
                 results.append(None)
 
             else:
