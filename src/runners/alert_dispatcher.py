@@ -59,6 +59,9 @@ def main():
             if type(handler) is str:
                 handler = {'type': handler}
 
+            if handler is None:
+                results.append(None)
+
             else:
                 if 'type' not in handler:
                     result = {
