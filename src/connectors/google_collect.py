@@ -144,7 +144,7 @@ def ingest(table_name, options, dryrun=False):
     for collectee in options.get('collect') or ['']:
         apis = options['apis'].split(',') if 'apis' in options else API_SPECS
         for api_name in apis:
-            spec : Any = API_SPECS[api_name]
+            spec: Any = API_SPECS[api_name]
             kwargs.update(collectee)
             parents = ingest_helper(spec, api_name, **kwargs)
             if 'children' not in spec:

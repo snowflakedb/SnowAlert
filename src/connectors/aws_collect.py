@@ -1621,7 +1621,7 @@ def process_response_items(coldict, page, db_entry=None):
         db_entry[coldict] = page
 
     elif type(coldict) is ParsedCol:
-        parse : Any = PARSERS[coldict.type]
+        parse: Any = PARSERS[coldict.type]
         db_entry[coldict.colname] = bytes_to_str(page)
         db_entry[coldict.parsed_colname] = parse(bytes_to_str(page))
 

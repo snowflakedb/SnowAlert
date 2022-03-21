@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from typing import List,Any
+from typing import List, Any
 
 from runners.config import RUN_ID
 from runners.helpers import db
