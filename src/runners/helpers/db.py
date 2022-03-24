@@ -96,7 +96,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
-
+    
+    connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
         if oauth_access_token
@@ -280,7 +281,7 @@ def fetch_props(sql, filter=None):
 
 
 class TypeOptions(object):
-    type_options: List[Tuple[str, Union[int, str, bool]]]
+    type_options: Union[List[Tuple[str, Union[int, str, bool]]],Any]
 
     def __init__(self, **kwargs):
         self.type_options = kwargs.items()

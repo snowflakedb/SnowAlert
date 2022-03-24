@@ -35,16 +35,16 @@ CONNECTION_OPTIONS = [
     },
 ]
 
-FILE_FORMAT = """
-    TYPE = "JSON",
-    COMPRESSION = "AUTO",
-    ENABLE_OCTAL = FALSE,
-    ALLOW_DUPLICATE = FALSE,
-    STRIP_OUTER_ARRAY = TRUE,
-    STRIP_NULL_VALUES = FALSE,
-    IGNORE_UTF8_ERRORS = FALSE,
-    SKIP_BYTE_ORDER_MARK = TRUE
-"""
+FILE_FORMAT = db.TypeOptions(
+    type='JSON',
+    compression='AUTO',
+    enable_octal=False,
+    allow_duplicate=False,
+    strip_outer_array=True,
+    strip_null_values=False,
+    ignore_utf8_errors=False,
+    skip_byte_order_mark=True,
+)
 
 LANDING_TABLE_COLUMNS = [
     ('raw', 'VARIANT'),

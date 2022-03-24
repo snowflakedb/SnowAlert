@@ -21,7 +21,7 @@ import fire
 from getpass import getpass
 from os import environ, path, urandom
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -166,7 +166,7 @@ def parse_snowflake_url(url):
 def login(configuration=None):
     config_file = '~/.snowsql/config'
 
-    config = None
+    config: Any = None
     if type(configuration) is dict:
         config = configuration
     if type(configuration) is str:

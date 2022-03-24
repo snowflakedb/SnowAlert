@@ -3,7 +3,7 @@
 Compare the count of events in a window to percentiles of counts in prior windows.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from runners.helpers import db
 from runners.helpers.dbconfig import WAREHOUSE
@@ -276,11 +276,15 @@ def create(options):
     else:
         base_table, time_column = options['base_table_and_timecol'].split(':', 1)
 
-    groups = list(
+    groups: List[Any] = list(
         filter(None, [g.strip() for g in options.get('groups', '').split(',')])
     )
     days = int(options.get('history_size_days', '30'))
-    return [
-        next(db.fetch(sql, fix_errors=False), {}).get('status')
-        for sql in generate_baseline_sql(base_table, time_column, groups, days)
-    ]
+
+    sql_list = []
+    sql_next: Any = None
+    for sql in generate_baseline_sql(base_table, time_column, groups, days):
+        sql_next = next(db.fetch(sql, fix_errors=False), {})
+        sql_list.append(sql_next.get('status'))
+
+    return sql_list

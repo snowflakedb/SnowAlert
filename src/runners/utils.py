@@ -56,7 +56,7 @@ def json_dumps(obj, **kwargs):
 
         # e.g. pandas.DataFrame
         if callable(getattr(x, 'to_json', None)):
-            return json.parse(x.to_json())
+            return json.loads(x.to_json())
 
         if hasattr(x, 'raw'):
             return default_json_dumps(x.raw)

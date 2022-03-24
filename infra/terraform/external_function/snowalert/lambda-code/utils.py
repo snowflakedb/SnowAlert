@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 
 import re
 
@@ -21,7 +21,7 @@ def parse_header_links(value):
     :rtype: list
     """
 
-    links = []
+    links: List[Dict] = []
 
     replace_chars = ' \'"'
 

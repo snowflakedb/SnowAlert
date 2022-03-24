@@ -2045,12 +2045,13 @@ def ingest(table_name, options, dryrun=False):
         )
 
         spec = API_SPECS[next_call_kind]
+        spec_match: Any = re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s'))
         rate_space = 1 / float(
-            re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s')).group(1)
+            spec_match.group(1)
         )
         rate_by = spec.get('rate_by')
         responses = []
-        last_request = defaultdict(float)
+        last_request: Any = defaultdict(float)
         while calls:
             call = calls.popleft()
             now = time()

@@ -1,6 +1,7 @@
 from inspect import signature
 import random
 import multiprocessing as mp
+from typing import Any
 
 import aioboto3
 import boto3
@@ -33,7 +34,7 @@ def updated(d=None, *ds, **kwargs):
 
 
 def qmap_mp(num_threads, f, args):
-    payloads = mp.JoinableQueue()
+    payloads: Any = mp.JoinableQueue()
     procs = []
 
     def add_task(arg):

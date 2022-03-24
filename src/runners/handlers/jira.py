@@ -1,5 +1,6 @@
 from json import dumps
 from os import environ
+from typing import Any
 from urllib.parse import quote
 import os
 
@@ -243,7 +244,7 @@ def handle(
     """
     alert_id = alert['ALERT_ID']
 
-    correlated_result = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
+    correlated_result: Any = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
     ticket_id = correlated_result.get('TICKET')
 
     if ticket_id:

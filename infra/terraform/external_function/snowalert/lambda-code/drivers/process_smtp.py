@@ -2,6 +2,7 @@ import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Any
 
 from vault import decrypt_if_encrypted
 
@@ -74,12 +75,13 @@ def process_row(
         smtpserver.login(user, password)
 
     try:
-        result = smtpserver.sendmail(sender_email, recipients, message.as_string())
+        result: Any = smtpserver.sendmail(sender_email, recipients, message.as_string())
     except smtplib.SMTPDataError as e:
+        err: Any = e.smtp_error
         result = {
             'error': 'SMTPDataError',
             'smtp_code': e.smtp_code,
-            'smtp_error': e.smtp_error.decode(),
+            'smtp_error': err.decode(),
         }
 
     finally:

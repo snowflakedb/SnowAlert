@@ -11,6 +11,7 @@ import importlib
 import json
 import re
 from types import GeneratorType
+from typing import Any
 import yaml
 
 from runners.helpers import db, log, vault
@@ -56,7 +57,7 @@ def connection_run(connection_table, run_now=False, debug=False, option_override
 
     log.info(f"-- START DC {table_name} --")
     try:
-        metadata = {'START_TIME': datetime.utcnow()}
+        metadata: Any = {'START_TIME': datetime.utcnow()}
         options = yaml.safe_load(table_comment) or {}
         options.update(option_overrides)
 

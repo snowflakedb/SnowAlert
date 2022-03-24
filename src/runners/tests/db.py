@@ -1,5 +1,5 @@
 from runners.helpers import db
-
+from typing import Any
 
 def test_db_derive_insert_select():
     tests = [
@@ -14,6 +14,7 @@ def test_db_derive_insert_select():
             "expected": "PARSE_JSON(column1),TRY_TO_TIMESTAMP(column2),column3",
         },
     ]
+    test: Any = None
     for test in tests:
         assert test['expected'] == db.derive_insert_select(test['test'])
 
@@ -31,6 +32,7 @@ def test_db_derive_insert_columns():
             "expected": ["V", "T", "N"],
         },
     ]
+    test: Any = None
     for test in tests:
         actual = db.derive_insert_columns(test['test'])
         assert test['expected'] == list(actual)
