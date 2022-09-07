@@ -1841,7 +1841,7 @@ async def aioingest(table_name, options, dryrun=False):
         else [str(oids)]
         if type(oids) is int
         else map(str, oids)
-        if type(oids) is list
+        if type(oids) in (list, tuple)
         else oids
     )
     num_entries = 0
