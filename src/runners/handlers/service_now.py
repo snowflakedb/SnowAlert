@@ -75,6 +75,7 @@ def handle(alert, assignee='', payload={}):
       if access_token
       else (username, password)
       if username and password
+      else None
     )
 
     if not auth:
