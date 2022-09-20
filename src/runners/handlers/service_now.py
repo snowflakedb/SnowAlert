@@ -69,7 +69,11 @@ def handle(alert, assignee='', payload={}):
     else:
         access_token = None
 
-    if not (username and password) and not access_token:
+    if access_token:
+        auth = Bearer(access_token)
+    elif username and password:
+        auth = (username, password)
+    else:
         log.info('skipping service-now handler, no authorization')
         return
 
@@ -82,7 +86,7 @@ def handle(alert, assignee='', payload={}):
     fp = env.get('SA_SN_FIELD_PREFIX', '')
     response = requests.post(
         api_url,
-        auth=Bearer(access_token) if access_token else (username, password),
+        auth=auth,
         json=payload or {
             f'{fp}contact_type': 'Integration',
             f'{fp}impact': '2',
