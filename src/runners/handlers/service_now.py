@@ -69,11 +69,15 @@ def handle(alert, assignee='', payload={}):
     else:
         access_token = None
 
-    if access_token:
-        auth = Bearer(access_token)
-    elif username and password:
-        auth = (username, password)
-    else:
+    
+    auth = (
+      Bearer(access_token)
+      if access_token
+      else (username, password)
+      if username and password
+    )
+
+    if not auth:
         log.info('skipping service-now handler, no authorization')
         return
 
