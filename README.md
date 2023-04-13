@@ -16,6 +16,13 @@ We hope that Snowflake customers can do better data-driven security using Snowfl
 
 Ready? Let's [get started!](https://snowalert.readthedocs.io/en/latest/pages/start.html "SnowAlert Documentation")
 
+## Native Snowflake features
+
+Snowflake now supports native [Alerts and Notifications](https://docs.snowflake.com/guides-overview-alerts) which can be used for some generic alerting use-cases.
+
+For other RPC's, you can also use [External Functions](https://docs.snowflake.com/en/sql-reference/external-functions-introduction) either manually created
+or through a generic backend like [GEFF](https://github.com/Snowflake-Labs/geff/).
+
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
