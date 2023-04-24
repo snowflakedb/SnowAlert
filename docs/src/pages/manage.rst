@@ -10,7 +10,7 @@ Query Rules
 
 Before creating new alerts, take a look at the `Snowflake Query Pack`_ to see examples of useful Queries.
 
-Note that each Query Rule defines a set set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the ``results`` schema in your Snowflake account.
+Note that each Query Rule defines a set of columns, of which some are static, e.g. ``'Medium' AS severity`` and ``'SnowAlert' AS detector``, while others are based on the data queries, such as ``user_name AS actor`` and ``start_time AS event_time``. Together, these define alerts that are saved in the ``results`` schema in your Snowflake account.
 
 
 Creating New Alert Queries
