@@ -16,6 +16,7 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
+import pytz
 from typing import Tuple, AsyncGenerator, Dict
 
 from runners.helpers.dbconfig import ROLE as SA_ROLE
@@ -458,6 +459,17 @@ SUPPLEMENTARY_TABLES = {
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
+    's3_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
@@ -943,6 +955,7 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     's3.get_bucket_acl',
                     's3.get_bucket_policy',
                     's3.get_bucket_logging',
+                    's3.get_public_access_block',
                 ],
                 'args': {'Bucket': 'bucket_name'},
             }
@@ -970,6 +983,17 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'TargetPrefix': 'target_prefix',
             }
         },
+    },
+    's3.get_public_access_block': {
+        'params': {'Bucket': 'bucket'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
+            }
+        }
     },
     'cloudtrail.describe_trails': {
         'response': {
@@ -1258,21 +1282,16 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
     client_name, method_name = task.method.split('.', 1)
 
     try:
-        now = datetime.utcnow()
-        expires = (
-            _SESSION_CACHE.get('account_arn', {})
-            .get('Credentials', {})
-            .get('Expiration')
-        )
-        session = _SESSION_CACHE[account_arn] = (
-            _SESSION_CACHE[account_arn]
-            if expires and expires > now + timedelta(minutes=5)
-            else await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
+        expiration, session = _SESSION_CACHE.get(account_arn, (None, None))
+        if expiration is None or expiration < datetime.now(pytz.utc) + timedelta(minutes=5):
+            expiration, session = _SESSION_CACHE[account_arn] = (
+                await aio_sts_assume_role(
+                    src_role_arn=AUDIT_ASSUMER_ARN,
+                    dest_role_arn=account_arn,
+                    dest_external_id=READER_EID,
+                )
             )
-        )
+
         async with session.client(client_name) as client:
             if hasattr(client, 'describe_regions'):
                 response = await client.describe_regions()
@@ -1382,7 +1401,7 @@ async def aioingest(table_name, options, dryrun=False):
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        session = await aio_sts_assume_role(
+        expiration, session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,
