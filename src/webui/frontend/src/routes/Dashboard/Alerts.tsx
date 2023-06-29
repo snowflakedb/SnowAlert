@@ -164,6 +164,18 @@ class AlertsDashboard extends React.PureComponent<Props> {
                               setValue: (q: Query, v: string) => q.copy({fields: {select: {cats: v}}}),
                             },
                             {
+                              title: 'Entities',
+                              type: 'string',
+                              getValue: (q: Query) => q.fields.select.entities,
+                              setValue: (q: Query, v: string) => q.copy({fields: {select: {entities: v}}}),
+                            },
+                            {
+                              title: 'Tags',
+                              type: 'string',
+                              getValue: (q: Query) => q.fields.select.tags,
+                              setValue: (q: Query, v: string) => q.copy({fields: {select: {tags: v}}}),
+                            },
+                            {
                               title: 'Detector',
                               type: 'string',
                               getValue: (q: Query) => q.fields.select.detector,

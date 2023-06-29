@@ -45,6 +45,8 @@ SELECT alert_id::VARCHAR AS id
   , alert:TITLE::VARCHAR        AS title
   , alert:DESCRIPTION::VARCHAR  AS description
   , alert:CATS::VARIANT         AS cats
+  , alert:ENTITIES::VARIANT     AS entities
+  , alert:TAGS::VARIANT         AS tags
   , alert:DETECTOR::VARCHAR     AS detector
   , alert:EVENT_DATA::VARIANT   AS event_data
   , alert:SEVERITY::VARCHAR     AS severity
