@@ -26,6 +26,8 @@ SELECT OBJECT_CONSTRUCT('account', 'account_test', 'cloud', 'cloud_test') AS env
     , CURRENT_TIMESTAMP() AS event_time
     , CURRENT_TIMESTAMP() AS alert_time
     , OBJECT_CONSTRUCT('test difficulty', OBJECT_CONSTRUCT('for dogs', 3, 'for cats', 1)) AS cats
+    , OBJECT_CONSTRUCT('test entities', OBJECT_CONSTRUCT('first_name', 'John', 'last_name', 'Doe')) AS entities
+    , OBJECT_CONSTRUCT('staging', true, 'alert_owner', 'GSE TD') AS tags
 FROM (SELECT 1 AS test_data)
 WHERE 1=1
   AND test_data=1
@@ -140,6 +142,8 @@ EXPECTED_TEST_1_OUTPUT = {
     "TICKET": None,
     "HANDLERS": None,
     "CATS": {'test difficulty': {'for dogs': 3, 'for cats': 1}},
+    "ENTITIES": {'first_name', 'John', 'last_name', 'Doe'},
+    "TAGS": {'staging': true, 'alert_owner': 'GSE TD'},
 }
 
 SLACK_MOCK_RETURN_VALUE = {'ok': True}
@@ -206,7 +210,6 @@ def assert_dict_has_subset(a, b):
 def test_alert_runners_processor_and_dispatcher(
     sample_alert_rules, update_jira_issue_status_done, delete_results
 ):
-
     #
     # queries runner
     #
