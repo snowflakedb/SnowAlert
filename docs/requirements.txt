@@ -19,7 +19,7 @@ PyYAML==4.2b1
 requests==2.20.0
 six==1.11.0
 snowballstemmer==1.2.1
-Sphinx==1.8.1
+Sphinx==3.3.0
 sphinx-autobuild==0.7.1
 sphinx-rtd-theme==0.4.2
 sphinxcontrib-websupport==1.1.0
