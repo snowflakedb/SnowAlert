@@ -8,6 +8,8 @@ from dateutil.parser import parse as parse_date
 from connectors.utils import updated
 from runners.helpers import db, log
 from runners.utils import groups_of
+from urllib.parse import urlencode
+import requests
 
 
 CONNECTION_OPTIONS = [
@@ -75,7 +77,47 @@ async def main(table_name):
 
 def ingest(table_name, options):
     global HEADERS
-    creds = options.get('credentials', '')
-    HEADERS = {'Authorization': f'Basic {creds}', 'Accept': 'application/json'}
+    token = getAccessToken(options=options)
+    HEADERS = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
     return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
+
+#options is a dict containing cliendId and clientSecret
+def getAccessToken(options:dict)->str:
+    client_cred = options.get('credentials', '')
+
+    client_id,client_secret = client_cred.split(":")
+
+
+
+    path = "/api/oauth/token"
+    baseURL = "https://snowflake.jamfcloud.com"
+
+    headersDict = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+
+    data = {
+        'client_id': client_id,
+        'grant_type':'client_credentials',
+        'client_secret': client_secret
+    }
+
+    # URL-encode the data
+    encoded_data = urlencode(data)
+    response = requests.post(baseURL+path, data=encoded_data, headers=headersDict)
+
+    json_response = response.json()
+
+    return json_response['access_token']
+
+
+
+
+
+
+
+
+
+
+
 
