@@ -27,6 +27,11 @@ CONNECTION_OPTIONS = [
 HEADERS: dict = {}
 REQUEST_SPEED_PER_SECOND = 10
 
+CLIENT_ID_KEY = "client_id"
+CLIENT_SECRET_KEY = "client_secret"
+
+ACCESS_TOKEN_KEY = "access_token"
+
 
 async def fetch(session, url, wait=0) -> dict:
     if wait:
@@ -77,47 +82,39 @@ async def main(table_name):
 
 def ingest(table_name, options):
     global HEADERS
-    token = getAccessToken(options=options)
+    token = getAccessToken(options=options['credentials'])
     HEADERS = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
     return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
 
-#options is a dict containing cliendId and clientSecret
-def getAccessToken(options:dict)->str:
-    client_cred = options.get('credentials', '')
 
-    client_id,client_secret = client_cred.split(":")
+# options is a dict containing cliendId and clientSecret
+def getAccessToken(credentials: str) -> str:
 
+    # credentials stored in format {"client_id":"some-id","client_secret":"some-secret"}
+    client_cred = json.loads(credentials)
 
-
-    path = "/api/oauth/token"
-    baseURL = "https://snowflake.jamfcloud.com"
-
-    headersDict = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+    jamf_token_api_path = "https://snowflake.jamfcloud.com/api/oauth/token"
 
     data = {
-        'client_id': client_id,
-        'grant_type':'client_credentials',
-        'client_secret': client_secret
+        'client_id': client_cred[CLIENT_ID_KEY],
+        'grant_type': 'client_credentials',
+        'client_secret': client_cred[CLIENT_SECRET_KEY],
     }
 
-    # URL-encode the data
-    encoded_data = urlencode(data)
-    response = requests.post(baseURL+path, data=encoded_data, headers=headersDict)
+    response = requests.post(
+        jamf_token_api_path,
+        data=urlencode(data),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
 
     json_response = response.json()
 
-    return json_response['access_token']
+    if ACCESS_TOKEN_KEY in json_response:
+        return json_response[ACCESS_TOKEN_KEY]
 
+    log.error(
+        f"{ACCESS_TOKEN_KEY} not found in response from api : {jamf_token_api_path}"
+    )
 
-
-
-
-
-
-
-
-
-
-
+    # returning blank string  if access_token not found in response
+    return ""
