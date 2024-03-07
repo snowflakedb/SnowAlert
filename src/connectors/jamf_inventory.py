@@ -93,28 +93,13 @@ def getAccessToken(credentials: str) -> str:
     # credentials stored in format {"client_id":"some-id","client_secret":"some-secret"}
     client_cred = json.loads(credentials)
 
-    jamf_token_api_path = "https://snowflake.jamfcloud.com/api/oauth/token"
-
-    data = {
-        'client_id': client_cred[CLIENT_ID_KEY],
-        'grant_type': 'client_credentials',
-        'client_secret': client_cred[CLIENT_SECRET_KEY],
-    }
-
     response = requests.post(
-        jamf_token_api_path,
-        data=urlencode(data),
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        'https://snowflake.jamfcloud.com/api/oauth/token',
+        data=client_cred,
     )
 
-    json_response = response.json()
+    access_token = response.json().get('access_token')
 
-    if ACCESS_TOKEN_KEY in json_response:
-        return json_response[ACCESS_TOKEN_KEY]
+    assert access_token is not None, "no access token in jamf oauth response"
 
-    log.error(
-        f"{ACCESS_TOKEN_KEY} not found in response from api : {jamf_token_api_path}"
-    )
-
-    # returning blank string  if access_token not found in response
-    return ""
+    return access_token
