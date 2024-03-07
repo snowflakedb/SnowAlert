@@ -51,6 +51,7 @@ PRIVATE_KEY = (
 ROLE = environ.get('SA_ROLE', "snowalert") + tail
 WAREHOUSE = environ.get('SA_WAREHOUSE', "snowalert") + tail
 DATABASE = environ.get('SA_DATABASE', "snowalert") + tail
+DATA_SCHEMA = environ.get('SA_DATA_SCHEMA', "data")
 
 # connection properties
 TIMEOUT = environ.get('SA_TIMEOUT', 500)

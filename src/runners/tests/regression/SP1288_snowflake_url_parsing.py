@@ -3,6 +3,8 @@ The installer didn't handle snowflake URLs with a region containing '.',
 such as azure_account.azure_region.azure.snowflakecomputing.com
 """
 
+from typing import Any
+
 from scripts.install import parse_snowflake_url
 
 
@@ -26,6 +28,7 @@ TEST_URLS = {
 
 
 def test_url_parsing():
+    value: Any = None
     for key, value in TEST_URLS.items():
         a, b = parse_snowflake_url(key)
         assert a == value[0]

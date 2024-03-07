@@ -158,7 +158,7 @@ def test_run_violations(violation_queries):
     assert queries_run_records[0]['NUM_VIOLATIONS_CREATED'] == 2
 
     query_rule_run_record = list(
-        db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY start_time')
+        db.fetch('SELECT * FROM data.violation_query_rule_runs ORDER BY query_name')
     )
     assert len(query_rule_run_record) == 3
     assert query_rule_run_record[-2]['QUERY_NAME'] == '_TEST1_VIOLATION_QUERY'
@@ -177,7 +177,7 @@ def test_run_violations(violation_queries):
     #
 
     violation_suppressions_runner.main()
-    vs = list(db.fetch('SELECT * FROM data.violations ORDER BY created_time'))
+    vs = list(db.fetch('SELECT * FROM data.violations ORDER BY query_name'))
     v = vs[-1]
 
     # basics

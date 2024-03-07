@@ -4,6 +4,7 @@ import traceback
 from runners import utils
 from os.path import relpath
 from os import getpid
+from typing import Any
 
 import boto3
 
@@ -28,7 +29,7 @@ def write(*args, stream=sys.stdout):
 
             trace = traceback.extract_tb(a.__traceback__)
             fmt_trace = ''.join(fmt(f) for f in trace)
-            stack = traceback.extract_stack()
+            stack: Any = traceback.extract_stack()
             for i, f in enumerate(reversed(stack)):
                 if (f.filename, f.name) == (trace[0].filename, trace[0].name):
                     stack = stack[:-i]
@@ -56,6 +57,10 @@ def debug(*args):
 
 
 def info(*args):
+    write(*args, stream=sys.stdout)
+
+
+def warn(*args):
     write(*args, stream=sys.stdout)
 
 

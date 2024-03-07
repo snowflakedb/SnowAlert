@@ -1,6 +1,6 @@
 """Helpers specific for SnowAlert, dealing with authentication, e.g. to Snowflake DB.
 """
-from typing import Optional
+from typing import Optional, Union, Any
 from os import environ
 
 from cryptography.hazmat.backends import default_backend
@@ -19,7 +19,7 @@ URL_PREFIX = f'{PROTOCOL}://{{account}}.snowflakecomputing.com' + (
 )
 
 
-def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> _RSAPrivateKey:
+def load_pkb_rsa(p8_private_key: bytes, passphrase: Optional[bytes]) -> Union[_RSAPrivateKey, Any]:
     """Loads the rsa private key instead of just the bytes, using password
     decrypted with KMS. Required for the snowpipe SimpleIngestManager
     authentication flow.

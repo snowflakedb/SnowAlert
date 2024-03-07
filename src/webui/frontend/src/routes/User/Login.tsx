@@ -1,5 +1,12 @@
 import {Button, Collapse, Form, Input} from 'antd';
-import {ClusterOutlined, DatabaseOutlined, LoadingOutlined, ApiOutlined, TeamOutlined, SettingOutlined} from '@ant-design/icons';
+import {
+  ClusterOutlined,
+  DatabaseOutlined,
+  LoadingOutlined,
+  ApiOutlined,
+  TeamOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import * as React from 'react';
 import {connect} from 'react-redux';
 import {bindActionCreators, Dispatch} from 'redux';
@@ -40,7 +47,7 @@ class LoginForm extends React.Component<LoginFormProps, State> {
   }
 
   login = (values: any) => {
-    console.log(values)
+    console.log(values);
     localStorage.setItem('account', values.account);
     localStorage.setItem('role', values.role || '');
     localStorage.setItem('database', values.database || '');
@@ -76,8 +83,8 @@ class LoginForm extends React.Component<LoginFormProps, State> {
             <h5>Enter your account's Snowflake URL</h5>
             <Location>
               {({navigate}) => (
-                <Form className={'login'} onFinish={vs => this.login(vs)}>
-                  <Form.Item name="account" rules={[{ required: true }]}>
+                <Form className={'login'} onFinish={(vs) => this.login(vs)}>
+                  <Form.Item name="account" rules={[{required: true}]}>
                     <Input
                       prefix={<ApiOutlined className={'prefix-icon'} />}
                       placeholder={'your-account-url'}

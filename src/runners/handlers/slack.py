@@ -65,7 +65,6 @@ def handle(
 ):
     slack_token_ct = slack_api_token or api_token
     slack_token = vault.decrypt_if_encrypted(slack_token_ct)
-
     sc = SlackClient(slack_token)
 
     # otherwise we will retrieve email from assignee and use it to identify Slack user
@@ -74,29 +73,45 @@ def handle(
     title = alert['TITLE']
 
     if recipient_email is not None:
-        result = sc.api_call("users.lookupByEmail", email=recipient_email)
+        if isinstance(recipient_email, str):
+            if recipient_email is not None:
+                result = sc.api_call("users.lookupByEmail", email=recipient_email)
 
-        # log.info(f'Slack user info for {email}', result)
+            # log.info(f'Slack user info for {email}', result)
 
-        if result['ok'] is True and 'error' not in result:
-            user = result['user']
-            userid = user['id']
-        else:
-            log.error(f'Cannot identify  Slack user for email {recipient_email}')
-            return None
+            if result['ok'] is True and 'error' not in result:
+                user = result['user']
+                channel_id = user['id']
+            else:
+                log.error(f'Cannot identify  Slack user for email {recipient_email}')
+                return None
+
+        elif isinstance(recipient_email, list):
+            users = []
+            for email in recipient_email:
+                response = sc.api_call("users.lookupByEmail", email=email)
+                if not response['ok']:
+                    log.error(f'Cannot identify Slack user for email {email}')
+                    continue
+                users.append(response['user']['id'])
+            user_ids = ",".join(users)
+            result = sc.api_call("conversations.open", users=user_ids)
+            if result['ok']:
+                channel_id = result['channel']['id']
+            else:
+                raise RuntimeError(f"Error ocurred while opening conversation channel")
 
     # check if channel exists, if yes notification will be delivered to the channel
     if channel is not None:
         log.info(f'Creating new SLACK message for {title} in channel', channel)
     else:
         if recipient_email is not None:
-            channel = userid
+            channel = channel_id
             log.info(
                 f'Creating new SLACK message for {title} for user {recipient_email}'
             )
         else:
-            log.error(f'Cannot identify assignee email')
-            return None
+            raise RuntimeError("missing both 'channel' and 'recipient_email' param")
 
     text = title
 
@@ -116,8 +131,8 @@ def handle(
             if 'text' in payload:
                 text = payload['text']
         else:
-            log.error(f'Payload is empty for template {template}')
-            return None
+            raise RuntimeError(f"Payload is empty for template {template}")
+
     else:
         # does not have template, will send just simple message
         if message is not None:
@@ -163,8 +178,7 @@ def handle(
         log.debug(f'Slack response', response)
 
         if response['ok'] is False:
-            log.error(f"Slack handler error", response['error'])
-            return None
+            raise RuntimeError(f"Slack handler error {response['error']}")
 
         if 'message' in response:
             del response['message']

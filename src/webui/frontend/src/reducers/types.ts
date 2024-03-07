@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Baseline, Connector} from '../store/data';
+import {Baseline, Connection, Connector} from '../store/data';
 import {Policy, Query, Suppression} from '../store/rules';
 
 export interface AuthDetails {
@@ -86,6 +86,13 @@ export interface ConnectorPayload {
   placeholder: string;
 }
 
+export interface ConnectionPayload {
+  name: string;
+  created_on: string;
+  bytes: number;
+  rows: number;
+}
+
 export interface FlowPayload {
   name: string;
   connector: string;
@@ -106,6 +113,8 @@ export interface SADataState {
   readonly connectionMessage: string | null;
   readonly baselineResults: ReadonlyArray<string> | null;
   readonly connectors: ReadonlyArray<Connector>;
+  readonly connections: ReadonlyArray<Connection>;
+
   readonly connectionStage: ConnectionStage;
   readonly baselines: ReadonlyArray<Baseline>;
 }

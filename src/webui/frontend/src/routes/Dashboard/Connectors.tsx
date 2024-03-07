@@ -1,4 +1,4 @@
-import {Avatar, Button, Card, Input, List, Modal, Select} from 'antd';
+import {Avatar, Button, Card, Input, List, Modal, Select, Table, Tabs} from 'antd';
 import {LoadingOutlined, ApiOutlined} from '@ant-design/icons';
 
 import React from 'react';
@@ -40,7 +40,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
     super(props);
 
     this.state = {
-      optionValues: {'name': 'default'},
+      optionValues: {name: 'default'},
     };
 
     if (this.findConnector()) {
@@ -66,7 +66,7 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
   findConnector(name: string | null = null) {
     const {connectors} = this.props.data;
     const toFind = name;
-    return connectors.find(c => c.name === toFind);
+    return connectors.find((c) => c.name === toFind);
   }
 
   changeOption(name: string, value: string) {
@@ -78,15 +78,14 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
 
   render() {
     const {selected} = this.props;
-    const {connectors, connectionStage, connectionMessage, errorMessage} = this.props.data;
+    const {connectors, connections, connectionStage, connectionMessage, errorMessage} = this.props.data;
 
     const selectedConnector = this.findConnector(selected);
     const optionValues = Object.assign(
-      selectedConnector ?
-        Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default]))
-        : {},
-      this.state.optionValues
-    )
+      selectedConnector ? Object.fromEntries(selectedConnector.options.map((o: any) => [o.name, o.default])) : {},
+      this.state.optionValues,
+    );
+
 
     let options: any[] = [];
     if (selectedConnector) {
@@ -118,7 +117,6 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
         >
           <pre>{errorMessage}</pre>
         </Modal>
-
         <h1>Create {selectedConnector.title} Data Connection</h1>
 
         {connectionStage === 'start' || connectionStage === 'creating' ? (
@@ -214,25 +212,81 @@ class Connectors extends React.Component<ConnectorsProps & {path: string}, OwnSt
       </BasicLayout>
     ) : (
       <BasicLayout>
-        {connectors.map(c => (
-          <Card
-            key={c.name}
-            style={{width: 350, margin: 10, float: 'left'}}
-            actions={[
-              // eslint-disable-next-line
-              <a key={1} onClick={() => this.selectConnector(c.name)}>
-                <ApiOutlined /> Connect
-              </a>,
-            ]}
-          >
-            <Card.Meta
-              avatar={<Avatar src={`/icons/connectors/${c.name}.png`} />}
-              title={c.title}
-              description={c.description}
-              style={{height: 75}}
+        <Tabs>
+          <Tabs.TabPane tab="Connectors" key="1">
+            {connectors.map((c) => (
+              <Card
+                key={c.name}
+                style={{width: 350, margin: 10, float: 'left'}}
+                actions={[
+                  // eslint-disable-next-line
+                  <a key={1} onClick={() => this.selectConnector(c.name)}>
+                    <ApiOutlined /> Connect
+                  </a>,
+                ]}
+              >
+                <Card.Meta
+                  avatar={<Avatar src={`/icons/connectors/${c.name}.png`} />}
+                  title={c.title}
+                  description={c.description}
+                  style={{height: 75}}
+                />
+              </Card>
+            ))}
+          </Tabs.TabPane>
+
+          <Tabs.TabPane tab="Active Connections" key="2">
+            <Table
+              rowKey="table_name"
+              dataSource={connections.slice()}
+              pagination={false}
+              columns={[
+                {
+                  title: 'Name',
+                  dataIndex: 'table_name',
+                  key: 'name',
+                  sorter: (a, b) => (a > b ? -1 : 1),
+                  sortDirections: ['descend', 'ascend'],
+                },
+                {
+                  title: 'Created On',
+                  dataIndex: 'created_on',
+                  key: 'created_on',
+                  sorter: (a, b) => a.created_on.getTime() - b.created_on.getTime(),
+                  sortDirections: ['descend', 'ascend'],
+                  render: (c) => c.toLocaleDateString(),
+                },
+                /*
+                  to get these two remove "TERSE" keyword in data.py
+                  but be warned that it will take *much* longer to
+                  return, potentially breaking for prod users
+                */
+                // {
+                //   title: 'Byte Count',
+                //   dataIndex: 'byte_count',
+                //   key: 'byte_count',
+                //   sorter: (a, b) => a.byte_count - b.byte_count,
+                //   sortDirections: ['descend', 'ascend'],
+                //   render: (bytes) => {
+                //     if (bytes === 0) return '0 Bytes';
+                //     const k = 1024;
+                //     const dm = 2;
+                //     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+                //     const i = Math.floor(Math.log(bytes) / Math.log(k));
+                //     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+                //   },
+                // },
+                // {
+                //   title: 'Row Count',
+                //   dataIndex: 'row_count',
+                //   key: 'row_count',
+                //   sorter: (a, b) => a.row_count - b.row_count,
+                //   sortDirections: ['descend', 'ascend'],
+                // },
+              ]}
             />
-          </Card>
-        ))}
+          </Tabs.TabPane>
+        </Tabs>
       </BasicLayout>
     );
   }

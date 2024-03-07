@@ -1,5 +1,11 @@
 import {Button, Input} from 'antd';
-import {LoadingOutlined, UploadOutlined, RollbackOutlined, DeleteOutlined} from '@ant-design/icons';
+import {
+  LoadingOutlined,
+  UploadOutlined,
+  RollbackOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons';
 
 import * as React from 'react';
 import {connect} from 'react-redux';
@@ -9,6 +15,7 @@ import {getRules} from '../../reducers/rules';
 import {updateRuleBody, saveRule, deleteRule} from '../../actions/rules';
 
 import {State, SnowAlertRulesState} from '../../reducers/types';
+import sqlFormatter from 'snowsql-formatter';
 
 import './RawEditor.css';
 
@@ -33,7 +40,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
     const {currentRuleView, deleteRule, saveRule, updateRuleBody} = this.props;
     const {queries, suppressions} = this.props.rules;
     const rules = [...queries, ...suppressions];
-    const rule = rules.find(r => r.viewName === currentRuleView);
+    const rule = rules.find((r) => r.viewName === currentRuleView);
 
     return (
       <div>
@@ -42,7 +49,7 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
           value={rule ? rule.raw.body : ''}
           spellCheck={false}
           autoSize={{minRows: 30}}
-          onChange={e => rule && updateRuleBody(rule.viewName, e.target.value)}
+          onChange={(e) => rule && updateRuleBody(rule.viewName, e.target.value)}
         />
         <Button
           type="primary"
@@ -60,6 +67,13 @@ class RawEditor extends React.PureComponent<RawEditorProps> {
         </Button>
         <Button type="default" disabled={!rule || rule.isSaving} onClick={() => rule && deleteRule(rule.raw)}>
           <DeleteOutlined /> Delete
+        </Button>
+        <Button
+          type="default"
+          disabled={!rule || rule.isSaving}
+          onClick={() => rule && updateRuleBody(rule.viewName, sqlFormatter.format(rule.raw.body))}
+        >
+          <CheckCircleOutlined /> Format
         </Button>
       </div>
     );

@@ -16,10 +16,10 @@ from runners.config import RUN_ID
 from runners.helpers import log
 
 
-def main(target="all", *rule_names):
+def main(target="all", *rule_names, **kwargs):
     if target == "connector" and rule_names:
-        for rule_name in rule_names:
-            connectors_runner.main(rule_name.upper())
+        for connection_name in rule_names:
+            connectors_runner.main(connection_name.upper(), **kwargs)
 
     elif target == "processor":
         alert_processor.main()
@@ -48,9 +48,6 @@ def main(target="all", *rule_names):
 
             if rule_name.upper().endswith("_CONNECTION"):
                 connectors_runner.main(rule_name.upper())
-
-            if rule_name.upper().endswith("_BASELINE"):
-                baseline_runner.main(rule_name.upper())
 
     else:
         log.info(f"STARTING RUN WITH ID {RUN_ID}")

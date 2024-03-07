@@ -168,6 +168,14 @@ TEST_DATA_REQUEST_RESPONSE = [
                 account_id='1', method='s3.get_bucket_logging', args={'Bucket': 'name1'}
             ),
             CollectTask(
+                account_id='1', method='s3.get_bucket_tagging', args={'Bucket': 'name1'}
+            ),
+            CollectTask(
+                account_id='1',
+                method='s3.get_public_access_block',
+                args={'Bucket': 'name1'},
+            ),
+            CollectTask(
                 account_id='1', method='s3.get_bucket_acl', args={'Bucket': 'name2'}
             ),
             CollectTask(
@@ -175,6 +183,14 @@ TEST_DATA_REQUEST_RESPONSE = [
             ),
             CollectTask(
                 account_id='1', method='s3.get_bucket_logging', args={'Bucket': 'name2'}
+            ),
+            CollectTask(
+                account_id='1', method='s3.get_bucket_tagging', args={'Bucket': 'name2'}
+            ),
+            CollectTask(
+                account_id='1',
+                method='s3.get_public_access_block',
+                args={'Bucket': 'name2'},
             ),
         ],
     ),

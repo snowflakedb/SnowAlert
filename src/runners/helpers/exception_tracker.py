@@ -1,10 +1,13 @@
 import pybrake
+import sentry_sdk
 
-from ..config import ENV, AIRBRAKE_PROJECT_KEY, AIRBRAKE_PROJECT_ID
+from ..config import ENV, AIRBRAKE_PROJECT_KEY, AIRBRAKE_PROJECT_ID, SENTRY_DSN
 
 
 class ExceptionTracker:
     airbrake_notifier = None
+
+    sentry_enabled = False
 
     def __init__(self):
         if AIRBRAKE_PROJECT_KEY and AIRBRAKE_PROJECT_ID:
@@ -14,10 +17,23 @@ class ExceptionTracker:
                 environment=ENV,
             )
 
+        if SENTRY_DSN:
+            sentry_sdk.init(dsn=SENTRY_DSN)
+            self.sentry_enabled = self.sentry_enabled
+
     def notify(self, *args):
         for a in args:
-            try:
-                if self.airbrake_notifier:
+            if self.sentry_enabled:
+                try:
+                    if isinstance(a, Exception):
+                        sentry_sdk.capture_exception(a)
+                    else:
+                        sentry_sdk.capture_message(a)
+                except Exception as e:
+                    print(e)
+
+            if self.airbrake_notifier:
+                try:
                     self.airbrake_notifier.notify(a)
-            except Exception as e:
-                print(e)
+                except Exception as e:
+                    print(e)

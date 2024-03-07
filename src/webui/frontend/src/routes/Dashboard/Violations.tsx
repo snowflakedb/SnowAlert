@@ -40,8 +40,8 @@ class Violations extends React.PureComponent<ViolationsProps> {
     } = this.props;
     const allRules = [...queries, ...suppressions];
     const selectedRule =
-      allRules.find(r => r.viewName === selected) ||
-      queries.find(q => `'${selected}'` === ((q.fields || {}).select || {}).query_id);
+      allRules.find((r) => r.viewName === selected) ||
+      queries.find((q) => `'${selected}'` === ((q.fields || {}).select || {}).query_id);
 
     if (history.location.pathname === '/dashboard/alerts') {
       navigate('alerts/', {replace: true});
@@ -69,7 +69,7 @@ class Violations extends React.PureComponent<ViolationsProps> {
             <div>
               <LoadingOutlined /> Loading Rules...
             </div>
-            ) : (
+          ) : (
             <div>
               <RuleDashboard
                 target="VIOLATION"

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import importlib
+from typing import Any
 
 from runners.config import CLOUDWATCH_METRICS
 from runners.helpers import db, log
@@ -26,7 +27,7 @@ def record_status(results, alert_id):
         db.execute(
             f"UPDATE results.alerts "
             f"SET handled=PARSE_JSON(%s) "
-            f"WHERE alert:ALERT_ID='{alert_id}'",
+            f"WHERE alert_id='{alert_id}'",
             params=[json_dumps(results)]
         )
     except Exception as e:
@@ -40,7 +41,7 @@ def main():
 
     for alert_row in alert_rows:
         alert = alert_row['ALERT']
-        results = []
+        results: Any = []
 
         handlers = alert.get('HANDLERS')
         if handlers is None:
@@ -48,14 +49,21 @@ def main():
         if isinstance(handlers, (str, dict)):
             handlers = [handlers]
 
+        if any(
+            isinstance(h, dict) and '-' in h.get('type', '')
+            for h in handlers
+        ):
+            # this alert is for SnowAlert-on-Snowflake to handle
+            continue
+
         for handler in handlers:
+            if type(handler) is str:
+                handler = {'type': handler}
+
             if handler is None:
                 results.append(None)
 
             else:
-                if type(handler) is str:
-                    handler = {'type': handler}
-
                 if 'type' not in handler:
                     result = {
                         'success': False,

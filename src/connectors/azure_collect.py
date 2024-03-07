@@ -260,6 +260,37 @@ SUPPLEMENTARY_TABLES = {
         ('type', 'STRING'),
         ('zones', 'VARIANT'),
     ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networkinterfaces/listall
+    'network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('id', 'STRING'),
+        ('etag', 'STRING'),
+        ('name', 'STRING'),
+        ('location', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+    ],
+    # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/public-ip-addresses/list-all
+    'public_ip_addresses': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('tenant_id', 'VARCHAR(50)'),
+        ('subscription_id', 'VARCHAR(50)'),
+        ('error', 'VARIANT'),
+        ('etag', 'STRING'),
+        ('extended_location', 'VARIANT'),
+        ('id', 'STRING'),
+        ('location', 'STRING'),
+        ('name', 'STRING'),
+        ('properties', 'VARIANT'),
+        ('sku', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('type', 'STRING'),
+        ('zones', 'VARIANT'),
+    ],
     # https://docs.microsoft.com/en-us/rest/api/authorization/roledefinitions/list#roledefinition
     'role_definitions': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -461,24 +492,7 @@ SUPPLEMENTARY_TABLES = {
         ('group_id', 'VARCHAR(50)'),
         ('error', 'VARIANT'),
         ('id', 'VARCHAR(50)'),
-        ('odata_type', 'VARIANT'),
-        ('business_phones', 'VARIANT'),
-        ('display_name', 'VARCHAR(1000)'),
-        ('given_name', 'VARCHAR(1000)'),
-        ('job_title', 'VARCHAR(1000)'),
-        ('mail', 'VARCHAR(1000)'),
-        ('mobile_phone', 'VARCHAR(1000)'),
-        ('office_location', 'VARCHAR(1000)'),
-        ('preferred_language', 'VARCHAR(1000)'),
-        ('surname', 'VARCHAR(1000)'),
-        ('user_principal_name', 'VARCHAR(1000)'),
-        ('group_id', 'VARCHAR(1000)'),
-        ('header_date', 'TIMESTAMP_LTZ'),
-        ('deleted', 'TIMESTAMP_LTZ'),
-        ('created', 'TIMESTAMP_LTZ'),
-        ('classification', 'VARCHAR(1000)'),
-        ('creation_options', 'VARIANT'),
-        ('description', 'VARCHAR(5000)'),
+        ('odata_type', 'VARCHAR(100)'),
         ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0#properties
@@ -549,6 +563,7 @@ SUPPLEMENTARY_TABLES = {
         ('usage_location', 'STRING'),
         ('user_principal_name', 'STRING'),
         ('user_type', 'STRING'),
+        ('raw', 'variant'),
     ],
     # https://docs.microsoft.com/en-us/graph/api/resources/intune-devices-manageddevice?view=graph-rest-1.0#properties
     'managed_devices': [
@@ -789,6 +804,14 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                 'args': {'subscriptionId': 'subscription_id'},
             },
             {'kind': 'vaults', 'args': {'subscriptionId': 'subscription_id'}},
+            {
+                'kind': 'network_interfaces',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
+            {
+                'kind': 'public_ip_addresses',
+                'args': {'subscriptionId': 'subscription_id'},
+            },
             {'kind': 'network_watchers', 'args': {'subscriptionId': 'subscription_id'}},
             {
                 'kind': 'network_security_groups',
@@ -1045,6 +1068,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'usageLocation': 'usage_location',
             'userPrincipalName': 'user_principal_name',
             'userType': 'user_type',
+            '*': 'raw',
         },
     },
     'managed_devices': {
@@ -1505,6 +1529,53 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'properties': 'properties',
             'type': 'type',
+        },
+    },
+    'network_interfaces': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/networkInterfaces'
+            ),
+            'api-version': '2020-05-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'tags': 'tags',
+            'type': 'type',
+        },
+    },
+    'public_ip_addresses': {
+        'request': {
+            'path': (
+                '/subscriptions/{subscriptionId}'
+                '/providers/Microsoft.Network/publicIPAddresses'
+            ),
+            'api-version': '2021-03-01',
+        },
+        'response': {
+            'headerDate': 'recorded_at',
+            'tenantId': 'tenant_id',
+            'subscriptionId': 'subscription_id',
+            'error': 'error',
+            'etag': 'etag',
+            'extendedLocation': 'extended_location',
+            'id': 'id',
+            'location': 'location',
+            'name': 'name',
+            'properties': 'properties',
+            'sku': 'sku',
+            'tags': 'tags',
+            'type': 'type',
+            'zones': 'zones',
         },
     },
     'network_security_groups': {
@@ -1974,12 +2045,13 @@ def ingest(table_name, options, dryrun=False):
         )
 
         spec = API_SPECS[next_call_kind]
+        spec_match: Any = re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s'))
         rate_space = 1 / float(
-            re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s')).group(1)
+            spec_match.group(1)
         )
         rate_by = spec.get('rate_by')
         responses = []
-        last_request = defaultdict(float)
+        last_request: Any = defaultdict(float)
         while calls:
             call = calls.popleft()
             now = time()

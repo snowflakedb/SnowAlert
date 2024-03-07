@@ -1,4 +1,4 @@
-const {override, fixBabelImports, addLessLoader} = require('customize-cra');
+const {override, fixBabelImports, addLessLoader, adjustStyleLoaders, postcss} = require('customize-cra');
 
 module.exports = override(
   fixBabelImports('antd', {
@@ -17,5 +17,10 @@ module.exports = override(
         'primary-color': '#00a2ae',
       },
     }
+  }),
+  // https://github.com/arackaf/customize-cra/issues/315#issuecomment-1017081592
+  adjustStyleLoaders(({ use: [, , postcss] }) => {
+    const postcssOptions = postcss.options;
+    postcss.options = { postcssOptions };
   }),
 );

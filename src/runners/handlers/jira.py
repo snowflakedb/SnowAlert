@@ -1,5 +1,6 @@
 from json import dumps
 from os import environ
+from typing import Any
 from urllib.parse import quote
 import os
 
@@ -24,6 +25,7 @@ JIRA_TICKET_BODY_DEFAULTS = {
     "TITLE": "Untitled Query",
     "DESCRIPTION": "No Description provided",
     "SEVERITY": "Severity Unspecified",
+    "CATS": "-",
 }
 
 JIRA_TICKET_BODY_FMT = """
@@ -32,6 +34,7 @@ Query ID: {QUERY_ID}
 Query Name: {QUERY_NAME}
 Environment: {ENVIRONMENT}
 Sources: {SOURCES}
+Categories: {CATS}
 Actor: {ACTOR}
 Object: {OBJECT}
 Action: {ACTION}
@@ -114,7 +117,7 @@ def append_to_body(id, alert, project):
 
 
 def link_search_todos(description=None, project=PROJECT):
-    q = f'project = {project} ORDER BY created ASC'
+    q = f'project = {project} ORDER BY created DESC'
 
     if description:
         q = f'description ~ "{description}" AND {q}'
@@ -149,7 +152,7 @@ def create_jira_ticket(
     issue_params = {
         'project': project,
         'issuetype': {'name': issue_type},
-        'summary': alert['TITLE'],
+        'summary': alert.get('TITLE') or JIRA_TICKET_BODY_DEFAULTS['TITLE'],
         'description': body,
     }
 
@@ -165,6 +168,8 @@ def create_jira_ticket(
         for field_id, field_value in custom_fields:
             if field_value.startswith('key:'):
                 issue_params[f'customfield_{field_id}'] = field_value[4:]
+            elif field_value.startswith('[') and field_value.endswith(']'):
+                issue_params[f'customfield_{field_id}'] = [{'value': v} for v in field_value[1:-1].split(',')]
             else:
                 issue_params[f'customfield_{field_id}'] = {'value': field_value}
 
@@ -206,7 +211,7 @@ def set_issue_done(issueId):
 
 
 def record_ticket_id(ticket_id, alert_id):
-    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert:ALERT_ID='{alert_id}'"
+    query = f"UPDATE results.alerts SET ticket='{ticket_id}' WHERE alert_id='{alert_id}'"
     print('Updating alert table:', query)
     try:
         db.execute(query)
@@ -239,7 +244,7 @@ def handle(
     """
     alert_id = alert['ALERT_ID']
 
-    correlated_result = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
+    correlated_result: Any = next(db.fetch(CORRELATION_QUERY), {}) if correlation_id else {}
     ticket_id = correlated_result.get('TICKET')
 
     if ticket_id:

@@ -15,7 +15,7 @@ from runners.helpers import db, log
 OLD_SUPPRESSION_QUERY = f"""
 MERGE INTO results.alerts AS target
 USING(rules.{{suppression_name}}) AS s
-ON target.alert:ALERT_ID = s.alert:ALERT_ID
+ON target.alert_id = s.alert:ALERT_ID
 WHEN MATCHED THEN UPDATE
 SET target.SUPPRESSED = 'true'
   , target.SUPPRESSION_RULE = '{{suppression_name}}'
@@ -24,7 +24,7 @@ SET target.SUPPRESSED = 'true'
 SUPPRESSION_QUERY = f"""
 MERGE INTO results.alerts AS target
 USING(rules.{{suppression_name}}) AS s
-ON target.alert:ALERT_ID = s.id
+ON target.alert_id = s.id
 WHEN MATCHED THEN UPDATE
 SET target.SUPPRESSED = 'true'
   , target.SUPPRESSION_RULE = '{{suppression_name}}'
