@@ -77,20 +77,24 @@ async def main(table_name):
 
 def ingest(table_name, options):
     global HEADERS
-    token = getAccessToken(options=options['credentials'])
+    token = getAccessToken(json.loads(options['credentials']))
     HEADERS = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
     return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
 
 
-# options is a dict containing cliendId and clientSecret
-def getAccessToken(credentials: str) -> str:
-
-    # credentials stored in format {"client_id":"some-id",'"grant_type": "client_credentials","client_secret":"some-secret"}
-    client_cred = json.loads(credentials)
-
+def getAccessToken(credentials: dict) -> str:
+    """
+    Args:
+      credentials (dict): for jamfcloud oauth API, e.g. the json type:
+        {
+          "grant_type": "client_credentials",
+          "client_id": str,
+          "client_secret": str
+        }
+    """
     response = requests.post(
         'https://snowflake.jamfcloud.com/api/oauth/token',
-        data=client_cred,
+        data=credentials,
     )
 
     access_token = response.json().get('access_token')
