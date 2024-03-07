@@ -27,11 +27,6 @@ CONNECTION_OPTIONS = [
 HEADERS: dict = {}
 REQUEST_SPEED_PER_SECOND = 10
 
-CLIENT_ID_KEY = "client_id"
-CLIENT_SECRET_KEY = "client_secret"
-
-ACCESS_TOKEN_KEY = "access_token"
-
 
 async def fetch(session, url, wait=0) -> dict:
     if wait:
@@ -90,7 +85,7 @@ def ingest(table_name, options):
 # options is a dict containing cliendId and clientSecret
 def getAccessToken(credentials: str) -> str:
 
-    # credentials stored in format {"client_id":"some-id","client_secret":"some-secret"}
+    # credentials stored in format {"client_id":"some-id",'"grant_type": "client_credentials","client_secret":"some-secret"}
     client_cred = json.loads(credentials)
 
     response = requests.post(
