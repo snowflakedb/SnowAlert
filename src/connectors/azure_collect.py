@@ -273,6 +273,7 @@ SUPPLEMENTARY_TABLES = {
         ('properties', 'VARIANT'),
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
+        ('managed_by', 'STRING'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/public-ip-addresses/list-all
     'public_ip_addresses': [
@@ -1551,6 +1552,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'properties': 'properties',
             'tags': 'tags',
             'type': 'type',
+            'managedBy': 'managed_by',
         },
     },
     'public_ip_addresses': {
@@ -1946,7 +1948,11 @@ def GET(kind, params, cred, depth) -> List[Dict]:
                 {},
                 v,
                 params,
-                headerDate=parse_date(response.headers['Date']),
+                headerDate=(
+                    parse_date(response.headers['Date'])
+                    if isinstance(response.headers['Date'], str)
+                    else response.headers['Date']
+                ),
                 tenantId=cred['tenant'],
             )
             for v in response_values(result)
