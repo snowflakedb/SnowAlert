@@ -1946,7 +1946,11 @@ def GET(kind, params, cred, depth) -> List[Dict]:
                 {},
                 v,
                 params,
-                headerDate=parse_date(response.headers['Date']),
+                headerDate=(
+                    parse_date(response.headers['Date'])
+                    if isinstance(response.headers['Date'], str)
+                    else response.headers['Date']
+                ),
                 tenantId=cred['tenant'],
             )
             for v in response_values(result)
