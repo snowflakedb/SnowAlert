@@ -353,6 +353,7 @@ SUPPLEMENTARY_TABLES = {
         ('name', 'STRING'),
         ('properties', 'VARIANT'),
         ('type', 'STRING'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/securitycenter/autoprovisioningsettings/list#autoprovisioningsettinglist
     'auto_provisioning_settings': [
@@ -1641,6 +1642,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'name': 'name',
             'properties': 'properties',
             'type': 'type',
+            '*': 'raw',
         },
     },
     'auto_provisioning_settings': {
@@ -2046,15 +2048,11 @@ def ingest(table_name, options, dryrun=False):
         if not calls:
             continue
 
-        log.info(
-            f'GET {next_call_kind}: {num_calls} calls, {len(calls)} remain'
-        )
+        log.info(f'GET {next_call_kind}: {num_calls} calls, {len(calls)} remain')
 
         spec = API_SPECS[next_call_kind]
         spec_match: Any = re.match(r'([0-9\.]+)/s', spec.get('rate_limit', '1000/s'))
-        rate_space = 1 / float(
-            spec_match.group(1)
-        )
+        rate_space = 1 / float(spec_match.group(1))
         rate_by = spec.get('rate_by')
         responses = []
         last_request: Any = defaultdict(float)
