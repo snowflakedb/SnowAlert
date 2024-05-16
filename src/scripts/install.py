@@ -312,7 +312,7 @@ def find_share_db_name(do_attempt):
     )
 
     # Database name is 4th attribute in row
-    share_db_names = [share_row[3] for share_row in sample_data_share_rows]
+    share_db_names = [share_row[4] for share_row in sample_data_share_rows]
     if len(share_db_names) == 0:
         VERBOSE and print(f"Unable to locate sample data share.")
         return
@@ -509,7 +509,6 @@ def main(
     set_env_vars=False,
     verbose=False,
 ):
-
     global VERBOSE
     VERBOSE = verbose
 
