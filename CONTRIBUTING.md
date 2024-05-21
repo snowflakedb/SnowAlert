@@ -26,7 +26,7 @@ pip install -e .
 
 # to start runners
 export $(cat snowalert-$SNOWFLAKE_ACCOUNT.envs | xargs)
-python runners/run.py all
+python3 runners/run.py all
 ~~~
 
 If you'd like to run the test suite, please create a separate ENVS file that contains these additional variables used to test the installer:
@@ -41,6 +41,7 @@ If you save this to `snowalert-$SNOWFLAKE_ACCOUNT.testing.envs`, you can run the
 
 ~~~
 # test runners
+pip install -e .\[dev\]
 export $(cat snowalert-$SNOWFLAKE_ACCOUNT.testing.envs | xargs)
 pytest -vv
 ~~~
