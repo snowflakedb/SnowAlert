@@ -1,3 +1,4 @@
+import asyncio
 from inspect import signature
 import random
 import multiprocessing as mp
@@ -5,6 +6,7 @@ from typing import Any
 
 import aioboto3
 import boto3
+from botocore.parsers import ResponseParserError
 import yaml
 from requests import auth
 
@@ -89,8 +91,22 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
+    for attempt in range(10):
+        try:
+            return await try_aio_sts_assume_role(
+                src_role_arn, dest_role_arn, dest_external_id
+            )
+        except ResponseParserError as e:
+            if attempt < 10:
+                delay = int(1.5**attempt) + random.randint(0, 3)
+                await asyncio.sleep(delay)
+            else:
+                raise
+
+
+async def try_aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
     session_name = ''.join(random.choice('0123456789ABCDEF') for i in range(16))
-    async with aioboto3.client('sts') as sts:
+    async with aioboto3.Session().client('sts') as sts:
         src_role = await sts.assume_role(
             RoleArn=src_role_arn, RoleSessionName=session_name
         )
