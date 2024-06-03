@@ -1706,7 +1706,6 @@ async def load_task_response(client, task):
                 yield x
 
     except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
-        log.info(format_exception_only(e))
         for x in process_aws_response(task, e):
             yield x
 
@@ -1756,7 +1755,6 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     except ClientError as e:
         # record missing auditor role as empty account summary
-        log.info(format_exception_only(e))
         yield (
             task.method,
             updated(
