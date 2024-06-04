@@ -6,6 +6,10 @@ RUN apt-get update
 RUN apt-get install -y r-base
 RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom','testthat'), repos = 'https://cloud.r-project.org')"
 
+# https://repost.aws/questions/QUCFqv7OfoQlygJrmwfkJ24Q/various-aws-apis-fail-due-to-timeout
+RUN update-alternatives --set iptables /usr/sbin/iptables-legacy
+RUN update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
 RUN pip install --upgrade pip virtualenv pyflakes
 
 RUN mkdir -p ./snowalert
