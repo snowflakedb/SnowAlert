@@ -12,7 +12,7 @@ setup(
         'demjson3==3.0.5',
         'fire==0.4.0',
         'jira==2.0.0',
-        'PyYAML==6.0',
+        'PyYAML==6.0.1',
         'xmltodict==0.12.0',
         'snowflake-connector-python==3.10.0',
         'snowflake-sqlalchemy==1.5.3',
