@@ -19,4 +19,4 @@ COPY ./install ./install
 RUN PYTHONPATH='' pip install ./snowalert/src/
 RUN PYTHONPATH='' pip install requests
 
-CMD ./run all && sleep 300
+CMD ./run all
