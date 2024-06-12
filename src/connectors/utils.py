@@ -92,16 +92,18 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
-    for attempt in range(11):
+    for attempt in range(21):
         try:
             return await try_aio_sts_assume_role(
                 src_role_arn, dest_role_arn, dest_external_id
             )
         except (CredentialRetrievalError, ResponseParserError) as e:
-            if attempt < 10:
-                delay = int(1.5**attempt) + random.randint(0, 3)
+            if attempt < 20:
+                # attempt 10 has 28.9s wait
+                # attempt 19 has 597s wait
+                delay = int(1.4**attempt) + random.randint(0, 3)
                 await asyncio.sleep(delay)
-                log.warn('retrying', attempt, 'after', type(e))
+                log.warn(f'attempt {attempt}: {e}')
             else:
                 raise
 
