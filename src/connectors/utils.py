@@ -99,9 +99,11 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
             )
         except (CredentialRetrievalError, ResponseParserError) as e:
             if attempt < 20:
-                # attempt 10 has 28.9s wait
-                # attempt 19 has 597s wait
-                delay = int(1.4**attempt) + random.randint(0, 3)
+                # attempt 0 wait of 1 + randint(0,15) seconds
+                # attempt 10 wait of 28.9 + randint(0,15) seconds
+                # attempt 19 wait of 597 + randint(0,15) seconds
+                # total wait is about 30m
+                delay = int(1.4**attempt) + random.randint(0, 30)
                 await asyncio.sleep(delay)
                 log.warn(f'attempt {attempt}: {e}')
             else:
