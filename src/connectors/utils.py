@@ -92,7 +92,7 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
 
 
 async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
-    for attempt in range(10):
+    for attempt in range(11):
         try:
             return await try_aio_sts_assume_role(
                 src_role_arn, dest_role_arn, dest_external_id
@@ -101,6 +101,7 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
             if attempt < 10:
                 delay = int(1.5**attempt) + random.randint(0, 3)
                 await asyncio.sleep(delay)
+                log.warn('retrying', attempt, 'after', type(e))
             else:
                 raise
 
