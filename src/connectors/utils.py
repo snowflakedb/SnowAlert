@@ -7,6 +7,7 @@ from typing import Any
 import aioboto3
 import boto3
 from botocore.parsers import ResponseParserError
+from botocore.exceptions import CredentialRetrievalError
 import yaml
 from requests import auth
 
@@ -96,7 +97,7 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
             return await try_aio_sts_assume_role(
                 src_role_arn, dest_role_arn, dest_external_id
             )
-        except ResponseParserError as e:
+        except (CredentialRetrievalError, ResponseParserError) as e:
             if attempt < 10:
                 delay = int(1.5**attempt) + random.randint(0, 3)
                 await asyncio.sleep(delay)
