@@ -11,7 +11,7 @@ from botocore.exceptions import CredentialRetrievalError
 import yaml
 from requests import auth
 
-from runners.helpers import db
+from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 
