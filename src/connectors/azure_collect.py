@@ -259,6 +259,7 @@ SUPPLEMENTARY_TABLES = {
         ('tags', 'VARIANT'),
         ('type', 'STRING'),
         ('zones', 'VARIANT'),
+        ('raw', 'VARIANT'),
     ],
     # https://docs.microsoft.com/en-us/rest/api/virtualnetwork/networkinterfaces/listall
     'network_interfaces': [
@@ -1492,6 +1493,7 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
             'tags': 'tags',
             'type': 'type',
             'zones': 'zones',
+            '*': 'raw',
         },
     },
     'role_definitions': {
