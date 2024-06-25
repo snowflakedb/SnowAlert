@@ -42,7 +42,7 @@ READER_EID = ''
 _SESSION_CACHE: dict = {}
 
 # see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
-_REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
+_REQUEST_PACE_PER_SECOND = 12  # depletes Throttling bucket of 100 at 2/s in 50s
 _REQUEST_BATCH_SIZE = 600  # 100 in Throttling bucket + 500 replenished over 25s
 
 CONNECTION_OPTIONS = [
