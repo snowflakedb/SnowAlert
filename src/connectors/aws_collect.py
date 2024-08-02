@@ -24,7 +24,13 @@ from os import environ
 from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
 from runners.utils import format_exception_only, format_exception
 
-from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
+from connectors.utils import (
+    aio_sts_assume_role,
+    updated,
+    yaml_dump,
+    bytes_to_str,
+    AioRateLimit,
+)
 from runners.helpers import db, log
 
 
@@ -44,6 +50,9 @@ _SESSION_CACHE: dict = {}
 # see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
 _REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
 _REQUEST_BATCH_SIZE = 100  # 100 in Throttling bucket + 500 replenished over 25s
+
+# metadata API RPS limit https://github.com/aws/amazon-ecs-agent/blob/master/README.md#:~:text=ECS_TASK_METADATA_RPS_LIMIT
+metadata_rate_limit = AioRateLimit(pace_per_second=40)
 
 CONNECTION_OPTIONS = [
     {
@@ -1685,6 +1694,15 @@ def process_aws_response(task, page):
 
 
 async def load_task_response(client, task):
+    async for x in metadata_rate_limit.iterate_with_retry(
+        lambda: try_load_task_response(client, task),
+        seconds_between_retries=1,
+        exp_base=1.1,
+    ):
+        yield x
+
+
+async def try_load_task_response(client, task):
     args = task.args or {}
     argspec = API_METHOD_SPECS[task.method].get('args', {})
 
@@ -1696,10 +1714,13 @@ async def load_task_response(client, task):
 
     try:
         if client.can_paginate(method_name):
-            async for page in client.get_paginator(method_name).paginate(**args):
+            async for page in metadata_rate_limit.iterate_with_wait(
+                client.get_paginator(method_name).paginate(**args)
+            ):
                 for x in process_aws_response(task, page):
                     yield x
         else:
+            await metadata_rate_limit.wait(cost=1)
             for x in process_aws_response(
                 task, await getattr(client, method_name)(**args)
             ):
@@ -1711,14 +1732,25 @@ async def load_task_response(client, task):
 
 
 async def get_session(account_arn, client_name=None):
+    # prune cache first to stop OOM errors
+    in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
+    for k, (expiration, _) in list(_SESSION_CACHE.items()):
+        if expiration < in_10m:
+            del _SESSION_CACHE[k]
+
     session_key = (account_arn, client_name)
     expiration, session = _SESSION_CACHE.get(session_key, (None, None))
-    in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
-    if expiration is None or expiration < in_10m:
-        expiration, session = _SESSION_CACHE[session_key] = await aio_sts_assume_role(
-            src_role_arn=AUDIT_ASSUMER_ARN,
-            dest_role_arn=account_arn,
-            dest_external_id=READER_EID,
+    if expiration is None:
+        await metadata_rate_limit.wait(cost=12)
+        expiration, session = _SESSION_CACHE[
+            session_key
+        ] = await metadata_rate_limit.retry(
+            lambda: aio_sts_assume_role(
+                metadata_rate_limit,
+                src_role_arn=AUDIT_ASSUMER_ARN,
+                dest_role_arn=account_arn,
+                dest_external_id=READER_EID,
+            )
         )
     return session
 
@@ -1731,8 +1763,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     try:
         session = await get_session(account_arn)
+
+        await metadata_rate_limit.wait()
         async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
+                await metadata_rate_limit.wait()
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
             else:
@@ -1740,6 +1775,8 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
         for rn in region_names:
             session = await get_session(account_arn, client_name)
+
+            await metadata_rate_limit.wait()
             async with session.client(
                 client_name, region_name=rn, config=AIO_CONFIG
             ) as client:
@@ -1853,12 +1890,17 @@ async def aioingest(table_name, options, dryrun=False):
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        expiration, session = await aio_sts_assume_role(
-            src_role_arn=AUDIT_ASSUMER_ARN,
-            dest_role_arn=master_reader_arn,
-            dest_external_id=READER_EID,
+        await metadata_rate_limit.wait(cost=12)
+        expiration, session = await metadata_rate_limit.retry(
+            lambda: aio_sts_assume_role(
+                metadata_rate_limit,
+                src_role_arn=AUDIT_ASSUMER_ARN,
+                dest_role_arn=master_reader_arn,
+                dest_external_id=READER_EID,
+            )
         )
 
+        await metadata_rate_limit.wait()
         async with session.client('organizations') as org_client:
             accounts = [
                 a.entity
