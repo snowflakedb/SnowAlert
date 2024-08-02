@@ -37,6 +37,10 @@ from runners.helpers import db, log
 AIO_CONFIG = AioConfig(
     read_timeout=600,
     connect_timeout=600,
+    retries={
+        'max_attempts': 100,
+        'mode': 'standard',
+    },
 )
 
 AWS_ZONE = environ.get('SA_AWS_ZONE', 'aws')
@@ -47,12 +51,15 @@ READER_EID = ''
 
 _SESSION_CACHE: dict = {}
 
-# see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
-_REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
-_REQUEST_BATCH_SIZE = 100  # 100 in Throttling bucket + 500 replenished over 25s
+_REQUEST_BATCH_SIZE = 1000
+
+NEVER = datetime.now(pytz.utc) + timedelta(days=365 * 100)
 
 # metadata API RPS limit https://github.com/aws/amazon-ecs-agent/blob/master/README.md#:~:text=ECS_TASK_METADATA_RPS_LIMIT
 metadata_rate_limit = AioRateLimit(pace_per_second=40)
+
+# e.g. https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
+api_rate_limits = {}
 
 CONNECTION_OPTIONS = [
     {
@@ -1694,15 +1701,6 @@ def process_aws_response(task, page):
 
 
 async def load_task_response(client, task):
-    async for x in metadata_rate_limit.iterate_with_retry(
-        lambda: try_load_task_response(client, task),
-        seconds_between_retries=1,
-        exp_base=1.1,
-    ):
-        yield x
-
-
-async def try_load_task_response(client, task):
     args = task.args or {}
     argspec = API_METHOD_SPECS[task.method].get('args', {})
 
@@ -1711,48 +1709,65 @@ async def try_load_task_response(client, task):
         args['AccountId'] = task.account_id
 
     client_name, method_name = task.method.split('.', 1)
+    api_rate_limit = api_rate_limits.setdefault(
+        (task.account_id, client.meta.region_name, method_name),
+        AioRateLimit(
+            pace_per_second=API_METHOD_SPECS[task.method].get('rate_per_second', 5)
+        ),
+    )
 
     try:
         if client.can_paginate(method_name):
-            async for page in metadata_rate_limit.iterate_with_wait(
+            async for page in api_rate_limit.iterate_with_wait(
                 client.get_paginator(method_name).paginate(**args)
             ):
                 for x in process_aws_response(task, page):
                     yield x
         else:
-            await metadata_rate_limit.wait(cost=1)
+            await api_rate_limit.wait()
             for x in process_aws_response(
                 task, await getattr(client, method_name)(**args)
             ):
                 yield x
 
+    # todo: double check whether these should be retried instead of recording errors
     except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
         for x in process_aws_response(task, e):
             yield x
 
 
-async def get_session(account_arn, client_name=None):
-    # prune cache first to stop OOM errors
+async def get_session(account_arn):
+    # prune cache to stop OOM errors
     in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
     for k, (expiration, _) in list(_SESSION_CACHE.items()):
         if expiration < in_10m:
             del _SESSION_CACHE[k]
 
-    session_key = (account_arn, client_name)
-    expiration, session = _SESSION_CACHE.get(session_key, (None, None))
+    expiration, value = _SESSION_CACHE.get(account_arn, (None, None))
+
+    while expiration is NEVER and value is None:
+        # another coroutine is working on this
+        await asyncio.sleep(0.1)
+        expiration, value = _SESSION_CACHE.get(account_arn, (None, None))
+
     if expiration is None:
-        await metadata_rate_limit.wait(cost=12)
-        expiration, session = _SESSION_CACHE[
-            session_key
-        ] = await metadata_rate_limit.retry(
-            lambda: aio_sts_assume_role(
-                metadata_rate_limit,
+        # print(f'session cache MISS for {account_arn}')
+        _SESSION_CACHE[account_arn] = (NEVER, None)
+        try:
+            await metadata_rate_limit.wait(cost=2)
+            expiration, value = _SESSION_CACHE[account_arn] = await aio_sts_assume_role(
                 src_role_arn=AUDIT_ASSUMER_ARN,
                 dest_role_arn=account_arn,
                 dest_external_id=READER_EID,
+                aio_config=AIO_CONFIG,
             )
-        )
-    return session
+
+        except ClientError as e:
+            expiration, value = _SESSION_CACHE[account_arn] = (NEVER, e)
+
+        # print(f'session cache SET for {account_arn}')
+
+    return (None, value) if expiration is NEVER else (value, None)
 
 
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
@@ -1761,9 +1776,9 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
     client_name, method_name = task.method.split('.', 1)
 
-    try:
-        session = await get_session(account_arn)
+    session, e = await get_session(account_arn)
 
+    if session:
         await metadata_rate_limit.wait()
         async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
@@ -1773,24 +1788,22 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
             else:
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
-        for rn in region_names:
-            session = await get_session(account_arn, client_name)
+            for rn in region_names:
+                await metadata_rate_limit.wait()
+                async with session.client(
+                    client_name, region_name=rn, config=AIO_CONFIG
+                ) as client:
+                    async for response in load_task_response(client, task):
+                        if type(response) is DBEntry:
+                            if rn is not None:
+                                response.entity['region'] = rn
+                            yield (task.method, response.entity)
+                        elif type(response) is CollectTask:
+                            add_task(response)
+                        else:
+                            log.info('log response', response)
 
-            await metadata_rate_limit.wait()
-            async with session.client(
-                client_name, region_name=rn, config=AIO_CONFIG
-            ) as client:
-                async for response in load_task_response(client, task):
-                    if type(response) is DBEntry:
-                        if rn is not None:
-                            response.entity['region'] = rn
-                        yield (task.method, response.entity)
-                    elif type(response) is CollectTask:
-                        add_task(response)
-                    else:
-                        log.info('log response', response)
-
-    except ClientError as e:
+    else:
         # record missing auditor role as empty account summary
         yield (
             task.method,
@@ -1816,11 +1829,7 @@ def insert_list(name, values, table_name=None, dryrun=False):
     return db.insert(table_name, values, dryrun=dryrun)
 
 
-async def aws_collect_task(task, wait=0.0, add_task=None):
-    if wait:
-        await asyncio.sleep(wait)
-
-    # log.info(f'processing {task}')
+async def aws_collect_task(task, add_task=None):
     result_lists = defaultdict(list)
     async for k, v in process_task(task, add_task):
         result_lists[k].append(v)
@@ -1890,14 +1899,10 @@ async def aioingest(table_name, options, dryrun=False):
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        await metadata_rate_limit.wait(cost=12)
-        expiration, session = await metadata_rate_limit.retry(
-            lambda: aio_sts_assume_role(
-                metadata_rate_limit,
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=master_reader_arn,
-                dest_external_id=READER_EID,
-            )
+        expiration, session = await aio_sts_assume_role(
+            src_role_arn=AUDIT_ASSUMER_ARN,
+            dest_role_arn=master_reader_arn,
+            dest_external_id=READER_EID,
         )
 
         await metadata_rate_limit.wait()
@@ -1934,9 +1939,7 @@ async def aioingest(table_name, options, dryrun=False):
 
         while collection_tasks:
             coroutines = [
-                aws_collect_task(
-                    t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
-                )
+                aws_collect_task(t, add_task=add_task)
                 for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
             ]
             del collection_tasks[:_REQUEST_BATCH_SIZE]
