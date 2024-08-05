@@ -37,10 +37,10 @@ from runners.helpers import db, log
 AIO_CONFIG = AioConfig(
     read_timeout=600,
     connect_timeout=600,
-    retries={
-        'max_attempts': 100,
-        'mode': 'standard',
-    },
+    # retries={
+    #     'max_attempts': 100,
+    #     'mode': 'standard',
+    # },
 )
 
 AWS_ZONE = environ.get('SA_AWS_ZONE', 'aws')
@@ -51,7 +51,7 @@ READER_EID = ''
 
 _SESSION_CACHE: dict = {}
 
-_REQUEST_BATCH_SIZE = 1000
+_REQUEST_BATCH_SIZE = 500
 
 NEVER = datetime.now(pytz.utc) + timedelta(days=365 * 100)
 
@@ -1710,7 +1710,7 @@ async def load_task_response(client, task):
 
     client_name, method_name = task.method.split('.', 1)
     api_rate_limit = api_rate_limits.setdefault(
-        (task.account_id, client.meta.region_name, method_name),
+        (task.account_id, client.meta.region_name, client_name),
         AioRateLimit(
             pace_per_second=API_METHOD_SPECS[task.method].get('rate_per_second', 5)
         ),
@@ -1718,13 +1718,22 @@ async def load_task_response(client, task):
 
     try:
         if client.can_paginate(method_name):
-            async for page in api_rate_limit.iterate_with_wait(
-                client.get_paginator(method_name).paginate(**args)
-            ):
+
+            async def load_pages():
+                pages = []
+                async for page in api_rate_limit.iterate_with_wait(
+                    client.get_paginator(method_name).paginate(**args),
+                ):
+                    pages.append(page)
+                return pages
+
+            pages = await api_rate_limit.retry(load_pages)
+            for page in pages:
                 for x in process_aws_response(task, page):
                     yield x
         else:
             await api_rate_limit.wait()
+            await metadata_rate_limit.wait()
             for x in process_aws_response(
                 task, await getattr(client, method_name)(**args)
             ):
@@ -1754,12 +1763,16 @@ async def get_session(account_arn):
         # print(f'session cache MISS for {account_arn}')
         _SESSION_CACHE[account_arn] = (NEVER, None)
         try:
-            await metadata_rate_limit.wait(cost=2)
-            expiration, value = _SESSION_CACHE[account_arn] = await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
-                aio_config=AIO_CONFIG,
+            await metadata_rate_limit.wait(cost=12)
+            expiration, value = _SESSION_CACHE[
+                account_arn
+            ] = await metadata_rate_limit.retry(
+                lambda: aio_sts_assume_role(
+                    src_role_arn=AUDIT_ASSUMER_ARN,
+                    dest_role_arn=account_arn,
+                    dest_external_id=READER_EID,
+                    aio_config=AIO_CONFIG,
+                ),
             )
 
         except ClientError as e:

@@ -67,7 +67,7 @@ class AioRateLimit:
                 if i < times:
                     backoff = exp_base**i if exp_base > 0 else 0
                     sleep_time = seconds_between_retries + backoff
-                    print(f'{now} retry after {sleep_time}s because of {type(e)}')
+                    # print(f'retry after {sleep_time}s because of {type(e)}')
                     await asyncio.sleep(sleep_time)
                 else:
                     raise
