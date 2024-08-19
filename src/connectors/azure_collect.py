@@ -1405,10 +1405,6 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
         },
         'children': [
             {
-                'kind': 'storage_accounts_containers',
-                'args': {'subscriptionId': 'subscription_id', 'accountName': 'name'},
-            },
-            {
                 'kind': 'queue_services',
                 'args': {
                     'subscriptionId': 'subscription_id',
@@ -1423,6 +1419,10 @@ API_SPECS: Dict[str, Dict[str, Any]] = {
                     'accountFullId': 'id',
                     'accountName': 'name',
                 },
+            },
+            {
+                'kind': 'storage_accounts_containers',
+                'args': {'subscriptionId': 'subscription_id', 'accountName': 'name'},
             },
         ],
     },
