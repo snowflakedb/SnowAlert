@@ -34,7 +34,7 @@ export const loadSnowAlertRules = () => async (dispatch: Dispatch, getState: Get
     try {
       const response = await api.loadSnowAlertRules();
       dispatch(LoadRulesActions.loadSnowAlertRulesSuccess(response.rules));
-    } catch (error) {
+    } catch (error: any) {
       dispatch(LoadRulesActions.loadSnowAlertRulesFailure(error.message));
     }
   }
@@ -180,7 +180,7 @@ export const saveRule = (rule: Rule) => async (dispatch: Dispatch) => {
     } else {
       throw response;
     }
-  } catch (error) {
+  } catch (error: any) {
     dispatch(SaveRuleAction.saveRuleFailure(error));
   }
 };
@@ -206,7 +206,7 @@ export const deleteRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
     } else {
       throw response;
     }
-  } catch (error) {
+  } catch (error: any) {
     dispatch(DeleteRuleAction.deleteRuleFailure(error));
   }
 };
@@ -232,7 +232,7 @@ export const renameRule = (rule: SnowAlertRule) => async (dispatch: Dispatch) =>
     } else {
       throw response;
     }
-  } catch (error) {
+  } catch (error: any) {
     dispatch(RenameRuleAction.renameRuleFailure(error));
   }
 };

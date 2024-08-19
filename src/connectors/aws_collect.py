@@ -8,6 +8,7 @@ from botocore.exceptions import (
     ClientError,
     DataNotFoundError,
 )
+from aiobotocore.config import AioConfig
 from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
 import csv
@@ -16,24 +17,49 @@ from dateutil.parser import parse as parse_date
 import json
 import fire
 import io
-from typing import Tuple, AsyncGenerator, Dict
+import pytz
+from typing import Tuple, AsyncGenerator, Dict, Any
+from os import environ
 
-from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.helpers.dbconfig import DATA_SCHEMA, ROLE as SA_ROLE
 from runners.utils import format_exception_only, format_exception
 
-from connectors.utils import aio_sts_assume_role, updated, yaml_dump, bytes_to_str
+from connectors.utils import (
+    aio_sts_assume_role,
+    updated,
+    yaml_dump,
+    bytes_to_str,
+    AioRateLimit,
+)
 from runners.helpers import db, log
 
 
-AUDIT_ASSUMER_ARN = 'arn:aws:iam::111111111111:role/security-auditor'
+AIO_CONFIG = AioConfig(
+    read_timeout=600,
+    connect_timeout=600,
+    # retries={
+    #     'max_attempts': 100,
+    #     'mode': 'standard',
+    # },
+)
+
+AWS_ZONE = environ.get('SA_AWS_ZONE', 'aws')
+
+AUDIT_ASSUMER_ARN = f'arn:{AWS_ZONE}:iam::111111111111:role/security-auditor'
 AUDIT_READER_ROLE = 'audit-reader'
 READER_EID = ''
 
 _SESSION_CACHE: dict = {}
 
-# see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html#throttling-limits
-_REQUEST_PACE_PER_SECOND = 24  # depletes Throttling bucket of 100 at 4/s in 25s
-_REQUEST_BATCH_SIZE = 600  # 100 in Throttling bucket + 500 replenished over 25s
+_REQUEST_BATCH_SIZE = 500
+
+NEVER = datetime.now(pytz.utc) + timedelta(days=365 * 100)
+
+# metadata API RPS limit https://github.com/aws/amazon-ecs-agent/blob/master/README.md#:~:text=ECS_TASK_METADATA_RPS_LIMIT
+metadata_rate_limit = AioRateLimit(pace_per_second=40)
+
+# e.g. https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
+api_rate_limits = {}
 
 CONNECTION_OPTIONS = [
     {
@@ -41,7 +67,7 @@ CONNECTION_OPTIONS = [
         'name': 'audit_assumer_arn',
         'title': "Audit Assumer ARN",
         'prompt': "The auditor role that assumes local roles in your accounts",
-        'placeholder': "arn:aws:iam::111111111111:role/security-auditor",
+        'placeholder': f"arn:{AWS_ZONE}:iam::111111111111:role/security-auditor",
         'required': True,
     },
     {
@@ -175,6 +201,48 @@ SUPPLEMENTARY_TABLES = {
         ('requester_id', 'STRING'),
         ('reservation_id', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-network-interfaces.html
+    'ec2_describe_network_interfaces': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('attachment', 'VARIANT'),
+        ('association', 'VARIANT'),
+        ('availability_zone', 'STRING'),
+        ('description', 'STRING'),
+        ('groups', 'VARIANT'),
+        ('interface_type', 'STRING'),
+        ('ipv6_addresses', 'VARIANT'),
+        ('mac_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('private_ip_address', 'STRING'),
+        ('private_dns_name', 'STRING'),
+        ('private_ip_addresses', 'VARIANT'),
+        ('requester_id', 'STRING'),
+        ('requester_managed', 'BOOLEAN'),
+        ('source_dest_check', 'BOOLEAN'),
+        ('status', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('tag_set', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-nat-gateways.html
+    'ec2_describe_nat_gateways': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('nat_gateway_addresses', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+        ('tags', 'VARIANT'),
+        ('state', 'STRING'),
+        ('nat_gateway_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('create_time', 'TIMESTAMP_LTZ'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-route-tables.html
     'ec2_describe_route_tables': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -202,6 +270,45 @@ SUPPLEMENTARY_TABLES = {
         ('group_id', 'STRING'),
         ('ip_permissions_egress', 'VARIANT'),
         ('tags', 'VARIANT'),
+        ('vpc_id', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-file-systems.html
+    'efs_describe_file_systems': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('creation_token', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('file_system_arn', 'STRING'),
+        ('creation_time', 'TIMESTAMP_LTZ'),
+        ('life_cycle_state', 'STRING'),
+        ('name', 'STRING'),
+        ('number_of_mount_targets', 'INTEGER'),
+        ('size_in_bytes', 'VARIANT'),
+        ('performance_mode', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('throughput_mode', 'STRING'),
+        ('provisioned_throughput_in_mibps', 'DOUBLE'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/efs/describe-mount-targets.html#examples
+    'efs_describe_mount_targets': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('owner_id', 'STRING'),
+        ('mount_target_id', 'STRING'),
+        ('file_system_id', 'STRING'),
+        ('subnet_id', 'STRING'),
+        ('life_cycle_state', 'STRING'),
+        ('ip_address', 'STRING'),
+        ('network_interface_id', 'STRING'),
+        ('availability_zone_id', 'STRING'),
+        ('availability_zone_name', 'STRING'),
         ('vpc_id', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/configservice/describe-configuration-recorders.html#output
@@ -303,6 +410,15 @@ SUPPLEMENTARY_TABLES = {
         ('error', 'VARIANT'),
         ('policy_name', 'STRING'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-user-policy.html#output
+    'iam_get_user_policy': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_document', 'STRING'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-user-policies.html#output
     'iam_list_attached_user_policies': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -322,6 +438,23 @@ SUPPLEMENTARY_TABLES = {
         ('group_name', 'STRING'),
         ('arn', 'STRING'),
         ('create_date', 'TIMESTAMP_LTZ'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-group-policies.html#output
+    'iam_list_group_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_name', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-group-policy.html#output
+    'iam_get_group_policy': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('group_name', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_document', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-group-policies.html#output
     'iam_list_attached_group_policies': [
@@ -366,6 +499,15 @@ SUPPLEMENTARY_TABLES = {
         ('policy_name', 'STRING'),
         ('error', 'VARIANT'),
         ('policy_document', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/list-attached-role-policies.html#output
+    'iam_list_attached_role_policies': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('role_name', 'STRING'),
+        ('error', 'VARIANT'),
+        ('policy_name', 'STRING'),
+        ('policy_arn', 'STRING'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/iam/list-policies.html#output
     'iam_list_policies': [
@@ -453,11 +595,40 @@ SUPPLEMENTARY_TABLES = {
     's3_get_bucket_logging': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
         ('account_id', 'STRING'),
-        ('error', 'VARIANT'),
         ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
         ('target_bucket', 'STRING'),
         ('target_grants', 'VARIANT'),
         ('target_prefix', 'STRING'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-bucket-tagging.html#output
+    's3_get_bucket_tagging': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('tag_set', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3api/get-public-access-block.html
+    's3_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('bucket', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/s3control/get-public-access-block.html
+    's3control_get_public_access_block': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('block_public_acls', 'BOOLEAN'),
+        ('ignore_public_acls', 'BOOLEAN'),
+        ('block_public_policy', 'BOOLEAN'),
+        ('restrict_public_buckets', 'BOOLEAN'),
     ],
     # https://docs.aws.amazon.com/cli/latest/reference/cloudtrail/describe-trails.html#output
     'cloudtrail_describe_trails': [
@@ -551,6 +722,62 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
+    'ec2_describe_snapshots': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('data_encryption_key_id', 'STRING'),
+        ('description', 'STRING'),
+        ('encrypted', 'BOOLEAN'),
+        ('kms_key_id', 'STRING'),
+        ('owner_id', 'STRING'),
+        ('progress', 'STRING'),
+        ('snapshot_id', 'STRING'),
+        ('start_time', 'TIMESTAMP_LTZ'),
+        ('state', 'STRING'),
+        ('state_message', 'STRING'),
+        ('volume_id', 'STRING'),
+        ('volume_size', 'NUMBER'),
+        ('owner_alias', 'STRING'),
+        ('outpost_arn', 'STRING'),
+        ('tags', 'VARIANT'),
+    ],
+    # https://docs.aws.amazon.com/cli/latest/reference/iam/get-account-authorization-details.html
+    'iam_get_account_authorization_details': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('error', 'VARIANT'),
+        ('arn', 'STRING'),
+        ('assume_role_policy_document', 'VARIANT'),
+        ('attached_managed_policies', 'VARIANT'),
+        ('attachment_count', 'NUMBER'),
+        ('create_date', 'TIMESTAMP'),
+        ('default_version_id', 'STRING'),
+        ('description', 'STRING'),
+        ('group_id', 'STRING'),
+        ('group_list', 'VARIANT'),
+        ('group_name', 'STRING'),
+        ('group_policy_list', 'VARIANT'),
+        ('instance_profile_list', 'VARIANT'),
+        ('is_attachable', 'BOOLEAN'),
+        ('path', 'STRING'),
+        ('permissions_boundary', 'VARIANT'),
+        ('permissions_boundary_usage_count', 'NUMBER'),
+        ('policy_id', 'STRING'),
+        ('policy_name', 'STRING'),
+        ('policy_version_list', 'VARIANT'),
+        ('role_id', 'STRING'),
+        ('role_last_used', 'VARIANT'),
+        ('role_name', 'STRING'),
+        ('role_policy_list', 'VARIANT'),
+        ('tags', 'VARIANT'),
+        ('update_date', 'TIMESTAMP'),
+        ('user_id', 'STRING'),
+        ('user_name', 'STRING'),
+        ('user_policy_list', 'VARIANT'),
+    ],
 }
 
 API_METHOD_SPECS: Dict[str, dict] = {
@@ -638,6 +865,50 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         }
     },
+    'ec2.describe_network_interfaces': {
+        'response': {
+            'NetworkInterfaces': [
+                {
+                    'Groups': 'groups',
+                    'InterfaceType': 'interface_type',
+                    'Ipv6Addresses': 'ipv6_addresses',
+                    'RequesterId': 'requester_id',
+                    'Attachment': 'attachment',
+                    'Association': 'attachment',
+                    'AvailabilityZone': 'availability_zone',
+                    'Description': 'description',
+                    'MacAddress': 'mac_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'OutpostArn': 'outpost_arn',
+                    'OwnerId': 'owner_id',
+                    'PrivateIpAddress': 'private_ip_address',
+                    'PrivateDnsName': 'private_dns_name',
+                    'PrivateIpAddresses': 'private_ip_addresses',
+                    'RequesterManaged': 'requester_managed',
+                    'SourceDestCheck': 'source_dest_check',
+                    'Status': 'status',
+                    'SubnetId': 'subnet_id',
+                    'TagSet': 'tag_set',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        }
+    },
+    'ec2.describe_nat_gateways': {
+        'response': {
+            'NatGateways': [
+                {
+                    'NatGatewayAddresses': 'nat_gateway_addresses',
+                    'VpcId': 'vpc_id',
+                    'Tags': 'tags',
+                    'State': 'state',
+                    'NatGatewayId': 'nat_gateway_id',
+                    'SubnetId': 'subnet_id',
+                    'CreateTime': 'create_time',
+                }
+            ]
+        }
+    },
     'ec2.describe_route_tables': {
         'response': {
             'RouteTables': [
@@ -668,6 +939,54 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 }
             ]
         }
+    },
+    'efs.describe_file_systems': {
+        'response': {
+            'FileSystems': [
+                {
+                    'OwnerId': 'owner_id',
+                    'CreationToken': 'creation_token',
+                    'FileSystemId': 'file_system_id',
+                    'FileSystemArn': 'file_system_arn',
+                    'CreationTime': 'creation_time',
+                    'LifeCycleState': 'life_cycle_state',
+                    'Name': 'name',
+                    'NumberOfMountTargets': 'number_of_mount_targets',
+                    'SizeInBytes': 'size_in_bytes',
+                    'PerformanceMode': 'performance_mode',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyId': 'kms_key_id',
+                    'ThroughputMode': 'throughput_mode',
+                    'ProvisionedThroughputInMibps': 'provisioned_throughput_in_mibps',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+        'children': [
+            {
+                'method': 'efs.describe_mount_targets',
+                'args': {'FileSystemId': 'file_system_id'},
+            }
+        ],
+    },
+    'efs.describe_mount_targets': {
+        'params': {'FileSystemId': 'file_system_id'},
+        'response': {
+            'MountTargets': [
+                {
+                    'OwnerId': 'owner_id',
+                    'MountTargetId': 'mount_target_id',
+                    'FileSystemId': 'file_system_id',
+                    'SubnetId': 'subnet_id',
+                    'LifeCycleState': 'life_cycle_state',
+                    'IpAddress': 'ip_address',
+                    'NetworkInterfaceId': 'network_interface_id',
+                    'AvailabilityZoneId': 'availability_zone_id',
+                    'AvailabilityZoneName': 'availability_zone_name',
+                    'VpcId': 'vpc_id',
+                }
+            ]
+        },
     },
     'config.describe_configuration_recorders': {
         # for unknown reasons, client.describe_regions does not seem to work w/
@@ -730,10 +1049,27 @@ API_METHOD_SPECS: Dict[str, dict] = {
         },
         'children': [
             {
-                'method': 'iam.list_attached_group_policies',
+                'methods': [
+                    'iam.list_attached_group_policies',
+                    'iam.list_group_policies',
+                ],
                 'args': {'GroupName': 'group_name'},
             }
         ],
+    },
+    'iam.list_group_policies': {
+        'params': {'GroupName': 'group_name'},
+        'response': {'PolicyNames': ['policy_name']},
+        'children': [
+            {
+                'method': 'iam.get_group_policy',
+                'args': {'GroupName': 'group_name', 'PolicyName': 'policy_name'},
+            }
+        ],
+    },
+    'iam.get_group_policy': {
+        'params': {'GroupName': 'group_name', 'PolicyName': 'policy_name'},
+        'response': {'PolicyDocument': 'policy_document'},
     },
     'iam.list_users': {
         'response': {
@@ -816,6 +1152,16 @@ API_METHOD_SPECS: Dict[str, dict] = {
     'iam.list_user_policies': {
         'params': {'UserName': 'user_name'},
         'response': {'PolicyNames': ['policy_name']},
+        'children': [
+            {
+                'method': 'iam.get_user_policy',
+                'args': {'UserName': 'user_name', 'PolicyName': 'policy_name'},
+            }
+        ],
+    },
+    'iam.get_user_policy': {
+        'params': {'UserName': 'user_name', 'PolicyName': 'policy_name'},
+        'response': {'PolicyDocument': 'policy_document'},
     },
     'iam.list_attached_user_policies': {
         'params': {'UserName': 'user_name'},
@@ -827,6 +1173,14 @@ API_METHOD_SPECS: Dict[str, dict] = {
     },
     'iam.list_attached_group_policies': {
         'params': {'GroupName': 'group_name'},
+        'response': {
+            'AttachedPolicies': [
+                {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
+            ]
+        },
+    },
+    'iam.list_attached_role_policies': {
+        'params': {'RoleName': 'role_name'},
         'response': {
             'AttachedPolicies': [
                 {'PolicyName': 'policy_name', 'PolicyArn': 'policy_arn'}
@@ -855,7 +1209,13 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ]
         },
         'children': [
-            {'method': 'iam.list_role_policies', 'args': {'RoleName': 'role_name'}}
+            {
+                'methods': [
+                    'iam.list_role_policies',
+                    'iam.list_attached_role_policies',
+                ],
+                'args': {'RoleName': 'role_name'},
+            }
         ],
     },
     'iam.list_role_policies': {
@@ -943,6 +1303,8 @@ API_METHOD_SPECS: Dict[str, dict] = {
                     's3.get_bucket_acl',
                     's3.get_bucket_policy',
                     's3.get_bucket_logging',
+                    's3.get_bucket_tagging',
+                    's3.get_public_access_block',
                 ],
                 'args': {'Bucket': 'bucket_name'},
             }
@@ -968,6 +1330,32 @@ API_METHOD_SPECS: Dict[str, dict] = {
                 'TargetBucket': 'target_bucket',
                 'TargetGrants': 'target_grants',
                 'TargetPrefix': 'target_prefix',
+            }
+        },
+    },
+    's3.get_bucket_tagging': {
+        'params': {'Bucket': 'bucket'},
+        'response': {'TagSet': 'tag_set'},
+    },
+    's3.get_public_access_block': {
+        'params': {'Bucket': 'bucket'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
+            }
+        },
+    },
+    's3control.get_public_access_block': {
+        'args': {'AccountId': 'account_id'},
+        'response': {
+            'PublicAccessBlockConfiguration': {
+                'BlockPublicAcls': 'block_public_acls',
+                'IgnorePublicAcls': 'ignore_public_acls',
+                'BlockPublicPolicy': 'block_public_policy',
+                'RestrictPublicBuckets': 'restrict_public_buckets',
             }
         },
     },
@@ -1107,6 +1495,89 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'ec2.describe_snapshots': {
+        'response': {
+            'Snapshot': [
+                {
+                    'DataEncryptionKeyId': 'data_encryption_key_id',
+                    'Description': 'description',
+                    'Encrypted': 'encrypted',
+                    'KmsKeyID': 'kms_key_id',
+                    'OwnerID': 'owner_id',
+                    'Progress': 'progress',
+                    'SnapshotID': 'snapshot_id',
+                    'StartTime': 'start_time',
+                    'State': 'state',
+                    'StateMessage': 'state_message',
+                    'VolumeID': 'volume_id',
+                    'VolumeSize': 'volume_size',
+                    'OwnerAlias': 'owner_alias',
+                    'OutpostArn': 'outpost_arn',
+                    'Tags': 'tags',
+                }
+            ]
+        },
+    },
+    'iam.get_account_authorization_details': {
+        'response': {
+            'UserDetailList': [
+                {
+                    'Path': 'path',
+                    'UserName': 'user_name',
+                    'UserId': 'user_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'UserPolicyList': 'user_policy_list',
+                    'GroupList': 'group_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                }
+            ],
+            'GroupDetailList': [
+                {
+                    'Path': 'path',
+                    'GroupName': 'group_name',
+                    'GroupId': 'group_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'GroupPolicyList': 'group_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                }
+            ],
+            'RoleDetailList': [
+                {
+                    'RoleName': 'role_name',
+                    'RoleId': 'role_id',
+                    'Arn': 'arn',
+                    'CreateDate': 'create_date',
+                    'AssumeRolePolicyDocument': 'assume_role_policy_document',
+                    'InstanceProfileList': 'instance_profile_list',
+                    'RolePolicyList': 'role_policy_list',
+                    'AttachedManagedPolicies': 'attached_managed_policies',
+                    'PermissionsBoundary': 'permissions_boundary',
+                    'Tags': 'tags',
+                    'RoleLastUsed': 'role_last_used',
+                }
+            ],
+            'Policies': [
+                {
+                    'PolicyName': 'policy_name',
+                    'PolicyId': 'policy_id',
+                    'Arn': 'arn',
+                    'Path': 'path',
+                    'DefaultVersionId': 'default_version_id',
+                    'AttachmentCount': 'attachment_count',
+                    'PermissionsBoundaryUsageCount': 'permissions_boundary_usage_count',
+                    'IsAttachable': 'is_attachable',
+                    'Description': 'description',
+                    'CreateDate': 'create_date',
+                    'UpdateDate': 'update_date',
+                    'PolicyVersionList': 'policy_version_list',
+                }
+            ],
+        },
+    },
 }
 
 
@@ -1115,7 +1586,7 @@ def connect(connection_name, options):
         '' if connection_name in ('', 'default') else connection_name
     )
     table_name = f'{table_prefix}_organizations_list_accounts_connection'
-    landing_table = f'data.{table_name}'
+    landing_table = f'{DATA_SCHEMA}.{table_name}'
 
     audit_assumer_arn = options['audit_assumer_arn']
     org_account_ids = options['org_account_ids']
@@ -1135,7 +1606,7 @@ def connect(connection_name, options):
     db.execute(f'GRANT INSERT, SELECT ON {landing_table} TO ROLE {SA_ROLE}')
 
     for table_postfix, cols in SUPPLEMENTARY_TABLES.items():
-        supp_table = f'data.{table_prefix}_{table_postfix}'
+        supp_table = f'{DATA_SCHEMA}.{table_prefix}_{table_postfix}'
         db.create_table(name=supp_table, cols=cols)
         db.execute(f'GRANT INSERT, SELECT ON {supp_table} TO ROLE {SA_ROLE}')
 
@@ -1166,7 +1637,7 @@ def process_response_items(coldict, page, db_entry=None):
         db_entry[coldict] = page
 
     elif type(coldict) is ParsedCol:
-        parse = PARSERS[coldict.type]
+        parse: Any = PARSERS[coldict.type]
         db_entry[coldict.colname] = bytes_to_str(page)
         db_entry[coldict.parsed_colname] = parse(bytes_to_str(page))
 
@@ -1231,70 +1702,122 @@ def process_aws_response(task, page):
 
 async def load_task_response(client, task):
     args = task.args or {}
+    argspec = API_METHOD_SPECS[task.method].get('args', {})
+
+    # e.g. for s3control.get_public_access_block
+    if argspec.get('AccountId') == 'account_id':
+        args['AccountId'] = task.account_id
 
     client_name, method_name = task.method.split('.', 1)
+    api_rate_limit = api_rate_limits.setdefault(
+        (task.account_id, client.meta.region_name, client_name),
+        AioRateLimit(
+            pace_per_second=API_METHOD_SPECS[task.method].get('rate_per_second', 5)
+        ),
+    )
 
     try:
         if client.can_paginate(method_name):
-            async for page in client.get_paginator(method_name).paginate(**args):
+
+            async def load_pages():
+                pages = []
+                async for page in api_rate_limit.iterate_with_wait(
+                    client.get_paginator(method_name).paginate(**args),
+                ):
+                    pages.append(page)
+                return pages
+
+            pages = await api_rate_limit.retry(load_pages)
+            for page in pages:
                 for x in process_aws_response(task, page):
                     yield x
         else:
+            await api_rate_limit.wait()
+            await metadata_rate_limit.wait()
             for x in process_aws_response(
                 task, await getattr(client, method_name)(**args)
             ):
                 yield x
 
+    # todo: double check whether these should be retried instead of recording errors
     except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
-        log.info(format_exception_only(e))
         for x in process_aws_response(task, e):
             yield x
 
 
+async def get_session(account_arn):
+    # prune cache to stop OOM errors
+    in_10m = datetime.now(pytz.utc) + timedelta(minutes=10)
+    for k, (expiration, _) in list(_SESSION_CACHE.items()):
+        if expiration < in_10m:
+            del _SESSION_CACHE[k]
+
+    expiration, value = _SESSION_CACHE.get(account_arn, (None, None))
+
+    while expiration is NEVER and value is None:
+        # another coroutine is working on this
+        await asyncio.sleep(0.1)
+        expiration, value = _SESSION_CACHE.get(account_arn, (None, None))
+
+    if expiration is None:
+        # print(f'session cache MISS for {account_arn}')
+        _SESSION_CACHE[account_arn] = (NEVER, None)
+        try:
+            await metadata_rate_limit.wait(cost=12)
+            expiration, value = _SESSION_CACHE[
+                account_arn
+            ] = await metadata_rate_limit.retry(
+                lambda: aio_sts_assume_role(
+                    src_role_arn=AUDIT_ASSUMER_ARN,
+                    dest_role_arn=account_arn,
+                    dest_external_id=READER_EID,
+                    aio_config=AIO_CONFIG,
+                ),
+            )
+
+        except ClientError as e:
+            expiration, value = _SESSION_CACHE[account_arn] = (NEVER, e)
+
+        # print(f'session cache SET for {account_arn}')
+
+    return (None, value) if expiration is NEVER else (value, None)
+
+
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
-    account_arn = f'arn:aws:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
+    account_arn = f'arn:{AWS_ZONE}:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
 
     client_name, method_name = task.method.split('.', 1)
 
-    try:
-        now = datetime.utcnow()
-        expires = (
-            _SESSION_CACHE.get('account_arn', {})
-            .get('Credentials', {})
-            .get('Expiration')
-        )
-        session = _SESSION_CACHE[account_arn] = (
-            _SESSION_CACHE[account_arn]
-            if expires and expires > now + timedelta(minutes=5)
-            else await aio_sts_assume_role(
-                src_role_arn=AUDIT_ASSUMER_ARN,
-                dest_role_arn=account_arn,
-                dest_external_id=READER_EID,
-            )
-        )
-        async with session.client(client_name) as client:
+    session, e = await get_session(account_arn)
+
+    if session:
+        await metadata_rate_limit.wait()
+        async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
+                await metadata_rate_limit.wait()
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
             else:
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
-        for rn in region_names:
-            async with session.client(client_name, region_name=rn) as client:
-                async for response in load_task_response(client, task):
-                    if type(response) is DBEntry:
-                        if rn is not None:
-                            response.entity['region'] = rn
-                        yield (task.method, response.entity)
-                    elif type(response) is CollectTask:
-                        add_task(response)
-                    else:
-                        log.info('log response', response)
+            for rn in region_names:
+                await metadata_rate_limit.wait()
+                async with session.client(
+                    client_name, region_name=rn, config=AIO_CONFIG
+                ) as client:
+                    async for response in load_task_response(client, task):
+                        if type(response) is DBEntry:
+                            if rn is not None:
+                                response.entity['region'] = rn
+                            yield (task.method, response.entity)
+                        elif type(response) is CollectTask:
+                            add_task(response)
+                        else:
+                            log.info('log response', response)
 
-    except ClientError as e:
+    else:
         # record missing auditor role as empty account summary
-        log.info(format_exception_only(e))
         yield (
             task.method,
             updated(
@@ -1314,16 +1837,12 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
 
 def insert_list(name, values, table_name=None, dryrun=False):
     name = name.replace('.', '_')
-    table_name = table_name or f'data.aws_collect_{name}'
+    table_name = table_name or f'{DATA_SCHEMA}.aws_collect_{name}'
     log.info(f'inserting {len(values)} values into {table_name}')
     return db.insert(table_name, values, dryrun=dryrun)
 
 
-async def aws_collect_task(task, wait=0.0, add_task=None):
-    if wait:
-        await asyncio.sleep(wait)
-
-    # log.info(f'processing {task}')
+async def aws_collect_task(task, add_task=None):
     result_lists = defaultdict(list)
     async for k, v in process_task(task, add_task):
         result_lists[k].append(v)
@@ -1334,9 +1853,12 @@ async def aioingest(table_name, options, dryrun=False):
     global AUDIT_ASSUMER_ARN
     global AUDIT_READER_ROLE
     global READER_EID
-    AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', '')
-    AUDIT_READER_ROLE = options.get('audit_reader_role', '')
-    READER_EID = options.get('reader_eid', '')
+    global AWS_ZONE
+
+    AUDIT_ASSUMER_ARN = options.get('audit_assumer_arn', AUDIT_ASSUMER_ARN)
+    AUDIT_READER_ROLE = options.get('audit_reader_role', AUDIT_READER_ROLE)
+    READER_EID = options.get('reader_eid', READER_EID)
+    AWS_ZONE = options.get('aws_zone', AWS_ZONE)
 
     collect_apis = (
         [
@@ -1344,20 +1866,26 @@ async def aioingest(table_name, options, dryrun=False):
             'iam.list_account_aliases',
             'iam.get_account_summary',
             'iam.get_account_password_policy',
+            'efs.describe_file_systems',
             'ec2.describe_instances',
+            'ec2.describe_nat_gateways',
             'ec2.describe_route_tables',
             'ec2.describe_security_groups',
+            'ec2.describe_network_interfaces',
             'config.describe_configuration_recorders',
             'kms.list_keys',
-            'iam.list_users',
             'iam.list_policies',
             'iam.list_virtual_mfa_devices',
             's3.list_buckets',
             'cloudtrail.describe_trails',
-            'iam.get_credential_report',
             'iam.list_roles',
             'inspector.list_findings',
             'iam.list_groups',
+            's3control.get_public_access_block',
+            'iam.get_account_authorization_details',
+            'iam.list_users',
+            'iam.get_credential_report',
+            'ec2.describe_snapshots',
         ]
         if options.get('collect_apis', 'all') == 'all'
         else options.get('collect_apis').split(',')
@@ -1369,6 +1897,8 @@ async def aioingest(table_name, options, dryrun=False):
         if type(oids) is str
         else [str(oids)]
         if type(oids) is int
+        else map(str, oids)
+        if type(oids) in (list, tuple)
         else oids
     )
     num_entries = 0
@@ -1376,18 +1906,19 @@ async def aioingest(table_name, options, dryrun=False):
         master_reader_arn = (
             options.get('master_reader_arn')
             if oid == ''
-            else f'arn:aws:iam::{oid}:role/{AUDIT_READER_ROLE}'
+            else f'arn:{AWS_ZONE}:iam::{oid}:role/{AUDIT_READER_ROLE}'
         )
 
         if master_reader_arn is None:
             log.error("error: set 'master_reader_arn' or 'org_account_ids'")
 
-        session = await aio_sts_assume_role(
+        expiration, session = await aio_sts_assume_role(
             src_role_arn=AUDIT_ASSUMER_ARN,
             dest_role_arn=master_reader_arn,
             dest_external_id=READER_EID,
         )
 
+        await metadata_rate_limit.wait()
         async with session.client('organizations') as org_client:
             accounts = [
                 a.entity
@@ -1405,7 +1936,7 @@ async def aioingest(table_name, options, dryrun=False):
         insert_list(
             'organizations.list_accounts',
             accounts,
-            table_name=f'data.{table_name}',
+            table_name=f'{DATA_SCHEMA}.{table_name}',
             dryrun=dryrun,
         )
         num_entries += len(accounts)
@@ -1421,9 +1952,7 @@ async def aioingest(table_name, options, dryrun=False):
 
         while collection_tasks:
             coroutines = [
-                aws_collect_task(
-                    t, wait=(i / _REQUEST_PACE_PER_SECOND), add_task=add_task
-                )
+                aws_collect_task(t, add_task=add_task)
                 for i, t in enumerate(collection_tasks[:_REQUEST_BATCH_SIZE])
             ]
             del collection_tasks[:_REQUEST_BATCH_SIZE]
@@ -1431,7 +1960,7 @@ async def aioingest(table_name, options, dryrun=False):
                 f'progress: starting {len(coroutines)}, queued {len(collection_tasks)}'
             )
 
-            all_results = defaultdict(list)
+            all_results: Any = defaultdict(list)
             for coro in asyncio.as_completed(coroutines):
                 result_lists = await coro
                 for k, vs in result_lists.items():

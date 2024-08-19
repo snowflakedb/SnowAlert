@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from runners.helpers import log
 from runners.helpers.dbconfig import REGION
 
+SNS_REGION = environ.get('AWS_SNS_HANDLER_REGION', environ.get('AWS_DEFAULT_REGION')) or REGION
 
 def handle(
     alert,
@@ -28,7 +29,7 @@ def handle(
 
     log.debug(f'SNS message ', message)
 
-    client = boto3.client('sns', region_name=REGION)
+    client = boto3.client('sns', region_name=SNS_REGION)
 
     params = {}
 

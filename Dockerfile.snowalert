@@ -1,8 +1,9 @@
-FROM python:3.7-slim-stretch
+FROM python:3.9-slim-bookworm
 
 WORKDIR /var/task
 
 RUN apt-get update
+
 RUN apt-get install -y r-base
 RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom','testthat'), repos = 'https://cloud.r-project.org')"
 
@@ -16,6 +17,6 @@ COPY ./src ./snowalert/src
 COPY ./run ./run
 COPY ./install ./install
 RUN PYTHONPATH='' pip install ./snowalert/src/
-RUN PYTHONPATH='' pip install alooma-pysdk requests
+RUN PYTHONPATH='' pip install requests
 
 CMD ./run all

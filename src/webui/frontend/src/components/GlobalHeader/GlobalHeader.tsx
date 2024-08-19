@@ -67,15 +67,15 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
     }
   };
 
-  toggleFeatureFlag (feature: string, toggle: boolean) {
+  toggleFeatureFlag(feature: string, toggle: boolean) {
     if (toggle) {
-      localStorage.setItem(`enable_${feature}`, "yes")
+      localStorage.setItem(`enable_${feature}`, 'yes');
     } else {
-      localStorage.removeItem(`enable_${feature}`)
+      localStorage.removeItem(`enable_${feature}`);
     }
     window.setTimeout(() => {
-      window.location.reload()
-    }, 150)
+      window.location.reload();
+    }, 150);
   }
 
   render() {
@@ -104,7 +104,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
                     Account {auth.account}
                   </Menu.Item>
                   <Menu.Divider />
-                  <Menu.SubMenu title='Feature Flags'>
+                  <Menu.SubMenu title="Feature Flags">
                     {/*
                     <Menu.Item disabled={true}>
                       <Checkbox
@@ -134,7 +134,7 @@ class GlobalHeader extends React.PureComponent<GlobalHeaderProps> {
                     </a>
                   </Menu.Item>
                   <Menu.Item>
-                    <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.9.6</a>
+                    <a href="https://github.com/snowflakedb/SnowAlert">SnowAlert v1.10.0</a>
                   </Menu.Item>
                   <Menu.Divider />
                   <Menu.Item key="logout">

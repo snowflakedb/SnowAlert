@@ -76,26 +76,32 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     }
 
     return [
-      {key: "queries", title: `${target} Queries`, selectable: false, children: (
-        queries
-          .filter(q => target === q.target)
+      {
+        key: 'queries',
+        title: `${target} Queries`,
+        selectable: false,
+        children: queries
+          .filter((q) => target === q.target)
           .filter(ruleFilter)
-          .map(r => ({
+          .map((r) => ({
             selectable: true,
             key: r.viewName,
             title: (r.isSaving ? '(saving) ' : r.isEdited ? '* ' : '') + r.title,
-          }))
-        )},
-      {key: "suppressions", title: `${target} Suppressions`, selectable: false, children: (
-        suppressions
-          .filter(s => target === s.target)
+          })),
+      },
+      {
+        key: 'suppressions',
+        title: `${target} Suppressions`,
+        selectable: false,
+        children: suppressions
+          .filter((s) => target === s.target)
           .filter(ruleFilter)
-          .map(s => ({
+          .map((s) => ({
             selectable: true,
             key: s.viewName,
             title: (s.isSaving ? '(saving) ' : s.isEdited ? '* ' : '') + s.title,
-          }))
-      )}
+          })),
+      },
     ];
   };
 
@@ -109,15 +115,14 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
     return (
       <div>
         <Search
-          style={{width: 200}}
           placeholder={`${target} Query Name`}
           value={filter}
-          onChange={e => changeFilter(e.target.value)}
+          onChange={(e) => changeFilter(e.target.value)}
         />
         <Tree
           showLine
           defaultExpandAll
-          onSelect={x => navigate(String(x[0]) || '.')}
+          onSelect={(x) => navigate(String(x[0]) || '.')}
           selectedKeys={currentRuleView ? [currentRuleView] : []}
           treeData={this.generateTree(queries, suppressions, target, filter)}
         />
@@ -127,7 +132,7 @@ class RulesTree extends React.PureComponent<RulesTreeProps> {
           onClick={() => {
             download(
               `${new Date().toISOString().replace(/[:.]/g, '')}-backup.sql`,
-              [...queries, ...suppressions].map(q => q.raw.body).join('\n\n'),
+              [...queries, ...suppressions].map((q) => q.raw.body).join('\n\n'),
             );
           }}
         >

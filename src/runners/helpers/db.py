@@ -1,6 +1,6 @@
 """Helper specific to SnowAlert connecting to the database"""
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from threading import local
 import time
@@ -9,6 +9,7 @@ from os import getpid, environ
 from re import match
 import operator
 
+from demjson3 import decode as demjson_decode, undefined as demjson_undefined
 import snowflake.connector
 from snowflake.connector.constants import FIELD_TYPES
 from snowflake.connector.network import (
@@ -95,7 +96,8 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
-
+    
+    connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
         if oauth_access_token
@@ -165,6 +167,23 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
         log.error(e, "Failed to connect.")
 
 
+def load_js_object(text: str):
+    def undefined_to_none(dj):
+        if isinstance(dj, dict):
+            return {k: undefined_to_none(v) for k, v in dj.items()}
+        if isinstance(dj, list):
+            return [undefined_to_none(k) for k in dj]
+        elif dj == demjson_undefined:
+            return None
+        else:
+            return dj
+
+    try:
+        return json.loads(text)
+    except json.decoder.JSONDecodeError:
+        return undefined_to_none(demjson_decode(text))
+
+
 def fetch(ctx, query=None, fix_errors=True, params=None):
     if query is None:  # TODO(andrey): swap args and refactor
         ctx, query = connect(), ctx
@@ -178,12 +197,12 @@ def fetch(ctx, query=None, fix_errors=True, params=None):
             break
 
         def parse_field(value, field_type):
-            if value is not None and field_type['name'] in {
+            if value is not None and field_type.name in {
                 'OBJECT',
                 'ARRAY',
                 'VARIANT',
             }:
-                return json.loads(value)
+                return load_js_object(value)
             return value
 
         yield {c: parse_field(r, t) for (c, r, t) in zip(cols, row, types)}
@@ -232,12 +251,20 @@ def connect_and_fetchall(query, params=None):
     return ctx, execute(query, params=params).fetchall()
 
 
-def fetch_latest(table, col='event_time', where=''):
+def fetch_latest(table, col='event_time', where='', default=None):
     where = f' WHERE {where}' if where else ''
     ts = next(
         fetch(f'SELECT {col} FROM {table}{where} ORDER BY {col} DESC LIMIT 1'), None
     )
-    return ts[col.upper()] if ts else None
+
+    # todo: regex to generalize
+    if default == '-1h':
+        default = timedelta(hours=-1)
+
+    if isinstance(default, timedelta):
+        default = datetime.utcnow() + default
+
+    return ts[col.upper()] if ts else default
 
 
 def fetch_props(sql, filter=None):
@@ -254,7 +281,7 @@ def fetch_props(sql, filter=None):
 
 
 class TypeOptions(object):
-    type_options: List[Tuple[str, Union[int, str, bool]]]
+    type_options: Union[List[Tuple[str, Union[int, str, bool]]],Any]
 
     def __init__(self, **kwargs):
         self.type_options = kwargs.items()
@@ -388,6 +415,9 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
 
 
 def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
+    if isinstance(values, dict):
+        values = [values]
+
     num_rows_inserted = 0
     # snowflake limits the number of rows inserted in a single statement:
     #   snowflake.connector.errors.ProgrammingError: 001795 (42601):
@@ -568,6 +598,8 @@ def record_metadata(metadata, table, e=None):
         }
         if exception_only.startswith('snowflake.connector.errors.ProgrammingError: '):
             metadata['ERROR']['PROGRAMMING_ERROR'] = exception_only[45:]
+        if hasattr(e, 'sfqid'):
+            metadata['ERROR']['SFQID'] = e.sfqid
 
     metadata.setdefault(
         'ROW_COUNT', {'INSERTED': 0, 'UPDATED': 0, 'SUPPRESSED': 0, 'PASSED': 0}
