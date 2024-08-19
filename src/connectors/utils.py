@@ -1,15 +1,76 @@
+import asyncio
 from inspect import signature
 import random
 import multiprocessing as mp
+import time
 from typing import Any
 
 import aioboto3
 import boto3
+from botocore.parsers import ResponseParserError
+from botocore.exceptions import CredentialRetrievalError, ConnectionClosedError
 import yaml
 from requests import auth
 
-from runners.helpers import db
+from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+
+
+class AioRateLimit:
+    default_retry_exceptions = (
+        ResponseParserError,
+        CredentialRetrievalError,
+        ConnectionClosedError,
+    )
+    default_retry_times = 60
+    default_seconds_between_retries = 1
+    default_exp_base = 0
+
+    def __init__(self, pace_per_second=50):
+        self.pace_per_second = pace_per_second
+        self.interval = 1 / pace_per_second
+        self.next_allowed_time = time.monotonic()
+
+    async def wait(self, cost=1):
+        now = time.monotonic()
+        self.next_allowed_time += self.interval * cost
+
+        if self.next_allowed_time > now:
+            await asyncio.sleep(self.next_allowed_time - now)
+        else:
+            self.next_allowed_time = now
+
+    async def iterate_with_wait(self, async_iterable, cost=1):
+        iterator = async_iterable.__aiter__()
+        while True:
+            await self.wait(cost)
+            try:
+                item = await iterator.__anext__()
+            except StopAsyncIteration:
+                break
+            yield item
+
+    async def retry(
+        self,
+        coroutine_factory,
+        cost=1,
+        times=default_retry_times,
+        seconds_between_retries=default_seconds_between_retries,
+        exp_base=default_exp_base,
+        retry_exceptions=default_retry_exceptions,
+    ):
+        for i in range(times + 1):
+            try:
+                await self.wait(cost)
+                return await coroutine_factory()
+            except retry_exceptions as e:
+                if i < times:
+                    backoff = exp_base**i if exp_base > 0 else 0
+                    sleep_time = seconds_between_retries + backoff
+                    # print(f'retry after {sleep_time}s because of {type(e)}')
+                    await asyncio.sleep(sleep_time)
+                else:
+                    raise
 
 
 class Bearer(auth.AuthBase):
@@ -88,9 +149,11 @@ def sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
     )
 
 
-async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None):
+async def aio_sts_assume_role(
+    src_role_arn, dest_role_arn, dest_external_id=None, aio_config=None
+):
     session_name = ''.join(random.choice('0123456789ABCDEF') for i in range(16))
-    async with aioboto3.client('sts') as sts:
+    async with aioboto3.Session().client('sts', config=aio_config) as sts:
         src_role = await sts.assume_role(
             RoleArn=src_role_arn, RoleSessionName=session_name
         )
@@ -98,7 +161,7 @@ async def aio_sts_assume_role(src_role_arn, dest_role_arn, dest_external_id=None
             aws_access_key_id=src_role['Credentials']['AccessKeyId'],
             aws_secret_access_key=src_role['Credentials']['SecretAccessKey'],
             aws_session_token=src_role['Credentials']['SessionToken'],
-        ).client('sts') as sts_client:
+        ).client('sts', config=aio_config) as sts_client:
             sts_role = await (
                 sts_client.assume_role(
                     RoleArn=dest_role_arn,

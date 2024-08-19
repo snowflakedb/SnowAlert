@@ -142,8 +142,8 @@ EXPECTED_TEST_1_OUTPUT = {
     "TICKET": None,
     "HANDLERS": None,
     "CATS": {'test difficulty': {'for dogs': 3, 'for cats': 1}},
-    "ENTITIES": {'first_name', 'John', 'last_name', 'Doe'},
-    "TAGS": {'staging': true, 'alert_owner': 'GSE TD'},
+    "ENTITIES": {'test entities': {'first_name': 'John', 'last_name': 'Doe'}},
+    "TAGS": {'staging': True, 'alert_owner': 'GSE TD'},
 }
 
 SLACK_MOCK_RETURN_VALUE = {'ok': True}
