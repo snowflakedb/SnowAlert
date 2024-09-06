@@ -4,9 +4,11 @@
   <img height="300" src="https://raw.githubusercontent.com/snowflakedb/SnowAlert/master/docs/src/static/images/snowalert-logo.png">
 </p>
 
+## Deprecation Notice
+
 SnowAlert was a security analytics framework that uses the Snowflake Cloud Data Platform to detect security incidents and policy violations. It is now deprecated.
 
-## Native Snowflake features and implementation
+## Native Snowflake features and re-implementation
 
 Snowflake now supports native [Alerts and Notifications](https://docs.snowflake.com/guides-overview-alerts) which can be used for some generic alerting use-cases.
 
