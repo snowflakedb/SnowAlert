@@ -10,7 +10,7 @@
     "@types/react": "^16.9.49",
     "@types/react-router": "^5.1.4",
     "antd": "^4.6.5",
-    "axios": "^0.20.0",
+    "axios": "^0.21.3",
     "classnames": "^2.2.6",
     "connected-react-router": "^6.8.0",
     "enquire.js": "^2.1.6",
