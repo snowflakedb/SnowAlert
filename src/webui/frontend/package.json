@@ -18,7 +18,7 @@
     "jwt-decode": "^3.0.0-beta.2",
     "lodash": "^4.17.20",
     "lodash-decorators": "^6.0.0",
-    "moment": "^2.29.0",
+    "moment": "^2.29.4",
     "path-to-regexp": "^6.1.0",
     "rc-drawer": "^4.1.0",
     "react": "^16.13.1",
