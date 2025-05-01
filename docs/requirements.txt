@@ -16,7 +16,7 @@ Pygments==2.2.0
 pyparsing==2.2.2
 pytz==2018.7
 PyYAML==4.2b1
-requests==2.20.0
+Pygments>=2.15.0
 six==1.11.0
 snowballstemmer==1.2.1
 Sphinx==1.8.1
