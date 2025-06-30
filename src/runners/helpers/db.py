@@ -16,6 +16,8 @@ from snowflake.connector.network import (
     OAUTH_AUTHENTICATOR,
 )
 
+INSERT_BATCH_SIZE = 8000
+
 from . import log
 from .auth import load_pkb, oauth_refresh
 from .dbconfig import (
@@ -394,7 +396,7 @@ def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     #     SQL compilation error: error line 3 at position 158
     #   maximum number of expressions in a list exceeded,
     #     expected at most 16,384, got 169,667
-    for group in utils.groups_of(16384, values):
+    for group in utils.groups_of(INSERT_BATCH_SIZE, values):
         num_rows_inserted += do_insert(
             table, group, overwrite, select, columns, dryrun
         )['number of rows inserted']
