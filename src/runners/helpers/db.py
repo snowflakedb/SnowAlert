@@ -96,19 +96,16 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
-
     connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
         if oauth_access_token
+        else (snowflake_connect, 'EXTERNALBROWSER', None)
+        if PRIVATE_KEY is None
         else (
-            (snowflake_connect, 'EXTERNALBROWSER', None)
-            if PRIVATE_KEY is None
-            else (
-                snowflake.connector.connect,
-                None,
-                load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
-            )
+            snowflake.connector.connect,
+            None,
+            load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
         )
     )
 
