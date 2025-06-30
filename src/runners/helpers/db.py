@@ -1,5 +1,4 @@
 """Helper specific to SnowAlert connecting to the database"""
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 import json
