@@ -39,7 +39,7 @@ from runners.config import DATA_SCHEMA
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
-
+INSERT_BATCH_SIZE = 8000  # reduced from SQL max to prevent compiler OOMs
 
 def retry(
     f,
@@ -96,7 +96,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
-    
+
     connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
@@ -424,7 +424,7 @@ def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     #     SQL compilation error: error line 3 at position 158
     #   maximum number of expressions in a list exceeded,
     #     expected at most 16,384, got 169,667
-    for group in utils.groups_of(16384, values):
+    for group in utils.groups_of(INSERT_BATCH_SIZE, values):
         num_rows_inserted += do_insert(
             table, group, overwrite, select, columns, dryrun
         )['number of rows inserted']
