@@ -96,6 +96,7 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
+
     connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
