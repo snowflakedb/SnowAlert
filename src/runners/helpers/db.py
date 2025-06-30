@@ -284,7 +284,7 @@ def fetch_props(sql, filter=None):
 
 
 class TypeOptions(object):
-    type_options: Union[List[Tuple[str, Union[int, str, bool]]], Any]
+    type_options: Union[List[Tuple[str, Union[int, str, bool]]],Any]
 
     def __init__(self, **kwargs):
         self.type_options = kwargs.items()
@@ -692,7 +692,9 @@ def create_stage(
     credentials_type = (
         'aws_role'
         if cloud == 'aws'
-        else 'azure_sas_token' if cloud == 'azure' else None
+        else 'azure_sas_token'
+        if cloud == 'azure'
+        else None
     )
     if credentials_type is not None:
         query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
