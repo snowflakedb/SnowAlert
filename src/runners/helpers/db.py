@@ -41,7 +41,6 @@ CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
 INSERT_BATCH_SIZE = 8000
 
-
 def retry(
     f,
     E=Exception,
@@ -459,15 +458,13 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
 
     params_with_json = [
         [
-            (
-                v.isoformat()
-                if isinstance(v, datetime)
-                else (
-                    utils.json_dumps(v)
-                    if isinstance(v, JSONY)
-                    else utils.format_exception(v) if isinstance(v, Exception) else v
-                )
-            )
+            v.isoformat()
+            if isinstance(v, datetime)
+            else utils.json_dumps(v)
+            if isinstance(v, JSONY)
+            else utils.format_exception(v)
+            if isinstance(v, Exception)
+            else v
             for v in vp
         ]
         for vp in values
@@ -551,16 +548,14 @@ def dict_to_sql(d: Optional[dict], indent=0) -> str:
     return (
         'NULL'
         if d is None
-        else (
-            'OBJECT_CONSTRUCT()'
-            if d == {}
-            else ''.join(
-                [
-                    'OBJECT_CONSTRUCT(',
-                    f','.join(f"\n  '{k}', {v}" for k, v in d.items()),
-                    f'\n)',
-                ]
-            )
+        else 'OBJECT_CONSTRUCT()'
+        if d == {}
+        else ''.join(
+            [
+                'OBJECT_CONSTRUCT(',
+                f','.join(f"\n  '{k}', {v}" for k, v in d.items()),
+                f'\n)',
+            ]
         )
     ).replace('\n', f'\n{" " * indent}')
 
