@@ -1,4 +1,5 @@
 """Helper specific to SnowAlert connecting to the database"""
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 import json
@@ -39,6 +40,7 @@ from runners.config import DATA_SCHEMA
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
+INSERT_BATCH_SIZE = 8000
 
 
 def retry(
@@ -96,17 +98,19 @@ def connect(flush_cache=False, set_cache=False, oauth={}):
     cached_connection = getattr(CACHE, CONNECTION, None)
     if cached_connection and not flush_cache and not oauth_access_token:
         return cached_connection
-    
+
     connect_db: Any = None
     connect_db, authenticator, pk = (
         (snowflake.connector.connect, OAUTH_AUTHENTICATOR, None)
         if oauth_access_token
-        else (snowflake_connect, 'EXTERNALBROWSER', None)
-        if PRIVATE_KEY is None
         else (
-            snowflake.connector.connect,
-            None,
-            load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
+            (snowflake_connect, 'EXTERNALBROWSER', None)
+            if PRIVATE_KEY is None
+            else (
+                snowflake.connector.connect,
+                None,
+                load_pkb(PRIVATE_KEY, PRIVATE_KEY_PASSWORD),
+            )
         )
     )
 
@@ -281,7 +285,7 @@ def fetch_props(sql, filter=None):
 
 
 class TypeOptions(object):
-    type_options: Union[List[Tuple[str, Union[int, str, bool]]],Any]
+    type_options: Union[List[Tuple[str, Union[int, str, bool]]], Any]
 
     def __init__(self, **kwargs):
         self.type_options = kwargs.items()
@@ -403,9 +407,7 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
         select = (
             f'TRY_TO_TIMESTAMP({select})'
             if issubclass(ctype, datetime)
-            else f'PARSE_JSON({select})'
-            if issubclass(ctype, JSONY)
-            else select
+            else f'PARSE_JSON({select})' if issubclass(ctype, JSONY) else select
         )
 
         selects.append(select)
@@ -424,7 +426,7 @@ def insert(table, values, overwrite=False, select="", columns=[], dryrun=False):
     #     SQL compilation error: error line 3 at position 158
     #   maximum number of expressions in a list exceeded,
     #     expected at most 16,384, got 169,667
-    for group in utils.groups_of(16384, values):
+    for group in utils.groups_of(INSERT_BATCH_SIZE, values):
         num_rows_inserted += do_insert(
             table, group, overwrite, select, columns, dryrun
         )['number of rows inserted']
@@ -458,13 +460,15 @@ def do_insert(table, values, overwrite=False, select="", columns=[], dryrun=Fals
 
     params_with_json = [
         [
-            v.isoformat()
-            if isinstance(v, datetime)
-            else utils.json_dumps(v)
-            if isinstance(v, JSONY)
-            else utils.format_exception(v)
-            if isinstance(v, Exception)
-            else v
+            (
+                v.isoformat()
+                if isinstance(v, datetime)
+                else (
+                    utils.json_dumps(v)
+                    if isinstance(v, JSONY)
+                    else utils.format_exception(v) if isinstance(v, Exception) else v
+                )
+            )
             for v in vp
         ]
         for vp in values
@@ -548,14 +552,16 @@ def dict_to_sql(d: Optional[dict], indent=0) -> str:
     return (
         'NULL'
         if d is None
-        else 'OBJECT_CONSTRUCT()'
-        if d == {}
-        else ''.join(
-            [
-                'OBJECT_CONSTRUCT(',
-                f','.join(f"\n  '{k}', {v}" for k, v in d.items()),
-                f'\n)',
-            ]
+        else (
+            'OBJECT_CONSTRUCT()'
+            if d == {}
+            else ''.join(
+                [
+                    'OBJECT_CONSTRUCT(',
+                    f','.join(f"\n  '{k}', {v}" for k, v in d.items()),
+                    f'\n)',
+                ]
+            )
         )
     ).replace('\n', f'\n{" " * indent}')
 
@@ -687,9 +693,7 @@ def create_stage(
     credentials_type = (
         'aws_role'
         if cloud == 'aws'
-        else 'azure_sas_token'
-        if cloud == 'azure'
-        else None
+        else 'azure_sas_token' if cloud == 'azure' else None
     )
     if credentials_type is not None:
         query += f"\nCREDENTIALS=({credentials_type}='{credentials}') "
