@@ -405,7 +405,9 @@ def determine_cols(values: List[dict]) -> Tuple[List[str], List[str]]:
         select = (
             f'TRY_TO_TIMESTAMP({select})'
             if issubclass(ctype, datetime)
-            else f'PARSE_JSON({select})' if issubclass(ctype, JSONY) else select
+            else f'PARSE_JSON({select})'
+            if issubclass(ctype, JSONY)
+            else select
         )
 
         selects.append(select)
