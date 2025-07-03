@@ -41,6 +41,7 @@ CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
 INSERT_BATCH_SIZE = 4000
 
+
 def retry(
     f,
     E=Exception,
