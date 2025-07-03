@@ -13,7 +13,7 @@ setup(
         'jira==2.0.0',
         'PyYAML==6.0',
         'xmltodict==0.12.0',
-        'snowflake-connector-python==3.10.0',
+        'snowflake-connector-python==3.15.0',
         'snowflake-sqlalchemy==1.5.3',
         'pybrake==0.4.0',
         'pytz==2018.9',
