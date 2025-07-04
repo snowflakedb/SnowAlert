@@ -39,7 +39,8 @@ from runners.config import DATA_SCHEMA
 CACHE = local()
 CONNECTION = f'connection-{getpid()}'
 JSONY = (dict, list, tuple, Exception, datetime)
-INSERT_BATCH_SIZE = 8000  # reduced from SQL max to prevent compiler OOMs
+INSERT_BATCH_SIZE = 4000
+
 
 def retry(
     f,
