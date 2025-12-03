@@ -1,4 +1,4 @@
-FROM python:3.9-slim-bookworm
+FROM python:3.9-slim-trixie
 
 WORKDIR /var/task
 
@@ -14,6 +14,7 @@ RUN virtualenv ./snowalert/venv
 ENV PATH="/var/task/snowalert/venv/bin:${PATH}"
 
 COPY ./src ./snowalert/src
+RUN rm -rf ./snowalert/src/webui
 COPY ./run ./run
 COPY ./install ./install
 RUN PYTHONPATH='' pip install ./snowalert/src/
