@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'aiohttp[speedups]==3.9.5',
+        'aiohttp[speedups]==3.12.14',
         'aioboto3==13.0.1',
         'demjson3==3.0.5',
         'fire==0.4.0',
@@ -35,7 +35,7 @@ setup(
         'sentry-sdk==1.5.4',
         'pdpyras==4.4.0',
         'duo_client==4.2.3',
-        'cryptography==36.0.1',
+        'cryptography==43.0.1',
         'requests==2.27.1',
         'pymsteams==0.1.14',
     ],
