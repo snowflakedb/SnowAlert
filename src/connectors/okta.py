@@ -4,6 +4,7 @@ Collect Okta activity logs, users, and groups using an API Token
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
+from runners.utils import format_exception_only
 from .utils import yaml_dump
 
 import datetime
@@ -84,7 +85,14 @@ def connect(connection_name, options):
 
 def ingest_users(url, headers, landing_table, now):
     while 1:
-        response = requests.get(url=url, headers=headers)
+        # Guard each page so a transient network error saves progress
+        # from prior pages rather than crashing the entire ingest.
+        try:
+            response = requests.get(url=url, headers=headers)
+        except Exception as e:
+            log.error(f'okta: users page request failed, stopping pagination: {format_exception_only(e)}')
+            return
+
         if response.status_code != 200:
             log.error('OKTA REQUEST FAILED: ', response.text)
             return
@@ -146,13 +154,15 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
+            # Guard each group's user fetch so one group failure doesn't
+            # abort the entire groups collection.
             try:
                 row['users'] = requests.get(
                     url=row['_links']['users']['href'], headers=headers
                 ).json()
-            except TypeError:
-                log.info(row)
-                raise
+            except Exception as e:
+                log.error(f'okta: failed to fetch users for group {row.get("id", "?")}, skipping: {format_exception_only(e)}')
+                row['users'] = []
 
         db.insert(
             landing_table, [{'raw': row, 'event_time': now} for row in result],
@@ -185,7 +195,14 @@ def ingest(table_name, options):
         i = 0
         url = ingest_urls[ingest_type]
         while 1:
-            response = requests.get(url=url, headers=headers, params=params)
+            # Guard each page so a transient network error saves progress
+            # from prior pages rather than crashing the entire ingest.
+            try:
+                response = requests.get(url=url, headers=headers, params=params)
+            except Exception as e:
+                log.error(f'okta: logs page request failed, stopping pagination: {format_exception_only(e)}')
+                return
+
             if response.status_code != 200:
                 log.error('OKTA REQUEST FAILED: ', response.text)
                 return

@@ -18,7 +18,7 @@ from azure.common.credentials import ServicePrincipalCredentials
 from msrestazure.azure_cloud import AZURE_US_GOV_CLOUD, AZURE_PUBLIC_CLOUD
 
 from connectors.utils import updated, yaml_dump
-from runners.utils import json_dumps, format_exception_only
+from runners.utils import json_dumps, format_exception_only, format_exception
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
@@ -1994,29 +1994,46 @@ def ingest(table_name, options, dryrun=False):
             else:
                 last_request[rate_key] = now
 
-            responses.append(
-                api_response(
-                    call['cred'],
-                    db.retry(
-                        f=lambda: GET(**call),
-                        E=transient_api_errors,
-                        n=10,
-                        sleep_seconds_btw_retry=30,
-                        loggers=[
-                            (
-                                transient_api_errors,
-                                lambda e: print(
-                                    'azure_collect.ingest:', format_exception_only(e)
-                                ),
-                            )
-                        ],
-                    ),
+            # Guard each API call so one credential or endpoint failure
+            # doesn't abort the entire collection batch.
+            try:
+                responses.append(
+                    api_response(
+                        call['cred'],
+                        db.retry(
+                            f=lambda: GET(**call),
+                            E=transient_api_errors,
+                            n=10,
+                            sleep_seconds_btw_retry=30,
+                            loggers=[
+                                (
+                                    transient_api_errors,
+                                    lambda e: print(
+                                        'azure_collect.ingest:', format_exception_only(e)
+                                    ),
+                                )
+                            ],
+                        ),
+                    )
                 )
-            )
+            except Exception as e:
+                log.error(
+                    f'azure_collect: {next_call_kind} call failed for '
+                    f'tenant {call["cred"].get("tenant", "?")}, '
+                    f'skipping: {format_exception_only(e)}'
+                )
+                continue
 
-        insert_results(
-            next_call_kind, chain.from_iterable(r.results for r in responses)
-        )
+        try:
+            insert_results(
+                next_call_kind, chain.from_iterable(r.results for r in responses)
+            )
+        except Exception as e:
+            log.error(
+                f'azure_collect: insert_results failed for {next_call_kind}, '
+                f'skipping children: {format_exception_only(e)}'
+            )
+            continue
 
         for child_spec in spec.get('children', []):
             for response in responses:
