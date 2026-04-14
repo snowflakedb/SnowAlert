@@ -4,9 +4,9 @@ Load inventory from accounts in your Org via API using auditor Roles
 
 import asyncio
 from botocore.exceptions import (
-    # BotoCoreError,
     ClientError,
     DataNotFoundError,
+    EndpointConnectionError,
 )
 from aiobotocore.config import AioConfig
 from aiohttp.client_exceptions import ServerTimeoutError
@@ -1740,7 +1740,7 @@ async def load_task_response(client, task):
                 yield x
 
     # todo: double check whether these should be retried instead of recording errors
-    except (ClientError, DataNotFoundError, ServerTimeoutError) as e:
+    except (ClientError, DataNotFoundError, EndpointConnectionError, ServerTimeoutError) as e:
         for x in process_aws_response(task, e):
             yield x
 

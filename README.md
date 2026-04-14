@@ -4,15 +4,16 @@
   <img height="300" src="https://raw.githubusercontent.com/snowflakedb/SnowAlert/master/docs/src/static/images/snowalert-logo.png">
 </p>
 
-SnowAlert is a security analytics framework that uses the Snowflake Cloud Data Platform to detect security incidents and policy violations.
+## Deprecation Notice
 
-## Data-Driven Security
+SnowAlert was a security analytics framework that uses the Snowflake Cloud Data Platform to detect security incidents and policy violations. It is now deprecated.
 
-At Snowflake, we switched from our old SIEM to putting all of our security logs and asset details into Snowflake.
+## Native Snowflake features and re-implementation
 
-Having our security data in Snowflake means that we can define advanced correlated alerts that are more reliable and less noisy.
+Snowflake now supports native [Alerts and Notifications](https://docs.snowflake.com/guides-overview-alerts) which can be used for some generic alerting use-cases.
 
-We hope that Snowflake customers can do better data-driven security using Snowflake and that this project will make getting started easy.
+For other RPC's, you can also use [External Functions](https://docs.snowflake.com/en/sql-reference/external-functions-introduction) either manually created
+or through a generic backend like [GEFF](https://github.com/Snowflake-Labs/geff/).
 
 Ready? Let's [get started!](https://docs.snowalert.com/getting-started "SnowAlert Documentation")
 
