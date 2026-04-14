@@ -3,7 +3,6 @@ Collect Crowdstrike Device information using a Client ID and Secret
 """
 
 from runners.helpers import db, log
-from runners.utils import format_exception_only
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from datetime import datetime
@@ -189,82 +188,76 @@ def ingest(table_name, options):
     params_get_id_devices: dict = {"limit": PAGE_SIZE, "offset": offset}
 
     while 1:
-        # One page failure shouldn't discard prior pages' data.
-        try:
-            dict_id_devices: dict = get_data(
-                token, CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices
-            )
-            resources: list = dict_id_devices["resources"]
-            params_get_id_devices["offset"] = get_offset_from_devices_results(
-                dict_id_devices
-            )
+        dict_id_devices: dict = get_data(
+            token, CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices
+        )
+        resources: list = dict_id_devices["resources"]
+        params_get_id_devices["offset"] = get_offset_from_devices_results(
+            dict_id_devices
+        )
 
-            if len(resources) == 0:
-                break
-
-            device_details_url_and_params: str = create_url_params_get_devices(
-                CROWDSTRIKE_DEVICE_DETAILS_URL, resources
-            )
-
-            dict_devices: dict = get_data(token, device_details_url_and_params)
-            devices = dict_devices["resources"]
-
-            db.insert(
-                landing_table,
-                values=[
-                    (
-                        timestamp,
-                        device,
-                        device.get('device_id'),
-                        device.get('first_seen', None),
-                        device.get('system_manufacturer', None),
-                        device.get('config_id_base', None),
-                        device.get('last_seen', None),
-                        device.get('policies', None),
-                        device.get('slow_changing_modified_timestamp', None),
-                        device.get('minor_version', None),
-                        device.get('system_product_name', None),
-                        device.get('hostname', None),
-                        device.get('mac_address', None),
-                        device.get('product_type_desc', None),
-                        device.get('platform_name', None),
-                        device.get('external_ip', None),
-                        device.get('agent_load_flags', None),
-                        device.get('group_hash', None),
-                        device.get('provision_status', None),
-                        device.get('os_version', None),
-                        device.get('groups', None),
-                        device.get('bios_version', None),
-                        device.get('modified_timestamp', None),
-                        device.get('local_ip', None),
-                        device.get('agent_version', None),
-                        device.get('major_version', None),
-                        device.get('meta', None),
-                        device.get('agent_local_time', None),
-                        device.get('bios_manufacturer', None),
-                        device.get('platform_id', None),
-                        device.get('device_policies', None),
-                        device.get('config_id_build', None),
-                        device.get('config_id_platform', None),
-                        device.get('cid', None),
-                        device.get('status', None),
-                        device.get('service_pack_minor', None),
-                        device.get('product_type', None),
-                        device.get('service_pack_major', None),
-                        device.get('build_number', None),
-                        device.get('pointer_size', None),
-                        device.get('site_name', None),
-                        device.get('machine_domain', None),
-                        device.get('ou', None),
-                    )
-                    for device in devices
-                ],
-                select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
-                columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS),
-            )
-            log.info(f'Inserted {len(devices)} rows.')
-            yield len(devices)
-
-        except Exception as e:
-            log.error(f'crowdstrike_devices: page fetch failed, stopping pagination: {format_exception_only(e)}')
+        if len(resources) == 0:
             break
+
+        device_details_url_and_params: str = create_url_params_get_devices(
+            CROWDSTRIKE_DEVICE_DETAILS_URL, resources
+        )
+
+        dict_devices: dict = get_data(token, device_details_url_and_params)
+        devices = dict_devices["resources"]
+
+        db.insert(
+            landing_table,
+            values=[
+                (
+                    timestamp,
+                    device,
+                    device.get('device_id'),
+                    device.get('first_seen', None),
+                    device.get('system_manufacturer', None),
+                    device.get('config_id_base', None),
+                    device.get('last_seen', None),
+                    device.get('policies', None),
+                    device.get('slow_changing_modified_timestamp', None),
+                    device.get('minor_version', None),
+                    device.get('system_product_name', None),
+                    device.get('hostname', None),
+                    device.get('mac_address', None),
+                    device.get('product_type_desc', None),
+                    device.get('platform_name', None),
+                    device.get('external_ip', None),
+                    device.get('agent_load_flags', None),
+                    device.get('group_hash', None),
+                    device.get('provision_status', None),
+                    device.get('os_version', None),
+                    device.get('groups', None),
+                    device.get('bios_version', None),
+                    device.get('modified_timestamp', None),
+                    device.get('local_ip', None),
+                    device.get('agent_version', None),
+                    device.get('major_version', None),
+                    device.get('meta', None),
+                    device.get('agent_local_time', None),
+                    device.get('bios_manufacturer', None),
+                    device.get('platform_id', None),
+                    device.get('device_policies', None),
+                    device.get('config_id_build', None),
+                    device.get('config_id_platform', None),
+                    device.get('cid', None),
+                    device.get('status', None),
+                    device.get('service_pack_minor', None),
+                    device.get('product_type', None),
+                    device.get('service_pack_major', None),
+                    device.get('build_number', None),
+                    device.get('pointer_size', None),
+                    device.get('site_name', None),
+                    device.get('machine_domain', None),
+                    device.get('ou', None),
+                )
+                for device in devices
+            ],
+            select=db.derive_insert_select(LANDING_TABLE_COLUMNS),
+            columns=db.derive_insert_columns(LANDING_TABLE_COLUMNS),
+        )
+        log.info(f'Inserted {len(devices)} rows.')
+        yield len(devices)

@@ -4,7 +4,6 @@ Collect Okta activity logs, users, and groups using an API Token
 
 from runners.helpers import db, log
 from runners.helpers.dbconfig import ROLE as SA_ROLE
-from runners.utils import format_exception_only
 from .utils import yaml_dump
 
 import datetime
@@ -85,12 +84,7 @@ def connect(connection_name, options):
 
 def ingest_users(url, headers, landing_table, now):
     while 1:
-        try:
-            response = requests.get(url=url, headers=headers)
-        except requests.exceptions.RequestException as e:
-            log.error(f'okta: users page request failed, stopping pagination: {format_exception_only(e)}')
-            return
-
+        response = requests.get(url=url, headers=headers)
         if response.status_code != 200:
             log.error('OKTA REQUEST FAILED: ', response.text)
             return
@@ -152,14 +146,13 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
-            # One group failure shouldn't abort the entire groups collection.
             try:
                 row['users'] = requests.get(
                     url=row['_links']['users']['href'], headers=headers
                 ).json()
-            except Exception as e:
-                log.error(f'okta: failed to fetch users for group {row.get("id", "?")}, skipping: {format_exception_only(e)}')
-                row['users'] = []
+            except TypeError:
+                log.info(row)
+                raise
 
         db.insert(
             landing_table, [{'raw': row, 'event_time': now} for row in result],
@@ -192,12 +185,7 @@ def ingest(table_name, options):
         i = 0
         url = ingest_urls[ingest_type]
         while 1:
-            try:
-                response = requests.get(url=url, headers=headers, params=params)
-            except requests.exceptions.RequestException as e:
-                log.error(f'okta: logs page request failed, stopping pagination: {format_exception_only(e)}')
-                return
-
+            response = requests.get(url=url, headers=headers, params=params)
             if response.status_code != 200:
                 log.error('OKTA REQUEST FAILED: ', response.text)
                 return

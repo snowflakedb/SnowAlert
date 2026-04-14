@@ -7,7 +7,6 @@ import requests
 from tenable.io import TenableIO
 
 from runners.helpers import db, log
-from runners.utils import format_exception_only
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
 from .utils import yaml_dump
@@ -153,12 +152,7 @@ def get_agent_data():
     log.debug(f'got {len(scanners)} scanners')
     for s in scanners:
         sid = s['id']
-        # One scanner failure shouldn't abort remaining scanners.
-        try:
-            agents = list(GET(f'scanners/{sid}/agents', 'agents', 5000))
-        except Exception as e:
-            log.error(f'tenable_io: failed to get agents for scanner {sid}, skipping: {format_exception_only(e)}')
-            continue
+        agents = list(GET(f'scanners/{sid}/agents', 'agents', 5000))
         log.debug(f'scanner {sid} has {len(agents)} agents')
         yield from agents
 

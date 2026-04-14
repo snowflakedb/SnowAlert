@@ -4,15 +4,15 @@ Load inventory from accounts in your Org via API using auditor Roles
 
 import asyncio
 from botocore.exceptions import (
-    BotoCoreError,
     ClientError,
     DataNotFoundError,
+    EndpointConnectionError,
 )
 from aiobotocore.config import AioConfig
-from aiohttp.client_exceptions import ClientConnectionError, ServerTimeoutError
+from aiohttp.client_exceptions import ServerTimeoutError
 from collections import defaultdict, namedtuple
-from datetime import datetime, timedelta
 import csv
+from datetime import datetime, timedelta
 from dateutil.parser import parse as parse_date
 import json
 import fire
@@ -1739,8 +1739,8 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    except (ClientError, DataNotFoundError, BotoCoreError, ServerTimeoutError, ClientConnectionError) as e:
-        # BotoCoreError catches connection-level failures (e.g. EndpointConnectionError).
+    # todo: double check whether these should be retried instead of recording errors
+    except (ClientError, DataNotFoundError, EndpointConnectionError, ServerTimeoutError) as e:
         for x in process_aws_response(task, e):
             yield x
 
@@ -1775,7 +1775,7 @@ async def get_session(account_arn):
                 ),
             )
 
-        except (ClientError, BotoCoreError, ClientConnectionError, ServerTimeoutError) as e:
+        except ClientError as e:
             expiration, value = _SESSION_CACHE[account_arn] = (NEVER, e)
 
         # print(f'session cache SET for {account_arn}')
@@ -1802,51 +1802,29 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
             for rn in region_names:
-                # One region outage shouldn't abandon the remaining regions.
-                try:
-                    await metadata_rate_limit.wait()
-                    async with session.client(
-                        client_name, region_name=rn, config=AIO_CONFIG
-                    ) as client:
-                        async for response in load_task_response(client, task):
-                            if type(response) is DBEntry:
-                                if rn is not None:
-                                    response.entity['region'] = rn
-                                yield (task.method, response.entity)
-                            elif type(response) is CollectTask:
-                                add_task(response)
-                            else:
-                                log.info('log response', response)
-                except (BotoCoreError, ClientConnectionError, ServerTimeoutError) as e:
-                    log.error(f'region {rn} unreachable for {task.method}, skipping: {format_exception_only(e)}')
-                    yield (
-                        task.method,
-                        updated(
-                            account_info,
-                            region=rn,
-                            recorded_at=datetime.utcnow(),
-                            error={
-                                'message': format_exception_only(e),
-                                'exceptionName': e.__class__.__name__,
-                                'exceptionArgs': e.args,
-                                'exceptionTraceback': format_exception(e),
-                            },
-                        ),
-                    )
+                await metadata_rate_limit.wait()
+                async with session.client(
+                    client_name, region_name=rn, config=AIO_CONFIG
+                ) as client:
+                    async for response in load_task_response(client, task):
+                        if type(response) is DBEntry:
+                            if rn is not None:
+                                response.entity['region'] = rn
+                            yield (task.method, response.entity)
+                        elif type(response) is CollectTask:
+                            add_task(response)
+                        else:
+                            log.info('log response', response)
 
     else:
-        # Record account-level error (missing role or unreachable region).
-        recorded_at = (
-            parse_date(e.response['ResponseMetadata']['HTTPHeaders']['date'])
-            if isinstance(e, ClientError)
-            else datetime.utcnow()
-        )
-        log.error(f'account {task.account_id} error for {task.method}: {format_exception_only(e)}')
+        # record missing auditor role as empty account summary
         yield (
             task.method,
             updated(
                 account_info,
-                recorded_at=recorded_at,
+                recorded_at=parse_date(
+                    e.response['ResponseMetadata']['HTTPHeaders']['date']
+                ),
                 error={
                     'message': format_exception_only(e),
                     'exceptionName': e.__class__.__name__,
@@ -1984,12 +1962,7 @@ async def aioingest(table_name, options, dryrun=False):
 
             all_results: Any = defaultdict(list)
             for coro in asyncio.as_completed(coroutines):
-                # One task failure shouldn't abort remaining collection tasks.
-                try:
-                    result_lists = await coro
-                except Exception as e:
-                    log.error(f'collection task failed, continuing: {format_exception_only(e)}')
-                    continue
+                result_lists = await coro
                 for k, vs in result_lists.items():
                     all_results[k] += vs
             for name, vs in all_results.items():
