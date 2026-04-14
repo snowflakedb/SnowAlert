@@ -2072,8 +2072,7 @@ def ingest(table_name, options, dryrun=False):
             else:
                 last_request[rate_key] = now
 
-            # Guard each API call so one credential or endpoint failure
-            # doesn't abort the entire collection batch.
+            # One API call failure shouldn't abort the entire batch.
             try:
                 responses.append(
                     api_response(

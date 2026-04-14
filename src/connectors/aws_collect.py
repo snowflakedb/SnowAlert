@@ -1740,10 +1740,7 @@ async def load_task_response(client, task):
                 yield x
 
     except (ClientError, DataNotFoundError, BotoCoreError, ServerTimeoutError, ClientConnectionError) as e:
-        # BotoCoreError covers connection-level failures (EndpointConnectionError,
-        # ConnectTimeoutError, etc.) that occur when an AWS region is unreachable.
-        # ClientConnectionError covers the equivalent at the aiohttp layer.
-        log.info(format_exception_only(e))
+        # BotoCoreError catches connection-level failures (e.g. EndpointConnectionError).
         for x in process_aws_response(task, e):
             yield x
 
@@ -1779,9 +1776,6 @@ async def get_session(account_arn):
             )
 
         except (ClientError, BotoCoreError, ClientConnectionError, ServerTimeoutError) as e:
-            # Covers both API-level errors (ClientError, e.g. missing role) and
-            # connection-level failures (BotoCoreError/EndpointConnectionError,
-            # e.g. an entire AWS region is unreachable).
             expiration, value = _SESSION_CACHE[account_arn] = (NEVER, e)
 
         # print(f'session cache SET for {account_arn}')
@@ -1808,8 +1802,7 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = API_METHOD_SPECS[task.method].get('regions', [None])
 
             for rn in region_names:
-                # Isolate each region so a single region outage (e.g. me-south-1
-                # down) doesn't abandon collection for the remaining regions.
+                # One region outage shouldn't abandon the remaining regions.
                 try:
                     await metadata_rate_limit.wait()
                     async with session.client(
@@ -1842,11 +1835,10 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                     )
 
     else:
-        # Record account-level errors: missing auditor role (ClientError) or
-        # unreachable region (BotoCoreError/EndpointConnectionError).
+        # Record account-level error (missing role or unreachable region).
         recorded_at = (
             parse_date(e.response['ResponseMetadata']['HTTPHeaders']['date'])
-            if hasattr(e, 'response')
+            if isinstance(e, ClientError)
             else datetime.utcnow()
         )
         log.error(f'account {task.account_id} error for {task.method}: {format_exception_only(e)}')
@@ -1992,9 +1984,7 @@ async def aioingest(table_name, options, dryrun=False):
 
             all_results: Any = defaultdict(list)
             for coro in asyncio.as_completed(coroutines):
-                # Last line of defense: if a task raises something unexpected
-                # that slips past the inner handlers, log it and continue
-                # rather than aborting all remaining collection tasks.
+                # One task failure shouldn't abort remaining collection tasks.
                 try:
                     result_lists = await coro
                 except Exception as e:

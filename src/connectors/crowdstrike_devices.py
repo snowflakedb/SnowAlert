@@ -189,8 +189,7 @@ def ingest(table_name, options):
     params_get_id_devices: dict = {"limit": PAGE_SIZE, "offset": offset}
 
     while 1:
-        # Guard each page so a transient API or network error saves
-        # progress from prior pages rather than crashing the entire ingest.
+        # One page failure shouldn't discard prior pages' data.
         try:
             dict_id_devices: dict = get_data(
                 token, CROWDSTRIKE_DEVICES_BY_ID_URL, params_get_id_devices

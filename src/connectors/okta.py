@@ -85,11 +85,9 @@ def connect(connection_name, options):
 
 def ingest_users(url, headers, landing_table, now):
     while 1:
-        # Guard each page so a transient network error saves progress
-        # from prior pages rather than crashing the entire ingest.
         try:
             response = requests.get(url=url, headers=headers)
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             log.error(f'okta: users page request failed, stopping pagination: {format_exception_only(e)}')
             return
 
@@ -154,8 +152,7 @@ def ingest(table_name, options):
         result = response.json()
 
         for row in result:
-            # Guard each group's user fetch so one group failure doesn't
-            # abort the entire groups collection.
+            # One group failure shouldn't abort the entire groups collection.
             try:
                 row['users'] = requests.get(
                     url=row['_links']['users']['href'], headers=headers
@@ -195,11 +192,9 @@ def ingest(table_name, options):
         i = 0
         url = ingest_urls[ingest_type]
         while 1:
-            # Guard each page so a transient network error saves progress
-            # from prior pages rather than crashing the entire ingest.
             try:
                 response = requests.get(url=url, headers=headers, params=params)
-            except Exception as e:
+            except requests.exceptions.RequestException as e:
                 log.error(f'okta: logs page request failed, stopping pagination: {format_exception_only(e)}')
                 return
 

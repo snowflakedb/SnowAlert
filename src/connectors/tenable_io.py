@@ -153,8 +153,7 @@ def get_agent_data():
     log.debug(f'got {len(scanners)} scanners')
     for s in scanners:
         sid = s['id']
-        # Guard each scanner so one unreachable or erroring scanner
-        # doesn't abort agent collection for all remaining scanners.
+        # One scanner failure shouldn't abort remaining scanners.
         try:
             agents = list(GET(f'scanners/{sid}/agents', 'agents', 5000))
         except Exception as e:
