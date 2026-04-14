@@ -46,7 +46,10 @@ SELECT 'Activity by ACCOUNTADMIN Role' AS title
      , CURRENT_TIMESTAMP() AS alert_time
      , user_name AS actor
      , query_text AS action
-     , actor || ' performed ' || query_text AS description
+     , (
+          actor || ' performed ' || query_text ||
+          ' at ' || event_time
+       ) AS description
      , 'SnowAlert' AS detector
      , OBJECT_CONSTRUCT(*) AS event_data
      , 'low' AS severity

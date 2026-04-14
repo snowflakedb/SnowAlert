@@ -15,8 +15,9 @@ Snowflake now supports native [Alerts and Notifications](https://docs.snowflake.
 For other RPC's, you can also use [External Functions](https://docs.snowflake.com/en/sql-reference/external-functions-introduction) either manually created
 or through a generic backend like [GEFF](https://github.com/Snowflake-Labs/geff/).
 
-A partial re-implementation of SnowAlert in JavaScript using Snowflake Tasks and External Functions via GEFF and deployed using Terraform is in [Snowflake-Labs/terraform-snowflake-snowalert](https://github.com/Snowflake-Labs/terraform-snowflake-snowalert/).
+Ready? Let's [get started!](https://docs.snowalert.com/getting-started "SnowAlert Documentation")
 
 ## License
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
+

@@ -1,4 +1,4 @@
-FROM python:3.7-slim-stretch
+FROM python:3.8-slim
 
 WORKDIR /var/task
 
@@ -15,7 +15,7 @@ RUN apt-get update \
  && apt-get install -y gcc linux-libc-dev r-base \
  && rm -rf /var/lib/apt/lists/* \
  && PYTHONPATH='' pip install ./snowalert/src/ ./snowalert/src/webui/backend/ \
- && apt-get purge -y --auto-remove gcc linux-libc-dev
+ && apt-get purge -y --auto-remove gcc linux-libc-dev r-base
 
 # frontend
 RUN apt-get update \
@@ -31,7 +31,7 @@ RUN apt-get update \
  && apt-get purge -y --auto-remove curl gnupg2 apt-transport-https nodejs yarn
 
 # link frontend build into backend venv
-RUN ln -s $PWD/snowalert/src/webui/frontend ./snowalert/venv/lib/python3.7/
+RUN ln -s $PWD/snowalert/src/webui/frontend ./snowalert/venv/lib/python3.8/
 
 WORKDIR /var/task/snowalert/src/webui/backend/
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "--access-logfile=-", "webui.app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--access-logfile=-", "--timeout=60", "webui.app:app"]

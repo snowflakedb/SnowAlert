@@ -11,6 +11,7 @@ import importlib
 import json
 import re
 from types import GeneratorType
+from typing import Any
 import yaml
 
 from runners.helpers import db, log, vault
@@ -50,14 +51,15 @@ def time_to_run(schedule, now) -> bool:
     return False
 
 
-def connection_run(connection_table, run_now=False):
+def connection_run(connection_table, run_now=False, debug=False, option_overrides={}):
     table_name = connection_table['name']
     table_comment = connection_table['comment']
 
     log.info(f"-- START DC {table_name} --")
     try:
-        metadata = {'START_TIME': datetime.utcnow()}
+        metadata: Any = {'START_TIME': datetime.utcnow()}
         options = yaml.safe_load(table_comment) or {}
+        options.update(option_overrides)
 
         if 'schedule' in options:
             schedule = options['schedule']
@@ -82,6 +84,8 @@ def connection_run(connection_table, run_now=False):
 
         for module_option in connector.CONNECTION_OPTIONS:
             name = module_option['name']
+            options.setdefault(name, module_option.get('default'))
+
             if module_option.get('secret') and name in options:
                 options[name] = vault.decrypt_if_encrypted(options[name])
             if module_option.get('type') == 'json':
@@ -104,12 +108,14 @@ def connection_run(connection_table, run_now=False):
 
     except Exception as e:
         log.error(f"Error loading logs into {table_name}: ", e)
+        if debug:
+            raise
         db.record_metadata(metadata, table=DC_METADATA_TABLE, e=e)
 
-    log.info(f"-- END DC --")
+    log.info(f"-- END DC {table_name} --")
 
 
-def main(connection_table=None, run_now=False):
+def main(connection_table=None, run_now=False, debug=False, **option_overrides):
     if connection_table is not None:
         # for a single table, we ignore schedule and run now
         run_now = True
@@ -118,7 +124,7 @@ def main(connection_table=None, run_now=False):
 
     tables = list(db.fetch(f"SHOW TABLES LIKE '{connection_table}' IN data"))
     if len(tables) == 1:
-        connection_run(tables[0], run_now=run_now)
+        connection_run(tables[0], run_now=run_now, debug=debug, option_overrides=option_overrides)
     else:
         Pool(DC_POOLSIZE).map(connection_run, tables)
 

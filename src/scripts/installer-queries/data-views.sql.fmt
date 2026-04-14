@@ -27,7 +27,7 @@ FROM (
 CREATE OR REPLACE VIEW data.alerts COPY GRANTS
   COMMENT='Reflects on existing Alerts, e.g. for writing alert suppressions'
 AS
-SELECT alert:ALERT_ID::VARCHAR AS id
+SELECT alert_id::VARCHAR AS id
   , correlation_id
   , alert_time
   , event_time
@@ -44,11 +44,14 @@ SELECT alert:ALERT_ID::VARCHAR AS id
   , alert:ACTION::VARCHAR       AS action
   , alert:TITLE::VARCHAR        AS title
   , alert:DESCRIPTION::VARCHAR  AS description
+  , alert:CATS::VARIANT         AS cats
+  , alert:ENTITIES::VARIANT     AS entities
+  , alert:TAGS::VARIANT         AS tags
   , alert:DETECTOR::VARCHAR     AS detector
   , alert:EVENT_DATA::VARIANT   AS event_data
   , alert:SEVERITY::VARCHAR     AS severity
   , alert:OWNER::VARCHAR        AS owner
-  , alert:HANDLERS::VARCHAR     AS handlers
+  , alert:HANDLERS::VARIANT     AS handlers
 FROM results.alerts
 ;
 

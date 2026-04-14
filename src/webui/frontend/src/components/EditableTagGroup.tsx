@@ -2,7 +2,6 @@ import * as React from 'react';
 import {Tag, Input, Tooltip} from 'antd';
 import {PlusOutlined} from '@ant-design/icons';
 
-
 interface Props {
   disabled: boolean;
   tags: string;

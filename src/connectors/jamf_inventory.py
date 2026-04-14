@@ -8,6 +8,8 @@ from dateutil.parser import parse as parse_date
 from connectors.utils import updated
 from runners.helpers import db, log
 from runners.utils import groups_of
+from urllib.parse import urlencode
+import requests
 
 
 CONNECTION_OPTIONS = [
@@ -75,7 +77,28 @@ async def main(table_name):
 
 def ingest(table_name, options):
     global HEADERS
-    creds = options.get('credentials', '')
-    HEADERS = {'Authorization': f'Basic {creds}', 'Accept': 'application/json'}
+    token = getAccessToken(json.loads(options['credentials']))
+    HEADERS = {'Authorization': f'Bearer {token}', 'Accept': 'application/json'}
     return asyncio.get_event_loop().run_until_complete(main(f'data.{table_name}'))
 
+
+def getAccessToken(credentials: dict) -> str:
+    """
+    Args:
+      credentials (dict): for jamfcloud oauth API, e.g. the json type:
+        {
+          "grant_type": "client_credentials",
+          "client_id": str,
+          "client_secret": str
+        }
+    """
+    response = requests.post(
+        'https://snowflake.jamfcloud.com/api/oauth/token',
+        data=credentials,
+    )
+
+    access_token = response.json().get('access_token')
+
+    assert access_token is not None, "no access token in jamf oauth response"
+
+    return access_token

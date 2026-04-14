@@ -55,7 +55,7 @@ function parseComment(comment: string): {summary: string; decorations: {[name: s
 
   const summary = comment
     .split('\n')
-    .map(line => {
+    .map((line) => {
       const match = line.match(/^\s*@([a-z-]+) (.*)$/i);
       if (match) {
         decorations[match[1]] = match[2];
@@ -64,7 +64,7 @@ function parseComment(comment: string): {summary: string; decorations: {[name: s
         return line;
       }
     })
-    .filter(x => x !== undefined)
+    .filter((x) => x !== undefined)
     .join('\n');
 
   return {summary, decorations};
@@ -118,7 +118,7 @@ export abstract class SQLBackedRule {
     return this.raw.title
       .replace(/_/g, ' ')
       .toLowerCase()
-      .replace(/\b[a-z]/g, c => c.toUpperCase());
+      .replace(/\b[a-z]/g, (c) => c.toUpperCase());
   }
 
   get title(): string {
@@ -143,9 +143,7 @@ export class Policy extends SQLBackedRule {
   subpolicies!: Subpolicy[];
 
   static create() {
-    const viewName = `PD_${Math.random()
-      .toString(36)
-      .substring(2)}`;
+    const viewName = `PD_${Math.random().toString(36).substring(2)}`;
     return new Policy({
       target: 'POLICY',
       type: 'DEFINITION',
@@ -222,7 +220,7 @@ export class Policy extends SQLBackedRule {
       `  COMMENT='${this.comment.replace(/'/g, "\\'")}'\n` +
       `AS\n` +
       this.subpolicies
-        .map(sp => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n       , ${sp.condition} AS passing`)
+        .map((sp) => `  SELECT '${sp.title.replace(/'/g, "\\'")}' AS title\n       , ${sp.condition} AS passing`)
         .join('\nUNION ALL\n') +
       `\n;\n`
     );
@@ -341,10 +339,7 @@ export class Query extends SQLBackedRule {
 
     return (
       `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
-      `  COMMENT='${this.summary
-        .replace(/'/g, "\\'")
-        .replace(/^/gm, '  ')
-        .substr(2)}` +
+      `  COMMENT='${this.summary.replace(/'/g, "\\'").replace(/^/gm, '  ').substr(2)}` +
       `${queryLine}` +
       `${tagsLine}'\n` +
       `AS\n` +
@@ -414,10 +409,7 @@ export class Suppression extends SQLBackedRule {
 
     return (
       `CREATE OR REPLACE VIEW rules.${this.viewName} COPY GRANTS\n` +
-      `  COMMENT='${this.summary
-        .replace(/'/g, "\\'")
-        .replace(/^/gm, '  ')
-        .substr(2)}` +
+      `  COMMENT='${this.summary.replace(/'/g, "\\'").replace(/^/gm, '  ').substr(2)}` +
       `${tagsLine}'\n` +
       `AS\n` +
       `SELECT id\n` +

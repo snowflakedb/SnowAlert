@@ -1,7 +1,7 @@
 """Tenable.io
 Collect Tenable.io Data using a Service User’s API Key
 """
-
+from typing import Any
 from datetime import datetime, timezone, timedelta
 import requests
 from tenable.io import TenableIO
@@ -68,8 +68,8 @@ AGENT_LANDING_TABLE = [('raw', 'VARIANT'), ('export_at', 'TIMESTAMP_LTZ')]
 
 VULN_LANDING_TABLE = [('raw', 'VARIANT'), ('export_at', 'TIMESTAMP_LTZ')]
 
-TIO = None  # connection created in `ingest` below
-GET = None
+TIO: Any = None  # connection created in `ingest` below
+GET: Any = None
 
 
 def ingest_vulns(table_name):

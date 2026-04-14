@@ -2,16 +2,7 @@
 
 SnowAlert is an open source project with contributions from Snowflake's security team as well as collaborating security teams. Please reach out to us if you're interested in making SnowAlert better, we'd love to be in touch.
 
-# Technical
-
-## Building docker containers
-
-~~~
-docker build -t snowsec/snowalert -f Dockerfile.snowalert .
-docker build -t snowsec/snowalert-webui -f Dockerfile.webui .
-~~~
-
-## Developing
+# Developing
 
 ### Environment Variables
 
@@ -35,7 +26,7 @@ pip install -e .
 
 # to start runners
 export $(cat snowalert-$SNOWFLAKE_ACCOUNT.envs | xargs)
-python runners/run.py all
+python3 runners/run.py all
 ~~~
 
 If you'd like to run the test suite, please create a separate ENVS file that contains these additional variables used to test the installer:
@@ -50,6 +41,7 @@ If you save this to `snowalert-$SNOWFLAKE_ACCOUNT.testing.envs`, you can run the
 
 ~~~
 # test runners
+pip install -e .\[dev\]
 export $(cat snowalert-$SNOWFLAKE_ACCOUNT.testing.envs | xargs)
 pytest -vv
 ~~~

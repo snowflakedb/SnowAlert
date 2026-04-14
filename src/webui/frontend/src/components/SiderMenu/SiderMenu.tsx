@@ -1,5 +1,12 @@
 import {Layout, Menu} from 'antd';
-import {ApiOutlined, LineChartOutlined, AlertOutlined, EyeOutlined, FileDoneOutlined, ExceptionOutlined} from '@ant-design/icons';
+import {
+  ApiOutlined,
+  LineChartOutlined,
+  AlertOutlined,
+  EyeOutlined,
+  FileDoneOutlined,
+  ExceptionOutlined,
+} from '@ant-design/icons';
 
 import * as React from 'react';
 import {connect} from 'react-redux';
@@ -17,17 +24,17 @@ const getIcon = (icon: string | React.ReactNode) => {
   }
   switch (icon) {
     case 'api':
-      return <ApiOutlined />
+      return <ApiOutlined />;
     case 'line-chart':
-      return <LineChartOutlined />
+      return <LineChartOutlined />;
     case 'alert':
-      return <AlertOutlined />
+      return <AlertOutlined />;
     case 'eye':
-      return <EyeOutlined />
+      return <EyeOutlined />;
     case 'file-done':
-      return <FileDoneOutlined />
+      return <FileDoneOutlined />;
     default:
-      return <ExceptionOutlined />
+      return <ExceptionOutlined />;
   }
 };
 
@@ -74,8 +81,8 @@ class SiderMenu extends React.PureComponent<SiderMenuProps, State> {
               style={{padding: '16px 0', width: '100%'}}
             >
               {(menuData || [])
-                .filter(item => item.name && !item.hideInMenu)
-                .map(item => (
+                .filter((item) => item.name && !item.hideInMenu)
+                .map((item) => (
                   <Menu.Item
                     key={item.path}
                     onClick={() => {

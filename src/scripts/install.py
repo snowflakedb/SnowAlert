@@ -21,7 +21,7 @@ import fire
 from getpass import getpass
 from os import environ, path, urandom
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -100,6 +100,7 @@ CREATE_TABLES_QUERIES = [
     f"""
       CREATE TABLE IF NOT EXISTS results.alerts(
         alert VARIANT
+        , alert_id VARCHAR(36)
         , alert_time TIMESTAMP_LTZ(9)
         , event_time TIMESTAMP_LTZ(9)
         , ticket STRING
@@ -165,7 +166,7 @@ def parse_snowflake_url(url):
 def login(configuration=None):
     config_file = '~/.snowsql/config'
 
-    config = None
+    config: Any = None
     if type(configuration) is dict:
         config = configuration
     if type(configuration) is str:
@@ -311,7 +312,7 @@ def find_share_db_name(do_attempt):
     )
 
     # Database name is 4th attribute in row
-    share_db_names = [share_row[3] for share_row in sample_data_share_rows]
+    share_db_names = [share_row[4] for share_row in sample_data_share_rows]
     if len(share_db_names) == 0:
         VERBOSE and print(f"Unable to locate sample data share.")
         return
@@ -508,7 +509,6 @@ def main(
     set_env_vars=False,
     verbose=False,
 ):
-
     global VERBOSE
     VERBOSE = verbose
 

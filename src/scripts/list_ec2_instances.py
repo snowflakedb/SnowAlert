@@ -3,6 +3,7 @@ import boto3
 import json
 import datetime
 import threading
+from typing import Any
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -12,6 +13,7 @@ import logmatic  # type: ignore
 # helper functions
 #
 
+CONFIG: Any = None
 
 def os_touch(file):
     """

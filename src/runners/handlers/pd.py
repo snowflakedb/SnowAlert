@@ -19,7 +19,6 @@ testAlert = {
     'TITLE': 'test SnowAlert',
     'DETECTOR': 'SnowAlert',
     'SEVERITY': 'info',
-    'DETECTOR': 'SnowAlert',
     'QUERY_ID': 'CT_DELETE_LOG_GROUP',
     'DESCRIPTION': 'S: Subject Verb Predicate at 2020-03-08 03:29:50.987 Z',
 }

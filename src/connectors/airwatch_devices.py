@@ -6,6 +6,7 @@ from runners.helpers import log
 from runners.helpers import db
 from runners.helpers.dbconfig import ROLE as SA_ROLE
 
+from typing import Union, Any
 from datetime import datetime
 
 import requests
@@ -175,7 +176,7 @@ def ingest(table_name, options):
         url = f'https://{host_airwatch}/api/mdm/devices/search'
 
         while 1:
-            result: dict = get_data(url, device_auth, api_key, device_params)
+            result: Union[dict, Any] = get_data(url, device_auth, api_key, device_params)
 
             devices = result['Devices']
 
@@ -254,7 +255,7 @@ def ingest(table_name, options):
         url = f'https://{host_airwatch}/api/mdm/devices/customattribute/search'
 
         while 1:
-            result: dict = get_data(
+            result = get_data(
                 url, custom_attributes_auth, api_key, custom_device_params
             )
 

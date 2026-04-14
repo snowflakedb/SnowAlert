@@ -1,5 +1,12 @@
 import {Avatar, Badge, Button, Card, Divider, Input, List, Table, Row} from 'antd';
-import {CheckCircleTwoTone, DeleteOutlined, EditOutlined, ExclamationCircleTwoTone, AuditOutlined, LoadingOutlined} from '@ant-design/icons';
+import {
+  CheckCircleTwoTone,
+  DeleteOutlined,
+  EditOutlined,
+  ExclamationCircleTwoTone,
+  AuditOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 
 import React from 'react';
 import {connect} from 'react-redux';
@@ -102,18 +109,18 @@ class Policies extends React.PureComponent<PoliciesProps> {
                     title={
                       <span>
                         <Badge
-                          count={`${policy.subpolicies.filter(x => x.passing).length}`}
+                          count={`${policy.subpolicies.filter((x) => x.passing).length}`}
                           style={{color: '#52c41a', backgroundColor: '#eafbe1', marginRight: 10}}
                         />
                         <Badge
-                          count={`${policy.subpolicies.filter(x => x.passing === false).length}`}
+                          count={`${policy.subpolicies.filter((x) => x.passing === false).length}`}
                           style={{color: '#ff3434', backgroundColor: '#ffe5e5', marginRight: 10}}
                         />
                         {policy.isEditing ? (
                           <Input
                             value={policy.title}
                             style={{width: 500}}
-                            onChange={e => this.props.updatePolicyTitle(policy.viewName, e.currentTarget.value)}
+                            onChange={(e) => this.props.updatePolicyTitle(policy.viewName, e.currentTarget.value)}
                           />
                         ) : (
                           // eslint-disable-next-line
@@ -152,7 +159,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                         <Input
                           value={policy.summary}
                           style={{width: 500}}
-                          onChange={e => this.props.updatePolicyDescription(policy.viewName, e.currentTarget.value)}
+                          onChange={(e) => this.props.updatePolicyDescription(policy.viewName, e.currentTarget.value)}
                         />
                       ) : (
                         policy.summary
@@ -175,7 +182,9 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                   disabled={policy.isSaving}
                                   autoSize={{minRows: 1, maxRows: 1}}
                                   value={text}
-                                  onChange={e => this.props.editSubpolicy(policy.viewName, i, {title: e.target.value})}
+                                  onChange={(e) =>
+                                    this.props.editSubpolicy(policy.viewName, i, {title: e.target.value})
+                                  }
                                 />
                               ) : (
                                 text
@@ -191,7 +200,7 @@ class Policies extends React.PureComponent<PoliciesProps> {
                                   disabled={policy.isSaving}
                                   autoSize={{minRows: 1, maxRows: 1}}
                                   value={text}
-                                  onChange={e =>
+                                  onChange={(e) =>
                                     this.props.editSubpolicy(policy.viewName, i, {condition: e.target.value})
                                   }
                                 />

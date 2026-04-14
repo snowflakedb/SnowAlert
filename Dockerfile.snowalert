@@ -1,8 +1,9 @@
-FROM python:3.7-slim-stretch
+FROM python:3.9-slim-trixie
 
 WORKDIR /var/task
 
 RUN apt-get update
+
 RUN apt-get install -y r-base
 RUN R -e "install.packages(c('dplyr', 'purrr', 'tidyr','MASS', 'tidyverse', 'broom','testthat'), repos = 'https://cloud.r-project.org')"
 
@@ -13,9 +14,10 @@ RUN virtualenv ./snowalert/venv
 ENV PATH="/var/task/snowalert/venv/bin:${PATH}"
 
 COPY ./src ./snowalert/src
+RUN rm -rf ./snowalert/src/webui
 COPY ./run ./run
 COPY ./install ./install
 RUN PYTHONPATH='' pip install ./snowalert/src/
-RUN PYTHONPATH='' pip install alooma-pysdk requests
+RUN PYTHONPATH='' pip install requests
 
 CMD ./run all

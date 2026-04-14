@@ -28,7 +28,7 @@ const dynamicWrapper = (component: () => any) => {
 
 function getFlatMenuData(menus: stateTypes.MenuData) {
   let keys: any = {};
-  menus.forEach(item => {
+  menus.forEach((item) => {
     if (item.children) {
       keys[item.path] = {...item};
       keys = {...keys, ...getFlatMenuData(item.children)};
@@ -68,11 +68,11 @@ export const getRouterData = () => {
   // eg. {name,authority ...routerConfig}
   const routerData: any = {};
   // The route matches the menu.
-  Object.keys(routerConfig).forEach(path => {
+  Object.keys(routerConfig).forEach((path) => {
     // Regular match item name.
     // eg. router /user/:id === /user/chen
     const pathRegexp = pathToRegexp(path);
-    const menuKey = Object.keys(menuData).find(key => pathRegexp.test(`/${key}`));
+    const menuKey = Object.keys(menuData).find((key) => pathRegexp.test(`/${key}`));
     let menuItem: {name?: string; roles?: string[]} = {};
     // If menuKey is not empty.
     if (menuKey) {

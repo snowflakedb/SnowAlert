@@ -24,7 +24,7 @@ SELECT
     , raw AS event_data
     , 'high' AS severity
     , 'cd4765a6e4e44eb3816799a50bc3dbf4' AS query_id
-FROM data.cloudtrail_v
+FROM data.cloudtrail_v AS cloudtrail
 WHERE 1=1
   AND event_name IN ('StopLogging', 'UpdateTrail', 'DeleteTrail')
 ;
@@ -53,7 +53,7 @@ SELECT
     , cloudtrail.event_name AS action
     , 'medium' AS severity
     , 'dad7800f08ba4789a47d6d519be42886' AS query_id
-FROM data.cloudtrail_v
+FROM data.cloudtrail_v AS cloudtrail
 WHERE 1=1
   AND error_code = 'AccessDenied'
   AND event_name IN (
@@ -142,8 +142,9 @@ FROM data.cloudtrail_v AS cloudtrail
 WHERE 1=1
   AND affectedobject NOT LIKE '%public'
   AND user_identity['accountId'] NOT IN (
-    SELECT DISTINCT account_id FROM prod.aws_account_map
+    'AWS_ACCOUNT_ID_1',
+    'AWS_ACCOUNT_ID_2'
   )
 ;
 
-GRANT SELECT ON view rules.aws_root_account_activity_alert_query TO ROLE snowalert;
+GRANT SELECT ON view rules.aws_internal_bucket_access_alert_query TO ROLE snowalert;

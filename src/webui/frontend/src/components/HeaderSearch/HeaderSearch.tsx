@@ -76,7 +76,7 @@ export default class HeaderSearch extends React.PureComponent<Props, State> {
           {...restProps}
           className={inputClass}
           value={this.state.value}
-          onChange={e => this.onChange(String(e))}
+          onChange={(e) => this.onChange(String(e))}
         >
           <Input
             placeholder={placeholder}
