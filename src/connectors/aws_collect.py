@@ -722,6 +722,34 @@ SUPPLEMENTARY_TABLES = {
         ('created_at', 'TIMESTAMP_NTZ'),
         ('updated_at', 'TIMESTAMP_NTZ'),
     ],
+    # https://docs.aws.amazon.com/cli/latest/reference/inspector2/list-findings.html
+    'inspector2_list_findings': [
+        ('recorded_at', 'TIMESTAMP_LTZ'),
+        ('account_id', 'STRING'),
+        ('region', 'STRING'),
+        ('error', 'VARIANT'),
+        ('finding_arn', 'STRING'),
+        ('aws_account_id', 'STRING'),
+        ('finding_type', 'STRING'),
+        ('title', 'STRING'),
+        ('description', 'STRING'),
+        ('severity', 'STRING'),
+        ('status', 'STRING'),
+        ('first_observed_at', 'TIMESTAMP_LTZ'),
+        ('last_observed_at', 'TIMESTAMP_LTZ'),
+        ('updated_at', 'TIMESTAMP_LTZ'),
+        ('exploit_available', 'STRING'),
+        ('fix_available', 'STRING'),
+        ('inspector_score', 'DOUBLE'),
+        ('code_vulnerability_details', 'VARIANT'),
+        ('epss', 'VARIANT'),
+        ('exploitability_details', 'VARIANT'),
+        ('inspector_score_details', 'VARIANT'),
+        ('network_reachability_details', 'VARIANT'),
+        ('package_vulnerability_details', 'VARIANT'),
+        ('remediation', 'VARIANT'),
+        ('resources', 'VARIANT'),
+    ],
     # https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-snapshots.html#output
     'ec2_describe_snapshots': [
         ('recorded_at', 'TIMESTAMP_LTZ'),
@@ -1495,6 +1523,36 @@ API_METHOD_SPECS: Dict[str, dict] = {
             ],
         },
     },
+    'inspector2.list_findings': {
+        'regions': 'available',
+        'response': {
+            'findings': [
+                {
+                    'findingArn': 'finding_arn',
+                    'awsAccountId': 'aws_account_id',
+                    'type': 'finding_type',
+                    'title': 'title',
+                    'description': 'description',
+                    'severity': 'severity',
+                    'status': 'status',
+                    'firstObservedAt': 'first_observed_at',
+                    'lastObservedAt': 'last_observed_at',
+                    'updatedAt': 'updated_at',
+                    'exploitAvailable': 'exploit_available',
+                    'fixAvailable': 'fix_available',
+                    'inspectorScore': 'inspector_score',
+                    'codeVulnerabilityDetails': 'code_vulnerability_details',
+                    'epss': 'epss',
+                    'exploitabilityDetails': 'exploitability_details',
+                    'inspectorScoreDetails': 'inspector_score_details',
+                    'networkReachabilityDetails': 'network_reachability_details',
+                    'packageVulnerabilityDetails': 'package_vulnerability_details',
+                    'remediation': 'remediation',
+                    'resources': 'resources',
+                }
+            ]
+        },
+    },
     'ec2.describe_snapshots': {
         'response': {
             'Snapshot': [
@@ -1661,11 +1719,12 @@ def process_aws_response(task, page):
 
     base_entity.update({v: task.args[k] for k, v in params.items()})
 
-    metadata = getattr(page, 'response', {}).get('ResponseMetadata', {})
+    response = page if isinstance(page, dict) else getattr(page, 'response', {})
+    metadata = response.get('ResponseMetadata', {})
     base_entity['recorded_at'] = (
         parse_date(metadata['HTTPHeaders']['date'])
         if 'HTTPHeaders' in metadata
-        else datetime.now()
+        else datetime.now(pytz.utc)
     )
 
     if isinstance(page, Exception):
@@ -1799,7 +1858,17 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 response = await client.describe_regions()
                 region_names = [region['RegionName'] for region in response['Regions']]
             else:
-                region_names = API_METHOD_SPECS[task.method].get('regions', [None])
+                configured_regions = API_METHOD_SPECS[task.method].get('regions')
+                discover_regions = configured_regions == 'available' or (
+                    configured_regions and AWS_ZONE != 'aws'
+                )
+                region_names = (
+                    await session.get_available_regions(
+                        client_name, partition_name=AWS_ZONE
+                    )
+                    if discover_regions
+                    else configured_regions or [None]
+                )
 
             for rn in region_names:
                 await metadata_rate_limit.wait()
@@ -1879,7 +1948,7 @@ async def aioingest(table_name, options, dryrun=False):
             's3.list_buckets',
             'cloudtrail.describe_trails',
             'iam.list_roles',
-            'inspector.list_findings',
+            'inspector2.list_findings',
             'iam.list_groups',
             's3control.get_public_access_block',
             'iam.get_account_authorization_details',
