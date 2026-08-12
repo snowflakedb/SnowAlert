@@ -36,7 +36,7 @@ from runners.helpers import db, log
 
 AIO_CONFIG = AioConfig(
     read_timeout=600,
-    connect_timeout=600,
+    connect_timeout=60,
     # retries={
     #     'max_attempts': 100,
     #     'mode': 'standard',
