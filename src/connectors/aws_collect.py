@@ -1871,6 +1871,14 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                     enabled_regions = {
                         region['RegionName'] for region in response['Regions']
                     }
+                    skipped_regions = sorted(
+                        set(available_regions) - enabled_regions
+                    )
+                    if skipped_regions:
+                        log.info(
+                            f'skipping {client_name} regions not enabled for '
+                            f'{task.account_id}: {", ".join(skipped_regions)}'
+                        )
                     region_names = [
                         region
                         for region in available_regions
