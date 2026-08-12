@@ -1859,16 +1859,29 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                 region_names = [region['RegionName'] for region in response['Regions']]
             else:
                 configured_regions = API_METHOD_SPECS[task.method].get('regions')
-                discover_regions = configured_regions == 'available' or (
-                    configured_regions and AWS_ZONE != 'aws'
-                )
-                region_names = (
-                    await session.get_available_regions(
+                if configured_regions == 'available':
+                    available_regions = await session.get_available_regions(
                         client_name, partition_name=AWS_ZONE
                     )
-                    if discover_regions
-                    else configured_regions or [None]
-                )
+                    async with session.client(
+                        'ec2', region_name=client.meta.region_name, config=AIO_CONFIG
+                    ) as ec2:
+                        await metadata_rate_limit.wait()
+                        response = await ec2.describe_regions()
+                    enabled_regions = {
+                        region['RegionName'] for region in response['Regions']
+                    }
+                    region_names = [
+                        region
+                        for region in available_regions
+                        if region in enabled_regions
+                    ]
+                elif configured_regions and AWS_ZONE != 'aws':
+                    region_names = await session.get_available_regions(
+                        client_name, partition_name=AWS_ZONE
+                    )
+                else:
+                    region_names = configured_regions or [None]
 
             for rn in region_names:
                 await metadata_rate_limit.wait()
