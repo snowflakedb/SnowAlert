@@ -1807,6 +1807,14 @@ async def load_task_response(client, task):
         EndpointConnectionError,
         ServerTimeoutError,
     ) as e:
+        if isinstance(
+            e, (ConnectTimeoutError, EndpointConnectionError, ServerTimeoutError)
+        ):
+            log.error(
+                f'{task.method} failed for {task.account_id} in '
+                f'{client.meta.region_name}: ',
+                e,
+            )
         for x in process_aws_response(task, e):
             yield x
 
