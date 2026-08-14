@@ -1,6 +1,7 @@
 """HackerOne Data
 Collect HackerOne reports and payment transactions using an API key
 """
+
 import json
 import os
 from datetime import datetime
@@ -259,17 +260,23 @@ def paginated_insert_transactions(landing_table, options, dryrun):
     account_id = options['account_id']
 
     now = datetime.now()
-    current_year = now.year
 
     # https://api.hackerone.com/core-resources/#programs-get-payment-transactions
-    for year in range(2012, current_year + 1):
-        for month in range(1, 13):
-            recorded_at, transactions, next_exists = load_data(
-                f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
-                api_token,
-                api_identifier,
-                params={'page[size]': PAGE_SIZE, 'month': month, 'year': year},
-            )
+    # Only fetch current and previous month to avoid rate limiting (429) from
+    # iterating over all months since 2012 on every run.
+    if now.month == 1:
+        months_to_fetch = [(now.year, 1), (now.year - 1, 12)]
+    else:
+        months_to_fetch = [(now.year, now.month), (now.year, now.month - 1)]
+
+    for year, month in months_to_fetch:
+        recorded_at, transactions, _ = load_data(
+            f'https://api.hackerone.com/v1/programs/{account_id}/billing/transactions',
+            api_token,
+            api_identifier,
+            params={'page[size]': PAGE_SIZE, 'month': month, 'year': year},
+        )
+        if transactions:
             insert_transactions(landing_table, transactions, recorded_at, dryrun)
 
 
