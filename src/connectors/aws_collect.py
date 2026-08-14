@@ -1799,14 +1799,13 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    # todo: double check whether these should be retried instead of recording errors
-    except (
-        ClientError,
-        ConnectTimeoutError,
-        DataNotFoundError,
-        EndpointConnectionError,
-        ServerTimeoutError,
-    ) as e:
+    except (ConnectTimeoutError, EndpointConnectionError, ServerTimeoutError) as e:
+        log.error(
+            f'{task.method} failed for {task.account_id} in '
+            f'{client.meta.region_name}: ',
+            e,
+        )
+    except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e):
             yield x
 
@@ -1849,6 +1848,19 @@ async def get_session(account_arn):
     return (None, value) if expiration is NEVER else (value, None)
 
 
+def split_regions_by_opt_in_status(response):
+    enabled_regions = []
+    disabled_regions = []
+    for region in response['Regions']:
+        destination = (
+            disabled_regions
+            if region.get('OptInStatus') == 'not-opted-in'
+            else enabled_regions
+        )
+        destination.append(region['RegionName'])
+    return enabled_regions, disabled_regions
+
+
 async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]:
     account_arn = f'arn:{AWS_ZONE}:iam::{task.account_id}:role/{AUDIT_READER_ROLE}'
     account_info = {'account_id': task.account_id}
@@ -1862,8 +1874,15 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
         async with session.client(client_name, config=AIO_CONFIG) as client:
             if hasattr(client, 'describe_regions'):
                 await metadata_rate_limit.wait()
-                response = await client.describe_regions()
-                region_names = [region['RegionName'] for region in response['Regions']]
+                response = await client.describe_regions(AllRegions=True)
+                region_names, skipped_regions = split_regions_by_opt_in_status(
+                    response
+                )
+                if skipped_regions:
+                    log.info(
+                        f'skipping {client_name} regions not enabled for '
+                        f'{task.account_id}: {", ".join(sorted(skipped_regions))}'
+                    )
             else:
                 configured_regions = API_METHOD_SPECS[task.method].get('regions')
                 if configured_regions == 'available':
@@ -1874,10 +1893,11 @@ async def process_task(task, add_task) -> AsyncGenerator[Tuple[str, dict], None]
                         'ec2', region_name=client.meta.region_name, config=AIO_CONFIG
                     ) as ec2:
                         await metadata_rate_limit.wait()
-                        response = await ec2.describe_regions()
-                    enabled_regions = {
-                        region['RegionName'] for region in response['Regions']
-                    }
+                        response = await ec2.describe_regions(AllRegions=True)
+                    enabled_region_names, _ = split_regions_by_opt_in_status(
+                        response
+                    )
+                    enabled_regions = set(enabled_region_names)
                     skipped_regions = sorted(
                         set(available_regions) - enabled_regions
                     )

@@ -1,9 +1,22 @@
+import asyncio
 from collections import namedtuple
 from datetime import datetime
+from types import SimpleNamespace
 
-from botocore.exceptions import BotoCoreError
+from aiohttp.client_exceptions import ServerTimeoutError
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+)
 
-from connectors.aws_collect import process_aws_response, DBEntry, CollectTask
+from connectors.aws_collect import (
+    CollectTask,
+    DBEntry,
+    load_task_response,
+    process_aws_response,
+)
 
 
 Sample = namedtuple('Sample', ['task', 'response', 'entities', 'subrequests'])
@@ -12,6 +25,25 @@ Sample = namedtuple('Sample', ['task', 'response', 'entities', 'subrequests'])
 class AnyDate(object):
     def __eq__(self, other):
         return isinstance(other, datetime)
+
+
+class ErroringClient:
+    meta = SimpleNamespace(region_name='us-east-1')
+
+    def __init__(self, error):
+        self.error = error
+
+    def can_paginate(self, method_name):
+        return False
+
+    async def list_account_aliases(self, **kwargs):
+        raise self.error
+
+
+async def collect_task_responses(error):
+    client = ErroringClient(error)
+    task = CollectTask('1', 'iam.list_account_aliases', {})
+    return [response async for response in load_task_response(client, task)]
 
 
 TEST_DATA_REQUEST_RESPONSE = [
@@ -230,3 +262,29 @@ def test_process_aws_response():
                 child_requests.append(r)
         assert sample.entities == db_entries
         assert sample.subrequests == child_requests
+
+
+def test_load_task_response_does_not_record_network_errors():
+    network_errors = (
+        ConnectTimeoutError(endpoint_url='https://iam.amazonaws.com'),
+        EndpointConnectionError(endpoint_url='https://iam.amazonaws.com'),
+        ServerTimeoutError(),
+    )
+
+    for error in network_errors:
+        assert asyncio.run(collect_task_responses(error)) == []
+
+
+def test_load_task_response_records_aws_api_errors():
+    error = ClientError(
+        {
+            'Error': {'Code': 'AccessDenied', 'Message': 'denied'},
+            'ResponseMetadata': {'HTTPStatusCode': 403},
+        },
+        'ListAccountAliases',
+    )
+
+    responses = asyncio.run(collect_task_responses(error))
+
+    assert len(responses) == 1
+    assert responses[0].entity['error']['exceptionName'] == 'ClientError'
