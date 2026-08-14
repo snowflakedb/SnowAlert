@@ -1799,22 +1799,13 @@ async def load_task_response(client, task):
             ):
                 yield x
 
-    # todo: double check whether these should be retried instead of recording errors
-    except (
-        ClientError,
-        ConnectTimeoutError,
-        DataNotFoundError,
-        EndpointConnectionError,
-        ServerTimeoutError,
-    ) as e:
-        if isinstance(
-            e, (ConnectTimeoutError, EndpointConnectionError, ServerTimeoutError)
-        ):
-            log.error(
-                f'{task.method} failed for {task.account_id} in '
-                f'{client.meta.region_name}: ',
-                e,
-            )
+    except (ConnectTimeoutError, EndpointConnectionError, ServerTimeoutError) as e:
+        log.error(
+            f'{task.method} failed for {task.account_id} in '
+            f'{client.meta.region_name}: ',
+            e,
+        )
+    except (ClientError, DataNotFoundError) as e:
         for x in process_aws_response(task, e):
             yield x
 
