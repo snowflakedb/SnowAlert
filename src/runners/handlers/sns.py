@@ -1,5 +1,6 @@
 import json
 import boto3
+from os import environ
 
 from botocore.exceptions import ClientError
 from runners.helpers import log
