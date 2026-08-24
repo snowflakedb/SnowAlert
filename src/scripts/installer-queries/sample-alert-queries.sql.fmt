@@ -57,6 +57,7 @@ SELECT 'Activity by ACCOUNTADMIN Role' AS title
 FROM TABLE(information_schema.query_history())
 WHERE 1=1
   AND role_name = 'ACCOUNTADMIN'
+  AND start_time >= DATEADD('MINUTE', -90, CURRENT_TIMESTAMP())
 ;
 
 CREATE OR REPLACE VIEW rules.SNOWFLAKE_RESOURCE_CREATION_{ALERT_QUERY_POSTFIX} COPY GRANTS
@@ -80,4 +81,5 @@ SELECT 'Resource created in Snowflake' AS title
 FROM table(information_schema.query_history())
 WHERE 1=1
   AND RLIKE(query_text, '^create(.)*', 'is') = true
+  AND start_time >= DATEADD('MINUTE', -90, CURRENT_TIMESTAMP())
 ;

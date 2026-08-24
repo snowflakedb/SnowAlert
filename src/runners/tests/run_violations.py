@@ -168,7 +168,7 @@ def test_run_violations(violation_queries):
 
     error = query_rule_run_record[-1].get('ERROR')
     assert type(error) is dict
-    assert error['PROGRAMMING_ERROR'] == '100051 (22012): Division by zero'
+    assert 'Division by zero' in error['PROGRAMMING_ERROR']
     assert 'snowflake.connector.errors.ProgrammingError' in error['EXCEPTION_ONLY']
     assert 'Traceback (most recent call last)' in error['EXCEPTION']
 

@@ -15,7 +15,7 @@ and will be used by those managing the rules, separate from the SNOWALERT role
 which will be used by the runners.
 """
 
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from configparser import ConfigParser
 import fire
 from getpass import getpass
@@ -182,11 +182,17 @@ def login(configuration=None):
         username = config.get('username')
         password = config.get('password')
         region = config.get('region')
+        private_key_path = config.get('private_key_path')
+        private_key_str = config.get('private_key')
+        private_key_passphrase = config.get('private_key_passphrase')
     else:
         account = None
         username = None
         password = None
         region = None
+        private_key_path = None
+        private_key_str = None
+        private_key_passphrase = None
 
     print("Starting installer for SnowAlert.")
 
@@ -214,9 +220,9 @@ def login(configuration=None):
     else:
         print(f"Loaded username: '{username}'")
 
-    if not password:
+    if not password and not private_key_path and not private_key_str:
         password = getpass("Password [leave blank for SSO for authentication]: ")
-    else:
+    elif password:
         print(f"Loaded password: {'*' * len(password)}")
 
     connect_kwargs = {
@@ -226,7 +232,37 @@ def login(configuration=None):
         'protocol': config.get('protocol') or PROTOCOL,
     }
 
-    if password == '':
+    if private_key_path or private_key_str:
+        from cryptography.hazmat.primitives.serialization import (
+            load_pem_private_key,
+            Encoding,
+            PrivateFormat,
+            NoEncryption,
+        )
+        from cryptography.hazmat.backends import default_backend
+
+        if private_key_path:
+            with open(path.expanduser(private_key_path), 'rb') as f:
+                pem_bytes = f.read()
+        else:
+            if private_key_str.startswith('LS0t'):  # base64-encoded PEM
+                pem_bytes = b64decode(private_key_str)
+            elif private_key_str.startswith('-----'):  # raw PEM string
+                pem_bytes = private_key_str.encode()
+            else:  # bare key body without headers
+                body = '\n'.join(re.findall(r'.{64}', private_key_str))
+                pem_bytes = f'-----BEGIN PRIVATE KEY-----\n{body}\n-----END PRIVATE KEY-----\n'.encode()
+        pkey = load_pem_private_key(
+            pem_bytes,
+            password=(
+                private_key_passphrase.encode() if private_key_passphrase else None
+            ),
+            backend=default_backend(),
+        )
+        connect_kwargs['private_key'] = pkey.private_bytes(
+            Encoding.DER, PrivateFormat.PKCS8, NoEncryption()
+        )
+    elif password == '':
         connect_kwargs['authenticator'] = 'externalbrowser'
     else:
         connect_kwargs['password'] = password
@@ -382,9 +418,11 @@ def genrsa(passwd: Optional[str] = None) -> Tuple[bytes, bytes]:
         key.private_bytes(
             cs.Encoding.PEM,
             cs.PrivateFormat.PKCS8,
-            encryption_algorithm=cs.BestAvailableEncryption(passwd.encode('utf-8'))
-            if passwd
-            else cs.NoEncryption(),
+            encryption_algorithm=(
+                cs.BestAvailableEncryption(passwd.encode('utf-8'))
+                if passwd
+                else cs.NoEncryption()
+            ),
         ),
         key.public_key().public_bytes(
             cs.Encoding.PEM, cs.PublicFormat.SubjectPublicKeyInfo
@@ -483,11 +521,13 @@ def do_kms_encrypt(kms, *args: str) -> List[str]:
         key = result['KeyMetadata']['KeyId']
 
     return [
-        b64encode(kms.encrypt(KeyId=key, Plaintext=s).get('CiphertextBlob')).decode(
-            'utf-8'
+        (
+            b64encode(kms.encrypt(KeyId=key, Plaintext=s).get('CiphertextBlob')).decode(
+                'utf-8'
+            )
+            if s
+            else ""
         )
-        if s
-        else ""
         for s in args
     ]
 
@@ -526,6 +566,9 @@ def main(
             'accountname': config_account or environ.get('SNOWFLAKE_ACCOUNT'),
             'username': config_username or environ.get('SA_ADMIN_USER'),
             'password': config_password or environ.get('SA_ADMIN_PASSWORD'),
+            'private_key_path': environ.get('SA_ADMIN_PRIVATE_KEY_PATH'),
+            'private_key': environ.get('SA_ADMIN_PRIVATE_KEY'),
+            'private_key_passphrase': environ.get('SA_ADMIN_PRIVATE_KEY_PASSPHRASE'),
         }
     )
 
@@ -537,18 +580,20 @@ def main(
     if uninstall:
         do_attempt(
             "Uninstalling",
-            [
-                f'DROP USER {USER}',
-                f'DROP ROLE {ROLE}',
-                f'DROP WAREHOUSE {WAREHOUSE}',
-                f'DROP DATABASE {DATABASE}',
-            ]
-            if admin_role == 'accountadmin'
-            else [
-                f'DROP SCHEMA {DATA_SCHEMA}',
-                f'DROP SCHEMA {RULES_SCHEMA}',
-                f'DROP SCHEMA {RESULTS_SCHEMA}',
-            ],
+            (
+                [
+                    f'DROP USER {USER}',
+                    f'DROP ROLE {ROLE}',
+                    f'DROP WAREHOUSE {WAREHOUSE}',
+                    f'DROP DATABASE {DATABASE}',
+                ]
+                if admin_role == 'accountadmin'
+                else [
+                    f'DROP SCHEMA {DATA_SCHEMA}',
+                    f'DROP SCHEMA {RULES_SCHEMA}',
+                    f'DROP SCHEMA {RESULTS_SCHEMA}',
+                ]
+            ),
         )
         return
 
